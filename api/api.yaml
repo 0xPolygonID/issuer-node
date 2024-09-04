@@ -3,7 +3,7 @@ info:
   title: Privado ID - Issuer
   description: |
     Documentation for the Issuer Node
-  version: "1"
+  version: "2"
 
 tags:
   - name: Identity
@@ -853,7 +853,7 @@ paths:
       summary: Get Credentials QR code
       operationId: GetCredentialQrCode
       description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. |
-        Response can be in two formats `raw` or `link`. Default is `link`. Raw is the raw QR code and link is a QR code with a link to the raw content.
+        Response can be in 3 formats `universalLink`, `deepLink` or `raw`. Default is `universalLink`. Raw is the raw QR code and link is a QR code with a link to the raw content.
       tags:
         - Credentials
       security:
