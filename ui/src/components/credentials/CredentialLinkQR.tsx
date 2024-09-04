@@ -99,7 +99,7 @@ export function CredentialLinkQR() {
     } else {
       return (
         <CredentialQR
-          qrCodeLink={authQRCode.data.qrCodeLink}
+          qrCodeLink={authQRCode.data.deepLink}
           qrCodeRaw={authQRCode.data.qrCodeRaw}
           schemaType={authQRCode.data.linkDetail.schemaType}
           subTitle={
