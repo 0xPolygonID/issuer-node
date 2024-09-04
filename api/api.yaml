@@ -854,6 +854,7 @@ paths:
       operationId: GetCredentialQrCode
       description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. |
         Response can be in 3 formats `universalLink`, `deepLink` or `raw`. Default is `universalLink`. Raw is the raw QR code and link is a QR code with a link to the raw content.
+        Regardless of the type, the field will always be called universalLink.
       tags:
         - Credentials
       security:
@@ -1278,21 +1279,6 @@ components:
       scheme: basic
 
   schemas:
-    KeyValue:
-      type: object
-      required:
-        - key
-        - value
-      properties:
-        key:
-          type: string
-        value:
-          type: string
-
-    Config:
-      type: array
-      items:
-        $ref: '#/components/schemas/KeyValue'
     Health:
       type: object
       x-omitempty: false
@@ -1427,20 +1413,6 @@ components:
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
-    authCoreClaimRevocationStatus:
-      type: object
-      required:
-        - ID
-        - type
-        - revocationNonce
-      properties:
-        ID:
-          type: string
-        type:
-          type: string
-        revocationNonce:
-          type: integer
-
     IdentityState:
       type: object
       required:
@@ -1542,6 +1514,7 @@ components:
           type: string
           enum: [ created, pending, published, failed ]
           example: published
+
     ConnectionsPaginated:
       type: object
       required: [ items, meta ]
@@ -1902,11 +1875,6 @@ components:
         connection:
           $ref: '#/components/schemas/AuthenticationConnection'
 
-    GetClaimsResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/GetCredentialResponse'
-
     GetCredentialResponse:
       type: object
       required:
@@ -1965,50 +1933,6 @@ components:
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:
           $ref: '#/components/schemas/UUIDString'
-
-    GetClaimQrCodeResponse:
-      type: object
-      required:
-        - body
-        - id
-        - typ
-        - type
-        - thid
-        - from
-        - to
-      properties:
-        id:
-          type: string
-        typ:
-          type: string
-        type:
-          type: string
-        thid:
-          type: string
-        body:
-          type: object
-          required:
-            - url
-            - credentials
-          properties:
-            url:
-              type: string
-            credentials:
-              type: array
-              items:
-                type: object
-                required:
-                  - id
-                  - description
-                properties:
-                  id:
-                    type: string
-                  description:
-                    type: string
-        from:
-          type: string
-        to:
-          type: string
 
     CredentialSchema:
       type: object
@@ -2094,10 +2018,6 @@ components:
                   type: string
                 value:
                   type: string
-
-    ByteArray:
-      type: string
-      format: byte
 
     #Agent
     AgentResponse:
@@ -2270,21 +2190,6 @@ components:
         linkDetail:
           $ref: '#/components/schemas/LinkSimple'
 
-    GetLinkQrCodeResponse:
-      type: object
-      required:
-        - linkDetail
-      properties:
-        qrCode:
-          type: string
-          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
-        status:
-          type: string
-          example: done | pending | pendingPublish
-        linkDetail:
-          $ref: '#/components/schemas/LinkSimple'
-
-
     IssuerDescription:
       type: object
       required:
@@ -2328,6 +2233,7 @@ components:
           items:
             type: string
           example: [ "BJJSignature2021" ]
+
     CreateConnectionRequest:
       type: object
       required: [ userDID, userDoc, issuerDoc ]
