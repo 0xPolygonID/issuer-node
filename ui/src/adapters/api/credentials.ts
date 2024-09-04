@@ -647,17 +647,20 @@ export async function createAuthQRCode({
 }
 
 type IssuedQRCodeInput = {
-  qrCodeLink: string;
   schemaType: string;
+  universalLink: string;
 };
 
 const issuedQRCodeParser = getStrictParser<IssuedQRCodeInput, IssuedQRCode>()(
   z
     .object({
-      qrCodeLink: z.string(),
       schemaType: z.string(),
+      universalLink: z.string(),
     })
-    .transform(({ qrCodeLink, schemaType }) => ({ qrCode: qrCodeLink, schemaType: schemaType }))
+    .transform(({ schemaType, universalLink }) => ({
+      qrCode: universalLink,
+      schemaType: schemaType,
+    }))
 );
 
 export async function getIssuedQRCodes({
@@ -679,7 +682,7 @@ export async function getIssuedQRCodes({
           Authorization: buildAuthorizationHeader(env),
         },
         method: "GET",
-        params: { type: "link" },
+        params: { type: "deepLink" },
         signal,
         url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/${credentialID}/qrcode`,
       }),
