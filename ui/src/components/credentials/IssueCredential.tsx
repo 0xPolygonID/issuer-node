@@ -22,12 +22,7 @@ import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ApiSchema, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import {
-  CREDENTIALS_TABS,
-  DID_SEARCH_PARAM,
-  ISSUE_CREDENTIAL,
-  SCHEMA_SEARCH_PARAM,
-} from "src/utils/constants";
+import { DID_SEARCH_PARAM, ISSUE_CREDENTIAL, SCHEMA_SEARCH_PARAM } from "src/utils/constants";
 import { notifyParseError } from "src/utils/error";
 import {
   extractCredentialSubjectAttribute,
@@ -182,8 +177,8 @@ export function IssueCredential() {
         });
         if (response.success) {
           navigate(
-            generatePath(ROUTES.credentials.path, {
-              tabID: CREDENTIALS_TABS[0].tabID,
+            generatePath(ROUTES.credentialDetails.path, {
+              credentialID: response.data.id,
             })
           );
 
