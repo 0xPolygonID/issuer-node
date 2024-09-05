@@ -13,6 +13,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
+const (
+	// AuthorizationRequestQRCallbackURL is the URL to call back after the user has authenticated
+	AuthorizationRequestQRCallbackURL = "%s/v2/authentication/callback?sessionID=%s"
+)
+
 // DIDCreationOptions represents options for DID creation
 type DIDCreationOptions struct {
 	Method               core.DIDMethod                  `json:"method"`

@@ -544,7 +544,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.AuthorizationRequestMessageType,
 		Body: protocol.AuthorizationRequestMessageBody{
-			CallbackURL: fmt.Sprintf("%s/v2/authentication/callback?sessionID=%s", serverURL, sessionID),
+			CallbackURL: fmt.Sprintf(ports.AuthorizationRequestQRCallbackURL, serverURL, sessionID),
 			Reason:      authReason,
 			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
@@ -1228,7 +1228,7 @@ func newDIDDocument(serverURL string, issuerDID w3c.DID) verifiable.DIDDocument 
 			verifiable.Service{
 				ID:              fmt.Sprintf("%s#%s", issuerDID, verifiable.Iden3CommServiceType),
 				Type:            verifiable.Iden3CommServiceType,
-				ServiceEndpoint: fmt.Sprintf("%s/v2/agent", serverURL),
+				ServiceEndpoint: fmt.Sprintf(ports.AgentUrl, serverURL),
 			},
 		},
 	}

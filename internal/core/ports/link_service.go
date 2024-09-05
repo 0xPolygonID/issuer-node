@@ -29,12 +29,12 @@ type CreateQRCodeResponse struct {
 type LinkStatus string
 
 const (
-	LinkAll          LinkStatus = "all"      // LinkAll : All links
-	LinkActive       LinkStatus = "active"   // LinkActive : Active links
-	LinkInactive     LinkStatus = "inactive" // LinkInactive : Inactive links
-	LinkExceeded     LinkStatus = "exceeded" // LinkExceeded : Expired links or with more credentials issued than expected
-	AgentUrl                    = "%s/v2/agent"
-	LinksCallbackURL            = "%s/v2/identities/%s/credentials/links/callback?sessionID=%s&linkID=%s"
+	LinkAll          LinkStatus = "all"                                                                   // LinkAll : All links
+	LinkActive       LinkStatus = "active"                                                                // LinkActive : Active links
+	LinkInactive     LinkStatus = "inactive"                                                              // LinkInactive : Inactive links
+	LinkExceeded     LinkStatus = "exceeded"                                                              // LinkExceeded : Expired links or with more credentials issued than expected
+	AgentUrl                    = "%s/v2/agent"                                                           // AgentUrl : Agent URL
+	LinksCallbackURL            = "%s/v2/identities/%s/credentials/links/callback?sessionID=%s&linkID=%s" // LinksCallbackURL : Links callback URL
 )
 
 // LinkTypeReqFromString constructs a LinkStatus from a string
