@@ -13,6 +13,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -288,7 +289,7 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 		return GetCredential500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
 	}
 
-	return GetCredential200JSONResponse(toGetCredential200Response(w3c)), nil
+	return GetCredential200JSONResponse(toGetCredential200Response(w3c, claim)), nil
 }
 
 // GetCredentialQrCode returns a GetCredentialQrCodeResponseObject universalLink, raw or deeplink type based on query parameter `type`
@@ -361,45 +362,46 @@ func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
 	}
 }
 
-func toGetCredential200Response(claim *verifiable.W3CCredential) GetCredentialResponse {
+func toGetCredential200Response(w3cCredential *verifiable.W3CCredential, cred *domain.Claim) GetCredentialResponse {
 	var claimExpiration, claimIssuanceDate *TimeUTC
-	if claim.Expiration != nil {
-		claimExpiration = common.ToPointer(TimeUTC(*claim.Expiration))
+	if w3cCredential.Expiration != nil {
+		claimExpiration = common.ToPointer(TimeUTC(*w3cCredential.Expiration))
 	}
-	if claim.IssuanceDate != nil {
-		claimIssuanceDate = common.ToPointer(TimeUTC(*claim.IssuanceDate))
+	if w3cCredential.IssuanceDate != nil {
+		claimIssuanceDate = common.ToPointer(TimeUTC(*w3cCredential.IssuanceDate))
 	}
 
 	var refreshService *RefreshService
-	if claim.RefreshService != nil {
+	if w3cCredential.RefreshService != nil {
 		refreshService = &RefreshService{
-			Id:   claim.RefreshService.ID,
-			Type: RefreshServiceType(claim.RefreshService.Type),
+			Id:   w3cCredential.RefreshService.ID,
+			Type: RefreshServiceType(w3cCredential.RefreshService.Type),
 		}
 	}
 
 	var displayMethod *DisplayMethod
-	if claim.DisplayMethod != nil {
+	if w3cCredential.DisplayMethod != nil {
 		displayMethod = &DisplayMethod{
-			Id:   claim.DisplayMethod.ID,
-			Type: DisplayMethodType(claim.DisplayMethod.Type),
+			Id:   w3cCredential.DisplayMethod.ID,
+			Type: DisplayMethodType(w3cCredential.DisplayMethod.Type),
 		}
 	}
 
 	return GetCredentialResponse{
-		Context: claim.Context,
+		Context: w3cCredential.Context,
 		CredentialSchema: CredentialSchema{
-			claim.CredentialSchema.ID,
-			claim.CredentialSchema.Type,
+			w3cCredential.CredentialSchema.ID,
+			w3cCredential.CredentialSchema.Type,
 		},
-		CredentialStatus:  claim.CredentialStatus,
-		CredentialSubject: claim.CredentialSubject,
+		CredentialStatus:  w3cCredential.CredentialStatus,
+		CredentialSubject: w3cCredential.CredentialSubject,
 		ExpirationDate:    claimExpiration,
-		Id:                claim.ID,
+		Id:                w3cCredential.ID,
 		IssuanceDate:      claimIssuanceDate,
-		Issuer:            claim.Issuer,
-		Proof:             claim.Proof,
-		Type:              claim.Type,
+		Issuer:            w3cCredential.Issuer,
+		Proof:             w3cCredential.Proof,
+		ProofTypes:        getProofs(cred),
+		Type:              w3cCredential.Type,
 		RefreshService:    refreshService,
 		DisplayMethod:     displayMethod,
 	}

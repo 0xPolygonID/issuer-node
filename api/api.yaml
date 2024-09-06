@@ -1898,6 +1898,7 @@ components:
         - issuer
         - credentialSchema
         - proof
+        - proofTypes
       properties:
         id:
           type: string
@@ -1927,6 +1928,11 @@ components:
         credentialSchema:
           $ref: '#/components/schemas/CredentialSchema'
           x-omitempty: false
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
         proof:
           type: null
         displayMethod:

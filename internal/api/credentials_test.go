@@ -715,6 +715,7 @@ func TestServer_GetCredential(t *testing.T) {
 	fixture.CreateIdentity(t, identity)
 
 	claim := fixture.NewClaim(t, identity.Identifier)
+	claim.MtProof = true
 	fixture.CreateClaim(t, claim)
 
 	query := repositories.ExecQueryParams{
@@ -820,6 +821,7 @@ func TestServer_GetCredential(t *testing.T) {
 						Id:   "https://refresh-service.xyz",
 						Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
 					},
+					ProofTypes: []string{"SparseMerkleTreeProof"},
 				},
 			},
 		},
@@ -1548,6 +1550,7 @@ func validateCredential(t *testing.T, resp, tc GetCredentialResponse) {
 		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
 		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
 	}
+	assert.Equal(t, resp.ProofTypes, tc.ProofTypes)
 
 	assert.NoError(t, mapstructure.Decode(resp.CredentialStatus, &responseCredentialStatus))
 	responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
