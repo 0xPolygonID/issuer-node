@@ -15,9 +15,6 @@ export type RefreshService = {
 };
 
 export type Proof = {
-  coreClaim: string;
-  issuerData: Record<string, unknown>;
-  signature: string;
   type: CredentialProofType;
 };
 

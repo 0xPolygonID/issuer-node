@@ -139,9 +139,6 @@ export const credentialDetailParser = getStrictParser<CredentialDetailInput, Cre
     issuer: z.string(),
     proof: z.array(
       z.object({
-        coreClaim: z.string(),
-        issuerData: z.record(z.unknown()),
-        signature: z.string(),
         type: z.nativeEnum(CredentialProofType),
       })
     ),
