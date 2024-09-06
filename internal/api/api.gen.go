@@ -354,6 +354,7 @@ type GetCredentialResponse struct {
 	IssuanceDate      *TimeUTC               `json:"issuanceDate"`
 	Issuer            string                 `json:"issuer"`
 	Proof             interface{}            `json:"proof"`
+	ProofTypes        []string               `json:"proofTypes"`
 	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
 	Type              []string               `json:"type"`
 }
