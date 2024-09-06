@@ -2,7 +2,19 @@ openapi: 3.0.0
 info:
   title: Privado ID - Issuer
   description: |
-    Documentation for the Issuer Node
+    The Issuer Node Core API is ideal for users who need multiple identities and for integrator profiles, who want to 
+    create solutions based on Privado ID functionalities and might be interested in having access to low level 
+    information such as Merkle Trees.
+    The Issuer Node API provide the following functionalities:
+    * Create and retrieve Identities
+    * Create a Verifiable Credential (VC)
+    * Retrieve a Verifiable Credential or a list of Verifiable Credentials
+    * Generate JSON to create a QR Code and use that to accept credentials in a wallet
+    * Revoke a Verifiable Credential
+    * Check revocation status of a Verifiable Credential
+    * Retrieve the Revocation Status of a Verifiable Credential
+    * Call Agent Endpoint using the Wallet App
+    * Handle connections.
   version: "1"
 
 tags:
