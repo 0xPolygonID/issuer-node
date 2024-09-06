@@ -95,6 +95,15 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 			}, nil
 		}
 
+		var customErr *services.PublishingStateError
+		if errors.As(err, &customErr) {
+			return CreateIdentity400JSONResponse{
+				N400JSONResponse{
+					Message: customErr.Error(),
+				},
+			}, nil
+		}
+
 		return nil, err
 	}
 
