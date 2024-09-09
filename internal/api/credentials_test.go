@@ -821,7 +821,7 @@ func TestServer_GetCredential(t *testing.T) {
 						Id:   "https://refresh-service.xyz",
 						Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
 					},
-					ProofTypes: []string{"SparseMerkleTreeProof"},
+					ProofTypes: []string{"Iden3SparseMerkleTreeProof"},
 				},
 			},
 		},
