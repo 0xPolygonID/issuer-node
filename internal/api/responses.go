@@ -96,7 +96,7 @@ func getLinkResponse(link domain.Link) Link {
 func getLinkProofs(link domain.Link) []string {
 	proofs := make([]string, 0)
 	if link.CredentialMTPProof {
-		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
+		proofs = append(proofs, string(verifiable.Iden3SparseMerkleTreeProofType))
 	}
 
 	if link.CredentialSignatureProof {
