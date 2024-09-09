@@ -40,7 +40,7 @@ export type CredentialDetail = {
   id: string;
   issuanceDate: string;
   issuer: string;
-  proof: Proof[];
+  proofTypes: CredentialProofType[];
   refreshService: RefreshService | null;
 };
 

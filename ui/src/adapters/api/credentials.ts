@@ -36,19 +36,17 @@ import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/
 import { getSchemaHash } from "src/utils/iden3";
 import { List, Resource } from "src/utils/types";
 
-type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
-
-const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
+const proofTypeParser = getStrictParser<CredentialProofType[], ProofType[]>()(
   z
-    .array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
+    .array(z.nativeEnum(CredentialProofType))
     .min(1)
     .transform((values) =>
       values.map((value) => {
         switch (value) {
-          case "BJJSignature2021": {
+          case CredentialProofType.BJJSignature2021: {
             return "SIG";
           }
-          case "SparseMerkleTreeProof": {
+          case CredentialProofType.Iden3SparseMerkleTreeProof: {
             return "MTP";
           }
         }
@@ -87,7 +85,7 @@ type CredentialInput = Omit<
 > & {
   createdAt: string;
   expiresAt: string | null;
-  proofTypes: ProofTypeInput[];
+  proofTypes: CredentialProofType[];
   refreshService?: RefreshService | null;
 };
 
@@ -137,11 +135,7 @@ export const credentialDetailParser = getStrictParser<CredentialDetailInput, Cre
     id: z.string(),
     issuanceDate: z.string(),
     issuer: z.string(),
-    proof: z.array(
-      z.object({
-        type: z.nativeEnum(CredentialProofType),
-      })
-    ),
+    proofTypes: z.array(z.nativeEnum(CredentialProofType)),
     refreshService: z
       .object({ id: z.string(), type: z.literal("Iden3RefreshService2023") })
       .nullable()
@@ -187,7 +181,7 @@ export async function getCredential({
       id,
       issuanceDate,
       issuer,
-      proof,
+      proofTypes,
     } = credentialDetail.data;
 
     const revocationStatus = await getRevocationStatus({
@@ -200,8 +194,6 @@ export async function getCredential({
     if (!revocationStatus.success) {
       return revocationStatus;
     }
-
-    const proofTypes = proof.map(({ type }) => type);
 
     const schemaHash = getSchemaHash({
       id: `${context.at(-1)}#${credentialSubject.type}`,
@@ -421,7 +413,7 @@ type LinkInput = Omit<Link, "proofTypes" | "createdAt" | "credentialExpiration" 
   createdAt: string;
   credentialExpiration: string | null;
   expiration: string | null;
-  proofTypes: ProofTypeInput[];
+  proofTypes: CredentialProofType[];
 };
 
 const linkParser = getStrictParser<LinkInput, Link>()(
@@ -600,7 +592,7 @@ export async function createLink({
 }
 
 type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
-  linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
+  linkDetail: { proofTypes: CredentialProofType[]; schemaType: string };
 };
 
 export type AuthQRCode = {
