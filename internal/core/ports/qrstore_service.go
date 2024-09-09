@@ -7,6 +7,13 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	// QRStoreUrl is the URL to the QR store service
+	QRStoreUrl = "iden3comm://?request_uri=%s/v2/qr-store?id=%s"
+	// UniversalLinkURL - is the URL to the Universal Link
+	UniversalLinkURL = "%s#request_uri=%s/v2/qr-store?id=%s"
+)
+
 // QrStoreService is the interface that provides methods to store and retrieve the body of QR codes and to provide support
 // to the QR url shortener functionality.
 type QrStoreService interface {

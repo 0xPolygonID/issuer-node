@@ -353,7 +353,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 					ID:          claim.ID.String(),
 				},
 			},
-			URL: fmt.Sprintf("%s/v2/agent", strings.TrimSuffix(hostURL, "/")),
+			URL: fmt.Sprintf(ports.AgentUrl, strings.TrimSuffix(hostURL, "/")),
 		},
 		From:     claim.Issuer,
 		ID:       credID.String(),

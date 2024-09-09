@@ -40,10 +40,6 @@ var (
 	ErrLinkMaxExceeded = errors.New("cannot issue a credential for an expired link")
 	// ErrLinkInactive - link inactive
 	ErrLinkInactive = errors.New("cannot issue a credential for an inactive link")
-	// ErrClaimAlreadyIssued - claim already issued
-	ErrClaimAlreadyIssued = errors.New("the claim was already issued for the user")
-	// ErrUnsupportedCredentialStatusType - unsupported credential status type
-	ErrUnsupportedCredentialStatusType = errors.New("unsupported credential status type")
 )
 
 // Link - represents a link in the issuer node
@@ -187,18 +183,13 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.AuthorizationRequestMessageType,
 		Body: protocol.AuthorizationRequestMessageBody{
-			CallbackURL: fmt.Sprintf("%s/v2/identities/%s/credentials/links/callback?sessionID=%s&linkID=%s", serverURL, issuerDID.String(), sessionID, linkID.String()),
+			CallbackURL: fmt.Sprintf(ports.LinksCallbackURL, serverURL, issuerDID.String(), sessionID, linkID.String()),
 			Reason:      authReason,
 			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
 	}
 
 	err = ls.sessionManager.Set(ctx, sessionID, *qrCode)
-	if err != nil {
-		return nil, err
-	}
-
-	err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStatePending())
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +214,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 }
 
 // IssueOrFetchClaim - Create a new claim
-func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error) {
+func (ls *Link) IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
 		log.Error(ctx, "cannot fetch the link", "err", err)
@@ -237,12 +228,7 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 	}
 
 	if err := ls.validate(ctx, link); err != nil {
-		setLinkError := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(err))
-		if setLinkError != nil {
-			log.Error(ctx, "cannot set the state", "err", setLinkError)
-			return nil, setLinkError
-		}
-
+		log.Error(ctx, "cannot validate the link", "err", err)
 		return nil, err
 	}
 
@@ -314,11 +300,11 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 
 	credentialIssued.ID = credentialIssuedID
 	if link.CredentialSignatureProof {
-		credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v2/agent", hostURL), credentialIssued)
+		credOffer, err := notifications.NewOfferMsg(fmt.Sprintf(ports.AgentUrl, hostURL), credentialIssued)
 		return credOffer, err
 	} else {
 		if credentialIssued.MTPProof.Bytes != nil {
-			credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v2/agent", hostURL), credentialIssued)
+			credOffer, err := notifications.NewOfferMsg(fmt.Sprintf(ports.AgentUrl, hostURL), credentialIssued)
 			return credOffer, err
 		}
 		log.Info(ctx, "credential issued without MTP proof. Publishing state have to be done", "credential", credentialIssued.ID.String())
@@ -346,7 +332,7 @@ func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 
-	offer, err := ls.IssueOrFetchClaim(ctx, sessionID.String(), *issuerDID, *userDID, linkID, hostURL)
+	offer, err := ls.IssueOrFetchClaim(ctx, *issuerDID, *userDID, linkID, hostURL)
 	if err != nil {
 		log.Error(ctx, "error issuing claim", "err", err)
 		return nil, err
