@@ -124,7 +124,7 @@ func getProofs(credential *domain.Claim) []string {
 	}
 
 	if credential.MtProof {
-		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
+		proofs = append(proofs, string(verifiable.Iden3SparseMerkleTreeProofType))
 	}
 
 	return proofs
