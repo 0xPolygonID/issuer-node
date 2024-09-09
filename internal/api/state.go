@@ -9,6 +9,7 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
@@ -26,6 +27,12 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 		if errors.Is(err, gateways.ErrNoStatesToProcess) || errors.Is(err, gateways.ErrStateIsBeingProcessed) {
 			return PublishIdentityState200JSONResponse{Message: err.Error()}, nil
 		}
+
+		var customErr *services.PublishingStateError
+		if errors.As(err, &customErr) {
+			return PublishIdentityState500JSONResponse{N500JSONResponse{Message: customErr.Error()}}, nil
+		}
+
 		return PublishIdentityState500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 

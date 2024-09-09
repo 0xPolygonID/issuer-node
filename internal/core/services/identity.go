@@ -395,7 +395,10 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 					if i.ignoreRHSErrors {
 						errIn = nil
 					} else {
-						return errIn
+						errIn = &PublishingStateError{
+							Message: "error publishing revocation status:" + errIn.Error(),
+						}
+						break
 					}
 				}
 			}
@@ -584,7 +587,7 @@ func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, cur
 		var err error
 		claims[j].IdentityState = currentState.State
 
-		affected, err := i.claimsRepository.UpdateState(ctx, i.storage.Pgx, &claims[j])
+		affected, err := i.claimsRepository.UpdateState(ctx, conn, &claims[j])
 		if err != nil {
 			return fmt.Errorf("can't update claim: %w", err)
 		}
@@ -812,8 +815,10 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 				},
 			})
 			if err != nil {
-				log.Error(ctx, "publishing state to RHS", "err", err)
-				return nil, nil, err
+				log.Error(ctx, "error publishing genesis state", "err", err)
+				return nil, nil, &PublishingStateError{
+					Message: "error publishing genesis state:" + err.Error(),
+				}
 			}
 		}
 	}
@@ -838,10 +843,6 @@ func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.I
 	copy(ethAddr[:], address.Bytes())
 
 	currentState := core.GenesisFromEthAddress(ethAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	didType, err := core.BuildDIDType(didOptions.Method, didOptions.Blockchain, didOptions.Network)
 	if err != nil {
 		return nil, nil, err
