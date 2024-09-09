@@ -33,6 +33,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/urn"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
@@ -1142,7 +1143,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 		return nil, err
 	}
 
-	authCred.ID = fmt.Sprintf("%s/api/v2/credentials/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
+	authCred.ID = string(urn.FromUUID(authClaimID))
 	cs, err := i.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)
