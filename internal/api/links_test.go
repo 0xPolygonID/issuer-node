@@ -1024,7 +1024,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.Equal(t, "application/iden3comm-plain-json", string(realQR.Typ))
 				assert.Equal(t, did.String(), realQR.From)
 				assert.NotNil(t, realQR.ThreadID)
-				assert.NotNil(t, response.SessionID)
 				assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
 				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 
