@@ -372,8 +372,8 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 		return nil, err
 	}
 	return &ports.GetCredentialQrCodeResponse{
-		DeepLink:      c.qrService.ToDeepLink(hostURL, qrID),
-		UniversalLink: c.qrService.ToUniversalLink(c.cfg.BaseUrl, hostURL, qrID),
+		DeepLink:      c.qrService.ToDeepLink(hostURL, qrID, nil),
+		UniversalLink: c.qrService.ToUniversalLink(c.cfg.BaseUrl, hostURL, qrID, nil),
 		QrRaw:         string(raw),
 		SchemaType:    getCredentialType(*claim),
 		QrID:          qrID,

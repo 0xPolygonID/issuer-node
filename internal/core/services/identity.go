@@ -472,13 +472,7 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
-	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
-	if err != nil {
-		log.Warn(ctx, "authentication session not found")
-		return nil, err
-	}
-
+func (i *identity) AuthenticateWithRequest(ctx context.Context, sessionID *uuid.UUID, authReq protocol.AuthorizationRequestMessage, message string, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
 	arm, err := i.verifier.FullVerify(ctx, message, authReq, pubsignals.WithAcceptedStateTransitionDelay(transitionDelay))
 	if err != nil {
 		log.Error(ctx, "authentication failed", "err", err)
@@ -522,7 +516,10 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 			return err
 		}
 
-		return i.connectionsRepository.SaveUserAuthentication(ctx, i.storage.Pgx, connID, sessionID, conn.CreatedAt)
+		if sessionID == nil {
+			sessionID = common.ToPointer(uuid.New())
+		}
+		return i.connectionsRepository.SaveUserAuthentication(ctx, i.storage.Pgx, connID, *sessionID, conn.CreatedAt)
 	}); err != nil {
 		return nil, err
 	}
@@ -533,8 +530,16 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 			log.Error(ctx, "sending connection notification", "err", err.Error(), "connection", connID)
 		}
 	}
-
 	return arm, nil
+}
+
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
+	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
+	if err != nil {
+		log.Warn(ctx, "authentication session not found")
+		return nil, err
+	}
+	return i.AuthenticateWithRequest(ctx, &sessionID, authReq, message, serverURL)
 }
 
 func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (*ports.CreateAuthenticationQRCodeResponse, error) {
@@ -566,7 +571,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		return nil, err
 	}
 	return &ports.CreateAuthenticationQRCodeResponse{
-		QRCodeURL: i.qrService.ToDeepLink(serverURL, linkID),
+		QRCodeURL: i.qrService.ToDeepLink(serverURL, linkID, nil),
 		SessionID: sessionID,
 		QrID:      linkID,
 	}, nil

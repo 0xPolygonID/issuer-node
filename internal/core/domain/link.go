@@ -10,6 +10,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
+	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
@@ -62,21 +63,22 @@ type LinkCoreDID w3c.DID
 
 // Link - represents a credential offer
 type Link struct {
-	ID                       uuid.UUID
-	IssuerDID                LinkCoreDID
-	CreatedAt                time.Time
-	MaxIssuance              *int
-	ValidUntil               *time.Time
-	SchemaID                 uuid.UUID
-	CredentialExpiration     *time.Time
-	CredentialSignatureProof bool
-	CredentialMTPProof       bool
-	CredentialSubject        CredentialSubject
-	Active                   bool
-	Schema                   *Schema
-	IssuedClaims             int // TODO: Give a value when link redemption is implemented
-	RefreshService           *verifiable.RefreshService
-	DisplayMethod            *verifiable.DisplayMethod
+	ID                          uuid.UUID
+	IssuerDID                   LinkCoreDID
+	CreatedAt                   time.Time
+	MaxIssuance                 *int
+	ValidUntil                  *time.Time
+	SchemaID                    uuid.UUID
+	CredentialExpiration        *time.Time
+	CredentialSignatureProof    bool
+	CredentialMTPProof          bool
+	CredentialSubject           CredentialSubject
+	Active                      bool
+	Schema                      *Schema
+	IssuedClaims                int // TODO: Give a value when link redemption is implemented
+	RefreshService              *verifiable.RefreshService
+	DisplayMethod               *verifiable.DisplayMethod
+	AuthorizationRequestMessage *pgtype.JSONB `json:"authorization_request_message"`
 }
 
 // NewLink - Constructor

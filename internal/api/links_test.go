@@ -1001,7 +1001,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 				realQR := protocol.AuthorizationRequestMessage{}
 
-				qrLink := checkQRfetchURL(t, response.DeepLink)
+				qrLink := checkQRFetchURLForLinks(t, response.DeepLink)
 
 				// Let's see that universal link is correct
 				assert.Equal(t, server.cfg.UniversalLinks.BaseUrl+"#request_uri="+qrLink, response.UniversalLink)
@@ -1017,12 +1017,9 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 				assert.NotNil(t, realQR.Body)
 				assert.Equal(t, "authentication", realQR.Body.Reason)
-				callbackArr := strings.Split(realQR.Body.CallbackURL, "sessionID")
+				callbackArr := strings.Split(realQR.Body.CallbackURL, "linkID")
 				assert.True(t, len(callbackArr) == 2)
 				assert.Equal(t, callBack, callbackArr[0])
-				params := strings.Split(callbackArr[1], "linkID")
-				assert.True(t, len(params) == 2)
-				assert.NotNil(t, realQR.ID)
 				assert.Equal(t, "https://iden3-communication.io/authorization/1.0/request", string(realQR.Type))
 				assert.Equal(t, "application/iden3comm-plain-json", string(realQR.Typ))
 				assert.Equal(t, did.String(), realQR.From)
