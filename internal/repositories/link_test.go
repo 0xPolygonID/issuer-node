@@ -344,14 +344,13 @@ func TestDeleteLink(t *testing.T) {
 	didStr2 := "did:polygonid:polygon:mumbai:2qPKWbeUSqzk6zGx4cv1EspaDMJXu2suprCr6yHfkQ"
 	schemaStore := NewSchema(*storage)
 
-	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
-	assert.NoError(t, err)
-
-	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr2, "BJJ")
-	assert.NoError(t, err)
+	fixture := NewFixture(storage)
+	identity := &domain.Identity{
+		Identifier: didStr,
+	}
+	fixture.CreateIdentity(t, identity)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
-
 	linkStore := NewLink(*storage)
 
 	did, err := w3c.ParseDID(didStr)
@@ -368,11 +367,35 @@ func TestDeleteLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, linkID)
 
+	idClaim, _ := uuid.NewUUID()
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim,
+		Identifier:      &didStr,
+		Issuer:          didStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        0,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "123",
+		LinkID:          linkID,
+	})
+
 	err = linkStore.Delete(ctx, *linkID, *did2)
 	assert.Error(t, err)
 
 	err = linkStore.Delete(ctx, *linkID, *did)
 	assert.NoError(t, err)
+
+	claimStorage := NewClaims()
+	claim, err := claimStorage.GetByIdAndIssuer(ctx, storage.Pgx, did, idClaim)
+	assert.NoError(t, err)
+	assert.NotNil(t, claim)
 
 	err = linkStore.Delete(ctx, uuid.New(), *did)
 	assert.Error(t, err)

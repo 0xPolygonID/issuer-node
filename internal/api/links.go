@@ -129,6 +129,10 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
 			return DeleteLink400JSONResponse{N400JSONResponse{Message: "link does not exist"}}, nil
 		}
+		if errors.Is(err, repositories.ErrorLinkWithClaims); err != nil {
+			return DeleteLink400JSONResponse{N400JSONResponse{Message: "link has claims associated"}}, nil
+		}
+
 		return DeleteLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return DeleteLink200JSONResponse{Message: "link deleted"}, nil

@@ -24,6 +24,9 @@ var (
 
 	// ErrLinkDoesNotExist link does not exist
 	ErrLinkDoesNotExist = errors.New("link does not exist")
+
+	// ErrorLinkWithClaims cannot delete link with associated claims
+	ErrorLinkWithClaims = errors.New("cannot delete link with associated claims")
 )
 
 type link struct {
@@ -237,15 +240,26 @@ WHERE links.issuer_id = $1
 }
 
 func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID w3c.DID) error {
-	const sql = `DELETE FROM links WHERE id = $1 AND issuer_id =$2`
-	cmd, err := l.conn.Pgx.Exec(ctx, sql, id.String(), issuerDID.String())
+	tx, err := l.conn.Pgx.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		if strings.Contains(err.Error(), `violates foreign key constraint "claims_links_id_key"`) {
-			return errors.New("cannot delete link with associated claims")
+		return err
+	}
+	const updateClaimsSql = `UPDATE claims SET link_id = NULL WHERE link_id = $1 AND identifier = $2`
+	_, err = tx.Exec(ctx, updateClaimsSql, id.String(), issuerDID.String())
+	if err != nil {
+		return err
+	}
+	const sql = `DELETE FROM links WHERE id = $1 AND issuer_id =$2`
+	cmd, err := tx.Exec(ctx, sql, id.String(), issuerDID.String())
+	if err != nil {
+		if err := tx.Rollback(ctx); err != nil {
+			return err
 		}
 		return err
 	}
-
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
 	if cmd.RowsAffected() == 0 {
 		return ErrLinkDoesNotExist
 	}
