@@ -126,12 +126,19 @@ func main() {
 		*cfg.MediaTypeManager.Enabled,
 	)
 
+	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, auth.UniversalDIDResolver)
+	if err != nil {
+		log.Error(ctx, "failed init package protocol", "err", err)
+		return
+	}
+
 	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
 	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers())
 	if err != nil {
 		log.Error(ctx, "failed init verifier", "err", err)
 		return
 	}
+	verifier.SetPackageManager(*packageManager)
 
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
@@ -154,11 +161,6 @@ func main() {
 	}
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, networkResolver, ps)
-	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, auth.UniversalDIDResolver)
-	if err != nil {
-		log.Error(ctx, "failed init package protocol", "err", err)
-		return
-	}
 
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
