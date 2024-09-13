@@ -156,8 +156,8 @@ func TestLoadKmsProviders(t *testing.T) {
 	loadEnvironmentVariables(t, envVars)
 	cfg, err := Load()
 	assert.NoError(t, err)
-	assert.Equal(t, "vault", cfg.KeyStore.BJJProvider)
-	assert.Equal(t, "vault", cfg.KeyStore.ETHProvider)
+	assert.Equal(t, "localstorage", cfg.KeyStore.BJJProvider)
+	assert.Equal(t, "localstorage", cfg.KeyStore.ETHProvider)
 
 	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
 	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = ""

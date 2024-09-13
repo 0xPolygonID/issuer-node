@@ -56,21 +56,6 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 	return resp, nil
 }
 
-// GetDocumentation this method will be overridden in the main function
-func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestObject) (GetDocumentationResponseObject, error) {
-	return nil, nil
-}
-
-// GetFavicon this method will be overridden in the main function
-func (s *Server) GetFavicon(_ context.Context, _ GetFaviconRequestObject) (GetFaviconResponseObject, error) {
-	return nil, nil
-}
-
-// GetYaml this method will be overridden in the main function
-func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
-	return nil, nil
-}
-
 // RegisterStatic add method to the mux that are not documented in the API.
 func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/", documentation)

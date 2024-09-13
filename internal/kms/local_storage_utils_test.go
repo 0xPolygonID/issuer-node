@@ -19,7 +19,7 @@ func TestSaveKeyMaterialToFile_Success(t *testing.T) {
 
 	ls := NewLocalStorageFileManager(tmpFile.Name())
 	ctx := context.Background()
-	keyMaterial := map[string]string{jsonKeyType: "Ethereum", jsonKeyData: "0xABC123"}
+	keyMaterial := map[string]string{jsonKeyType: string(KeyTypeEthereum), jsonKeyData: "0xABC123"}
 	id := "key1"
 
 	err = ls.saveKeyMaterialToFile(ctx, keyMaterial, id)
@@ -34,7 +34,7 @@ func TestSaveKeyMaterialToFile_Success(t *testing.T) {
 
 	assert.Equal(t, 1, len(fileContent))
 	assert.Equal(t, id, fileContent[0].KeyPath)
-	assert.Equal(t, keyMaterial[jsonKeyType], fileContent[0].KeyType)
+	assert.Equal(t, ethereum, fileContent[0].KeyType)
 	assert.Equal(t, keyMaterial[jsonKeyData], fileContent[0].PrivateKey)
 }
 
@@ -56,8 +56,8 @@ func TestSearchByIdentityInFile_ReturnsKeyIDsOnMatch(t *testing.T) {
 
 	identity := "did:polygonid:polygon:amoy:2qQ68JkRcf3ybQNvgRV9BP6qLgBrXmUezqBi4wsEuV"
 	fileContent := []localStorageBJJKeyProviderFileContent{
-		{KeyPath: identity + "/ETH:0347fe70a2a9b752e8012d72851c35a13a1423bcdac4bde6ec036e1ea9317b36ac", KeyType: string(KeyTypeEthereum), PrivateKey: "0xABC123"},
-		{KeyPath: "keys/" + identity + "/BJJ:cecf34ed27074e121f1e8a8cc75954ab2b28506258b87b3c9a20e33461f4b12a", KeyType: string(KeyTypeBabyJubJub), PrivateKey: "0xDEF456"},
+		{KeyPath: identity + "/ETH:0347fe70a2a9b752e8012d72851c35a13a1423bcdac4bde6ec036e1ea9317b36ac", KeyType: ethereum, PrivateKey: "0xABC123"},
+		{KeyPath: "keys/" + identity + "/BJJ:cecf34ed27074e121f1e8a8cc75954ab2b28506258b87b3c9a20e33461f4b12a", KeyType: babyjubjub, PrivateKey: "0xDEF456"},
 	}
 
 	content, err := json.Marshal(fileContent)

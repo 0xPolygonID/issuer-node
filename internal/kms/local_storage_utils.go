@@ -20,7 +20,11 @@ type LocalStorageFileManager interface {
 	searchPrivateKeyInFile(ctx context.Context, keyID KeyID) (string, error)
 }
 
-const partsNumber3 = 3
+const (
+	partsNumber3 = 3
+	babyjubjub   = "babyjubjub"
+	ethereum     = "ethereum"
+)
 
 type localStorageFileManager struct {
 	file string
@@ -37,9 +41,18 @@ func (ls *localStorageFileManager) saveKeyMaterialToFile(ctx context.Context, ke
 		return err
 	}
 
+	keyTypeToSave := ""
+	if keyMaterial[jsonKeyType] == string(KeyTypeBabyJubJub) {
+		keyTypeToSave = babyjubjub
+	} else if keyMaterial[jsonKeyType] == string(KeyTypeEthereum) {
+		keyTypeToSave = ethereum
+	} else {
+		return errors.New("unknown key type")
+	}
+
 	localStorageFileContent = append(localStorageFileContent, localStorageBJJKeyProviderFileContent{
 		KeyPath:    id,
-		KeyType:    keyMaterial[jsonKeyType],
+		KeyType:    keyTypeToSave,
 		PrivateKey: keyMaterial[jsonKeyData],
 	})
 
@@ -62,15 +75,33 @@ func (ls *localStorageFileManager) searchByIdentityInFile(ctx context.Context, i
 		return nil, err
 	}
 	keyIDs := make([]KeyID, 0)
+
+	keyTypeToRead := ""
+	if keyType == KeyTypeBabyJubJub {
+		keyTypeToRead = babyjubjub
+	} else if keyType == KeyTypeEthereum {
+		keyTypeToRead = ethereum
+	} else {
+		return nil, errors.New("unknown key type")
+	}
+
 	for _, keyMaterial := range localStorageFileContent {
 		keyParts := strings.Split(keyMaterial.KeyPath, "/")
 		if len(keyParts) != partsNumber && len(keyParts) != partsNumber3 {
 			continue
 		}
 		if keyParts[0] == identity.String() || keyParts[1] == identity.String() {
-			if keyMaterial.KeyType == string(keyType) {
+			if keyMaterial.KeyType == keyTypeToRead {
+				keyTypeLoaded := ""
+				if keyMaterial.KeyType == babyjubjub {
+					keyTypeLoaded = string(KeyTypeBabyJubJub)
+				} else if keyMaterial.KeyType == ethereum {
+					keyTypeLoaded = string(KeyTypeEthereum)
+				} else {
+					continue
+				}
 				keyIDs = append(keyIDs, KeyID{
-					Type: KeyType(keyMaterial.KeyType),
+					Type: KeyType(keyTypeLoaded),
 					ID:   keyMaterial.KeyPath,
 				})
 			}

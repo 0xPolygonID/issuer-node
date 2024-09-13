@@ -240,6 +240,9 @@ func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID w3c.DID) error
 	const sql = `DELETE FROM links WHERE id = $1 AND issuer_id =$2`
 	cmd, err := l.conn.Pgx.Exec(ctx, sql, id.String(), issuerDID.String())
 	if err != nil {
+		if strings.Contains(err.Error(), `violates foreign key constraint "claims_links_id_key"`) {
+			return errors.New("cannot delete link with associated claims")
+		}
 		return err
 	}
 

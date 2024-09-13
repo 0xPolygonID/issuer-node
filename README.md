@@ -100,7 +100,7 @@ ISSUER_UI_INSECURE=true
 ```
 
 
-5. Run API, UI and infrastructure (Postgres, Vault and Redis)
+5. Run API, UI and infrastructure (Postgres, localstorage and Redis)
 
 To do a build and start both the API and the UI in a single step, you can use the following command:
 ```bash
@@ -123,8 +123,9 @@ make private_key=<private-key> import-private-key-to-kms
 If you want to run only the API, you can follow the steps below. You have to have the .env-issuer file filled with 
 the proper values and the resolver_settings.yaml file with the proper RPCs.
 Then run: 
-```
-make run
+
+```shell
+make build && make run
 ```
 ----
 **Troubleshooting:**
@@ -165,35 +166,18 @@ make build && make run
 Consider that if you have the issuer node running, after changing the configuration you must restart it.
 In all options the .env-issuer file is necessary.
 
-#### Running issuer node with local storage file instead of Vault
+#### Running issuer node with vault instead of local storage file
 The issuer node can be configured to use a local storage, that is, a local file, as kms provider. 
 This alternative can be useful in development or testing environments. To do it:
 
 Setup environment variables in `.env-issuer` file:
 
 ```bash
-ISSUER_KMS_BJJ_PROVIDER=localstorage
-ISSUER_KMS_ETH_PROVIDER=localstorage
+ISSUER_KMS_BJJ_PROVIDER=vault
+ISSUER_KMS_ETH_PROVIDER=vault
 ```
 
 To import the private key necessary to transition onchain states, the command is the same as [explained before](#install-and-run-issuer-node-api-and-ui).
-
-#### Running issuer node with AWS KMS Service instead of Vault for ETH Keys
-Another alternative for eth keys associated with the identities created in the issuer node is to use the AWS KMS service. 
-In this case you have to change some variables in the .env-issuer file:
-
-```bash
-ISSUER_KMS_BJJ_PROVIDER=<localstorage or vault>
-ISSUER_KMS_ETH_PROVIDER=aws
-ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=<AWS-ACCESS-KEY>
-ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY=<AWS-SECRET-KEY>
-ISSUER_KMS_ETH_PLUGIN_AWS_REGION=<AWS-REGION>
-```
-
-In this case, to import the private key in AWS KMS run:
-```shell
-make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
-```
 
 ## Quick Start Demo
 

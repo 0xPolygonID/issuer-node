@@ -89,7 +89,7 @@ func Test_identity_CreateIdentity(t *testing.T) {
 				assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
 				assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
 				assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
-				assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+				assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
 				assert.NotNil(t, identity.State.State)
 				assert.Equal(t, "confirmed", string(identity.State.Status))
 				if tc.options.KeyType == ETH {
@@ -139,7 +139,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
 		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
-		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
 		assert.NotNil(t, identity.State.State)
 		assert.Equal(t, "confirmed", string(identity.State.Status))
 		assert.NotNil(t, identity.State.ClaimsTreeRoot)
@@ -175,7 +175,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
 		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
-		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
 		assert.NotNil(t, identity.State.State)
 		assert.Equal(t, "confirmed", string(identity.State.Status))
 		rhsFactoryMock.AssertNumberOfCalls(t, "BuildPublishers", 0)
@@ -203,7 +203,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
 		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
-		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
 		assert.NotNil(t, identity.State.State)
 		assert.Equal(t, "confirmed", string(identity.State.Status))
 		assert.NotNil(t, identity.State.ClaimsTreeRoot)
@@ -225,13 +225,13 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 
 		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
-		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1})
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthCredentialStatus: verifiable.Iden3commRevocationStatusV1})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
 		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
-		assert.Equal(t, "http://localhost:3001/v1/agent", identity.AuthCoreClaimRevocationStatus.ID)
+		assert.Equal(t, "http://localhost:3001/v2/agent", identity.AuthCoreClaimRevocationStatus.ID)
 		assert.NotNil(t, identity.State.State)
 		assert.Equal(t, "confirmed", string(identity.State.Status))
 		assert.NotNil(t, identity.State.ClaimsTreeRoot)
@@ -273,7 +273,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
 		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
-		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
 		assert.NotNil(t, identity.State.State)
 		assert.Equal(t, "confirmed", string(identity.State.Status))
 		assert.NotNil(t, identity.State.ClaimsTreeRoot)
@@ -309,7 +309,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
 		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
-		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
 		assert.NotNil(t, identity.State.State)
 		assert.Equal(t, "confirmed", string(identity.State.Status))
 		rhsFactoryMock.AssertNumberOfCalls(t, "BuildPublishers", 0)
@@ -337,7 +337,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
 		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
-		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
 		assert.NotNil(t, identity.State.State)
 		assert.Equal(t, "confirmed", string(identity.State.Status))
 		assert.NotNil(t, identity.State.ClaimsTreeRoot)
@@ -359,7 +359,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 
 		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
-		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthBJJCredentialStatus: verifiable.Iden3ReverseSparseMerkleTreeProof})
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthCredentialStatus: verifiable.Iden3ReverseSparseMerkleTreeProof})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
@@ -399,7 +399,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		true,
 	)
 
-	claimsService := NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
+	claimsService := NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 
 	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 	require.NoError(t, err)
@@ -614,6 +614,73 @@ func Test_identity_GetByDID(t *testing.T) {
 			identityState, err := identityService.GetByDID(ctx, *tc.did)
 			if tc.shouldReturnErr {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.did.String(), identityState.Identifier)
+			}
+		})
+	}
+}
+
+func Test_identity_GetLatestStateByID(t *testing.T) {
+	ctx := context.Background()
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
+	mtService := NewIdentityMerkleTrees(mtRepo)
+	connectionsRepository := repositories.NewConnections()
+
+	reader := helpers.CreateFile(t)
+	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
+	require.NoError(t, err)
+
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
+	assert.NoError(t, err)
+
+	did, err := w3c.ParseDID(identity.Identifier)
+	assert.NoError(t, err)
+
+	did2, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qD6cqGpLX2dibdFuKfrPxGiybi3wKa8RbR4onw49H")
+	assert.NoError(t, err)
+
+	type shouldReturnErr struct {
+		err     bool
+		message *string
+	}
+	type testConfig struct {
+		name            string
+		did             *w3c.DID
+		shouldReturnErr shouldReturnErr
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "should get the identity state",
+			did:  did,
+			shouldReturnErr: shouldReturnErr{
+				err: false,
+			},
+		},
+		{
+			name: "should return an error non existing identity",
+			did:  did2,
+			shouldReturnErr: shouldReturnErr{
+				err:     true,
+				message: common.ToPointer(fmt.Sprintf("state is not found for identifier: %s. Please check if the identifier was created in this issuer node", did2)),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			identityState, err := identityService.GetLatestStateByID(ctx, *tc.did)
+			if tc.shouldReturnErr.err {
+				assert.Error(t, err)
+				assert.Equal(t, *tc.shouldReturnErr.message, err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.NoError(t, err)

@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
@@ -10,6 +12,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
+
+// ErrIdentityNotFound - identity not found error
+var ErrIdentityNotFound = errors.New("identity not found")
 
 type identity struct{}
 
@@ -78,7 +83,12 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
 		&identity.State.ModifiedAt,
 		&identity.State.CreatedAt,
 		&identity.AuthCoreClaimRevocationStatus)
-
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, ErrIdentityNotFound
+		}
+		return nil, err
+	}
 	return &identity, err
 }
 
