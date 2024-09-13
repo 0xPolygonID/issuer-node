@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 
@@ -76,6 +77,7 @@ SELECT links.id,
 	   links.refresh_service,
 	   links.display_method,
        count(claims.id) as issued_claims,
+       links.authorization_request_message,
        schemas.id as schema_id,
        schemas.issuer_id as schema_issuer_id,
        schemas.url,
@@ -107,6 +109,7 @@ GROUP BY links.id, schemas.id
 		&link.RefreshService,
 		&link.DisplayMethod,
 		&link.IssuedClaims,
+		&link.AuthorizationRequestMessage,
 		&s.ID,
 		&s.IssuerID,
 		&s.URL,
@@ -264,4 +267,10 @@ func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID w3c.DID) error
 		return ErrLinkDoesNotExist
 	}
 	return nil
+}
+
+func (l link) AddAuthorizationRequest(ctx context.Context, linkID uuid.UUID, issuerDID w3c.DID, authorizationRequest *protocol.AuthorizationRequestMessage) error {
+	const sql = `UPDATE links SET authorization_request_message = $1 WHERE id = $2 AND issuer_id = $3`
+	_, err := l.conn.Pgx.Exec(ctx, sql, authorizationRequest, linkID, issuerDID.String())
+	return err
 }

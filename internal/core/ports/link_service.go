@@ -22,19 +22,19 @@ type CreateQRCodeResponse struct {
 	DeepLink      string
 	UniversalLink string
 	QrID          uuid.UUID
-	SessionID     string
+	QrCodeRaw     string
 }
 
 // LinkStatus is a Link type request. All|Active|Inactive|Exceeded
 type LinkStatus string
 
 const (
-	LinkAll          LinkStatus = "all"                                                                   // LinkAll : All links
-	LinkActive       LinkStatus = "active"                                                                // LinkActive : Active links
-	LinkInactive     LinkStatus = "inactive"                                                              // LinkInactive : Inactive links
-	LinkExceeded     LinkStatus = "exceeded"                                                              // LinkExceeded : Expired links or with more credentials issued than expected
-	AgentUrl                    = "%s/v2/agent"                                                           // AgentUrl : Agent URL
-	LinksCallbackURL            = "%s/v2/identities/%s/credentials/links/callback?sessionID=%s&linkID=%s" // LinksCallbackURL : Links callback URL
+	LinkAll          LinkStatus = "all"                                                      // LinkAll : All links
+	LinkActive       LinkStatus = "active"                                                   // LinkActive : Active links
+	LinkInactive     LinkStatus = "inactive"                                                 // LinkInactive : Inactive links
+	LinkExceeded     LinkStatus = "exceeded"                                                 // LinkExceeded : Expired links or with more credentials issued than expected
+	AgentUrl                    = "%s/v2/agent"                                              // AgentUrl : Agent URL
+	LinksCallbackURL            = "%s/v2/identities/%s/credentials/links/callback?linkID=%s" // LinksCallbackURL : Links callback URL
 )
 
 // LinkTypeReqFromString constructs a LinkStatus from a string
@@ -61,6 +61,5 @@ type LinkService interface {
 	GetAll(ctx context.Context, issuerDID w3c.DID, status LinkStatus, query *string) ([]domain.Link, error)
 	CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
 	IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)
-	ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)
-	GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID w3c.DID, linkID uuid.UUID) (*GetQRCodeResponse, error)
+	ProcessCallBack(ctx context.Context, issuerDID w3c.DID, message string, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)
 }

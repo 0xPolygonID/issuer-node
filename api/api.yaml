@@ -973,6 +973,11 @@ paths:
               name: uuid
               path: github.com/google/uuid
             example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        - in: query
+          name: issuer
+          schema:
+            type: string
+
       responses:
         '200':
           description: A json to generate a QR code
@@ -1262,7 +1267,6 @@ paths:
         - Links
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/sessionID'
         - $ref: '#/components/parameters/linkID'
       requestBody:
         required: true
@@ -2202,9 +2206,6 @@ components:
         universalLink:
           type: string
           example: https://wallet.privado.id#request_uri=url
-        sessionID:
-          type: string
-          example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
         linkDetail:
           $ref: '#/components/schemas/LinkSimple'
 

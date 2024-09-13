@@ -92,9 +92,18 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	offer, err := s.linkService.ProcessCallBack(ctx, *request.Body, request.Params.SessionID, request.Params.LinkID, s.cfg.ServerUrl)
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+
+	offer, err := s.linkService.ProcessCallBack(ctx, *issuerDID, *request.Body, request.Params.LinkID, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "error issuing the claim", "error", err)
+		if errors.Is(err, services.ErrLinkAlreadyExpired) || errors.Is(err, services.ErrLinkMaxExceeded) || errors.Is(err, services.ErrLinkInactive) {
+			return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error: " + err.Error()}}, nil
+		}
 		return CreateLinkQrCodeCallback500JSONResponse{
 			N500JSONResponse{
 				Message: "error processing the callback",
@@ -192,13 +201,6 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 
-	// Backward compatibility. If the type is raw, we return the raw qr code
-	qrCodeRaw, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
-	if err != nil {
-		log.Error(ctx, "qr store. Finding qr", "err", err, "id", createLinkQrCodeResponse.QrID)
-		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
-	}
-
 	return CreateLinkQrCode200JSONResponse{
 		Issuer: IssuerDescription{
 			DisplayName: s.cfg.IssuerName,
@@ -206,8 +208,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 		},
 		DeepLink:      createLinkQrCodeResponse.DeepLink,
 		UniversalLink: createLinkQrCodeResponse.UniversalLink,
-		QrCodeRaw:     string(qrCodeRaw),
-		SessionID:     createLinkQrCodeResponse.SessionID,
+		QrCodeRaw:     createLinkQrCodeResponse.QrCodeRaw,
 		LinkDetail:    getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
 }

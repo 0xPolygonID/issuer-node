@@ -23,7 +23,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/notifications"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
@@ -166,6 +165,7 @@ func (ls *Link) Delete(ctx context.Context, id uuid.UUID, did w3c.DID) error {
 func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid.UUID, serverURL string) (*ports.CreateQRCodeResponse, error) {
 	link, err := ls.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
+		log.Error(ctx, "cannot fetch the link", "err", err)
 		return nil, err
 	}
 
@@ -174,42 +174,45 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 		return nil, err
 	}
 
-	sessionID := uuid.New().String()
-	reqID := uuid.New().String()
-	qrCode := &protocol.AuthorizationRequestMessage{
-		From:     issuerDID.String(),
-		ID:       reqID,
-		ThreadID: reqID,
-		Typ:      packers.MediaTypePlainMessage,
-		Type:     protocol.AuthorizationRequestMessageType,
-		Body: protocol.AuthorizationRequestMessageBody{
-			CallbackURL: fmt.Sprintf(ports.LinksCallbackURL, serverURL, issuerDID.String(), sessionID, linkID.String()),
-			Reason:      authReason,
-			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
-		},
-	}
+	var authorizationRequestMessage *protocol.AuthorizationRequestMessage
+	var raw []byte
+	if link.AuthorizationRequestMessage == nil {
+		reqID := uuid.New().String()
+		authorizationRequestMessage = &protocol.AuthorizationRequestMessage{
+			From:     issuerDID.String(),
+			ID:       reqID,
+			ThreadID: reqID,
+			Typ:      packers.MediaTypePlainMessage,
+			Type:     protocol.AuthorizationRequestMessageType,
+			Body: protocol.AuthorizationRequestMessageBody{
+				CallbackURL: fmt.Sprintf(ports.LinksCallbackURL, serverURL, issuerDID.String(), linkID.String()),
+				Reason:      authReason,
+				Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
+			},
+		}
+		if err := ls.linkRepository.AddAuthorizationRequest(ctx, linkID, issuerDID, authorizationRequestMessage); err != nil {
+			log.Error(ctx, "cannot add the authorization request", "err", err)
+			return nil, err
+		}
+		raw, err = json.Marshal(authorizationRequestMessage)
+		if err != nil {
+			log.Error(ctx, "cannot marshal the authorization", "err", err)
+		}
+	} else {
+		if err := json.Unmarshal(link.AuthorizationRequestMessage.Bytes, &authorizationRequestMessage); err != nil {
+			log.Error(ctx, "cannot unmarshal the authorization", "err", err)
+			return nil, err
+		}
+		raw = link.AuthorizationRequestMessage.Bytes
 
-	err = ls.sessionManager.Set(ctx, sessionID, *qrCode)
-	if err != nil {
-		return nil, err
-	}
-
-	raw, err := json.Marshal(qrCode)
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := ls.qrService.Store(ctx, raw, DefaultQRBodyTTL)
-	if err != nil {
-		return nil, err
 	}
 
 	return &ports.CreateQRCodeResponse{
-		SessionID:     sessionID,
-		DeepLink:      ls.qrService.ToDeepLink(serverURL, id),
-		UniversalLink: ls.qrService.ToUniversalLink(ls.cfg.BaseUrl, serverURL, id),
-		QrID:          id,
+		DeepLink:      ls.qrService.ToDeepLink(serverURL, linkID, &issuerDID),
+		UniversalLink: ls.qrService.ToUniversalLink(ls.cfg.BaseUrl, serverURL, link.ID, &issuerDID),
+		QrID:          link.ID,
 		Link:          link,
+		QrCodeRaw:     string(raw),
 	}, nil
 }
 
@@ -313,8 +316,20 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDI
 }
 
 // ProcessCallBack - process the callback.
-func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error) {
-	arm, err := ls.identityService.Authenticate(ctx, message, sessionID, hostURL)
+func (ls *Link) ProcessCallBack(ctx context.Context, issuerID w3c.DID, message string, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error) {
+	link, err := ls.linkRepository.GetByID(ctx, issuerID, linkID)
+	if err != nil {
+		log.Error(ctx, "error fetching the link from the database", "err", err)
+		return nil, err
+	}
+
+	var authenticationRequest protocol.AuthorizationRequestMessage
+	if err := json.Unmarshal(link.AuthorizationRequestMessage.Bytes, &authenticationRequest); err != nil {
+		log.Error(ctx, "error unmarshaling the authorization request", "err", err)
+		return nil, err
+	}
+
+	arm, err := ls.identityService.AuthenticateWithRequest(ctx, nil, authenticationRequest, message, hostURL)
 	if err != nil {
 		log.Error(ctx, "error authenticating", "err", err.Error())
 		return nil, err
@@ -338,25 +353,6 @@ func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 	return offer, nil
-}
-
-// GetQRCode - return the link qr code.
-func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID w3c.DID, linkID uuid.UUID) (*ports.GetQRCodeResponse, error) {
-	link, err := ls.GetByID(ctx, issuerID, linkID)
-	if err != nil {
-		log.Error(ctx, "error fetching the link from the database", "err", err)
-		return nil, err
-	}
-
-	linkStateInCache, err := ls.sessionManager.GetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID.String()))
-	if err != nil {
-		log.Error(ctx, "error fetching the link state from the cache", "err", err)
-		return nil, err
-	}
-	return &ports.GetQRCodeResponse{
-		State: &linkStateInCache,
-		Link:  link,
-	}, nil
 }
 
 func (ls *Link) validate(ctx context.Context, link *domain.Link) error {

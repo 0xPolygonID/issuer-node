@@ -287,7 +287,6 @@ type CredentialLinkQrCodeResponse struct {
 	Issuer        IssuerDescription `json:"issuer"`
 	LinkDetail    LinkSimple        `json:"linkDetail"`
 	QrCodeRaw     string            `json:"qrCodeRaw"`
-	SessionID     string            `json:"sessionID"`
 	UniversalLink string            `json:"universalLink"`
 }
 
@@ -686,9 +685,6 @@ type CreateLinkQrCodeCallbackTextBody = string
 
 // CreateLinkQrCodeCallbackParams defines parameters for CreateLinkQrCodeCallback.
 type CreateLinkQrCodeCallbackParams struct {
-	// SessionID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
-	SessionID SessionID `form:"sessionID" json:"sessionID"`
-
 	// LinkID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
 	LinkID LinkID `form:"linkID" json:"linkID"`
 }
@@ -762,7 +758,8 @@ type GetStateTransactionsParamsSort string
 
 // GetQrFromStoreParams defines parameters for GetQrFromStore.
 type GetQrFromStoreParams struct {
-	Id *uuid.UUID `form:"id,omitempty" json:"id,omitempty"`
+	Id     *uuid.UUID `form:"id,omitempty" json:"id,omitempty"`
+	Issuer *string    `form:"issuer,omitempty" json:"issuer,omitempty"`
 }
 
 // AuthQRCodeParams defines parameters for AuthQRCode.
@@ -1778,21 +1775,6 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCodeCallback(w http.ResponseWrite
 	// Parameter object where we will unmarshal all parameters from the context
 	var params CreateLinkQrCodeCallbackParams
 
-	// ------------- Required query parameter "sessionID" -------------
-
-	if paramValue := r.URL.Query().Get("sessionID"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sessionID"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "sessionID", r.URL.Query(), &params.SessionID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
-		return
-	}
-
 	// ------------- Required query parameter "linkID" -------------
 
 	if paramValue := r.URL.Query().Get("linkID"); paramValue != "" {
@@ -2531,6 +2513,14 @@ func (siw *ServerInterfaceWrapper) GetQrFromStore(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameter("form", true, false, "id", r.URL.Query(), &params.Id)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "issuer" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "issuer", r.URL.Query(), &params.Issuer)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "issuer", Err: err})
 		return
 	}
 

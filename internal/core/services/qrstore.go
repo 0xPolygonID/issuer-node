@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -60,12 +61,19 @@ func (s *QrStoreService) Store(ctx context.Context, qrCode []byte, ttl time.Dura
 }
 
 // ToDeepLink constructs a deeplink that will be used to get the body of a QR code.
-func (s *QrStoreService) ToDeepLink(hostURL string, id uuid.UUID) string {
+func (s *QrStoreService) ToDeepLink(hostURL string, id uuid.UUID, issuerDID *w3c.DID) string {
+	if issuerDID != nil {
+		return fmt.Sprintf(ports.QRStoreUrlWithDID, hostURL, id.String(), issuerDID.String())
+	}
+
 	return fmt.Sprintf(ports.QRStoreUrl, hostURL, id.String())
 }
 
 // ToUniversalLink constructs a universal link
-func (s *QrStoreService) ToUniversalLink(uLinkBaseUrl string, hostURL string, id uuid.UUID) string {
+func (s *QrStoreService) ToUniversalLink(uLinkBaseUrl string, hostURL string, id uuid.UUID, issuerDID *w3c.DID) string {
+	if issuerDID != nil {
+		return fmt.Sprintf(ports.UniversalLinkURLWithDID, uLinkBaseUrl, hostURL, id.String(), issuerDID.String())
+	}
 	return fmt.Sprintf(ports.UniversalLinkURL, uLinkBaseUrl, hostURL, id.String())
 }
 
