@@ -42,20 +42,21 @@ import (
 
 var (
 	ErrCredentialNotFound                = errors.New("credential not found")                                          // ErrCredentialNotFound Cannot retrieve the given claim
-	ErrSchemaNotFound                    = errors.New("schema not found")                                              // ErrSchemaNotFound Cannot retrieve the given schema from DB
-	ErrLinkNotFound                      = errors.New("link not found")                                                // ErrLinkNotFound Cannot get the given link from the DB
+	ErrDisplayMethodLacksURL             = errors.New("credential request with display method lacks url")              // ErrDisplayMethodLacksURL means the credential request includes a display method, but the url is not set
+	ErrEmptyMTPProof                     = errors.New("mtp credentials must have a mtp proof to be fetched")           // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
 	ErrJSONLdContext                     = errors.New("jsonLdContext must be a string")                                // ErrJSONLdContext Field jsonLdContext must be a string
+	ErrInvalidCredentialSubject          = errors.New("credential subject does not match the provided schema")         // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
+	ErrLinkNotFound                      = errors.New("link not found")                                                // ErrLinkNotFound Cannot get the given link from the DB
 	ErrLoadingSchema                     = errors.New("cannot load schema")                                            // ErrLoadingSchema means the system cannot load the schema file
 	ErrMalformedURL                      = errors.New("malformed url")                                                 // ErrMalformedURL The schema url is wrong
-	ErrProcessSchema                     = errors.New("cannot process schema")                                         // ErrProcessSchema Cannot process schema
 	ErrParseClaim                        = errors.New("cannot parse claim")                                            // ErrParseClaim Cannot parse claim
-	ErrInvalidCredentialSubject          = errors.New("credential subject does not match the provided schema")         // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
-	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
+	ErrProcessSchema                     = errors.New("cannot process schema")                                         // ErrProcessSchema Cannot process schema
 	ErrRefreshServiceLacksExpirationTime = errors.New("credential request with refresh service lacks expiration time") // ErrRefreshServiceLacksExpirationTime means the credential request includes a refresh service, but the expiration time is not set
 	ErrRefreshServiceLacksURL            = errors.New("credential request with refresh service lacks url")             // ErrRefreshServiceLacksURL means the credential request includes a refresh service, but the url is not set
-	ErrDisplayMethodLacksURL             = errors.New("credential request with display method lacks url")              // ErrDisplayMethodLacksURL means the credential request includes a display method, but the url is not set
+	ErrSchemaNotFound                    = errors.New("schema not found")                                              // ErrSchemaNotFound Cannot retrieve the given schema from DB
 	ErrUnsupportedDisplayMethodType      = errors.New("unsupported display method type")                               // ErrUnsupportedDisplayMethodType means the display method type is not supported
-	ErrEmptyMTPProof                     = errors.New("mtp credentials must have a mtp proof to be fetched")           // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
+	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
+	ErrWrongCredentialSubjectID          = errors.New("wrong format for credential subject ID")                        // ErrWrongCredentialSubjectID means the credential subject ID is wrong
 )
 
 type claim struct {
@@ -128,7 +129,7 @@ func (c *claim) GetRevoked(ctx context.Context, currentState string) ([]*domain.
 // CreateCredential - Create a new Credential, but this method doesn't save it in the repository.
 func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
 	if err := c.guardCreateClaimRequest(req); err != nil {
-		log.Warn(ctx, "validating create claim request", "req", req)
+		log.Error(ctx, "create claim request validation", "req", req, "err", err)
 		return nil, err
 	}
 
@@ -764,6 +765,20 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 			default:
 				return ErrUnsupportedDisplayMethodType
 			}
+		},
+		// check identity
+		func() error {
+			if _, found := req.CredentialSubject["id"]; found {
+				did, ok := req.CredentialSubject["id"].(string)
+				if !ok {
+					return ErrWrongCredentialSubjectID
+				}
+				_, err := w3c.ParseDID(did)
+				if err != nil {
+					return ErrWrongCredentialSubjectID
+				}
+			}
+			return nil
 		},
 	}
 	if req.RefreshService != nil {

@@ -416,6 +416,26 @@ func TestServer_CreateCredential(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 			},
 		},
+		{
+			name: "Wrong id for credential receiver",
+			auth: authOk,
+			did:  did,
+			body: CreateCredentialRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "this:id:is:wrong",
+					"birthday":     19960425,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+			},
+			expected: expected{
+				response:                    CreateCredential400JSONResponse{N400JSONResponse{Message: "wrong format for credential subject ID"}},
+				httpCode:                    http.StatusBadRequest,
+				createCredentialEventsCount: 0,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server.Infra.pubSub.Clear(event.CreateCredentialEvent)

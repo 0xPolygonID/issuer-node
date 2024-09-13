@@ -119,6 +119,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 			services.ErrRefreshServiceLacksURL,
 			services.ErrDisplayMethodLacksURL,
 			services.ErrUnsupportedDisplayMethodType,
+			services.ErrWrongCredentialSubjectID,
 		}
 		for _, e := range errs {
 			if errors.Is(err, e) {
