@@ -179,7 +179,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:       true,
 			},
 			expected: expected{
-				response: CreateLink400JSONResponse{N400JSONResponse{Message: "cannot parse claim"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "credential subject does not match the provided schema"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},

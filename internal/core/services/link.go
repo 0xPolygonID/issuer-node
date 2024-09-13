@@ -96,8 +96,8 @@ func (ls *Link) Save(
 	}
 
 	if err := ls.validateCredentialSubjectAgainstSchema(ctx, credentialSubject, schemaDB); err != nil {
-		log.Error(ctx, "validating credential subject", "err", err)
-		return nil, ErrParseClaim
+		log.Error(ctx, "validating credential subject", "err", err, "subject", credentialSubject, "schema-id", schemaDB.ID, "schema-type", schemaDB.Type)
+		return nil, ErrInvalidCredentialSubject
 	}
 	if err = ls.validateRefreshService(refreshService, credentialExpiration); err != nil {
 		log.Error(ctx, "validating refresh service", "err", err)
