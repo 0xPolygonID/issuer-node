@@ -126,19 +126,24 @@ func main() {
 		*cfg.MediaTypeManager.Enabled,
 	)
 
-	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, auth.UniversalDIDResolver)
+	universalDIDResolverUrl := auth.UniversalResolverURL
+	if cfg.UniversalDIDResolver.UniversalResolverURL != nil && *cfg.UniversalDIDResolver.UniversalResolverURL != "" {
+		universalDIDResolverUrl = *cfg.UniversalDIDResolver.UniversalResolverURL
+	}
+	universalDIDResolverHandler := protocol.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
+
+	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", "err", err)
 		return
 	}
 
 	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
-	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers())
+	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
 	if err != nil {
 		log.Error(ctx, "failed init verifier", "err", err)
 		return
 	}
-	verifier.SetPackageManager(*packageManager)
 
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)

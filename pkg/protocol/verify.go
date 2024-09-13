@@ -14,11 +14,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ErrStateNotFound issuer state is genesis state.
-var (
-	ErrStateNotFound = errors.New("Identity does not exist")
-)
-
 func stateVerificationHandler(ethStateContracts map[string]*abi.State) packers.VerificationHandlerFunc {
 	return func(id circuits.CircuitID, pubsignals []string) error {
 		switch id {
