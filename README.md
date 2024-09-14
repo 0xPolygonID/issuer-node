@@ -44,7 +44,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 - Unix-based operating system (e.g. Debian, Arch, Mac OS)
 - [Docker Engine](https://docs.docker.com/engine/) `1.27+`
 - Makefile toolchain `GNU Make 3.81`
-- Publicly accessible URL - The issuer node API must be publicly reachable. Please make sure you properly configure your proxy or use a tool like [Localtunnel](https://theboroer.github.io/localtunnel-www/) or ngrok (https://ngrok.com/) for testing purposes. Localtunnel requires a one time password for each use, and the free version of ngrok only allows one tunnel.
+- Publicly accessible URL - The issuer node API must be publicly reachable. Please make sure you properly configure your proxy or use a tool like [Localtunnel](https://theboroer.github.io/localtunnel-www/) or [ngrok](https://ngrok.com/) for testing purposes. Localtunnel requires a one time password for each use, and the free version of ngrok only allows one agent.
 - Polygon Amoy or Main RPC - You can get one in any of the providers of this list
     - [Chainstack](https://chainstack.com/)
     - [Ankr](https://ankr.com/)
@@ -91,19 +91,15 @@ In this section we will cover the installation of the Issuer Node API.
     ```
 
 1. Wait approximately 20 seconds to generate and store the token.
-1. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. Make sure the account that you are using has sufficient amount of Amoy Test tokens. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy).
+1. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. Make sure the account that you are using has sufficient amount of Amoy Test tokens. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy). This step adds the generated token to the ISSUER_KEY_STORE_TOKEN var in .env-issuer, and stores the private key in the vault.
 
     ```bash
     make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key
     ```
-
 ----
 **Troubleshooting:**
 
 In order to **stop** and **delete** all the containers.
-
-> [!WARNING]
-> This will permanently delete all data, making it necessary to create an Issuer DID again.
 
 ``` bash
 make down
@@ -111,26 +107,23 @@ make down
 
 If you experience **problems** with the **vault**, follow these commands:
 
+> [!WARNING]
+> This will permanently delete all data, making it necessary to create an Issuer DID again.
+
 ``` bash
 docker stop issuer-vault-1    // Stops the container issuer-vault-1 
 docker rm issuer-vault-1      // Removes container issuer-vault-1
 sudo make clean-vault         // Removes all the data in the vault, including the token
 docker volume prune           // remove unused docker volumes
-make up                       // Starts the database, cache and vault storage (i.e, postgres, redis and vault)
 ```
-Wait 20 secs so the vault can boot and generate a token.
-
-``` bash
-make add-vault-token                                          // Adds the generated token to the ISSUER_KEY_STORE_TOKEN var in .env-issuer
-make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key    // Stores the private key in the vault
-```
+Continue from step 3 above, where you run `make up`.
 
 ----
 #### Run Issuer Node API
 
 The issuer node is extensively configurable, for a detailed list of the configuration, please visit our [detailed configuration guide](https://devs.polygonid.com/docs/issuer/issuer-configuration/).
 
-1. You can use ngrok to create tunnels for public access. The free version of ngrok allows only one agent, but you can create several tunnels with that one agent. For example put the following in your ~/.config/ngrok.yml file
+1. You can use ngrok to create tunnels for public access. The free version of ngrok allows only one agent, but you can create several tunnels with that one agent. For example, put the following in your ~/.config/ngrok.yml file
   ```
 version: "2"
 authtoken: *******************************
@@ -145,6 +138,7 @@ tunnels:
     proto: http
     addre: 8088    
   ```
+ Then run `ngrok start --all`.
  If using localtunnel, run `lt --port 3001 --subdomain issuer-identities &` to create the public ISSUER_SERVER_URL. It yields: `https://issuer-identities.loca.lt`.
  If you are using the free version of ngrok or localtunnel, you may need to add a browser plugin like "simple-modify-headers" to inject headers into every request to avoid the warning message that is returned on first access to thwart abuse.
 1. Fill the .env-issuer config file with the proper variables:
@@ -181,7 +175,6 @@ In order to make the UI work, we will need configure some env variables in the `
 
 1. Copy .env-ui sample file and fill the needed env variables:
 
-
     ```bash 
     cp .env-ui.sample .env-ui
     ```
@@ -204,22 +197,22 @@ In order to make the UI work, we will need configure some env variables in the `
         ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
         ```
 
-2. Generate Issuer DID:
+1. Generate Issuer DID:
 
     ```bash
     make generate-issuer-did
     ```
 
-3. Run UI:
+1. Run UI:
 
     ```bash
     make run-ui
     ```
-
-
->**API UI specification** - http://localhost:3002/
->
->**UI** - http://localhost:8088/
+   
+1. Now you can access the application at the following URLS, or use the public ones that you created.
+    >**API UI specification** - http://localhost:3002/
+    >
+    >**UI** - http://localhost:8088/
 
 ---
 **Troubleshooting:**
@@ -233,7 +226,9 @@ make restart-ui
 
 ## Quick Start Demo
 
-This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will walk you through the process of **issuing** and **verifying** your **first credential**.
+These demos will walk you through the process of **issuing** and **verifying** your **first credential**.
+ - [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/)
+ - [Issue University Credential to Student](https://docs.google.com/document/d/1Ep7Xucqt-Y6OXiCO_LNOTwUep_DMgVfxy6V1Fg5AwzM/edit?usp=sharing)
 
 ## Documentation
 
@@ -243,7 +238,6 @@ This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will 
 ## Tools
 > [!WARNING]
 > **Demo Issuer** and **Verifier Demo** are for **testing** purposes **only**.
-
 
 * [Schema Builder](https://schema-builder.polygonid.me/) - Create your custom schemas to issue VC.
 * [Demo Issuer UI](https://user-ui:password-ui@issuer-ui.polygonid.me/) - Test our Issuer Node UI.
