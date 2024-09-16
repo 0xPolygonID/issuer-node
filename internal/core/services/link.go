@@ -149,17 +149,28 @@ func (ls *Link) GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID, ser
 		return nil, err
 	}
 
-	if link.AuthorizationRequestMessage != nil {
-		link.DeepLink = common.ToPointer(ls.qrService.ToDeepLink(serverURL, id, &issuerID))
-		link.UniversalLink = common.ToPointer(ls.qrService.ToUniversalLink(ls.cfg.BaseUrl, ls.cfg.BaseUrl, link.ID, &issuerID))
-	}
-
+	ls.addLinksToLink(link, serverURL, issuerID)
 	return link, nil
 }
 
 // GetAll returns all links from issueDID of type lType filtered by query string
-func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.LinkStatus, query *string) ([]domain.Link, error) {
-	return ls.linkRepository.GetAll(ctx, issuerDID, status, query)
+func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.LinkStatus, query *string, serverURL string) ([]*domain.Link, error) {
+	links, err := ls.linkRepository.GetAll(ctx, issuerDID, status, query)
+	if err != nil {
+		return links, err
+	}
+
+	for _, link := range links {
+		ls.addLinksToLink(link, serverURL, issuerDID)
+	}
+	return links, nil
+}
+
+func (ls *Link) addLinksToLink(link *domain.Link, serverURL string, issuerDID w3c.DID) {
+	if link.AuthorizationRequestMessage != nil {
+		link.DeepLink = common.ToPointer(ls.qrService.ToDeepLink(serverURL, link.ID, &issuerDID))
+		link.UniversalLink = common.ToPointer(ls.qrService.ToUniversalLink(ls.cfg.BaseUrl, ls.cfg.BaseUrl, link.ID, &issuerDID))
+	}
 }
 
 // Delete - delete a link by id
