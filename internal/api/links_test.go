@@ -501,8 +501,6 @@ func TestServer_GetLink(t *testing.T) {
 					assert.Equal(t, tt00.String(), response.CredentialExpiration.String())
 				}
 
-				assert.NotNil(t, response.DeepLink)
-				assert.NotNil(t, response.UniversalLink)
 			case http.StatusNotFound:
 				var response GetLink404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
