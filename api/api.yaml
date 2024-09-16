@@ -1154,7 +1154,10 @@ paths:
     get:
       summary: Get Link
       operationId: GetLink
-      description: Get a specific link for the provided identity.
+      description: |
+        Get a specific link for the provided identity.
+        `deepLink` and `universalLink` fields are returned if the credential has an associated qr code. <br/>
+        To create a QR code for the link, use the endpoint `/v2/identities/{identifier}/credentials/links/{id}/qrcode`.
       security:
         - basicAuth: [ ]
       tags:
