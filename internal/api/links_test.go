@@ -500,6 +500,7 @@ func TestServer_GetLink(t *testing.T) {
 					tt00 := common.ToPointer(TimeUTC(time.Date(tt.Year(), tt.Month(), tt.Day(), 0, 0, 0, 0, time.UTC)))
 					assert.Equal(t, tt00.String(), response.CredentialExpiration.String())
 				}
+
 			case http.StatusNotFound:
 				var response GetLink404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -1025,6 +1026,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.Equal(t, did.String(), realQR.From)
 				assert.NotNil(t, realQR.ThreadID)
 				assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
+				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 
 			case http.StatusNotFound:

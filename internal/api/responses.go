@@ -90,6 +90,8 @@ func getLinkResponse(link domain.Link) Link {
 		CredentialExpiration: credentialExpiration,
 		RefreshService:       refreshService,
 		DisplayMethod:        displayMethod,
+		DeepLink:             link.DeepLink,
+		UniversalLink:        link.UniversalLink,
 	}
 }
 

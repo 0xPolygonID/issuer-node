@@ -15,6 +15,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -139,13 +140,18 @@ func (ls *Link) Activate(ctx context.Context, issuerID w3c.DID, linkID uuid.UUID
 }
 
 // GetByID returns a link by id and issuerDID
-func (ls *Link) GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID) (*domain.Link, error) {
+func (ls *Link) GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID, serverURL string) (*domain.Link, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerID, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
 			return nil, ErrLinkNotFound
 		}
 		return nil, err
+	}
+
+	if link.AuthorizationRequestMessage != nil {
+		link.DeepLink = common.ToPointer(ls.qrService.ToDeepLink(serverURL, id, &issuerID))
+		link.UniversalLink = common.ToPointer(ls.qrService.ToUniversalLink(ls.cfg.BaseUrl, ls.cfg.BaseUrl, link.ID, &issuerID))
 	}
 
 	return link, nil
@@ -163,7 +169,7 @@ func (ls *Link) Delete(ctx context.Context, id uuid.UUID, did w3c.DID) error {
 
 // CreateQRCode - generates a qr code for a link
 func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid.UUID, serverURL string) (*ports.CreateQRCodeResponse, error) {
-	link, err := ls.GetByID(ctx, issuerDID, linkID)
+	link, err := ls.GetByID(ctx, issuerDID, linkID, serverURL)
 	if err != nil {
 		log.Error(ctx, "cannot fetch the link", "err", err)
 		return nil, err

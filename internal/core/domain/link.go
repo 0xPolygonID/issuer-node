@@ -79,6 +79,8 @@ type Link struct {
 	RefreshService              *verifiable.RefreshService
 	DisplayMethod               *verifiable.DisplayMethod
 	AuthorizationRequestMessage *pgtype.JSONB `json:"authorization_request_message"`
+	DeepLink                    *string
+	UniversalLink               *string
 }
 
 // NewLink - Constructor

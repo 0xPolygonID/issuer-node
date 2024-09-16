@@ -154,7 +154,7 @@ func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (Get
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return GetLink400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	link, err := s.linkService.GetByID(ctx, *issuerDID, request.Id)
+	link, err := s.linkService.GetByID(ctx, *issuerDID, request.Id, s.cfg.ServerUrl)
 	if err != nil {
 		if errors.Is(err, services.ErrLinkNotFound) {
 			return GetLink404JSONResponse{N404JSONResponse{Message: "link not found"}}, nil

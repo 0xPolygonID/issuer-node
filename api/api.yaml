@@ -2139,6 +2139,12 @@ components:
           $ref: '#/components/schemas/RefreshService'
         displayMethod:
           $ref: '#/components/schemas/DisplayMethod'
+        deepLink:
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        universalLink:
+          type: string
+          example: https://wallet.privado.id#request_uri=url
 
     CredentialSubject:
       type: object
