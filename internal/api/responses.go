@@ -37,7 +37,7 @@ func (response CustomQrContentResponse) visit(w http.ResponseWriter) error {
 	return err
 }
 
-func getLinkResponses(links []domain.Link) []Link {
+func getLinkResponses(links []*domain.Link) []Link {
 	res := make([]Link, len(links))
 	for i, link := range links {
 		res[i] = getLinkResponse(link)
@@ -45,7 +45,7 @@ func getLinkResponses(links []domain.Link) []Link {
 	return res
 }
 
-func getLinkResponse(link domain.Link) Link {
+func getLinkResponse(link *domain.Link) Link {
 	hash, _ := link.Schema.Hash.MarshalText()
 	var credentialExpiration *timeapi.Time
 	if link.CredentialExpiration != nil {
@@ -84,7 +84,7 @@ func getLinkResponse(link domain.Link) Link {
 		SchemaUrl:            link.Schema.URL,
 		SchemaHash:           string(hash),
 		Status:               LinkStatus(link.Status()),
-		ProofTypes:           getLinkProofs(link),
+		ProofTypes:           getLinkProofs(*link),
 		CreatedAt:            TimeUTC(link.CreatedAt),
 		Expiration:           validUntil,
 		CredentialExpiration: credentialExpiration,

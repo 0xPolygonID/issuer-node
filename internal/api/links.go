@@ -30,7 +30,7 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 			return GetLinks400JSONResponse{N400JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
 		}
 	}
-	links, err := s.linkService.GetAll(ctx, *issuerDID, status, request.Params.Query)
+	links, err := s.linkService.GetAll(ctx, *issuerDID, status, request.Params.Query, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "getting links", "err", err, "req", request)
 	}
@@ -162,7 +162,7 @@ func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (Get
 		log.Error(ctx, "obtaining a link", "err", err.Error(), "id", request.Id)
 		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
-	return GetLink200JSONResponse(getLinkResponse(*link)), nil
+	return GetLink200JSONResponse(getLinkResponse(link)), nil
 }
 
 // ActivateLink - Activates or deactivates a link

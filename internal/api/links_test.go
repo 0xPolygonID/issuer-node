@@ -545,7 +545,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	linkActive := getLinkResponse(*link1)
+	linkActive := getLinkResponse(link1)
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -560,7 +560,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	linkExpired := getLinkResponse(*link2)
+	linkExpired := getLinkResponse(link2)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
@@ -568,7 +568,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	link3.Active = false
 	require.NoError(t, err)
 	require.NoError(t, server.Services.links.Activate(ctx, *did, link3.ID, false))
-	linkInactive := getLinkResponse(*link3)
+	linkInactive := getLinkResponse(link3)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
@@ -939,7 +939,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	handler := getHandler(ctx, server)
 
-	linkDetail := getLinkResponse(*link)
+	linkDetail := getLinkResponse(link)
 
 	type expected struct {
 		linkDetail Link

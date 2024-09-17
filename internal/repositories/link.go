@@ -137,7 +137,7 @@ GROUP BY links.id, schemas.id
 	return &link, err
 }
 
-func (l link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.LinkStatus, query *string) ([]domain.Link, error) {
+func (l link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.LinkStatus, query *string) ([]*domain.Link, error) {
 	sql := `
 SELECT links.id, 
        links.issuer_id, 
@@ -152,6 +152,7 @@ SELECT links.id,
        links.active,
 	   links.refresh_service,
 	   links.display_method,
+	   links.authorization_request_message,
        count(claims.id) as issued_claims,
        schemas.id as schema_id,
        schemas.issuer_id as schema_issuer_id,
@@ -198,10 +199,11 @@ WHERE links.issuer_id = $1
 	defer rows.Close()
 
 	schema := dbSchema{}
-	link := domain.Link{}
-	links := make([]domain.Link, 0)
+	var link *domain.Link
+	links := make([]*domain.Link, 0)
 	var credentialAttributes pgtype.JSONB
 	for rows.Next() {
+		link = &domain.Link{}
 		if err := rows.Scan(
 			&link.ID,
 			&link.IssuerDID,
@@ -215,6 +217,7 @@ WHERE links.issuer_id = $1
 			&link.Active,
 			&link.RefreshService,
 			&link.DisplayMethod,
+			&link.AuthorizationRequestMessage,
 			&link.IssuedClaims,
 			&schema.ID,
 			&schema.IssuerID,
