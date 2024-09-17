@@ -7,8 +7,6 @@ services:
       - PGUSER=postgres
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRES_USER=postgres
-    ports:
-      - "5432:5432"
     volumes:
       - ./scripts/sql:/docker-entrypoint-initdb.d:ro
       - postgres-data-full:/var/lib/postgresql/data
@@ -20,8 +18,6 @@ services:
 
   redis:
     image: redis:6-alpine
-    ports:
-      - "6379:6379"
     healthcheck:
       test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
       interval: 10s
@@ -36,7 +32,7 @@ services:
     env_file:
       - ../../.env-ui
     healthcheck:
-      test: [ "CMD", "curl", "-f", "localhost/health" ]
+      test: [ "CMD", "curl", "-f", "ui/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -54,7 +50,7 @@ services:
       - ../../localstoragekeys:/localstoragekeys:rw
       - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     healthcheck:
-      test: [ "CMD", "curl", "-f", "localhost:3001/status" ]
+      test: [ "CMD", "curl", "-f", "api:3001/status" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -66,15 +62,13 @@ services:
   notifications:
     image: privadoid/issuernode
     pull_policy: always
-    ports:
-      - "3004:3004"
     env_file:
       - ../../.env-issuer
     volumes:
       - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     command: sh -c "./notifications"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "localhost:3004/status" ]
+      test: [ "CMD", "curl", "-f", "notifications:3004/status" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,15 +78,13 @@ services:
   pending_publisher:
     image: privadoid/issuernode
     pull_policy: always
-    ports:
-      - "3005:3005"
     env_file:
       - ../../.env-issuer
     volumes:
       - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     command: sh -c "./pending_publisher"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "localhost:3005/status" ]
+      test: [ "CMD", "curl", "-f", "pending_publisher:3005/status" ]
       interval: 10s
       timeout: 5s
       retries: 5

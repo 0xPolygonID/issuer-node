@@ -78,6 +78,13 @@ define the RPCs. that will use.
 ```shell
 make run-full
 ```
+
+5. Import your metamask private key
+
+```shell
+make private_key=<private-key> import-private-key-to-kms 
+```
+
 then visit:
 * http://localhost:8088/ to access the UI
 * http://localhost:3001/ to access the API.
@@ -143,8 +150,8 @@ then visit
 * http://localhost:8088/ to access the UI
 * http://localhost:3001/ to access the API.
 
-6. Import your private Key:
-   Write the private key in Vault. This step is needed in order to be able to transit the issuer's state. To perform that
+6. Import your metamask private Key:
+   Write the private. This step is needed in order to be able to transit the issuer's state. To perform that
    action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
 ```bash
 make private_key=<private-key> import-private-key-to-kms
