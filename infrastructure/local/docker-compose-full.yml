@@ -1,0 +1,107 @@
+services:
+  postgres:
+    image: postgres:14-alpine
+    hostname: postgres
+    environment:
+      - PGPORT=5432
+      - PGUSER=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/sql:/docker-entrypoint-initdb.d:ro
+      - postgres-data-full:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ui:
+    image: privadoid/issuernode-ui
+    pull_policy: always
+    ports:
+      - "8088:80"
+    env_file:
+      - ../../.env-ui
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "localhost/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - api
+
+  api:
+    image: privadoid/issuernode
+    pull_policy: always
+    ports:
+      - "3001:3001"
+    env_file:
+      - ../../.env-issuer
+    volumes:
+      - ../../localstoragekeys:/localstoragekeys:rw
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "localhost:3001/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: sh -c "./migrate && ./platform"
+    depends_on:
+      - postgres
+      - redis
+
+  notifications:
+    image: privadoid/issuernode
+    pull_policy: always
+    ports:
+      - "3004:3004"
+    env_file:
+      - ../../.env-issuer
+    volumes:
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
+    command: sh -c "./notifications"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "localhost:3004/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - api
+
+  pending_publisher:
+    image: privadoid/issuernode
+    pull_policy: always
+    ports:
+      - "3005:3005"
+    env_file:
+      - ../../.env-issuer
+    volumes:
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
+    command: sh -c "./pending_publisher"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "localhost:3005/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - api
+
+networks:
+  default:
+    name: issuer-network-full
+
+volumes:
+  postgres-data-full:
