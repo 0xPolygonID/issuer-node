@@ -62,7 +62,6 @@ cp .env-issuer.sample .env-issuer
 *.env-issuer*
 ```bash
 ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
-ISSUER_API_AUTH_USER=user-issuer
 ```
 
 3. Create a file with the networks' configuration. You can copy and modify the provided sample file:
@@ -79,6 +78,19 @@ define the RPCs. that will use.
 make run-full
 ```
 
+after a few seconds, the issuer node will be running and you can check the docker containers with `docker ps` and you 
+should see something like this:
+```shell
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS                    PORTS                                        NAMES
+6e923fa11228   privadoid/issuernode-ui         "/bin/sh /app/script…"   37 seconds ago   Up 32 seconds (healthy)   0.0.0.0:8088->80/tcp                         issuer-ui-1
+16afc9d66591   privadoid/issuernode            "sh -c ./pending_pub…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-pending_publisher-1
+ceb41877c041   privadoid/issuernode            "sh -c ./notificatio…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-notifications-1
+bd7b69984f1c   privadoid/issuernode            "sh -c './migrate &&…"   38 seconds ago   Up 34 seconds (healthy)   0.0.0.0:3001->3001/tcp                       issuer-api-1
+25ae0fcac183   postgres:14-alpine              "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   5432/tcp                                     issuer-postgres-1
+a4a1d3ec9159   redis:6-alpine                  "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   6379/tcp                                     issuer-redis-1
+```
+
+
 5. Import your metamask private key
 
 ```shell
@@ -87,7 +99,7 @@ make private_key=<private-key> import-private-key-to-kms
 
 then visit:
 * http://localhost:8088/ to access the UI
-* http://localhost:3001/ to access the API.
+* http://localhost:3001/ to access the API. (**user: user-issuer**, **password: password-issuer**)
 
 **Different installation alternatives can be seen later.**
 
@@ -108,6 +120,7 @@ cp .env-issuer.sample .env-issuer
 *.env-issuer*
 ```bash
 ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
+# API Auth
 ISSUER_API_AUTH_USER=user-issuer
 ISSUER_API_AUTH_PASSWORD=password-issuer
 ```
@@ -125,20 +138,14 @@ define the RPCs. that will use.
 ```bash 
 cp .env-ui.sample .env-ui
 ```
-The default UI has basic authentication configured, you must establish the credentials by modifying the value of
-the following variables
+If you want to enable UI authentication, you must change the value of the following variables:
 
 *.env-ui*
 ```bash
+ISSUER_UI_INSECURE=false
 ISSUER_UI_AUTH_USERNAME=user-ui
 ISSUER_UI_AUTH_PASSWORD=password-ui
 ```
-If you want to disable UI authentication, you must change the value of the following variable to true:
-
-```bash
-ISSUER_UI_INSECURE=true
-```
-
 
 5. Run API, UI and infrastructure (Postgres, localstorage and Redis)
 
@@ -151,7 +158,7 @@ then visit
 * http://localhost:3001/ to access the API.
 
 6. Import your metamask private Key:
-   Write the private. This step is needed in order to be able to transit the issuer's state. To perform that
+Write the private. This step is needed in order to be able to transit the issuer's state. To perform that
    action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
 ```bash
 make private_key=<private-key> import-private-key-to-kms
