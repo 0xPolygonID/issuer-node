@@ -24,8 +24,9 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
   - [Table of Contents](#table-of-contents)
   - [Quick Start Installation](#quick-start-installation)
     - [Prerequisites](#prerequisites)
-    - [Install and run Issuer Node API and UI](#install-and-run-issuer-node-api-and-ui)
-    - [Running only Issuer Node API](#running-only-issuer-node-api)
+    - [Run Issuer Node API and UI (docker compose with images from privadoid dockerhub registry)](#run-issuer-node-api-and-ui-docker-compose-with-images-from-privadoid-registry)
+    - [Install and run Issuer Node API and UI (docker compose and build from source)](#install-and-run-issuer-node-api-and-ui-docker-compose-and-build-from-source)
+    - [Running only Issuer Node API (docker compose and build from source)](#running-only-issuer-node-api-docker-compose-and-build-from-source)
   - [KMS Providers Configuration](#kms-providers-configuration)
   - [Quick Start Demo](#quick-start-demo)
   - [Documentation](#documentation)
@@ -37,6 +38,8 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 > The provided installation guide is **non-production** ready. For production deployments please refer to  [Standalone Mode Guide](https://devs.polygonid.com/docs/issuer/setup-issuer-core/).
 >
 > There is no compatibility with Windows environments at this time. While using WSL should be ok, it's not officially supported.
+> 
+> **After changing the configuration, you must restart the issuer node docker containers.**
 
 ### Prerequisites
 
@@ -98,8 +101,8 @@ make private_key=<private-key> import-private-key-to-kms
 ```
 
 then visit:
-* http://localhost:8088/ to access the UI
-* http://localhost:3001/ to access the API. (**user: user-issuer**, **password: password-issuer**)
+* https://localhost:8088/ to access the UI
+* <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API. (**user: user-issuer**, **password: password-issuer**)
 
 **Different installation alternatives can be seen later.**
 
@@ -120,7 +123,7 @@ cp .env-issuer.sample .env-issuer
 *.env-issuer*
 ```bash
 ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
-# API Auth
+# API Auth credentials - You can change these values
 ISSUER_API_AUTH_USER=user-issuer
 ISSUER_API_AUTH_PASSWORD=password-issuer
 ```
@@ -155,7 +158,7 @@ make run-all
 ```
 then visit 
 * http://localhost:8088/ to access the UI
-* http://localhost:3001/ to access the API.
+* <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API.
 
 6. Import your metamask private Key:
 Write the private. This step is needed in order to be able to transit the issuer's state. To perform that
@@ -165,7 +168,7 @@ make private_key=<private-key> import-private-key-to-kms
 ```
 
 
-### Running only Issuer Node API
+### Running only Issuer Node API (docker compose and build from source)
 
 If you want to run only the API, you can follow the steps below. You have to have the .env-issuer file filled with 
 the proper values and the resolver_settings.yaml file with the proper RPCs.
@@ -210,12 +213,14 @@ make build && make run
 ```
 
 ### KMS Providers Configuration
-Consider that if you have the issuer node running, after changing the configuration you must restart it.
-In all options the .env-issuer file is necessary.
+Consider that if you have the issuer node running, after changing the configuration you must restart all the containers.
+In all options the **.env-issuer** file is necessary.
 
 #### Running issuer node with vault instead of local storage file
-The issuer node can be configured to use a local storage, that is, a local file, as kms provider. 
-This alternative can be useful in development or testing environments. To do it:
+The issuer node can be configured to use a [Vault](https://www.vaultproject.io), as kms provider.
+However, in addition to the vault, the vault needs a [plugin](https://github.com/iden3/vault-plugin-secrets-iden3) 
+for key generation and message signing. This is because the issuer node does not generate private keys, but rather 
+delegates that action and the signing of messages to the vault.
 
 Setup environment variables in `.env-issuer` file:
 
@@ -223,8 +228,19 @@ Setup environment variables in `.env-issuer` file:
 ISSUER_KMS_BJJ_PROVIDER=vault
 ISSUER_KMS_ETH_PROVIDER=vault
 ```
+After configuring the variables, run the following commands:
 
-To import the private key necessary to transition onchain states, the command is the same as [explained before](#install-and-run-issuer-node-api-and-ui).
+```bash
+make up
+``` 
+In this case, the docker container for vault will be created.
+
+To import the private key (if you have changed the kms provider you have to import the private key again) necessary to 
+transition issuer node states onchain, the command is the same as explained before:
+
+```shell
+make private_key <private-key> import-private-key-to-kms
+```
 
 ## Quick Start Demo
 
