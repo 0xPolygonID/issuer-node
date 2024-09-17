@@ -51,7 +51,40 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
     - [Alchemy](https://www.alchemy.com/)
     - [Infura](https://www.infura.io/)
 
-### Install and run Issuer Node API and UI
+### Run Issuer Node API and UI (docker compose with images from privadoid registry)
+To run the issuer node (API and UI) quickly and without too many customizations follow the following steps:
+1. Copy the config sample file:
+```shell
+cp .env-issuer.sample .env-issuer
+```
+2. Fill the .env-issuer config file with the proper variables:
+
+*.env-issuer*
+```bash
+ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
+ISSUER_API_AUTH_USER=user-issuer
+```
+
+3. Create a file with the networks' configuration. You can copy and modify the provided sample file:
+
+```bash
+cp resolvers_settings_sample.yaml resolvers_settings.yaml
+```
+then modify the file with the proper values. The most important fields to run the issuer node are RPC (`networkURL`) fields.
+In this file you can define customizations for each type of blockchain and network. For this example, we only need to
+define the RPCs. that will use.
+
+4. Run
+```shell
+make run-full
+```
+then visit:
+* http://localhost:8088/ to access the UI
+* http://localhost:3001/ to access the API.
+
+**Different installation alternatives can be seen later.**
+
+### Install and run Issuer Node API and UI - docker compose and build from source.
 > [!NOTE]
 > This Quick Installation Guide is prepared for Polygon Amoy (Testnet) both for the state contract and issuer dids.
 

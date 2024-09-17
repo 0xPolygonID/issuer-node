@@ -10,7 +10,9 @@ BUILD_CMD := $(GO) install -ldflags "-X main.build=${VERSION}"
 LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
 DOCKER_COMPOSE_FILE_INFRA := $(LOCAL_DEV_PATH)/docker-compose-infra.yml
+DOCKER_COMPOSE_FULL_FILE := $(LOCAL_DEV_PATH)/docker-compose-full.yml
 DOCKER_COMPOSE_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE)
+DOCKER_COMPOSE_FULL_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FULL_FILE)
 DOCKER_COMPOSE_INFRA_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE_INFRA)
 ENVIRONMENT := ${ISSUER_ENVIRONMENT}
 
@@ -24,6 +26,11 @@ REQUIRED_FILE := ${ISSUER_RESOLVER_PATH}
 # Local environment overrides via godotenv
 DOTENV_CMD = $(BIN)/godotenv
 ENV = $(DOTENV_CMD) -f .env-issuer
+
+.PHONY: run-full
+run-full:
+	@make down
+	$(DOCKER_COMPOSE_FULL_CMD) up -d
 
 .PHONY: build-local
 build-local:
