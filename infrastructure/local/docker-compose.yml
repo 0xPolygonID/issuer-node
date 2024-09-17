@@ -1,4 +1,3 @@
-version: "3.9"
 services:
 
   ui:
@@ -8,7 +7,7 @@ services:
     env_file:
       - ../../.env-ui
     healthcheck:
-      test: [ "CMD", "curl", "-f", "localhost:8088/health" ]
+      test: [ "CMD", "curl", "-f", "localhost/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,7 +26,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    command: sh -c "apk add curl && sleep 4s && ./migrate && ./platform"
+    command: sh -c "sleep 4s && ./migrate && ./platform"
 
   notifications:
     image: issuer-api:local
@@ -35,7 +34,14 @@ services:
       - "3004:3004"
     env_file:
       - ../../.env-issuer
+    volumes:
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     command: sh -c "sleep 4s && ./notifications"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "localhost:3004/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pending_publisher:
     image: issuer-api:local
@@ -43,7 +49,15 @@ services:
       - "3005:3005"
     env_file:
       - ../../.env-issuer
+    volumes:
+      - ../../localstoragekeys:/localstoragekeys:rw
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     command: sh -c "sleep 4s &&  ./pending_publisher"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "localhost:3005/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   default:
