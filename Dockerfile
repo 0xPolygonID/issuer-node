@@ -27,6 +27,7 @@ RUN apk add doas; \
     echo 'permit nopass :wheel as root' >> /etc/doas.d/doas.conf;
 RUN chmod g+rx,o+rx /
 
+RUN apk add curl
 COPY --from=base ./service/api ./api
 COPY --from=base ./service/bin/* ./
 COPY --from=base ./service/pkg/credentials ./pkg/credentials
