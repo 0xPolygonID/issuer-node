@@ -682,11 +682,11 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v2/identities/%s/credentials/%s/qrcode", tc.did, tc.claim)
+			uri := fmt.Sprintf("/v2/identities/%s/credentials/%s/qrcode", tc.did, tc.claim)
 			if tc.qrType != nil {
-				url = fmt.Sprintf("%s?type=%s", url, *tc.qrType)
+				uri = fmt.Sprintf("%s?type=%s", uri, *tc.qrType)
 			}
-			req, err := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest("GET", uri, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -703,9 +703,21 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 					var rawResponse QrCodeLinkWithSchemaTypeShortResponse
 					assert.NoError(t, json.Unmarshal([]byte(response.UniversalLink), &rawResponse))
 				case "universalLink":
-					assert.True(t, strings.HasPrefix(response.UniversalLink, "https://testing.env#request_uri=https://testing.env/v2/qr-store?id="))
+					parsedURL, err := url.Parse(response.UniversalLink)
+					require.NoError(t, err)
+					values, err := url.ParseQuery(parsedURL.Fragment)
+					require.NoError(t, err)
+					_, err = url.Parse(values.Get("request_uri"))
+					assert.NoError(t, err)
 				case "deepLink":
-					assert.True(t, strings.HasPrefix(response.UniversalLink, "iden3comm://?request_uri=https://testing.env/v2/qr-store?id="))
+					assert.True(t, strings.HasPrefix(response.UniversalLink, "iden3comm://?request_uri="+url.PathEscape("https://testing.env/v2/qr-store?id=")))
+					parsedURL, err := url.Parse(strings.Replace(response.UniversalLink, "iden3comm://", "http://anurl", 1))
+					require.NoError(t, err)
+					queryParams := parsedURL.Query()
+					requestURI := queryParams.Get("request_uri")
+					require.NotEmpty(t, requestURI)
+					_, err = url.Parse(requestURI)
+					assert.NoError(t, err)
 				}
 			case GetCredentialQrCode400JSONResponse:
 				var response GetCredentialQrCode400JSONResponse

@@ -914,7 +914,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		blockchain = "polygon"
 		network    = "amoy"
 		BJJ        = "BJJ"
-		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		uri        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
 	ctx := context.Background()
@@ -924,7 +924,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(uri, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
 	assert.NoError(t, err)
 
 	validUntil := common.ToPointer(time.Now().Add(365 * 24 * time.Hour))
@@ -1005,7 +1005,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				qrLink := checkQRFetchURLForLinks(t, response.DeepLink)
 
 				// Let's see that universal link is correct
-				assert.Equal(t, server.cfg.UniversalLinks.BaseUrl+"#request_uri="+qrLink, response.UniversalLink)
+				assert.Equal(t, server.cfg.UniversalLinks.BaseUrl+"#request_uri="+url.PathEscape(qrLink), response.UniversalLink)
 
 				// Now let's fetch the original QR using the url
 				rr := httptest.NewRecorder()

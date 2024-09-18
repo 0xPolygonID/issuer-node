@@ -25,7 +25,6 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	mtproof "github.com/iden3/merkletree-proof"
 	"github.com/jackc/pgx/v4"
-	"github.com/polygonid/sh-id-platform/internal/qrlink"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -34,6 +33,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/urn"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
