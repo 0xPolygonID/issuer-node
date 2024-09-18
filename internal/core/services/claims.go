@@ -32,6 +32,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/internal/urn"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -373,8 +374,8 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 		return nil, err
 	}
 	return &ports.GetCredentialQrCodeResponse{
-		DeepLink:      c.qrService.ToDeepLink(hostURL, qrID, nil),
-		UniversalLink: c.qrService.ToUniversalLink(c.cfg.BaseUrl, hostURL, qrID, nil),
+		DeepLink:      qrlink.NewDeepLink(hostURL, qrID, nil),
+		UniversalLink: qrlink.NewUniversal(c.cfg.BaseUrl, hostURL, qrID, nil),
 		QrRaw:         string(raw),
 		SchemaType:    getCredentialType(*claim),
 		QrID:          qrID,

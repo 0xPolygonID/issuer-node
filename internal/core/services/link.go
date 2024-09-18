@@ -23,6 +23,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/notifications"
@@ -168,8 +169,8 @@ func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.Link
 
 func (ls *Link) addLinksToLink(link *domain.Link, serverURL string, issuerDID w3c.DID) {
 	if link.AuthorizationRequestMessage != nil {
-		link.DeepLink = common.ToPointer(ls.qrService.ToDeepLink(serverURL, link.ID, &issuerDID))
-		link.UniversalLink = common.ToPointer(ls.qrService.ToUniversalLink(ls.cfg.BaseUrl, ls.cfg.BaseUrl, link.ID, &issuerDID))
+		link.DeepLink = common.ToPointer(qrlink.NewDeepLink(serverURL, link.ID, &issuerDID))
+		link.UniversalLink = common.ToPointer(qrlink.NewUniversal(ls.cfg.BaseUrl, ls.cfg.BaseUrl, link.ID, &issuerDID))
 	}
 }
 
@@ -225,8 +226,8 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 	}
 
 	return &ports.CreateQRCodeResponse{
-		DeepLink:      ls.qrService.ToDeepLink(serverURL, linkID, &issuerDID),
-		UniversalLink: ls.qrService.ToUniversalLink(ls.cfg.BaseUrl, serverURL, link.ID, &issuerDID),
+		DeepLink:      qrlink.NewDeepLink(serverURL, linkID, &issuerDID),
+		UniversalLink: qrlink.NewUniversal(ls.cfg.BaseUrl, serverURL, link.ID, &issuerDID),
 		QrID:          link.ID,
 		Link:          link,
 		QrCodeRaw:     string(raw),
