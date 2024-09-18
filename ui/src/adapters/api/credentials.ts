@@ -599,7 +599,6 @@ export type AuthQRCode = {
   deepLink: string;
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
   qrCodeRaw: string;
-  sessionID: string;
 };
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
@@ -607,7 +606,6 @@ const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
     deepLink: z.string(),
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
     qrCodeRaw: z.string(),
-    sessionID: z.string(),
   })
 );
 
