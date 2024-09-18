@@ -25,6 +25,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	mtproof "github.com/iden3/merkletree-proof"
 	"github.com/jackc/pgx/v4"
+	"github.com/polygonid/sh-id-platform/internal/qrlink"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -571,7 +572,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		return nil, err
 	}
 	return &ports.CreateAuthenticationQRCodeResponse{
-		QRCodeURL: i.qrService.ToDeepLink(serverURL, linkID, nil),
+		QRCodeURL: qrlink.NewDeepLink(serverURL, linkID, nil),
 		SessionID: sessionID,
 		QrID:      linkID,
 	}, nil

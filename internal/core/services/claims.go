@@ -22,6 +22,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/jackc/pgx/v4"
+	"github.com/polygonid/sh-id-platform/internal/qrlink"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -373,8 +374,8 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 		return nil, err
 	}
 	return &ports.GetCredentialQrCodeResponse{
-		DeepLink:      c.qrService.ToDeepLink(hostURL, qrID, nil),
-		UniversalLink: c.qrService.ToUniversalLink(c.cfg.BaseUrl, hostURL, qrID, nil),
+		DeepLink:      qrlink.NewDeepLink(hostURL, qrID, nil),
+		UniversalLink: qrlink.NewUniversal(c.cfg.BaseUrl, hostURL, qrID, nil),
 		QrRaw:         string(raw),
 		SchemaType:    getCredentialType(*claim),
 		QrID:          qrID,
