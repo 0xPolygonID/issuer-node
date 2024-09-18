@@ -102,8 +102,8 @@ make private_key=<private-key> import-private-key-to-kms
 ```
 
 then visit:
-* https://localhost:8088/ to access the UI (Default username / password are: user-ui, password-ui). You can set them using env [vars](.env-ui.sample).
-* <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API. (Default username / password are: user-issuer, password-issuer)
+* https://localhost:8088/ to access the UI (default username / password are: user-ui, password-ui). You can set them using env [vars](.env-ui.sample).
+* <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API. (default username / password are: user-issuer, password-issuer)
   You can set them using env [vars](.env-issuer.sample).
 
 **Different installation alternatives can be seen later.**
@@ -187,7 +187,7 @@ make build && make run
 ----
 **Troubleshooting:**
 
-In order to **stop** **all** the containers, run the following command:
+In order to **stop all** the containers, run the following command:
 
 > [!NOTE] This will not delete the data in the vault and the database.
 
