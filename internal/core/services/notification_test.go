@@ -1,4 +1,4 @@
-package services_tests
+package services
 
 import (
 	"context"
@@ -16,8 +16,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -39,7 +37,7 @@ func TestNotification_SendNotification(t *testing.T) {
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
-	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	mtService := NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 
@@ -49,9 +47,9 @@ func TestNotification_SendNotification(t *testing.T) {
 
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 
-	mediaTypeManager := services.NewMediaTypeManager(
+	mediaTypeManager := NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
 			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			protocol.RevocationStatusRequestMessageType: {"*"},
@@ -59,8 +57,8 @@ func TestNotification_SendNotification(t *testing.T) {
 		true,
 	)
 
-	credentialsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
-	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
+	credentialsService := NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
+	connectionsService := NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 
@@ -71,9 +69,9 @@ func TestNotification_SendNotification(t *testing.T) {
 	require.NoError(t, err)
 
 	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
-	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
+	notificationService := NewNotification(notificationGateway, connectionsService, credentialsService)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	credID := fixture.CreateClaim(t, &domain.Claim{
 		Identifier:      common.ToPointer(did.String()),
 		Issuer:          did.String(),

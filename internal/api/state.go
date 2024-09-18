@@ -3,11 +3,16 @@ package api
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // PublishIdentityState - publish identity state on chain
@@ -22,6 +27,12 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 		if errors.Is(err, gateways.ErrNoStatesToProcess) || errors.Is(err, gateways.ErrStateIsBeingProcessed) {
 			return PublishIdentityState200JSONResponse{Message: err.Error()}, nil
 		}
+
+		var customErr *services.PublishingStateError
+		if errors.As(err, &customErr) {
+			return PublishIdentityState500JSONResponse{N500JSONResponse{Message: customErr.Error()}}, nil
+		}
+
 		return PublishIdentityState500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
@@ -60,32 +71,22 @@ func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStat
 
 // GetStateTransactions - get state transactions
 func (s *Server) GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error) {
-	const (
-		defaultPage       = uint(1)
-		defaultMaxResults = uint(10)
-	)
+	filter, err := getStateTransitionsFilter(request)
+	if err != nil {
+		return GetStateTransactions400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetStateTransactions400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
-	page := defaultPage
-	if request.Params.Page != nil {
-		page = *request.Params.Page
-	}
-
-	maxResults := defaultMaxResults
-	if request.Params.MaxResults != nil {
-		maxResults = *request.Params.MaxResults
-	}
-
-	states, err := s.identityService.GetStates(ctx, *did, page, maxResults)
+	states, total, err := s.identityService.GetStates(ctx, *did, filter)
 	if err != nil {
 		log.Error(ctx, "get state transactions", "err", err)
 		return GetStateTransactions500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 
-	return GetStateTransactions200JSONResponse(stateTransactionsResponse(states)), nil
+	return GetStateTransactions200JSONResponse(stateTransactionsPaginatedResponse(states, filter.Pagination, total)), nil
 }
 
 // GetStateStatus - get state status
@@ -101,4 +102,34 @@ func (s *Server) GetStateStatus(ctx context.Context, request GetStateStatusReque
 	}
 
 	return GetStateStatus200JSONResponse{PendingActions: pendingActions}, nil
+}
+
+func getStateTransitionsFilter(req GetStateTransactionsRequestObject) (request *ports.GetStateTransactionsRequest, err error) {
+	const defaultFilter = "all"
+	if req.Params.Page != nil && *req.Params.Page <= 0 {
+		return nil, errors.New("page must be greater than 0")
+	}
+	filter := defaultFilter
+	if req.Params.Filter != nil && !slices.Contains([]string{"all", "latest"}, strings.ToLower(string(*req.Params.Filter))) {
+		return nil, errors.New("invalid filter")
+	}
+	orderBy := sqltools.OrderByFilters{}
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetStateTransactionsParamsSort(field) {
+			case PublishDate:
+				err = orderBy.Add(ports.StateTransitionsPublishDate, desc)
+			case Status:
+				err = orderBy.Add(ports.StateTransitionsStatus, desc)
+			default:
+				return nil, errors.New("wrong sort field")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
+	return ports.NewGetStateTransactionsRequest(filter, req.Params.Page, req.Params.MaxResults, orderBy), nil
 }

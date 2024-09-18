@@ -1,8 +1,9 @@
-package tests
+package repositories
 
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -12,20 +13,17 @@ import (
 	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/exp/rand"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 func TestSaveClaim(t *testing.T) {
 	ctx := context.Background()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 	idStr := "did:polygonid:polygon:amoy:2qWcgX6ts9RnL9gP7bQP7BjVCuY92Xpwj9wzBzQGdc"
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -33,7 +31,7 @@ func TestSaveClaim(t *testing.T) {
 
 	issuerDID, err := w3c.ParseDID(idStr)
 	require.NoError(t, err)
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
 	claim := &domain.Claim{
@@ -103,12 +101,12 @@ func TestSaveClaim(t *testing.T) {
 
 func TestRevoke(t *testing.T) {
 	// given
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 	idStr := "did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"
 	identity := &domain.Identity{
 		Identifier: idStr,
 	}
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
 	// when and then
@@ -134,7 +132,7 @@ func TestRevoke(t *testing.T) {
 }
 
 func TestGetByRevocationNonce(t *testing.T) {
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	idStr := "did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW"
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -192,7 +190,7 @@ func TestGetByRevocationNonce(t *testing.T) {
 		HIndex:          "789",
 	})
 
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 	t.Run("should get revocation", func(t *testing.T) {
 		did, err := w3c.ParseDID(idStr)
 		assert.NoError(t, err)
@@ -243,12 +241,12 @@ func TestGetByRevocationNonce(t *testing.T) {
 
 func TestRevokeNonce(t *testing.T) {
 	// given
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 	idStr := "did:polygonid:polygon:mumbai:2qNWrZ4Z7iZPvDusp32sWXGMHvAL9RoTqgPEEXvS9q"
 	identity := &domain.Identity{
 		Identifier: idStr,
 	}
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
 	// when and then
@@ -274,7 +272,7 @@ func TestRevokeNonce(t *testing.T) {
 }
 
 func TestGetAllByConnectionAndIssuerID(t *testing.T) {
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 
 	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
@@ -322,7 +320,7 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 		ModifiedAt: time.Now(),
 	})
 
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 	t.Run("should get one claim", func(t *testing.T) {
 		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, *issuerDID)
 		assert.NoError(t, err)
@@ -345,7 +343,7 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 func TestGetAllByIssuerID(t *testing.T) {
 	ctx := context.Background()
 
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
 	userDID, err := w3c.ParseDID("did:iden3:tJUieNy7sk5PhitERHg1tgM8v1qhsDSEHVJSUF9rJ")
@@ -375,7 +373,7 @@ func TestGetAllByIssuerID(t *testing.T) {
 
 	_ = fixture.CreateClaim(t, c)
 
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 
 	type testConfig struct {
 		name     string
@@ -430,7 +428,7 @@ func TestGetAllByIssuerID(t *testing.T) {
 
 func TestGetAllByIssuerIDPagination(t *testing.T) {
 	ctx := context.Background()
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qMFKi3ou8Sd5oeHt3NquUKnPUqDMD84yvpm4pt8Hi")
 	require.NoError(t, err)
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qPnPzctLT3jEzW3aZg2yAGEeeBW6izu5znWULdNRy")
@@ -465,7 +463,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 		createdAt = createdAt.Add(time.Second)
 	}
 
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 
 	type expected struct {
 		total     uint
@@ -581,7 +579,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 
 func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 	ctx := context.Background()
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qDxX9177nxpRK3q2zFbr3cr4mdGXqJH83uUJ921qd")
 	require.NoError(t, err)
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:main:2q2LTxUzBz9BwarePv9yBdUV8eXZK1ffxVKBGAnt2o")
@@ -607,7 +605,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 		createdAt = createdAt.Add(time.Second)
 	}
 
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 
 	t.Run("should order by created_at desc by default", func(t *testing.T) {
 		claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.ClaimsFilter{
@@ -666,12 +664,12 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 
 func TestGetClaimsIssuedForUserID(t *testing.T) {
 	ctx := context.Background()
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	didStr := "did:polygonid:polygon:mumbai:2qKLWeRi6Tk23SmFpRKHvKFf2MmrocJYxwAD1MwhYw"
-	schemaStore := repositories.NewSchema(*storage)
+	schemaStore := NewSchema(*storage)
 	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	linkStore := repositories.NewLink(*storage)
+	linkStore := NewLink(*storage)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
 
@@ -722,7 +720,7 @@ func TestGetClaimsIssuedForUserID(t *testing.T) {
 		expected int
 	}
 
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := NewClaims()
 
 	for _, tc := range []testConfig{
 		{

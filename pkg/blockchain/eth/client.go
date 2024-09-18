@@ -331,14 +331,9 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 
 	sigFn := c.signerFnFactory(ctx, kmsKey)
 
-	// tip := big.NewInt(0)
-
 	opts := &bind.TransactOpts{
-		From:     addr,
-		Signer:   sigFn,
-		GasLimit: uint64(0), // go-ethereum library will estimate gas limit automatically if it is 0
-		Context:  ctx,
-		NoSend:   false,
+		From:   addr,
+		Signer: sigFn,
 	}
 
 	if !c.Config.GasLess { // Some Ethereum nodes don't support eth_maxPriorityFeePerGas so we set GasLess = true
@@ -346,9 +341,26 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 		if err != nil {
 			return nil, err
 		}
+		opts.GasPrice = nil
 		gasLimit := uint64(0)
 		opts.GasLimit = gasLimit
 		opts.GasTipCap = tip
+		return opts, nil
+	}
+
+	gasPrice, err := c.getGasPrice(ctx)
+	if err != nil {
+		log.Error(ctx, "failed to get gas price", "err", err)
+		return nil, err
+	}
+
+	opts = &bind.TransactOpts{
+		From:     addr,
+		Signer:   sigFn,
+		GasPrice: gasPrice,
+		GasLimit: uint64(c.Config.DefaultGasLimit),
+		Context:  ctx,
+		NoSend:   false,
 	}
 
 	return opts, nil

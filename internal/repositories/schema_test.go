@@ -1,4 +1,4 @@
-package tests
+package repositories
 
 import (
 	"context"
@@ -19,13 +19,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestGetSchema(t *testing.T) {
 	rand.NewSource(time.Now().Unix())
 	ctx := context.Background()
-	store := repositories.NewSchema(*storage)
+	store := NewSchema(*storage)
 	// Create a schemaHash
 	i := &big.Int{}
 	i.SetInt64(rand.Int63())
@@ -64,7 +63,7 @@ func TestGetSchema(t *testing.T) {
 func TestCreateSchema(t *testing.T) {
 	rand.NewSource(time.Now().Unix())
 	ctx := context.Background()
-	store := repositories.NewSchema(*storage)
+	store := NewSchema(*storage)
 
 	// Create a schemaHash
 	i := &big.Int{}
@@ -87,7 +86,7 @@ func TestCreateSchema(t *testing.T) {
 	}
 
 	require.NoError(t, store.Save(ctx, schema1))
-	assert.ErrorIs(t, repositories.ErrSchemaDuplicated, store.Save(ctx, schema1), "cannot have duplicated schemas with the same version for the same issuer and type")
+	assert.ErrorIs(t, ErrSchemaDuplicated, store.Save(ctx, schema1), "cannot have duplicated schemas with the same version for the same issuer and type")
 
 	schema2 := schema1
 	schema2.Version = uuid.NewString()
@@ -98,7 +97,7 @@ func TestCreateSchema(t *testing.T) {
 func TestGetSchemaWithNullAttributes(t *testing.T) {
 	rand.NewSource(time.Now().Unix())
 	ctx := context.Background()
-	store := repositories.NewSchema(*storage)
+	store := NewSchema(*storage)
 
 	// Create a schemaHash
 	i := &big.Int{}
@@ -140,7 +139,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 	require.NoError(t, err)
 	defer teardown()
 
-	store := repositories.NewSchema(*storage)
+	store := NewSchema(*storage)
 	did, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
 	insertSchemaGetAllData(t, ctx, *did, store)

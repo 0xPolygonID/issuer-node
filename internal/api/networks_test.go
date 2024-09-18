@@ -43,7 +43,7 @@ func TestServer_GetSupportedNetworks(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 
-			req, err := http.NewRequest("GET", "/v1/supported-networks", nil)
+			req, err := http.NewRequest("GET", "/v2/supported-networks", nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)

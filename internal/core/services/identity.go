@@ -33,6 +33,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/qrlink"
+	"github.com/polygonid/sh-id-platform/internal/urn"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
@@ -255,11 +257,14 @@ func (i *identity) GetLatestStateByID(ctx context.Context, identifier w3c.DID) (
 	// check that identity exists in the db
 	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &identifier)
 	if err != nil {
+		log.Error(ctx, "getting latest state by identifier", "err", err)
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, fmt.Errorf("state is not found for identifier: %s. Please check if the identifier was created in this issuer node", identifier.String())
+		}
 		return nil, err
 	}
 	if state == nil {
-		return nil, fmt.Errorf("state is not found for identifier: %s",
-			identifier.String())
+		return nil, fmt.Errorf("state is not found for identifier: %s", identifier.String())
 	}
 	return state, nil
 }
@@ -391,7 +396,10 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 					if i.ignoreRHSErrors {
 						errIn = nil
 					} else {
-						return errIn
+						errIn = &PublishingStateError{
+							Message: "error publishing revocation status:" + errIn.Error(),
+						}
+						break
 					}
 				}
 			}
@@ -465,13 +473,7 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
-	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
-	if err != nil {
-		log.Warn(ctx, "authentication session not found")
-		return nil, err
-	}
-
+func (i *identity) AuthenticateWithRequest(ctx context.Context, sessionID *uuid.UUID, authReq protocol.AuthorizationRequestMessage, message string, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
 	arm, err := i.verifier.FullVerify(ctx, message, authReq, pubsignals.WithAcceptedStateTransitionDelay(transitionDelay))
 	if err != nil {
 		log.Error(ctx, "authentication failed", "err", err)
@@ -515,7 +517,10 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 			return err
 		}
 
-		return i.connectionsRepository.SaveUserAuthentication(ctx, i.storage.Pgx, connID, sessionID, conn.CreatedAt)
+		if sessionID == nil {
+			sessionID = common.ToPointer(uuid.New())
+		}
+		return i.connectionsRepository.SaveUserAuthentication(ctx, i.storage.Pgx, connID, *sessionID, conn.CreatedAt)
 	}); err != nil {
 		return nil, err
 	}
@@ -526,8 +531,16 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 			log.Error(ctx, "sending connection notification", "err", err.Error(), "connection", connID)
 		}
 	}
-
 	return arm, nil
+}
+
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
+	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
+	if err != nil {
+		log.Warn(ctx, "authentication session not found")
+		return nil, err
+	}
+	return i.AuthenticateWithRequest(ctx, &sessionID, authReq, message, serverURL)
 }
 
 func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (*ports.CreateAuthenticationQRCodeResponse, error) {
@@ -541,7 +554,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.AuthorizationRequestMessageType,
 		Body: protocol.AuthorizationRequestMessageBody{
-			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%s", serverURL, sessionID),
+			CallbackURL: fmt.Sprintf(ports.AuthorizationRequestQRCallbackURL, serverURL, sessionID),
 			Reason:      authReason,
 			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
@@ -559,7 +572,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		return nil, err
 	}
 	return &ports.CreateAuthenticationQRCodeResponse{
-		QRCodeURL: i.qrService.ToURL(serverURL, linkID),
+		QRCodeURL: qrlink.NewDeepLink(serverURL, linkID, nil),
 		SessionID: sessionID,
 		QrID:      linkID,
 	}, nil
@@ -580,7 +593,7 @@ func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, cur
 		var err error
 		claims[j].IdentityState = currentState.State
 
-		affected, err := i.claimsRepository.UpdateState(ctx, i.storage.Pgx, &claims[j])
+		affected, err := i.claimsRepository.UpdateState(ctx, conn, &claims[j])
 		if err != nil {
 			return fmt.Errorf("can't update claim: %w", err)
 		}
@@ -697,7 +710,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthBJJCredentialStatus, false)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthCredentialStatus, false)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -716,11 +729,11 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 	if didOptions == nil {
 		// nolint : it's a right assignment
 		didOptions = &ports.DIDCreationOptions{
-			Method:                  core.DIDMethodIden3,
-			Blockchain:              core.NoChain,
-			Network:                 core.NoNetwork,
-			KeyType:                 kms.KeyTypeBabyJubJub,
-			AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1,
+			Method:               core.DIDMethodIden3,
+			Blockchain:           core.NoChain,
+			Network:              core.NoNetwork,
+			KeyType:              kms.KeyTypeBabyJubJub,
+			AuthCredentialStatus: verifiable.Iden3commRevocationStatusV1,
 		}
 	}
 
@@ -759,7 +772,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthBJJCredentialStatus, true)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthCredentialStatus, true)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -808,8 +821,10 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 				},
 			})
 			if err != nil {
-				log.Error(ctx, "publishing state to RHS", "err", err)
-				return nil, nil, err
+				log.Error(ctx, "error publishing genesis state", "err", err)
+				return nil, nil, &PublishingStateError{
+					Message: "error publishing genesis state:" + err.Error(),
+				}
 			}
 		}
 	}
@@ -834,10 +849,6 @@ func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.I
 	copy(ethAddr[:], address.Bytes())
 
 	currentState := core.GenesisFromEthAddress(ethAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	didType, err := core.BuildDIDType(didOptions.Method, didOptions.Blockchain, didOptions.Network)
 	if err != nil {
 		return nil, nil, err
@@ -924,8 +935,20 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
-func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint) ([]ports.IdentityStatePaginationDto, error) {
-	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, page, maxResults)
+func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, filter *ports.GetStateTransactionsRequest) ([]domain.IdentityState, uint, error) {
+	if filter.Filter == "latest" {
+		state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &issuerDID)
+		if err != nil {
+			return nil, 0, err
+		}
+		result := make([]domain.IdentityState, 0)
+		if state.TxID != nil {
+			result = append(result, *state)
+		}
+		return result, uint(len(result)), nil
+	}
+
+	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, filter)
 }
 
 func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*w3c.DID, error) {
@@ -1051,7 +1074,7 @@ func (i *identity) addGenesisClaimsToTree(ctx context.Context,
 		return nil, nil, fmt.Errorf("can't add get current state from merkle tree: %w", err)
 	}
 
-	// TODO: add config options for blockchain and network
+	// TODO: add config options for blockchain and net
 	didType, err := core.BuildDIDType(didOptions.Method, didOptions.Blockchain, didOptions.Network)
 	if err != nil {
 		return nil, nil, ErrWrongDIDMetada
@@ -1127,7 +1150,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 		return nil, err
 	}
 
-	authCred.ID = fmt.Sprintf("%s/api/v1/credentials/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
+	authCred.ID = string(urn.FromUUID(authClaimID))
 	cs, err := i.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)
@@ -1213,7 +1236,7 @@ func newDIDDocument(serverURL string, issuerDID w3c.DID) verifiable.DIDDocument 
 			verifiable.Service{
 				ID:              fmt.Sprintf("%s#%s", issuerDID, verifiable.Iden3CommServiceType),
 				Type:            verifiable.Iden3CommServiceType,
-				ServiceEndpoint: fmt.Sprintf("%s/v1/agent", serverURL),
+				ServiceEndpoint: fmt.Sprintf(ports.AgentUrl, serverURL),
 			},
 		},
 	}

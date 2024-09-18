@@ -2,7 +2,19 @@ openapi: 3.0.0
 info:
   title: Privado ID - Issuer
   description: |
-    Documentation for the Issuer Node
+    The Issuer Node Core API is ideal for users who need multiple identities and for integrator profiles, who want to 
+    create solutions based on Privado ID functionalities and might be interested in having access to low level 
+    information such as Merkle Trees.
+    The Issuer Node API provide the following functionalities:
+    * Create and retrieve Identities
+    * Create a Verifiable Credential (VC)
+    * Retrieve a Verifiable Credential or a list of Verifiable Credentials
+    * Generate JSON to create a QR Code and use that to accept credentials in a wallet
+    * Revoke a Verifiable Credential
+    * Check revocation status of a Verifiable Credential
+    * Retrieve the Revocation Status of a Verifiable Credential
+    * Call Agent Endpoint using the Wallet App
+    * Handle connections.
   version: "1"
 
 tags:
@@ -12,39 +24,17 @@ tags:
     description: Collection of endpoints related to Credentials
   - name: Agent
     description: Collection of endpoints related to Mobile
+  - name: config
+    description: Collection of endpoints related to Config
 
 paths:
-  /:
-    get:
-      summary: Get the documentation
-      operationId: GetDocumentation
-      x-internal: true
-      responses:
-        200:
-          description: success and returns the documentation in HTML format
-
-  /favicon.ico:
-    get:
-      summary: Gets the favicon
-      operationId: GetFavicon
-      x-internal: true
-      responses:
-        200:
-          description: success and returns a favicon
-
-  /static/docs/api/api.yaml:
-    get:
-      summary: Get the documentation yaml file
-      operationId: GetYaml
-      x-internal: true
-      responses:
-        200:
-          description: success and returns the documentation in Yaml format
 
   /status:
     get:
       summary: Healthcheck
       operationId: Health
+      tags:
+        - Config
       responses:
         '200':
           description: All services are running
@@ -54,24 +44,8 @@ paths:
                 $ref: '#/components/schemas/Health'
         '500':
           $ref: '#/components/responses/500'
-  /config:
-    get:
-      summary: Get Config
-      operationId: GetConfig
-      security:
-        - basicAuth: [ ]
-      responses:
-        '200':
-          description: Config
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Config'
-        '500':
-          $ref: '#/components/responses/500'
 
-      
-  /v1/supported-networks:
+  /v2/supported-networks:
     get:
       summary: Get Supported Networks
       operationId: GetSupportedNetworks
@@ -79,7 +53,7 @@ paths:
       security:
         - basicAuth: [ ]
       tags:
-        - Network
+        - Config
       responses:
         '200':
           description: Supported Networks
@@ -99,7 +73,7 @@ paths:
           $ref: '#/components/responses/500'
 
   #authentication
-  /v1/authentication/sessions/{id}:
+  /v2/authentication/sessions/{id}:
     get:
       summary: Get Authentication Connection
       operationId: getAuthenticationConnection
@@ -127,11 +101,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/authentication/qrcode:
+  /v2/{identifier}/authentication/qrcode:
     post:
-      summary: Get Connection QRCode
+      summary: Get Authentication QRCode
       operationId: authQRCode
-      description: Authentication qrcode
+      description: This endpoint returns a QR code to authenticate, when scanned it a callback is made to the callback endpoint.
       tags:
         - Auth
       parameters:
@@ -159,11 +133,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/authentication/callback:
+  /v2/authentication/callback:
     post:
       summary: Authentication Callback
       operationId: authCallback
-      description: Authentication callback
+      description: This endpoint is called when the QR code is scanned and the user is authenticated. A connection is created.
       tags:
         - Auth
       parameters:
@@ -185,17 +159,17 @@ paths:
 
 
   #identity:
-  /v1/identities:
+  /v2/identities:
     post:
       summary: Create Identity
       operationId: CreateIdentity
-      description: | 
+      description: |
         Endpoint to create an identity to issue credentials.
         Issuer node supports two types of keys (field `type`):
         * BJJ Keys
         * ETH Keys
         
-        `authBJJCredentialStatus` field is optional and and defines how the auth core claim will be evaluated during 
+        `credentialStatusType` field is optional and and defines how the auth core claim will be evaluated during 
         the process to verify that it has not been revoked.
       tags:
         - Identity
@@ -221,7 +195,7 @@ paths:
         '403':
           $ref: '#/components/responses/403'
         '500':
-          $ref: '#/components/responses/500-CreateIdentity'
+          $ref: '#/components/responses/500'
     get:
       summary: Get Identities
       operationId: GetIdentities
@@ -245,12 +219,12 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}:
+  /v2/identities/{identifier}:
     patch:
-      summary: Update Identity DisplayName field
-      operationId: UpdateIdentityDisplayName
+      summary: Update Identity
+      operationId: UpdateIdentity
       description: |
-        Endpoint to update the displayName field of an identity.
+        Endpoint to update the identity.
         The displayName field is used to identify the identity in the UI.
       tags:
         - Identity
@@ -285,10 +259,10 @@ paths:
           $ref: '#/components/responses/403'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
-    
-  /v1/identities/{identifier}/details:
+
+  /v2/identities/{identifier}/details:
     get:
-      summary: Identity Detail
+      summary: Get Identity Detail
       operationId: GetIdentityDetails
       description: Endpoint to get an identity details
       tags:
@@ -311,10 +285,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/retry:
+  /v2/identities/{identifier}/state/retry:
     post:
       summary: Retry Publish Identity State
       operationId: RetryPublishState
+      description: Endpoint to retry publish identity state. If the publish state failed, this endpoint can be used to retry the publish.
       security:
         - basicAuth: [ ]
       parameters:
@@ -333,11 +308,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/publish:
+  /v2/identities/{identifier}/state/publish:
     post:
       summary: Publish Identity State
       operationId: PublishIdentityState
-      description: Endpoint to publish identity state
+      description: Endpoint to publish identity state.
       tags:
         - Identity
       security:
@@ -350,7 +325,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericErrorMessage'
+                $ref: '#/components/schemas/GenericMessage'
         '202':
           description: Transaction ID of the published  state
           content:
@@ -364,16 +339,26 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/transactions:
+  /v2/identities/{identifier}/state/transactions:
     get:
       summary: Get Identity State Transactions
       operationId: GetStateTransactions
+      description: |
+        Endpoint to get identity state transactions.
+        To get all transactions, use the filter `all`. To get the latest transaction, use the filter `latest`.
+        The transactions are paginated for `filter=all`. If the filter is not provided, the default is `all`.
       security:
         - basicAuth: [ ]
       tags:
         - Identity
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: filter
+          schema:
+            type: string
+            enum: [ all, latest ]
+            default: all
         - in: query
           name: page
           schema:
@@ -388,26 +373,38 @@ paths:
             type: integer
             format: uint
             example: 10
-            default: 10
+            default: 50
           description: Number of items to fetch on each page. Default is 10.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "publishDate", "-publishDate", "status", "-status" ]
+              default: "-publishDate"
+            description: >
+              The minus sign (-) before createdAt means descending order.
       responses:
         '200':
           description: State transactions
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StateTransactionsResponse'
+                $ref: '#/components/schemas/StateTransactionsPaginated'
         '400':
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/status:
+  /v2/identities/{identifier}/state/status:
     get:
       summary: Get Identity State Status
       operationId: GetStateStatus
       description: |
-        Endpoint to get identity state status, if the identity is published or not.
+        Endpoint to get identity state status, if the identity status is published or not.
         If the status is `pendingActions` is true it means that the identity has pending actions to be published.
       security:
         - basicAuth: [ ]
@@ -428,11 +425,11 @@ paths:
           $ref: '#/components/responses/500'
 
   #connections:
-  /v1/{identifier}/connections/{id}:
+  /v2/identities/{identifier}/connections/{id}:
     get:
       summary: Get Connection
       operationId: getConnection
-      description: get connection
+      description: Returns a connection of the provided identity by connection id.
       tags:
         - Connection
       security:
@@ -454,7 +451,7 @@ paths:
     delete:
       summary: Delete Connection
       operationId: deleteConnection
-      description: delete connection
+      description: Removes a specific connection of the provided identity.
       tags:
         - Connection
       security:
@@ -488,11 +485,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/connections/{id}/credentials:
+  /v2/identities/{identifier}/connections/{id}/credentials:
     delete:
       summary: Delete Connection Credentials
       operationId: deleteConnectionCredentials
-      description: delete connection credentials
+      description: Delete a connection and its credentials for a specific identity.
       tags:
         - Connection
       security:
@@ -512,11 +509,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/connections:
+  /v2/identities/{identifier}/connections:
     get:
       summary: Get Connections
       operationId: getConnections
-      description: get connections
+      description: Get all the connections of the provided identity.
       tags:
         - Connection
       security:
@@ -577,7 +574,7 @@ paths:
     post:
       summary: Create Connection
       operationId: createConnection
-      description: create connection
+      description: Creates a connection between two identities.
       tags:
         - Connection
       security:
@@ -602,11 +599,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/connections/{id}/credentials/revoke:
+  /v2/identities/{identifier}/connections/{id}/credentials/revoke:
     post:
       summary: Revoke Connection Credentials
       operationId: revokeConnectionCredentials
-      description: revoke connection credentials
+      description: Revoke all the credentials of a connection for a specific identity.
       tags:
         - Connection
       security:
@@ -627,11 +624,11 @@ paths:
           $ref: '#/components/responses/500'
 
   #credentials:
-  /v1/{identifier}/credentials:
+  /v2/identities/{identifier}/credentials:
     post:
       summary: Create Credential
       operationId: CreateCredential
-      description: Endpoint to create a Credential
+      description: Creates a credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -643,14 +640,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateClaimRequest'
+              $ref: '#/components/schemas/CreateCredentialRequest'
       responses:
         '201':
           description: Credential Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateClaimResponse'
+                $ref: '#/components/schemas/CreateCredentialResponse'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -659,73 +656,14 @@ paths:
           $ref: '#/components/responses/422'
         '500':
           $ref: '#/components/responses/500'
+
+
+  /v2/identities/{identifier}/credentials/search:
     get:
       summary: Get Credentials
       operationId: GetCredentials
       description: |
-        Endpoint to retrieve Credentials 
-        > ⚠️ **self** and **subject** filter cannot be used together
-      tags:
-        - Claim
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - in: query
-          name: schemaType
-          schema:
-            type: string
-          description: Filter per schema type. Example - KYCAgeCredential
-        - in: query
-          name: schemaHash
-          schema:
-            type: string
-          description: Filter per schema hash. Example - c9b2370371b7fa8b3dab2a5ba81b6838
-        - in: query
-          name: subject
-          schema:
-            type: string
-          description: Filter per subject. Example - did:polygonid:polygon:amoy:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
-        - in: query
-          name: revoked
-          schema:
-            type: boolean
-          description: Filter per credentials revoked or not - Example - true.
-        - in: query
-          name: self
-          schema:
-            type: boolean
-          description: Filter per retrieve credentials of the provided identifier. Example - true
-        - in: query
-          name: query_field
-          schema:
-            type: string
-          description: Filter this field inside the data of the claim
-        - in: query
-          name: query_value
-          schema:
-            type: string
-          description: Filter this value inside the data of the claim for the specified field in query_field
-      responses:
-        '200':
-          description: Credentials found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimsResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/{identifier}/credentials/search:
-    get:
-      summary: Get Credentials Paginated
-      operationId: GetCredentialsPaginated
-      description: |
-        Return all the credentials for page.
+        Returns a list of credentials for the provided identity. Results are paginated.
         Filter between all | revoked | expired credentials and also perform a full text search with the query parameter.
       tags:
         - Credentials
@@ -742,7 +680,7 @@ paths:
             example: 1
           description: Page to fetch. First is one. If omitted, all results will be returned.
         - in: query
-          name: did
+          name: credentialSubject
           schema:
             type: string
             example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
@@ -797,105 +735,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/claims:
-    post:
-      summary: Create Claim (Deprecated)
-      operationId: CreateClaim
-      description: Endpoint to create a Claim. Deprecated, use /v1/{identifier}/credentials instead
-      tags:
-        - Credentials
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateClaimRequest'
-      responses:
-        '201':
-          description: Claim created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateClaimResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '422':
-          $ref: '#/components/responses/422'
-        '500':
-          $ref: '#/components/responses/500'
+  /v2/identities/{identifier}/credentials/{id}:
     get:
-      summary: Get Claims (Deprecated)
-      operationId: GetClaims
-      description: |
-        Endpoint to retrieve claims. Deprecated, use /v1/{identifier}/credentials instead
-        > ⚠️ **self** and **subject** filter cannot be used together
-      tags:
-        - Credentials
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - in: query
-          name: schemaType
-          schema:
-            type: string
-          description: Filter per schema type. Example - KYCAgeCredential
-        - in: query
-          name: schemaHash
-          schema:
-            type: string
-          description: Filter per schema hash. Example - c9b2370371b7fa8b3dab2a5ba81b6838
-        - in: query
-          name: subject
-          schema:
-            type: string
-          description: Filter per subject. Example - did:polygonid:polygon:amoy:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
-        - in: query
-          name: revoked
-          schema:
-            type: boolean
-          description: Filter per claims revoked or not - Example - true.
-        - in: query
-          name: self
-          schema:
-            type: boolean
-          description: Filter per retrieve claims of the provided identifier. Example - true
-        - in: query
-          name: query_field
-          schema:
-            type: string
-          description: Filter this field inside the data of the claim
-        - in: query
-          name: query_value
-          schema:
-            type: string
-          description: Filter this value inside the data of the claim for the specified field in query_field
-      responses:
-        '200':
-          description: Claims found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimsResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '500':
-          $ref: '#/components/responses/500'
-
-
-  /v1/{identifier}/credentials/{id}:
-    get:
-      summary: Get Claim
+      summary: Get Credential
       operationId: GetCredential
-      description: Endpoint to retrieve a created Credential
+      description: Get a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -909,7 +753,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetClaimResponse'
+                $ref: '#/components/schemas/GetCredentialResponse'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -921,7 +765,7 @@ paths:
     delete:
       summary: Delete Credential
       operationId: DeleteCredential
-      description: Endpoint to delete a Credential
+      description: Remove a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -931,7 +775,7 @@ paths:
         - $ref: '#/components/parameters/pathClaim'
       responses:
         '200':
-          description: Claim deleted
+          description: Credential deleted
           content:
             application/json:
               schema:
@@ -943,39 +787,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/claims/{id}:
-    get:
-      summary: Get Claim
-      operationId: GetClaim
-      description: Endpoint to retrieve a created Claim
-      tags:
-        - Credentials
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/pathClaim'
-      responses:
-        '200':
-          description: Claim found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '404':
-          $ref: '#/components/responses/404'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/{identifier}/credentials/revoke/{nonce}:
+  /v2/identities/{identifier}/credentials/revoke/{nonce}:
     post:
       summary: Revoke Credential
       operationId: RevokeCredential
-      description: Endpoint to revoke a credential
+      description: Revokes a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -999,35 +815,30 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/claims/revoke/{nonce}:
-    post:
-      summary: Revoke Claim (Deprecated)
-      operationId: RevokeClaim
-      description: Endpoint to revoke a claim. DEPRECATED, use /v1/{identifier}/credentials/revoke/{nonce} instead
+  /v1/{identifier}/claims/revocation/status/{nonce}:
+    get:
+      summary: Get Revocation Status V1
+      operationId: GetRevocationStatus
+      deprecated: true
+      description: Endpoint to get the revocation status
       tags:
         - Credentials
-      security:
-        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/pathNonce'
       responses:
-        '202':
-          description: Accepted
+        '200':
+          description: Proof
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RevokeClaimResponse'
+                $ref: '#/components/schemas/RevocationStatusResponse'
         '400':
           $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '404':
-          $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/revocation/status/{nonce}:
+  /v2/identities/{identifier}/credentials/revocation/status/{nonce}:
     get:
       summary: Get Revocation Status
       operationId: GetRevocationStatusV2
@@ -1049,35 +860,15 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/claims/revocation/status/{nonce}:
-    get:
-      summary: Get Revocation Status (Deprecated)
-      operationId: GetRevocationStatus
-      description: Endpoint to get the revocation status. DEPRECATED use /v1/{identifier}/credentials/revocation/status/{nonce} instead
-      tags:
-        - Credentials
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/pathNonce'
-      responses:
-        '200':
-          description: Proof
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RevocationStatusResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/{identifier}/credentials/{id}/qrcode:
+  /v2/identities/{identifier}/credentials/{id}/qrcode:
     get:
       summary: Get Credentials QR code
       operationId: GetCredentialQrCode
-      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim.
+      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. |
+        Response can be in 3 formats `universalLink`, `deepLink` or `raw`. Default is `universalLink`. Raw is the raw QR code and link is a QR code with a link to the raw content.
+        Regardless of the type, the field will always be called universalLink.
       tags:
-        - Claim
+        - Credentials
       security:
         - basicAuth: [ ]
       parameters:
@@ -1088,11 +879,12 @@ paths:
           required: false
           schema:
             type: string
-            enum: [ raw, link ]
+            enum: [ universalLink, deepLink, raw ]
           description: >
             Type:
-              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
-              * `raw` - Return the raw QR code.
+              * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the QR  
+              * `deepLink` -  Returns a QR code with a link redirection to the raw content.   
+              * `raw` - Returns the raw QR code.
       responses:
         '200':
           description: ok
@@ -1109,39 +901,12 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/claims/{id}/qrcode:
-    get:
-      summary: Get Claim QR code (Deprecated)
-      operationId: GetClaimQrCode
-      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. DEPRECATED use /v1/{identifier}/credentials/{id}/qrcode instead
-      tags:
-        - Claim
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/pathClaim'
-      responses:
-        '200':
-          description: ok
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimQrCodeResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '404':
-          $ref: '#/components/responses/404'
-        '409':
-          $ref: '#/components/responses/409'
-        '500':
-          $ref: '#/components/responses/500'
   #agent
-  /v1/agent:
+  /v2/agent:
     post:
       summary: Agent
       operationId: Agent
-      description: Mobile agent endpoint
+      description: Identity Agent Endpoint
       tags:
         - Agent
       requestBody:
@@ -1163,13 +928,41 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/qr-store:
+  /v1/agent:
+    post:
+      summary: Agent V1
+      operationId: AgentV1
+      description: Identity Agent Endpoint for v1.
+      deprecated: true
+      tags:
+        - Agent
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: TBD
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+
+  /v2/qr-store:
     get:
-      summary: QrCode body
+      summary: Get QrCode from store
       operationId: GetQrFromStore
       description: Returns a previously generated QR code via url shortener method
       tags:
-        - Agent
+        - QR Store
       parameters:
         - in: query
           name: id
@@ -1180,6 +973,11 @@ paths:
               name: uuid
               path: github.com/google/uuid
             example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        - in: query
+          name: issuer
+          schema:
+            type: string
+
       responses:
         '200':
           description: A json to generate a QR code
@@ -1195,10 +993,11 @@ paths:
           $ref: '#/components/responses/500'
 
   #schemas:
-  /v1/{identifier}/schemas:
+  /v2/identities/{identifier}/schemas:
     post:
       summary: Import JSON schema
       operationId: ImportSchema
+      description: Import a JSON schema to be used in the credentials.
       security:
         - basicAuth: [ ]
       tags:
@@ -1250,10 +1049,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/schemas/{id}:
+  /v2/identities/{identifier}/schemas/{id}:
     get:
       summary: Get Schema
       operationId: GetSchema
+      description: Get a specific schema for the provided identity.
       security:
         - basicAuth: [ ]
       tags:
@@ -1277,10 +1077,13 @@ paths:
 
 
   # Links
-  /v1/{identifier}/credentials/links:
+  /v2/identities/{identifier}/credentials/links:
     get:
       summary: Get Links
       operationId: GetLinks
+      description: |
+        Returns a list of links for the provided identity.
+        Filter between all | active | inactive | exceeded links and also perform a full text search with the query parameter.
       security:
         - basicAuth: [ ]
       tags:
@@ -1322,6 +1125,7 @@ paths:
     post:
       summary: Create Link
       operationId: CreateLink
+      description: Create a link for the provided identity. With this link, the identity can issue credentials.
       security:
         - basicAuth: [ ]
       tags:
@@ -1346,10 +1150,14 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/links/{id}:
+  /v2/identities/{identifier}/credentials/links/{id}:
     get:
       summary: Get Link
       operationId: GetLink
+      description: |
+        Get a specific link for the provided identity.
+        `deepLink` and `universalLink` fields are returned if the credential has an associated qr code. <br/>
+        To create a QR code for the link, use the endpoint `/v2/identities/{identifier}/credentials/links/{id}/qrcode`.
       security:
         - basicAuth: [ ]
       tags:
@@ -1408,6 +1216,7 @@ paths:
     delete:
       summary: Delete Link
       operationId: DeleteLink
+      description: Remove a specific link for the provided identity.
       security:
         - basicAuth: [ ]
       parameters:
@@ -1428,10 +1237,11 @@ paths:
           $ref: '#/components/responses/500'
 
 
-  /v1/{identifier}/credentials/links/{id}/qrcode:
+  /v2/identities/{identifier}/credentials/links/{id}/qrcode:
     post:
-      summary: Create Authentication Link QRCode
+      summary: Create Link QR Code
       operationId: CreateLinkQrCode
+      description: Create a QR code for the provided link
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/id'
@@ -1451,44 +1261,16 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-    get:
-      summary: Get Credential Link QRCode
-      operationId: GetLinkQRCode
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/id'
-        - $ref: '#/components/parameters/sessionID'
-      tags:
-        - Links
-      responses:
-        '200':
-          description: Credential link QRCode
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetLinkQrCodeResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '404':
-          description: 'Entity not found'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorMessage'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/credentials/links/callback:
+  /v2/identities/{identifier}/credentials/links/callback:
     post:
       summary: Create Link QR Code Callback
       operationId: CreateLinkQrCodeCallback
-      description: Create Link QR Code Callback
+      description: Process the callback from the QR code link
       tags:
-        - Auth
+        - Links
       parameters:
-        - $ref: '#/components/parameters/sessionID'
+        - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/linkID'
-        - $ref: '#/components/parameters/credentialStatusType'
       requestBody:
         required: true
         content:
@@ -1498,7 +1280,12 @@ paths:
               example: jwz-token
       responses:
         '200':
-          description: ok
+          description: |
+            Return the offer for fetching the credential if the link was created for a Signature Credential or just 200 http status if the link was created for MTP Credential.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -1511,21 +1298,6 @@ components:
       scheme: basic
 
   schemas:
-    KeyValue:
-      type: object
-      required:
-        - key
-        - value
-      properties:
-        key:
-          type: string
-        value:
-          type: string
-
-    Config:
-      type: array
-      items:
-        $ref: '#/components/schemas/KeyValue'
     Health:
       type: object
       x-omitempty: false
@@ -1595,21 +1367,23 @@ components:
               x-omitempty: false
               example: "BJJ"
               enum: [ BJJ, ETH ]
-            authBJJCredentialStatus:
-              type: string
-              x-omitempty: true
-              example: "Iden3ReverseSparseMerkleTreeProof"
-              enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+        credentialStatusType:
+          type: string
+          x-omitempty: true
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         displayName:
-              type: string
-              x-omitempty: true
-              example: "KYCAgeCredential Issuer identity"
+          type: string
+          x-omitempty: true
+          example: "KYCAgeCredential Issuer identity"
 
     CreateIdentityResponse:
       type: object
       required:
         - identity
         - status
+        - keyType
+        - credentialStatusType
       properties:
         identifier:
           type: string
@@ -1619,44 +1393,44 @@ components:
           $ref: '#/components/schemas/IdentityState'
         address:
           type: string
-          x-omitempty: false
+          x-omitempty: true
+        balance:
+          type: string
+          x-omitempty: true
+        keyType:
+          type: string
+        credentialStatusType:
+          type: string
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+
 
     GetIdentityDetailsResponse:
       type: object
       required:
         - identity
         - status
-        - authCoreClaimRevocationStatus
         - keyType
+        - credentialStatusType
       properties:
         identifier:
+          type: string
+        displayName:
           type: string
         state:
           $ref: '#/components/schemas/IdentityState'
         address:
           type: string
+          x-omitempty: true
         balance:
           type: string
+          x-omitempty: true
         keyType:
           type: string
-        displayName:
+        credentialStatusType:
           type: string
-        authCoreClaimRevocationStatus:
-          $ref: '#/components/schemas/authCoreClaimRevocationStatus'
-
-    authCoreClaimRevocationStatus:
-      type: object
-      required:
-        - ID
-        - type
-        - revocationNonce
-      properties:
-        ID:
-          type: string
-        type:
-          type: string
-        revocationNonce:
-          type: integer
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
     IdentityState:
       type: object
@@ -1711,18 +1485,19 @@ components:
         rootOfRoots:
           type: string
 
-    StateTransactionsResponse:
+    StateTransactionsPaginated:
       type: object
-      required:
-        - total
-        - transactions
+      required: [ items, meta ]
       properties:
-        total:
-          type: integer
-        transactions:
-          type: array
-          items:
-            $ref: '#/components/schemas/StateTransaction'
+        items:
+          $ref: '#/components/schemas/StateTransactions'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
+    StateTransactions:
+      type: array
+      items:
+        $ref: '#/components/schemas/StateTransaction'
 
     StateStatusResponse:
       type: object
@@ -1748,7 +1523,7 @@ components:
           example: 1
         txID:
           type: string
-          example: 0x8f271174b45ba7892d83d7210c9b54b70ee1e02a63a0f7abf6308663bc462eac
+          example: 0x8f271174b45ba7892d83...
         state:
           type: string
           example: 13f9aadd4801d775e85a7ef45c2f6d02cdf83f0d724250417b165ff9cd88ee21
@@ -1758,6 +1533,7 @@ components:
           type: string
           enum: [ created, pending, published, failed ]
           example: published
+
     ConnectionsPaginated:
       type: object
       required: [ items, meta ]
@@ -1784,11 +1560,11 @@ components:
           type: string
           x-omitempty: false
           example: did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
-        authBJJCredentialStatus:
+        credentialStatusType:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         method:
           type: string
           x-omitempty: false
@@ -1955,10 +1731,10 @@ components:
           type: string
           x-omitempty: false
           enum:
-            - "Iden3BasicDisplayMethodV1"
+            - "Iden3BasicDisplayMethodv2"
 
-    #claims
-    CreateClaimRequest:
+    #Credentials
+    CreateCredentialRequest:
       type: object
       required:
         - credentialSchema
@@ -2006,7 +1782,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
@@ -2016,7 +1792,7 @@ components:
           documentType: 2
         expiration: 1903357766
 
-    CreateClaimResponse:
+    CreateCredentialResponse:
       type: object
       required:
         - id
@@ -2118,12 +1894,7 @@ components:
         connection:
           $ref: '#/components/schemas/AuthenticationConnection'
 
-    GetClaimsResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/GetClaimResponse'
-
-    GetClaimResponse:
+    GetCredentialResponse:
       type: object
       required:
         - id
@@ -2134,6 +1905,7 @@ components:
         - issuer
         - credentialSchema
         - proof
+        - proofTypes
       properties:
         id:
           type: string
@@ -2163,6 +1935,11 @@ components:
         credentialSchema:
           $ref: '#/components/schemas/CredentialSchema'
           x-omitempty: false
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
         proof:
           type: null
         displayMethod:
@@ -2182,50 +1959,6 @@ components:
         sessionID:
           $ref: '#/components/schemas/UUIDString'
 
-    GetClaimQrCodeResponse:
-      type: object
-      required:
-        - body
-        - id
-        - typ
-        - type
-        - thid
-        - from
-        - to
-      properties:
-        id:
-          type: string
-        typ:
-          type: string
-        type:
-          type: string
-        thid:
-          type: string
-        body:
-          type: object
-          required:
-            - url
-            - credentials
-          properties:
-            url:
-              type: string
-            credentials:
-              type: array
-              items:
-                type: object
-                required:
-                  - id
-                  - description
-                properties:
-                  id:
-                    type: string
-                  description:
-                    type: string
-        from:
-          type: string
-        to:
-          type: string
-
     CredentialSchema:
       type: object
       required:
@@ -2238,20 +1971,20 @@ components:
         type:
           type: string
           x-omitempty: false
-      
+
     QrCodeLinkWithSchemaTypeShortResponse:
       type: object
       required:
-        - qrCodeLink
+        - universalLink
         - schemaType
       properties:
-        qrCodeLink:
+        universalLink:
           type: string
-          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+          example: https://wallet.privado.id#request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         schemaType:
           type: string
           example: "vaccinationCertificate"
-      
+
     CredentialsPaginated:
       type: object
       required: [ items, meta ]
@@ -2310,10 +2043,6 @@ components:
                   type: string
                 value:
                   type: string
-
-    ByteArray:
-      type: string
-      format: byte
 
     #Agent
     AgentResponse:
@@ -2413,6 +2142,12 @@ components:
           $ref: '#/components/schemas/RefreshService'
         displayMethod:
           $ref: '#/components/schemas/DisplayMethod'
+        deepLink:
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        universalLink:
+          type: string
+          example: https://wallet.privado.id#request_uri=url
 
     CredentialSubject:
       type: object
@@ -2463,7 +2198,8 @@ components:
       type: object
       required:
         - issuer
-        - qrCodeLink
+        - deepLink
+        - universalLink
         - qrCodeRaw
         - sessionID
         - linkID
@@ -2473,26 +2209,12 @@ components:
           $ref: '#/components/schemas/IssuerDescription'
         qrCodeRaw:
           type: string
-        qrCodeLink:
+        deepLink:
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
-        sessionID:
+        universalLink:
           type: string
-          example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
-        linkDetail:
-          $ref: '#/components/schemas/LinkSimple'
-
-    GetLinkQrCodeResponse:
-      type: object
-      required:
-        - linkDetail
-      properties:
-        qrCode:
-          type: string
-          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
-        status:
-          type: string
-          example: done | pending | pendingPublish
+          example: https://wallet.privado.id#request_uri=url
         linkDetail:
           $ref: '#/components/schemas/LinkSimple'
 
@@ -2539,6 +2261,7 @@ components:
           items:
             type: string
           example: [ "BJJSignature2021" ]
+
     CreateConnectionRequest:
       type: object
       required: [ userDID, userDoc, issuerDoc ]
@@ -2567,8 +2290,15 @@ components:
           type: array
           items:
             type: string
-          example: ["amoy", "mumbai"]
-            
+          example: [ "amoy", "mumbai" ]
+
+    Offer:
+      type: object
+      x-go-type: protocol.CredentialsOfferMessage
+      x-go-type-import:
+        name: protocol
+        path: github.com/iden3/iden3comm/v2/protocol
+
   parameters:
     credentialStatusType:
       name: credentialStatusType
@@ -2643,7 +2373,6 @@ components:
         type: integer
         format: int64
 
-
   responses:
     '400':
       description: 'Bad Request'
@@ -2694,7 +2423,7 @@ components:
           schema:
             $ref: '#/components/schemas/GenericErrorMessage'
     '500':
-      description: 'Internal Server error'
+      description: 'Internal Server  error'
       content:
         application/json:
           schema:

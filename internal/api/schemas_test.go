@@ -19,6 +19,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_GetSchema(t *testing.T) {
@@ -27,7 +28,7 @@ func TestServer_GetSchema(t *testing.T) {
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.ServerUrl = "https://testing.env"
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	s := &domain.Schema{
 		ID:        uuid.New(),
@@ -99,7 +100,7 @@ func TestServer_GetSchema(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", fmt.Sprintf("/v1/%s/schemas/%s", issuerDID, tc.id), nil)
+			req, err := http.NewRequest("GET", fmt.Sprintf("/v2/identities/%s/schemas/%s", issuerDID, tc.id), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -146,7 +147,7 @@ func TestServer_GetSchemas(t *testing.T) {
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.ServerUrl = "https://testing.env"
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	for i := 0; i < 20; i++ {
 		s := &domain.Schema{
@@ -238,7 +239,7 @@ func TestServer_GetSchemas(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			endpoint := fmt.Sprintf("/v1/%s/schemas", issuerDID)
+			endpoint := fmt.Sprintf("/v2/identities/%s/schemas", issuerDID)
 			if tc.query != nil {
 				endpoint = endpoint + "?query=" + url.QueryEscape(*tc.query)
 			}
@@ -333,7 +334,7 @@ func TestServer_ImportSchema(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", fmt.Sprintf("/v1/%s/schemas", issuerDID), tests.JSONBody(t, tc.request))
+			req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/schemas", issuerDID), tests.JSONBody(t, tc.request))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -428,7 +429,7 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", fmt.Sprintf("/v1/%s/schemas", issuerDID), tests.JSONBody(t, tc.request))
+			req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/schemas", issuerDID), tests.JSONBody(t, tc.request))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 

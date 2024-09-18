@@ -1,4 +1,4 @@
-package services_tests
+package services
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
@@ -19,10 +18,10 @@ import (
 func TestQRStore(t *testing.T) {
 	ctx := context.Background()
 	instance := miniredis.RunT(t)
-	client, err := redis.Open("redis://" + instance.Addr())
+	client, err := redis.Open(ctx, "redis://"+instance.Addr())
 	require.NoError(t, err)
 	defer func() { assert.NoError(t, client.Close()) }()
-	s := services.NewQrStoreService(cache.NewRedisCache(client))
+	s := NewQrStoreService(cache.NewRedisCache(client))
 
 	type expected struct {
 		qrcode []byte
@@ -105,7 +104,7 @@ func TestQRStore(t *testing.T) {
 			ttl:    -1 * time.Minute,
 			expected: expected{
 				qrcode: nil,
-				error:  services.ErrQRCodeLinkNotFound,
+				error:  ErrQRCodeLinkNotFound,
 			},
 		},
 	} {

@@ -1,4 +1,4 @@
-package tests
+package repositories
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // Fixture - Handle testing fixture configuration
@@ -25,11 +24,11 @@ type Fixture struct {
 func NewFixture(storage *db.Storage) *Fixture {
 	return &Fixture{
 		storage:                 storage,
-		identityRepository:      repositories.NewIdentity(),
-		claimRepository:         repositories.NewClaims(),
-		connectionsRepository:   repositories.NewConnections(),
-		schemaRepository:        repositories.NewSchema(*storage),
-		identityStateRepository: repositories.NewIdentityState(),
+		identityRepository:      NewIdentity(),
+		claimRepository:         NewClaims(),
+		connectionsRepository:   NewConnections(),
+		schemaRepository:        NewSchema(*storage),
+		identityStateRepository: NewIdentityState(),
 	}
 }
 
