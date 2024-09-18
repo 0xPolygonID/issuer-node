@@ -56,6 +56,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 
 ### Run Issuer Node API and UI (docker compose with images from privadoid registry)
 To run the issuer node (API and UI) quickly and without too many customizations follow the following steps:
+
 1. Copy the config sample file:
 ```shell
 cp .env-issuer.sample .env-issuer
@@ -94,15 +95,16 @@ a4a1d3ec9159   redis:6-alpine                  "docker-entrypoint.s…"   38 sec
 ```
 
 
-5. Import your metamask private key
+5. Import your Ethereum private key
 
 ```shell
 make private_key=<private-key> import-private-key-to-kms 
 ```
 
 then visit:
-* https://localhost:8088/ to access the UI
-* <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API. (**user: user-issuer**, **password: password-issuer**)
+* https://localhost:8088/ to access the UI (Default username / password are: user-ui, password-ui). You can set them using env [vars](.env-ui.sample).
+* <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API. (Default username / password are: user-issuer, password-issuer)
+  You can set them using env [vars](.env-issuer.sample).
 
 **Different installation alternatives can be seen later.**
 
@@ -141,13 +143,12 @@ define the RPCs. that will use.
 ```bash 
 cp .env-ui.sample .env-ui
 ```
-If you want to enable UI authentication, you must change the value of the following variables:
+If you want to disable UI authentication just change `ISSUER_UI_INSECURE=true`, or if you want to change ui authentication:
 
 *.env-ui*
 ```bash
-ISSUER_UI_INSECURE=false
-ISSUER_UI_AUTH_USERNAME=user-ui
-ISSUER_UI_AUTH_PASSWORD=password-ui
+ISSUER_UI_AUTH_USERNAME=<your-username>
+ISSUER_UI_AUTH_PASSWORD=<your-password>
 ```
 
 5. Run API, UI and infrastructure (Postgres, localstorage and Redis)
@@ -160,9 +161,9 @@ then visit
 * http://localhost:8088/ to access the UI
 * <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API.
 
-6. Import your metamask private Key:
-Write the private. This step is needed in order to be able to transit the issuer's state. To perform that
-   action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
+6. Import your Ethereum private Key:
+Configure the private key. This step is needed in order to be able to transit the issuer's state. To perform that
+action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
 ```bash
 make private_key=<private-key> import-private-key-to-kms
 ```
@@ -171,7 +172,13 @@ make private_key=<private-key> import-private-key-to-kms
 ### Running only Issuer Node API (docker compose and build from source)
 
 If you want to run only the API, you can follow the steps below. You have to have the .env-issuer file filled with 
-the proper values and the resolver_settings.yaml file with the proper RPCs.
+the proper values and the `resolvers_settings.yaml` file with the proper RPCs.
+Make sure the infrastructure is running (Postgres, localstorage and Redis). If not, you can run it with the following command:
+
+```shell
+make up
+```
+
 Then run: 
 
 ```shell
@@ -217,8 +224,8 @@ Consider that if you have the issuer node running, after changing the configurat
 In all options the **.env-issuer** file is necessary.
 
 #### Running issuer node with vault instead of local storage file
-The issuer node can be configured to use a [Vault](https://www.vaultproject.io), as kms provider.
-However, in addition to the vault, the vault needs a [plugin](https://github.com/iden3/vault-plugin-secrets-iden3) 
+The issuer node can be configured to use a [HashiCorp Vault](https://www.vaultproject.io), as kms provider.
+However, Vault needs a [plugin](https://github.com/iden3/vault-plugin-secrets-iden3) 
 for key generation and message signing. This is because the issuer node does not generate private keys, but rather 
 delegates that action and the signing of messages to the vault.
 

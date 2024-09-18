@@ -24,6 +24,38 @@ services:
       timeout: 5s
       retries: 5
 
+  vault:
+    image: vault:1.13.2
+    volumes:
+      - ./.vault/config:/vault/config
+      - ./.vault/scripts:/vault/scripts
+      - vault-plugins-full:/vault/plugins
+      - vault-data-full:/vault/data
+      - vault-file-full:/vault/file:rw
+    ports:
+      - 8200:8200
+    environment:
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://0.0.0.0:8200
+      - VAULT_ADDRESS=http://0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "--proxy",
+          "off",
+          "http://vault:8200/v1/sys/health?standbyok=true",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    command: ./vault/scripts/init.sh
+
   ui:
     image: privadoid/issuernode-ui
     pull_policy: always
@@ -55,6 +87,7 @@ services:
       timeout: 5s
       retries: 5
     command: sh -c "./migrate && ./platform"
+    restart: unless-stopped
     depends_on:
       - postgres
       - redis
@@ -72,6 +105,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
     depends_on:
       - api
 
@@ -88,6 +122,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
     depends_on:
       - api
 
@@ -97,3 +132,6 @@ networks:
 
 volumes:
   postgres-data-full:
+  vault-plugins-full:
+  vault-data-full:
+  vault-file-full:

@@ -30,7 +30,11 @@ ENV = $(DOTENV_CMD) -f .env-issuer
 .PHONY: run-full
 run-full:
 	@make down
-	$(DOCKER_COMPOSE_FULL_CMD) up -d
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
+	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
+else
+	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres vault api pending_publisher notifications ui
+endif
 
 .PHONY: build-local
 build-local:
