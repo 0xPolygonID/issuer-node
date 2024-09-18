@@ -224,9 +224,14 @@ func getCredentialOfferData(conn *domain.Connection, credentials ...*domain.Clai
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("unmarshal managedService, err: %v", err.Error())
 	}
 
-	credOfferBytes, err = notifications.NewOfferMsg(managedService.ServiceEndpoint, credentials...)
+	credOffer, err := notifications.NewOfferMsg(managedService.ServiceEndpoint, credentials...)
 	if err != nil {
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("newOfferMsg, err: %v", err.Error())
+	}
+
+	credOfferBytes, err = json.Marshal(credOffer)
+	if err != nil {
+		return nil, verifiable.DIDDocument{}, fmt.Errorf("marshal credOffer, err: %v", err.Error())
 	}
 
 	err = json.Unmarshal(conn.UserDoc, &subjectDIDDoc)

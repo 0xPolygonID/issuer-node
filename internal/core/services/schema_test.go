@@ -1,4 +1,4 @@
-package services_tests
+package services
 
 import (
 	"context"
@@ -13,7 +13,6 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -34,7 +33,7 @@ func TestSchema_ImportSchema(t *testing.T) {
 
 	expectHash := utils.CreateSchemaHash([]byte(urlLD + "#" + schemaType))
 
-	s := services.NewSchema(repo, docLoader)
+	s := NewSchema(repo, docLoader)
 	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer(title), version, common.ToPointer(description))
 	got, err := s.ImportSchema(ctx, *issuerDID, iReq)
 	require.NoError(t, err)

@@ -1,4 +1,4 @@
-package tests
+package repositories
 
 import (
 	"context"
@@ -15,21 +15,19 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestSaveLink(t *testing.T) {
 	ctx := context.Background()
 	didStr := "did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63"
-	schemaStore := repositories.NewSchema(*storage)
+	schemaStore := NewSchema(*storage)
 
 	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	assert.NoError(t, err)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
 
-	linkStore := repositories.NewLink(*storage)
+	linkStore := NewLink(*storage)
 
 	did, err := w3c.ParseDID(didStr)
 	require.NoError(t, err)
@@ -103,7 +101,7 @@ func TestSaveLink(t *testing.T) {
 
 func insertSchemaForLink(ctx context.Context, didStr string, store ports.SchemaRepository, t *testing.T) uuid.UUID {
 	t.Helper()
-	SchemaStore := repositories.NewSchema(*storage)
+	SchemaStore := NewSchema(*storage)
 	did, err := w3c.ParseDID(didStr)
 	require.NoError(t, err)
 	insertSchemaGetAllData(t, ctx, *did, SchemaStore)
@@ -128,13 +126,13 @@ func insertSchemaForLink(ctx context.Context, didStr string, store ports.SchemaR
 func TestGetLinkById(t *testing.T) {
 	ctx := context.Background()
 	didStr := "did:polygonid:polygon:mumbai:2qP8C6HFRANi79HDdnak4b2QJeGewKWbQBYakNXJTh"
-	schemaStore := repositories.NewSchema(*storage)
+	schemaStore := NewSchema(*storage)
 	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
 
-	linkStore := repositories.NewLink(*storage)
+	linkStore := NewLink(*storage)
 
 	did, err := w3c.ParseDID(didStr)
 	require.NoError(t, err)
@@ -152,17 +150,17 @@ func TestGetLinkById(t *testing.T) {
 
 	_, err = linkStore.GetByID(ctx, *did, uuid.New())
 	assert.Error(t, err)
-	assert.Equal(t, repositories.ErrLinkDoesNotExist, err)
+	assert.Equal(t, ErrLinkDoesNotExist, err)
 }
 
 func TestGetAll(t *testing.T) {
 	ctx := context.Background()
-	fixture := tests.NewFixture(storage)
+	fixture := NewFixture(storage)
 	didStr := "did:iden3:tLZ7NJdCek9j79a1Pmxci3seELHctfGibcrnjjftQ"
-	schemaStore := repositories.NewSchema(*storage)
+	schemaStore := NewSchema(*storage)
 	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	linkStore := repositories.NewLink(*storage)
+	linkStore := NewLink(*storage)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
 	did, err := w3c.ParseDID(didStr)
@@ -344,17 +342,16 @@ func TestDeleteLink(t *testing.T) {
 	ctx := context.Background()
 	didStr := "did:polygonid:polygon:mumbai:2qJ8RWkEpMtsAwnACo5oUktJSeS1wqPfnXMF99Y4Hj"
 	didStr2 := "did:polygonid:polygon:mumbai:2qPKWbeUSqzk6zGx4cv1EspaDMJXu2suprCr6yHfkQ"
-	schemaStore := repositories.NewSchema(*storage)
+	schemaStore := NewSchema(*storage)
 
-	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
-	assert.NoError(t, err)
-
-	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr2, "BJJ")
-	assert.NoError(t, err)
+	fixture := NewFixture(storage)
+	identity := &domain.Identity{
+		Identifier: didStr,
+	}
+	fixture.CreateIdentity(t, identity)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
-
-	linkStore := repositories.NewLink(*storage)
+	linkStore := NewLink(*storage)
 
 	did, err := w3c.ParseDID(didStr)
 	require.NoError(t, err)
@@ -370,13 +367,37 @@ func TestDeleteLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, linkID)
 
+	idClaim, _ := uuid.NewUUID()
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim,
+		Identifier:      &didStr,
+		Issuer:          didStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        0,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "123",
+		LinkID:          linkID,
+	})
+
 	err = linkStore.Delete(ctx, *linkID, *did2)
 	assert.Error(t, err)
 
 	err = linkStore.Delete(ctx, *linkID, *did)
 	assert.NoError(t, err)
 
+	claimStorage := NewClaims()
+	claim, err := claimStorage.GetByIdAndIssuer(ctx, storage.Pgx, did, idClaim)
+	assert.NoError(t, err)
+	assert.NotNil(t, claim)
+
 	err = linkStore.Delete(ctx, uuid.New(), *did)
 	assert.Error(t, err)
-	assert.Equal(t, repositories.ErrLinkDoesNotExist, err)
+	assert.Equal(t, ErrLinkDoesNotExist, err)
 }

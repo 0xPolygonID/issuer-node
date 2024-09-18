@@ -22,7 +22,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -48,9 +47,14 @@ func main() {
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
-	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	cachex, err := cache.NewCacheClient(ctx, *cfg)
 	if err != nil {
-		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
+		log.Error(ctx, "cannot initialize cache", "err", err)
+		return
+	}
+	ps, err := pubsub.NewPubSub(ctx, *cfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize pubsub", "err", err)
 		return
 	}
 
@@ -59,10 +63,6 @@ func main() {
 		log.Error(ctx, "cannot connect to database", "err", err)
 		return
 	}
-
-	ps := pubsub.NewRedis(rdb)
-	ps.WithLogger(log.Error)
-	cachex := cache.NewRedisCache(rdb)
 
 	connectionsRepository := repositories.NewConnections()
 	claimsRepository := repositories.NewClaims()
@@ -95,7 +95,7 @@ func main() {
 	defer func() {
 		log.Info(ctx, "Shutting down...")
 		cancel()
-		if err := rdb.Close(); err != nil {
+		if err := ps.Close(); err != nil {
 			log.Error(ctx, "closing redis connection", "err", err)
 		}
 	}()
@@ -159,7 +159,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 	)
 
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 
 	return claimsService, nil
 }

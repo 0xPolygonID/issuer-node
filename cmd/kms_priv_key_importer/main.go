@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -99,13 +100,12 @@ func main() {
 	material[jsonPrivateKey] = *fPrivateKey
 
 	if issuerKMSEthPluginVar == config.LocalStorage {
-		file := issuerKmsPluginLocalStorageFilePath + "/" + kms.LocalStorageFileName
-		if err := saveKeyMaterialToFile(ctx, file, material); err != nil {
+		if err := saveKeyMaterialToFile(ctx, issuerKmsPluginLocalStorageFilePath, kms.LocalStorageFileName, material); err != nil {
 			log.Error(ctx, "cannot save key material to file", "err", err)
 			return
 		}
 
-		log.Info(ctx, "private key saved to file:", "path:", file)
+		log.Info(ctx, "private key saved to file:", "path:", kms.LocalStorageFileName)
 		return
 	}
 
@@ -221,8 +221,8 @@ func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion s
 	return result.KeyMetadata.KeyId, nil
 }
 
-func saveKeyMaterialToFile(ctx context.Context, file string, keyMaterial map[string]string) error {
-	localStorageFileContent, err := readContentFile(ctx, file)
+func saveKeyMaterialToFile(ctx context.Context, folderPath, file string, keyMaterial map[string]string) error {
+	localStorageFileContent, err := readContentFile(ctx, folderPath, file)
 	if err != nil {
 		return err
 	}
@@ -245,8 +245,9 @@ func saveKeyMaterialToFile(ctx context.Context, file string, keyMaterial map[str
 		log.Error(ctx, "cannot marshal file content", "err", err)
 		return err
 	}
+	filePath := filepath.Join(folderPath, file)
 	// nolint: all
-	if err := os.WriteFile(file, newFileContent, 0644); err != nil {
+	if err := os.WriteFile(filePath, newFileContent, 0644); err != nil {
 		log.Error(ctx, "cannot write file", "err", err)
 		return err
 	}
@@ -254,10 +255,31 @@ func saveKeyMaterialToFile(ctx context.Context, file string, keyMaterial map[str
 	return nil
 }
 
-func readContentFile(ctx context.Context, file string) ([]localStorageBJJKeyProviderFileContent, error) {
-	fileContent, err := os.ReadFile(file)
+func readContentFile(ctx context.Context, folderPath, fileName string) ([]localStorageBJJKeyProviderFileContent, error) {
+	if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("error creating folder: %v", err)
+	}
+	filePath := filepath.Join(folderPath, fileName)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		file, err := os.Create(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("error creating file: %v", err)
+		}
+		fileContent := []byte("[]")
+		if _, err := file.Write(fileContent); err != nil {
+			return nil, fmt.Errorf("error initiliazing file: %v", err)
+		}
+		defer func(file *os.File) {
+			err := file.Close()
+			if err != nil {
+				log.Error(ctx, "error closing file", "err", err)
+			}
+		}(file)
+	}
+
+	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
-		log.Error(ctx, "cannot read file", "err", err, "file", file)
+		log.Error(ctx, "cannot read file", "err", err, "file", filePath)
 		return nil, err
 	}
 

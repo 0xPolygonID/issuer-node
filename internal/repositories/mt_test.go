@@ -1,4 +1,4 @@
-package tests
+package repositories
 
 import (
 	"context"
@@ -6,14 +6,12 @@ import (
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestMtSave(t *testing.T) {
 	// given
 	idStr := "did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"
-	repo := repositories.NewIdentityMerkleTreeRepository()
+	repo := NewIdentityMerkleTreeRepository()
 
 	// when and then
 	t.Run("should save the mt", func(t *testing.T) {
@@ -26,7 +24,7 @@ func TestMtSave(t *testing.T) {
 func TestMtGetByIdentifierAndTypes(t *testing.T) {
 	// given
 	idStr := "did:polygonid:polygon:mumbai:2qF6oxuF6HhD45o5E1yF1gq1vdTAGtTfGqQ7bUaKeC"
-	repo := repositories.NewIdentityMerkleTreeRepository()
+	repo := NewIdentityMerkleTreeRepository()
 
 	// when and then
 	t.Run("should get the mt", func(t *testing.T) {
@@ -56,7 +54,7 @@ func TestMtGetByIdentifierAndTypes(t *testing.T) {
 func TestMtGetById(t *testing.T) {
 	// given
 	idStr := "did:polygonid:polygon:mumbai:2qPcZy8C1Nnm9xmkQsZZjRQ11V2YJ6VYULpg4VcxXm"
-	repo := repositories.NewIdentityMerkleTreeRepository()
+	repo := NewIdentityMerkleTreeRepository()
 
 	// when and then
 	t.Run("should get the mt", func(t *testing.T) {

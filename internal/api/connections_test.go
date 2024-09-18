@@ -20,7 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_CreateConnection(t *testing.T) {
@@ -175,7 +175,7 @@ func TestServer_CreateConnection(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			urlTest := fmt.Sprintf("/v1/%s/connections", tc.issuerDID)
+			urlTest := fmt.Sprintf("/v2/identities/%s/connections", tc.issuerDID)
 			parsedURL, err := url.Parse(urlTest)
 			require.NoError(t, err)
 
@@ -219,7 +219,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	issuerDID, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
@@ -316,7 +316,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			urlTest := fmt.Sprintf("/v1/%s/connections/%s", issuerDID, tc.connID.String())
+			urlTest := fmt.Sprintf("/v2/identities/%s/connections/%s", issuerDID, tc.connID.String())
 			parsedURL, err := url.Parse(urlTest)
 			require.NoError(t, err)
 			values := parsedURL.Query()
@@ -352,7 +352,7 @@ func TestServer_DeleteConnectionCredentials(t *testing.T) {
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
@@ -416,7 +416,7 @@ func TestServer_DeleteConnectionCredentials(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/connections/%s/credentials", issuerDID, tc.connID.String())
+			url := fmt.Sprintf("/v2/identities/%s/connections/%s/credentials", issuerDID, tc.connID.String())
 			req, err := http.NewRequest("DELETE", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -450,7 +450,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	issuerDID, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
@@ -512,7 +512,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/connections/%s/credentials/revoke", issuerDID, tc.connID.String())
+			url := fmt.Sprintf("/v2/identities/%s/connections/%s/credentials/revoke", issuerDID, tc.connID.String())
 			req, err := http.NewRequest("POST", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)

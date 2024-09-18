@@ -144,7 +144,8 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "hvs.NK8jrOU4XNY", cfg.KeyStore.Token)
 	assert.Equal(t, "123", *cfg.NetworkResolverFile)
 	assert.Equal(t, "./pkg/credentials/circuits", cfg.Circuit.Path)
-	assert.Equal(t, "redis://@localhost:6379/1", cfg.Cache.RedisUrl)
+	assert.Equal(t, "redis://@localhost:6379/1", cfg.Cache.Url)
+	assert.Equal(t, "redis", cfg.Cache.Provider)
 	assert.True(t, *cfg.MediaTypeManager.Enabled)
 }
 
@@ -155,8 +156,8 @@ func TestLoadKmsProviders(t *testing.T) {
 	loadEnvironmentVariables(t, envVars)
 	cfg, err := Load()
 	assert.NoError(t, err)
-	assert.Equal(t, "vault", cfg.KeyStore.BJJProvider)
-	assert.Equal(t, "vault", cfg.KeyStore.ETHProvider)
+	assert.Equal(t, "localstorage", cfg.KeyStore.BJJProvider)
+	assert.Equal(t, "localstorage", cfg.KeyStore.ETHProvider)
 
 	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
 	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = ""
@@ -210,6 +211,20 @@ func TestLoadNetworkResolver(t *testing.T) {
 	assert.Equal(t, "./resolvers_settings.yaml", cfg.NetworkResolverPath)
 }
 
+func TestLoadCacheProvider(t *testing.T) {
+	envVars := initVariables(t)
+	envVars["ISSUER_CACHE_PROVIDER"] = ""
+	loadEnvironmentVariables(t, envVars)
+	cfg, err := Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "redis", cfg.Cache.Provider)
+
+	envVars["ISSUER_CACHE_URL"] = ""
+	loadEnvironmentVariables(t, envVars)
+	_, err = Load()
+	assert.Error(t, err)
+}
+
 func initVariables(t *testing.T) envVarsT {
 	t.Helper()
 	envVars := map[string]string{
@@ -241,6 +256,8 @@ func initVariables(t *testing.T) envVarsT {
 		"ISSUER_CIRCUIT_PATH":                         "./pkg/credentials/circuits",
 		"ISSUER_REDIS_URL":                            "redis://@localhost:6379/1",
 		"ISSUER_MEDIA_TYPE_MANAGER_ENABLED":           "true",
+		"ISSUER_CACHE_PROVIDER":                       "redis",
+		"ISSUER_CACHE_URL":                            "redis://@localhost:6379/1",
 	}
 	return envVars
 }

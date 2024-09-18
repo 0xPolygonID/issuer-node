@@ -17,7 +17,7 @@ const (
 )
 
 // NewOfferMsg returns an offer message
-func NewOfferMsg(fetchURL string, credentials ...*domain.Claim) ([]byte, error) {
+func NewOfferMsg(fetchURL string, credentials ...*domain.Claim) (*protocol.CredentialsOfferMessage, error) {
 	if len(credentials) == 0 {
 		return nil, errors.New("no claims provided")
 	}
@@ -37,7 +37,7 @@ func NewOfferMsg(fetchURL string, credentials ...*domain.Claim) ([]byte, error) 
 		To:   credentials[0].OtherIdentifier,
 	}
 
-	return json.Marshal(credOffer)
+	return credOffer, nil
 }
 
 // NewRevokedMsg returns a revoked message
@@ -64,6 +64,7 @@ func toProtocolCredentialOffer(credentials []*domain.Claim) []protocol.Credentia
 		offers[i] = protocol.CredentialOffer{
 			ID:          credentials[i].ID.String(),
 			Description: credentialType(credentials[i].SchemaType),
+			Status:      protocol.CredentialOfferStatusCompleted,
 		}
 	}
 

@@ -30,7 +30,12 @@ const (
 	// Vault is the vault plugin
 	Vault = "vault"
 	// AWS is the AWS plugin
-	AWS         = "aws"
+	AWS = "aws"
+	// CacheProviderRedis is the redis cache provider
+	CacheProviderRedis = "redis"
+	// CacheProviderValKey is the valkey cache provider
+	CacheProviderValKey = "valkey"
+
 	ipfsGateway = "https://cloudflare-ipfs.com"
 )
 
@@ -55,6 +60,7 @@ type Configuration struct {
 	IPFS                        IPFS
 	CustomDIDMethods            []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager            MediaTypeManager
+	UniversalLinks              UniversalLinks
 }
 
 // Database has the database configuration
@@ -65,7 +71,8 @@ type Database struct {
 
 // Cache configurations
 type Cache struct {
-	RedisUrl string `env:"ISSUER_REDIS_URL" envDefault:"redis://@localhost:6379/1"`
+	Provider string `env:"ISSUER_CACHE_PROVIDER" envDefault:"redis"`
+	Url      string `env:"ISSUER_CACHE_URL"`
 }
 
 // IPFS configurations
@@ -166,6 +173,11 @@ type HTTPBasicAuth struct {
 // MediaTypeManager enables or disables the media types manager
 type MediaTypeManager struct {
 	Enabled *bool `env:"ISSUER_MEDIA_TYPE_MANAGER_ENABLED"`
+}
+
+// UniversalLinks configuration
+type UniversalLinks struct {
+	BaseUrl string `env:"ISSUER_UNIVERSAL_LINKS_BASE_URL" envDefault:"https://wallet.privado.id"`
 }
 
 // Load loads the configuration from a file
@@ -287,8 +299,9 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 		log.Info(ctx, "ISSUER_CIRCUIT_PATH value is missing")
 	}
 
-	if cfg.Cache.RedisUrl == "" {
-		log.Info(ctx, "ISSUER_REDIS_URL value is missing")
+	if cfg.Cache.Url == "" {
+		log.Error(ctx, "ISSUER_CACHE_URL value is missing")
+		return errors.New("ISSUER_CACHE_URL value is missing")
 	}
 
 	if cfg.SchemaCache == nil {
@@ -316,13 +329,13 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 	}
 
 	if cfg.KeyStore.BJJProvider == "" {
-		log.Info(ctx, "ISSUER_KMS_BJJ_PLUGIN value is missing, using default value: vault")
-		cfg.KeyStore.BJJProvider = Vault
+		log.Info(ctx, "ISSUER_KMS_BJJ_PLUGIN value is missing, using default value: localstorage")
+		cfg.KeyStore.BJJProvider = LocalStorage
 	}
 
 	if cfg.KeyStore.ETHProvider == "" {
-		log.Info(ctx, "ISSUER_KMS_ETH_PLUGIN value is missing, using default value: vault")
-		cfg.KeyStore.ETHProvider = Vault
+		log.Info(ctx, "ISSUER_KMS_ETH_PLUGIN value is missing, using default value: localstorage")
+		cfg.KeyStore.ETHProvider = LocalStorage
 	}
 
 	if (cfg.KeyStore.BJJProvider == LocalStorage || cfg.KeyStore.ETHProvider == LocalStorage) && cfg.KeyStore.ProviderLocalStorageFilePath == "" {
@@ -343,6 +356,14 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 			log.Error(ctx, "ISSUER_AWS_REGION value is missing")
 			return errors.New("ISSUER_AWS_REGION value is missing")
 		}
+	}
+
+	if cfg.KeyStore.BJJProvider == LocalStorage || cfg.KeyStore.ETHProvider == LocalStorage {
+		log.Info(ctx, `
+			=====================================================================================================================================================
+			IMPORTANT: THIS CONFIGURATION SHOULD NOT BE USED IN PRODUCTIVE ENVIRONMENTS!!!. YOU HAVE CONFIGURED THE ISSUER NODE TO SAVE KEYS IN THE LOCAL STORAGE
+			=====================================================================================================================================================
+`)
 	}
 
 	return nil

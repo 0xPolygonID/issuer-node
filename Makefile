@@ -10,16 +10,27 @@ BUILD_CMD := $(GO) install -ldflags "-X main.build=${VERSION}"
 LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
 DOCKER_COMPOSE_FILE_INFRA := $(LOCAL_DEV_PATH)/docker-compose-infra.yml
+DOCKER_COMPOSE_FULL_FILE := $(LOCAL_DEV_PATH)/docker-compose-full.yml
 DOCKER_COMPOSE_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE)
+DOCKER_COMPOSE_FULL_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FULL_FILE)
 DOCKER_COMPOSE_INFRA_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE_INFRA)
 ENVIRONMENT := ${ISSUER_ENVIRONMENT}
 
 ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH := ${ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH}
 ISSUER_KMS_ETH_PROVIDER := ${ISSUER_KMS_ETH_PROVIDER}
+ISSUER_KMS_BJJ_PROVIDER := ${ISSUER_KMS_BJJ_PROVIDER}
+
+ISSUER_RESOLVER_FILE := ${ISSUER_RESOLVER_FILE}
+REQUIRED_FILE := ${ISSUER_RESOLVER_PATH}
 
 # Local environment overrides via godotenv
 DOTENV_CMD = $(BIN)/godotenv
 ENV = $(DOTENV_CMD) -f .env-issuer
+
+.PHONY: run-full
+run-full:
+	@make down
+	$(DOCKER_COMPOSE_FULL_CMD) up -d
 
 .PHONY: build-local
 build-local:
@@ -54,10 +65,14 @@ $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API fi
 api: $(BIN)/oapi-codegen
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
 
-# If you want to use vault as a KMS provider, you need to run this command
+# Starts the infrastructure services
 .PHONY: up
 up:
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
+		$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
+else
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
+endif
 
 # If you want to use localstorage as a KMS provider, you need to run this command
 .PHONY: up/localstorage
@@ -74,24 +89,53 @@ build:
 build-ui:
 	docker build -t issuer-ui:local -f ./ui/Dockerfile ./ui
 
+
+.PHONY: validate_issuer_resolver_file
+validate_issuer_resolver_file:
+	@if [ ! -f "$(REQUIRED_FILE)" ]; then \
+		if [ -z "$(ISSUER_RESOLVER_FILE)" ]; then \
+			echo "ISSUER_RESOLVER_FILE env var is empty, and the file $(REQUIRED_FILE) doesn't exists."; \
+			exit 1; \
+		else \
+			echo "ISSUER_RESOLVER_FILE is set, using it..."; \
+		fi \
+	else \
+		echo "$(REQUIRED_FILE) environment is present, using it "; \
+	fi
+
+.PHONY: validate_localstorage_file
+validate_localstorage_file:
+	@if [ "$(ISSUER_KMS_ETH_PROVIDER)" = "localstorage" ]; then \
+		if [ ! -f "$(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json" ]; then \
+			mkdir -p $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH); \
+			touch $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+			echo "[]" > $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+		fi \
+	fi
+	@if [ "$(ISSUER_KMS_BJJ_PROVIDER)" = "localstorage" ]; then \
+		if [ ! -f "$(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json" ]; then \
+			mkdir -p $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH); \
+			touch $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+			echo "[]" > $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+		fi \
+	fi
+
 # Run the api, pending_publisher and notifications services
 .PHONY: run
-run:
-	@if [ -f ./resolvers_settings.yaml ]; then \
-  		COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications; \
-	else \
-  		echo "./resolvers_settings.yaml not found"; \
-  	fi
+run: validate_issuer_resolver_file validate_localstorage_file up
+	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications
 
-# Run the ui, api, pending_publisher and notifications services
+# Run the ui.
 # First build the ui image and the api image
 .PHONY: run-ui
-run-ui: build-ui build add-host-url-swagger
-	@if [ -f ./resolvers_settings.yaml ]; then \
-  		COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications; \
-	else \
-  		echo "./resolvers_settings.yaml not found"; \
-  	fi
+run-ui: build-ui add-host-url-swagger
+	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui
+
+# Run all services
+.PHONE: run-all
+run-all: build build-ui validate_localstorage_file up add-host-url-swagger
+	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications
+
 
 .PHONY: down
 down:
@@ -100,20 +144,17 @@ down:
 
 .PHONY: stop
 stop:
+	$(DOCKER_COMPOSE_CMD) stop
+
+.PHONY: stop-all
+stop-all:
 	$(DOCKER_COMPOSE_INFRA_CMD) stop
 	$(DOCKER_COMPOSE_CMD) stop
+
 
 .PHONY: up-test
 up-test:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
-
-# Clean the vault data
-.PHONY: clean-vault
-clean-vault:
-	rm -R infrastructure/local/.vault/data/init.out
-	rm -R infrastructure/local/.vault/file/core/
-	rm -R infrastructure/local/.vault/file/logical/
-	rm -R infrastructure/local/.vault/file/sys/
 
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate
@@ -145,7 +186,7 @@ lint-fix: $(BIN)/golangci-lint
 .PHONY: import-private-key-to-kms
 import-private-key-to-kms:
 ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
-	@echo "AWS"
+	@echo ">>> importing private key to AWS KMS"
 	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
     		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
     		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
@@ -161,16 +202,24 @@ ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
 		echo "something went wrong because keyID is empty"; \
 	fi
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
-	@echo "LOCALSTORAGE"
-	docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	echo ">>> importing private key to LOCALSTORAGE"
+	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	@if [ ! -f "$(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json" ]; then \
+	  mkdir -p $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH); \
+	  touch $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+	  echo "[]" > $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+	fi
 	docker run --rm -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
-		--network issuer-network \
-		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+	privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
-	@echo "VAULT"
-	docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	@echo ">>> importing private key to VAULT"
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+	@echo "waiting for vault to start..."
+	sleep 10
+	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
 	docker run --rm -it -v ./.env-issuer:/.env-issuer --network issuer-network \
 		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+	$(DOCKER_COMPOSE_INFRA_CMD) stop
 else
 	@echo "ISSUER_KMS_ETH_PROVIDER is not set"
 endif
@@ -205,7 +254,6 @@ vault-import-keys:
 	docker build -t issuer-vault-import-keys .
 	docker run --rm -it --network=issuer-network -v $(shell pwd)/keys.json:/keys.json issuer-vault-import-keys ./vault-migrator -operation=import -input-file=keys.json -vault-token=$(vault_token) -vault-addr=http://vault:8200
 
-
 # usage: make new_password=xxx change-vault-password
 .PHONY: change-vault-password
 change-vault-password:
@@ -215,3 +263,8 @@ change-vault-password:
 .PHONY: print-commands
 print-commands:
 	@grep '^\s*\.[a-zA-Z_][a-zA-Z0-9_]*' Makefile
+
+
+.PHONY: clean-volumes
+clean-volumes:
+	$(DOCKER_COMPOSE_INFRA_CMD) down -v

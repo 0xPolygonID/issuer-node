@@ -21,7 +21,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -47,14 +46,16 @@ func main() {
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
-	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	cachex, err := cache.NewCacheClient(ctx, *cfg)
 	if err != nil {
-		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
+		log.Error(ctx, "cannot initialize cache", "err", err)
 		return
 	}
-	ps := pubsub.NewRedis(rdb)
-	ps.WithLogger(log.Error)
-	cachex := cache.NewRedisCache(rdb)
+	ps, err := pubsub.NewPubSub(ctx, *cfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize pubsub", "err", err)
+		return
+	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -120,7 +121,7 @@ func main() {
 	)
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 	proofService := initProofService(circuitsLoaderService)
