@@ -1002,10 +1002,10 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 				realQR := protocol.AuthorizationRequestMessage{}
 
-				qrLink := checkQRFetchURLForLinks(t, response.DeepLink)
+				qrLink := checkQRfetchURL(t, response.DeepLink)
 
 				// Let's see that universal link is correct
-				assert.Equal(t, server.cfg.UniversalLinks.BaseUrl+"#request_uri="+url.PathEscape(qrLink), response.UniversalLink)
+				assert.Equal(t, server.cfg.UniversalLinks.BaseUrl+"#request_uri="+url.QueryEscape(qrLink), response.UniversalLink)
 
 				// Now let's fetch the original QR using the url
 				rr := httptest.NewRecorder()
