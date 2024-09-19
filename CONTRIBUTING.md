@@ -21,8 +21,6 @@ Welcome to Issuer Node! We're thrilled to have you here. Before you get started,
 
 **Submitting Changes**: Fork the repository, make your changes, and submit a pull request. The `develop` branch is the default branch for development. Pull request to `main` branch only will be accepted for hotfixes or releases. Please follow the guidelines outlined below.
 
-**What branch**: 
-
 ## Getting Started
 
 To set up the project locally, follow the [README](./README.md#quick-start-installation) instructions.
