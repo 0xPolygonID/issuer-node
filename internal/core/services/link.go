@@ -170,7 +170,7 @@ func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.Link
 func (ls *Link) addLinksToLink(link *domain.Link, serverURL string, issuerDID w3c.DID) {
 	if link.AuthorizationRequestMessage != nil {
 		link.DeepLink = common.ToPointer(qrlink.NewDeepLink(serverURL, link.ID, &issuerDID))
-		link.UniversalLink = common.ToPointer(qrlink.NewUniversal(ls.cfg.BaseUrl, ls.cfg.BaseUrl, link.ID, &issuerDID))
+		link.UniversalLink = common.ToPointer(qrlink.NewUniversal(ls.cfg.BaseUrl, serverURL, link.ID, &issuerDID))
 	}
 }
 
