@@ -129,11 +129,13 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	}, nil
 }
 
+// validateStatusType - validate credential status type.
+// If credentialStatusTypeRequest is nil or empty, it will return Iden3commRevocationStatusV1
 func validateStatusType(credentialStatusTypeRequest *string) (*verifiable.CredentialStatusType, error) {
 	var credentialStatusType verifiable.CredentialStatusType
 	if credentialStatusTypeRequest != nil && *credentialStatusTypeRequest != "" {
 		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
-		if !slices.Contains(allowedCredentialStatuses, string(*credentialStatusTypeRequest)) {
+		if !slices.Contains(allowedCredentialStatuses, *credentialStatusTypeRequest) {
 			return nil, errors.New(fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *credentialStatusTypeRequest))
 		}
 		credentialStatusType = (verifiable.CredentialStatusType)(*credentialStatusTypeRequest)
