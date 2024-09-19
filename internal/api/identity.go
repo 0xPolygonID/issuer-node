@@ -36,20 +36,14 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		}, nil
 	}
 
-	var credentialStatusType verifiable.CredentialStatusType
-	if credentialStatusTypeRequest != nil && *credentialStatusTypeRequest != "" {
-		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
-		if !slices.Contains(allowedCredentialStatuses, string(*credentialStatusTypeRequest)) {
-			log.Warn(ctx, "invalid credential status type", "req", request)
-			return CreateIdentity400JSONResponse{
-				N400JSONResponse{
-					Message: fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *credentialStatusTypeRequest),
-				},
-			}, nil
-		}
-		credentialStatusType = (verifiable.CredentialStatusType)(*credentialStatusTypeRequest)
-	} else {
-		credentialStatusType = verifiable.Iden3commRevocationStatusV1
+	var credentialStatusType *verifiable.CredentialStatusType
+	credentialStatusType, err := validateStatusType((*string)(credentialStatusTypeRequest))
+	if err != nil {
+		return CreateIdentity400JSONResponse{
+			N400JSONResponse{
+				Message: err.Error(),
+			},
+		}, nil
 	}
 
 	rhsSettings, err := s.networkResolver.GetRhsSettingsForBlockchainAndNetwork(ctx, blockchain, network)
@@ -57,9 +51,9 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("error getting reverse hash service settings: %s", err.Error())}}, nil
 	}
 
-	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
+	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, *credentialStatusType) {
 		log.Warn(ctx, "unsupported credential status type", "req", request)
-		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
+		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", *credentialStatusType)}}, nil
 	}
 
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{
@@ -67,7 +61,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		Network:              core.NetworkID(network),
 		Blockchain:           core.Blockchain(blockchain),
 		KeyType:              kms.KeyType(keyType),
-		AuthCredentialStatus: credentialStatusType,
+		AuthCredentialStatus: *credentialStatusType,
 		DisplayName:          request.Body.DisplayName,
 	})
 	if err != nil {
@@ -133,6 +127,20 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		Balance:              nil,
 		CredentialStatusType: CreateIdentityResponseCredentialStatusType(identity.AuthCoreClaimRevocationStatus.Type),
 	}, nil
+}
+
+func validateStatusType(credentialStatusTypeRequest *string) (*verifiable.CredentialStatusType, error) {
+	var credentialStatusType verifiable.CredentialStatusType
+	if credentialStatusTypeRequest != nil && *credentialStatusTypeRequest != "" {
+		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
+		if !slices.Contains(allowedCredentialStatuses, string(*credentialStatusTypeRequest)) {
+			return nil, errors.New(fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *credentialStatusTypeRequest))
+		}
+		credentialStatusType = (verifiable.CredentialStatusType)(*credentialStatusTypeRequest)
+	} else {
+		credentialStatusType = verifiable.Iden3commRevocationStatusV1
+	}
+	return &credentialStatusType, nil
 }
 
 // UpdateIdentity is update identity display name controller
