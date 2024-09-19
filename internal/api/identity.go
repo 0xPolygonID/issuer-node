@@ -136,7 +136,7 @@ func validateStatusType(credentialStatusTypeRequest *string) (*verifiable.Creden
 	if credentialStatusTypeRequest != nil && *credentialStatusTypeRequest != "" {
 		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
 		if !slices.Contains(allowedCredentialStatuses, *credentialStatusTypeRequest) {
-			return nil, errors.New(fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *credentialStatusTypeRequest))
+			return nil, fmt.Errorf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *credentialStatusTypeRequest)
 		}
 		credentialStatusType = (verifiable.CredentialStatusType)(*credentialStatusTypeRequest)
 	} else {
