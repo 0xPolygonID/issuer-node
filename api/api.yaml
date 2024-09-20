@@ -987,6 +987,8 @@ paths:
                 type: object
         '400':
           $ref: '#/components/responses/400'
+        '410':
+          $ref: '#/components/responses/410'
         '404':
           $ref: '#/components/responses/404'
         '500':
@@ -2412,6 +2414,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '407':
       description: 'Proxy Authentication Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '410':
+      description: 'Gone'
       content:
         application/json:
           schema:

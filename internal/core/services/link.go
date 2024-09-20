@@ -187,7 +187,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 		return nil, err
 	}
 
-	err = ls.validate(ctx, link)
+	err = ls.Validate(ctx, link)
 	if err != nil {
 		return nil, err
 	}
@@ -248,8 +248,8 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDI
 		return nil, err
 	}
 
-	if err := ls.validate(ctx, link); err != nil {
-		log.Error(ctx, "cannot validate the link", "err", err)
+	if err := ls.Validate(ctx, link); err != nil {
+		log.Error(ctx, "cannot Validate the link", "err", err)
 		return nil, err
 	}
 
@@ -373,7 +373,9 @@ func (ls *Link) ProcessCallBack(ctx context.Context, issuerID w3c.DID, message s
 	return offer, nil
 }
 
-func (ls *Link) validate(ctx context.Context, link *domain.Link) error {
+// Validate - validate the link
+// It checks if the link is active, not expired and has not exceeded the maximum number of claims
+func (ls *Link) Validate(ctx context.Context, link *domain.Link) error {
 	if link.ValidUntil != nil && time.Now().UTC().After(*link.ValidUntil) {
 		log.Debug(ctx, "cannot issue a credential for an expired link")
 		return ErrLinkAlreadyExpired
