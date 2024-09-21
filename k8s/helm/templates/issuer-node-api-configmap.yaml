@@ -8,6 +8,8 @@ metadata:
 data:
   ISSUER_SERVER_URL: {{ include "helpers.api-server-url" . | nindent 4 }}
   ISSUER_SERVER_PORT: {{ .Values.apiIssuerNode.configMap.issuerServerPort | quote }}
+  ISSUER_KMS_BJJ_PROVIDER: {{ .Values.apiIssuerNode.configMap.issuerKMSBJJProvider | quote }}
+  ISSUER_KMS_ETH_PROVIDER: {{ .Values.apiIssuerNode.configMap.issuerKMSETHProvider | quote }}
   ISSUER_NATIVE_PROOF_GENERATION_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerNativeProofGenerationEnabled | quote }}
   ISSUER_PUBLISH_KEY_PATH: {{ .Values.apiIssuerNode.configMap.issuerPublishKeyPath }}
   ISSUER_ONCHAIN_CHECK_STATUS_FREQUENCY: {{ .Values.apiIssuerNode.configMap.issuerOnchainCheckStatusFrequency }}
@@ -18,23 +20,8 @@ data:
   ISSUER_API_AUTH_USER: {{ .Values.apiIssuerNode.configMap.issuerApiAuthUser }}
   ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH: {{ .Values.apiIssuerNode.configMap.issuerKeyStorePluginIden3MountPath }}
   ISSUER_REVERSE_HASH_SERVICE_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerReverseHashServiceEnabled | quote }}
-  ISSUER_ETHEREUM_URL: {{ .Values.issuerEthereumUrl }}
-  ISSUER_ETHEREUM_CONTRACT_ADDRESS: {{ include "helpers.issuer-contract-address" . | nindent 4 }}
-  ISSUER_ETHEREUM_RESOLVER_PREFIX: {{ include "helpers.issuer-ethereum-resolver-prefix" . | nindent 4 }}
-  ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT: {{ .Values.apiIssuerNode.configMap.issuerEthereumDefaultGasLimit | quote }}
-  ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT: {{ .Values.apiIssuerNode.configMap.issuerEthereumConfirmationTimeOut }}
-  ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT: {{ .Values.apiIssuerNode.configMap.issuerEthereumConfirmationBlockCount | quote }}
-  ISSUER_ETHEREUM_MAX_GAS_PRICE: {{ .Values.apiIssuerNode.configMap.issuerEthereumMaxGasPrice | quote }}
-  ISSUER_ETHEREUM_MIN_GAS_PRICE: {{ .Values.apiIssuerNode.configMap.issuerEthereumMinGasPrice | quote }}
-  ISSUER_ETHEREUM_GASLESS: {{ .Values.apiIssuerNode.configMap.issuerEthereumGasLess | quote }}
-  ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT: {{ .Values.apiIssuerNode.configMap.issuerEthereumRpcResponseTimeout }}
-  ISSUER_ETHEREUM_RECEIPT_TIMEOUT: {{ .Values.apiIssuerNode.configMap.issuerEthereumReceiptTimeout }}
-  ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME: {{ .Values.apiIssuerNode.configMap.issuerEthereumWaitBlockCycleTime }}
-  ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME: {{ .Values.apiIssuerNode.configMap.issuerEthereumWaitReceiptCycleTime }}
-  ISSUER_PROVER_SERVER_URL: {{ .Values.apiIssuerNode.configMap.issuerProverServerUrl }}
-  ISSUER_PROVER_TIMEOUT: {{ .Values.apiIssuerNode.configMap.issuerProverTimeout  }}
   ISSUER_CIRCUIT_PATH: {{ .Values.apiIssuerNode.configMap.issuerCircuitPath | quote}}
-  ISSUER_REDIS_URL: {{ .Values.apiIssuerNode.configMap.issuerRedisUrl }}
+  ISSUER_CACHE_URL: {{ .Values.apiIssuerNode.configMap.issuerRedisUrl }}
   ISSUER_DB_NAME: {{ .Values.apiIssuerNode.configMap.issuerDbName  }}
   ISSUER_DB_PASSWORD: {{ .Values.apiIssuerNode.configMap.issuerDbPassword }}
   ISSUER_DB_PORT: {{ .Values.apiIssuerNode.configMap.issuerDbPort | quote }}
@@ -43,13 +30,7 @@ data:
   ISSUER_VAULT_USERPASS_AUTH_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerVaultUserpassAuthEnabled | quote }}
   ISSUER_VAULT_USERPASS_AUTH_PASSWORD: {{ .Values.vaultpwd | quote }}
   ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH : {{ .Values.apiIssuerNode.configMap.issuerCredentialStatusPublishingKeyPath | quote }}
-  ISSUER_CREDENTIAL_STATUS_RHS_URL : {{ .Values.rhsUrl | quote}}
-  ISSUER_CREDENTIAL_STATUS_RHS_MODE : {{ .Values.rhsMode | quote }}
-  ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID : {{ include "helpers.api-rsh-chain-id" . | nindent 4 }}
-  ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT : {{ include "helpers.api-rsh-contract" . | nindent 4 }}
-  ISSUER_IPFS_GATEWAY_URL : {{ .Values.apiIssuerNode.configMap.issuerIpfsGatewayUrl | quote }}
-  ISSUER_CUSTOM_DID_METHODS : {{ .Values.issuerCustomDidMethods | toJson | quote }}
-
+  ISSUER_RESOLVER_FILE : {{ .Values.issuerResolverFile | quote }}
   
 
   

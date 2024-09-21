@@ -1,4 +1,3 @@
-{{- if eq .Values.ingressEnabled true -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,22 +9,17 @@ metadata:
   annotations:
     {{- toYaml $.Values.ingress.annotations | nindent 4 }}
   {{- end }}
+    cert-manager.io/cluster-issuer: <your-deployed-cert-issuer>
 
 spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - {{ .Values.uidomain }}
+        - {{ .Values.apidomain }}
+      secretName: <secret-name-with-tls-certificate>
+      
   rules:
-  - host: {{ .Values.appdomain }}
-    http:
-      paths:
-        {{- range .Values.ingress.apphost.paths }}
-        - path: {{ .path }}
-          pathType: Prefix
-          backend:
-            service:
-              name: {{ .serviceName }}
-              port:
-                number: {{ .servicePort }}
-        {{- end }}
-
   - host: {{ .Values.uidomain }}
     http:
       paths:
@@ -52,4 +46,3 @@ spec:
               port:
                 number: {{ .servicePort }}
           {{- end }}
-{{- end }}

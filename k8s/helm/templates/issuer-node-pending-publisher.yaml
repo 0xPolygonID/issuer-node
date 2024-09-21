@@ -24,9 +24,7 @@ spec:
           imagePullPolicy: {{ .Values.pendingPublisherIssuerNode.deployment.imagePullPolicy | quote }}
           envFrom:
           - configMapRef:
-              name: {{ .Values.apiUiIssuerNode.deployment.apiUi.apiconfigMapRef }}
-          - configMapRef:
-              name: {{ .Values.apiUiIssuerNode.deployment.init.apiuiconfigMapRef }}
+              name: {{ .Values.apiIssuerNode.deployment.apiconfigMapRef }}
           env:
           - name: {{ include "helpers.issuer-db-url" .}}
             value: {{ quote .Values.pendingPublisherIssuerNode.deployment.env.issuerDatabaseUrl }}
