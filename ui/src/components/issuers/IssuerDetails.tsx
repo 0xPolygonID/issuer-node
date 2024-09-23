@@ -108,11 +108,7 @@ export function IssuerDetails() {
             return (
               <Card
                 className="centered"
-                styles={{
-                  header: {
-                    border: "none",
-                  },
-                }}
+                headStyle={{ border: "none" }}
                 title={
                   <Flex align="center" gap={8} style={{ paddingTop: "24px" }}>
                     {displayNameEditable ? (
