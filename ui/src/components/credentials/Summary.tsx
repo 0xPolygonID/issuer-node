@@ -1,19 +1,77 @@
-import { Button, Card, Divider, Form, Input, Row, Space, message } from "antd";
-import copy from "copy-to-clipboard";
+import { Button, Card, Divider, Flex, Row, Tabs, TabsProps, Typography, theme } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 
-import IconCopy from "src/assets/icons/copy-01.svg?react";
-import ExternalLinkIcon from "src/assets/icons/link-external-01.svg?react";
+import DownloadIcon from "src/assets/icons/download-01.svg?react";
+import { DownloadQRLink } from "src/components/shared/DownloadQRLink";
+import { HighlightLink } from "src/components/shared/HighlightLink";
 import { ROUTES } from "src/routes";
 import { CREDENTIALS_TABS, CREDENTIAL_LINK } from "src/utils/constants";
 
-export function Summary({ linkID }: { linkID: string }) {
-  const [messageAPI, messageContext] = message.useMessage();
+function QRTab({
+  description,
+  fileName,
+  link,
+  openable,
+}: {
+  description: string;
+  fileName: string;
+  link: string;
+  openable: boolean;
+}) {
+  const { token } = theme.useToken();
+
+  return (
+    <Flex gap={16} vertical>
+      <Typography.Text type="secondary">{description}</Typography.Text>
+      <HighlightLink link={link} openable={openable} />
+      <Card style={{ alignSelf: "center" }}>
+        <DownloadQRLink
+          button={
+            <Button
+              icon={<DownloadIcon />}
+              style={{ borderColor: token.colorTextSecondary, color: token.colorTextSecondary }}
+            >
+              Download QR
+            </Button>
+          }
+          fileName={fileName}
+          hidden={false}
+          link={link}
+        />
+      </Card>
+    </Flex>
+  );
+}
+
+export function Summary({ deepLink, universalLink }: { deepLink: string; universalLink: string }) {
   const navigate = useNavigate();
 
-  const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
-    linkID,
-  })}`;
+  const items: TabsProps["items"] = [
+    {
+      children: (
+        <QRTab
+          description="When the recipient interacts with the universal link, it will launch the Privado ID web or mobile wallet interface, displaying the credential offer."
+          fileName="Universal link"
+          link={universalLink}
+          openable={true}
+        />
+      ),
+      key: "1",
+      label: "Universal link",
+    },
+    {
+      children: (
+        <QRTab
+          description="When the recipient interacts with the deep link with supported identity wallets, they will receive a credential offer."
+          fileName="Deep link"
+          link={deepLink}
+          openable={false}
+        />
+      ),
+      key: "2",
+      label: "Deep link",
+    },
+  ];
 
   const navigateToLinks = () => {
     navigate(
@@ -23,45 +81,14 @@ export function Summary({ linkID }: { linkID: string }) {
     );
   };
 
-  const onCopyToClipboard = () => {
-    const hasCopied = copy(linkURL, {
-      format: "text/plain",
-    });
-
-    if (hasCopied) {
-      void messageAPI.success("Credential link copied to clipboard.");
-    } else {
-      void messageAPI.error("Couldn't copy credential link. Please try again.");
-    }
-  };
-
   return (
     <>
-      {messageContext}
-
       <Card
         className="issue-credential-card"
-        extra={
-          <Button
-            href={generatePath(ROUTES.credentialLinkQR.path, { linkID })}
-            icon={<ExternalLinkIcon />}
-            target="_blank"
-            type="link"
-          >
-            View link
-          </Button>
-        }
+        styles={{ body: { paddingTop: 0 }, header: { border: "none" } }}
         title={CREDENTIAL_LINK}
       >
-        <Form layout="vertical">
-          <Form.Item>
-            <Space.Compact className="full-width">
-              <Input allowClear disabled value={linkURL} />
-
-              <Button icon={<IconCopy style={{ marginRight: 0 }} />} onClick={onCopyToClipboard} />
-            </Space.Compact>
-          </Form.Item>
-        </Form>
+        <Tabs defaultActiveKey="1" items={items} />
 
         <Divider />
 

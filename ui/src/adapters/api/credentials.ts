@@ -422,6 +422,7 @@ const linkParser = getStrictParser<LinkInput, Link>()(
     createdAt: datetimeParser,
     credentialExpiration: datetimeParser.nullable(),
     credentialSubject: z.record(z.unknown()),
+    deepLink: z.string(),
     expiration: datetimeParser.nullable(),
     id: z.string(),
     issuedClaims: z.number(),
@@ -431,6 +432,7 @@ const linkParser = getStrictParser<LinkInput, Link>()(
     schemaType: z.string(),
     schemaUrl: z.string(),
     status: linkStatusParser,
+    universalLink: z.string(),
   })
 );
 
@@ -599,6 +601,7 @@ export type AuthQRCode = {
   deepLink: string;
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
   qrCodeRaw: string;
+  universalLink: string;
 };
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
@@ -606,6 +609,7 @@ const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
     deepLink: z.string(),
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
     qrCodeRaw: z.string(),
+    universalLink: z.string(),
   })
 );
 

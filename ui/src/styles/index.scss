@@ -10,6 +10,15 @@
     url("/fonts/Matter-Regular.woff") format("woff");
 }
 
+@font-face {
+  font-family: RobotoMono-Regular;
+  font-style: normal;
+  font-weight: normal;
+  src:
+    local("RobotoMono-Regular"),
+    url("/fonts/RobotoMono-Regular.ttf") format("truetype");
+}
+
 /* OVERRIDES */
 
 .ant-avatar {
@@ -299,9 +308,23 @@
   background: transparent;
 }
 
-.ant-typography-copy svg {
-  vertical-align: text-bottom;
-  width: 16px;
+.ant-typography {
+  &:has(.ant-typography-copy) {
+    display: inline-flex;
+    justify-content: flex-end;
+  }
+
+  .ant-typography-copy {
+    margin-inline-start: 8px;
+  }
+}
+
+.ant-typography-copy {
+  svg {
+    color: $text-color-secondary;
+    vertical-align: text-bottom;
+    width: 20px;
+  }
 }
 
 .ant-result-subtitle {

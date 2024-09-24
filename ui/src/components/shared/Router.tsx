@@ -5,7 +5,6 @@ import { ConnectionDetails } from "src/components/connections/ConnectionDetails"
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 import { CredentialDetails } from "src/components/credentials/CredentialDetails";
 import { CredentialIssuedQR } from "src/components/credentials/CredentialIssuedQR";
-import { CredentialLinkQR } from "src/components/credentials/CredentialLinkQR";
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
 import { LinkDetails } from "src/components/credentials/LinkDetails";
@@ -30,7 +29,6 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   createIssuer: CreateIssuer,
   credentialDetails: CredentialDetails,
   credentialIssuedQR: CredentialIssuedQR,
-  credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,

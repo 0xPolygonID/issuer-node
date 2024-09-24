@@ -89,6 +89,7 @@ export type Link = {
   createdAt: Date;
   credentialExpiration: Date | null;
   credentialSubject: Record<string, unknown>;
+  deepLink: string;
   expiration: Date | null;
   id: string;
   issuedClaims: number;
@@ -98,4 +99,5 @@ export type Link = {
   schemaType: string;
   schemaUrl: string;
   status: LinkStatus;
+  universalLink: string;
 };

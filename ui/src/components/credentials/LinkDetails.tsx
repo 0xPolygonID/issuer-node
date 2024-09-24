@@ -170,12 +170,16 @@ export function LinkDetails() {
             </Card>
           );
         } else {
-          const { createdAt, credentialExpiration, proofTypes, schemaHash, schemaType, status } =
-            link.data;
-
-          const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
-            linkID,
-          })}`;
+          const {
+            createdAt,
+            credentialExpiration,
+            deepLink,
+            proofTypes,
+            schemaHash,
+            schemaType,
+            status,
+            universalLink,
+          } = link.data;
 
           const [tag, text]: [TagProps, string] = (() => {
             switch (status) {
@@ -219,7 +223,21 @@ export function LinkDetails() {
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
 
-                    <Detail copyable href={linkURL} label="Link" text={linkURL} />
+                    <Detail
+                      copyable
+                      donwloadLink
+                      href={universalLink}
+                      label="Universal link"
+                      text={universalLink}
+                    />
+
+                    <Detail
+                      copyable
+                      donwloadLink
+                      href={deepLink}
+                      label="Deep link"
+                      text={deepLink}
+                    />
                   </Space>
                 </Card>
                 <Card className="background-grey">

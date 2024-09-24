@@ -3,7 +3,6 @@ export type RouteID =
   | "connections"
   | "credentialDetails"
   | "credentialIssuedQR"
-  | "credentialLinkQR"
   | "credentials"
   | "importSchema"
   | "issueCredential"
@@ -47,10 +46,6 @@ export const ROUTES: Routes = {
   credentialIssuedQR: {
     layout: "fullWidthGrey",
     path: "/credentials/scan-issued/:credentialID",
-  },
-  credentialLinkQR: {
-    layout: "fullWidthGrey",
-    path: "/credentials/scan-link/:linkID",
   },
   credentials: {
     layout: "sider",

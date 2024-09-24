@@ -2,7 +2,12 @@ import { Card, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { createCredential, createLink } from "src/adapters/api/credentials";
+import {
+  AuthQRCode,
+  createAuthQRCode,
+  createCredential,
+  createLink,
+} from "src/adapters/api/credentials";
 import {
   CredentialDirectIssuance,
   CredentialFormInput,
@@ -19,7 +24,7 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerContext } from "src/contexts/Issuer";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { ApiSchema, JsonSchema } from "src/domain";
+import { ApiSchema, AppError, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { DID_SEARCH_PARAM, ISSUE_CREDENTIAL, SCHEMA_SEARCH_PARAM } from "src/utils/constants";
@@ -67,9 +72,10 @@ export function IssueCredential() {
         }
   );
 
-  const [linkID, setLinkID] = useState<AsyncTask<string, null>>({
+  const [authQRCode, setAuthQRCode] = useState<AsyncTask<AuthQRCode, AppError>>({
     status: "pending",
   });
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const onChangeDid = (did?: string) => {
@@ -118,7 +124,6 @@ export function IssueCredential() {
       extractCredentialSubjectAttributeWithoutId(jsonSchema);
 
     if (schemaID && credentialSubjectAttributeWithoutId) {
-      setLinkID({ status: "loading" });
       setIsLoading(true);
       const serializedCredentialForm = serializeCredentialLinkIssuance({
         attribute: credentialSubjectAttributeWithoutId,
@@ -127,20 +132,30 @@ export function IssueCredential() {
       });
 
       if (serializedCredentialForm.success) {
-        const response = await createLink({
+        const linkResponse = await createLink({
           env,
           issuerIdentifier,
           payload: serializedCredentialForm.data,
         });
-        if (response.success) {
-          setLinkID({ data: response.data.id, status: "successful" });
-          setStep("summary");
+
+        if (linkResponse.success) {
+          const authQRResponse = await createAuthQRCode({
+            env,
+            issuerIdentifier,
+            linkID: linkResponse.data.id,
+          });
+
+          if (authQRResponse.success) {
+            setAuthQRCode({ data: authQRResponse.data, status: "successful" });
+            setStep("summary");
+          } else {
+            setAuthQRCode({ error: authQRResponse.error, status: "failed" });
+            void messageAPI.error(authQRResponse.error.message);
+          }
 
           void messageAPI.success("Credential link created");
         } else {
-          setLinkID({ error: null, status: "failed" });
-
-          void messageAPI.error(response.error.message);
+          void messageAPI.error(linkResponse.error.message);
         }
       } else {
         notifyParseError(serializedCredentialForm.error);
@@ -286,7 +301,14 @@ export function IssueCredential() {
             }
 
             case "summary": {
-              return isAsyncTaskDataAvailable(linkID) && <Summary linkID={linkID.data} />;
+              return (
+                isAsyncTaskDataAvailable(authQRCode) && (
+                  <Summary
+                    deepLink={authQRCode.data.deepLink}
+                    universalLink={authQRCode.data.universalLink}
+                  />
+                )
+              );
             }
           }
         })()}

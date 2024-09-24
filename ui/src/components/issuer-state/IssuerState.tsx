@@ -14,7 +14,7 @@ import {
 } from "antd";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 
 import { getTransactions, publishState, retryPublishState } from "src/adapters/api/issuer-state";
@@ -181,18 +181,18 @@ export function IssuerState() {
   const tableColumns: TableColumnsType<Transaction> = [
     {
       dataIndex: "txID",
-      ellipsis: { showTitle: false },
+      ellipsis: { showTitle: true },
       key: "txID",
       render: (txID: Transaction["txID"]) => (
-        <Typography.Text strong>
+        <>
           {txID ? (
-            <Link target="_blank" to={`${env.blockExplorerUrl}/tx/${txID}`}>
-              {txID}
-            </Link>
+            <Tooltip placement="topLeft" title={txID}>
+              <Typography.Text>{txID ? txID : "-"}</Typography.Text>
+            </Tooltip>
           ) : (
-            "-"
+            <Typography.Text>-</Typography.Text>
           )}
-        </Typography.Text>
+        </>
       ),
       title: "Transaction ID",
     },
