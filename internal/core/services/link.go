@@ -16,7 +16,6 @@ import (
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -197,8 +196,8 @@ func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.Link
 
 func (ls *Link) addLinksToLink(link *domain.Link, serverURL string, issuerDID w3c.DID) {
 	if link.AuthorizationRequestMessage != nil {
-		link.DeepLink = common.ToPointer(qrlink.NewDeepLink(serverURL, link.ID, &issuerDID))
-		link.UniversalLink = common.ToPointer(qrlink.NewUniversal(ls.cfg.BaseUrl, serverURL, link.ID, &issuerDID))
+		link.DeepLink = qrlink.NewDeepLink(serverURL, link.ID, &issuerDID)
+		link.UniversalLink = qrlink.NewUniversal(ls.cfg.BaseUrl, serverURL, link.ID, &issuerDID)
 	}
 }
 

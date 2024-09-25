@@ -426,7 +426,7 @@ type Link struct {
 	CreatedAt            TimeUTC           `json:"createdAt"`
 	CredentialExpiration *TimeUTC          `json:"credentialExpiration"`
 	CredentialSubject    CredentialSubject `json:"credentialSubject"`
-	DeepLink             *string           `json:"deepLink"`
+	DeepLink             string            `json:"deepLink"`
 	DisplayMethod        *DisplayMethod    `json:"displayMethod,omitempty"`
 	Expiration           *TimeUTC          `json:"expiration"`
 	Id                   uuid.UUID         `json:"id"`
@@ -438,7 +438,7 @@ type Link struct {
 	SchemaType           string            `json:"schemaType"`
 	SchemaUrl            string            `json:"schemaUrl"`
 	Status               LinkStatus        `json:"status"`
-	UniversalLink        *string           `json:"universalLink"`
+	UniversalLink        string            `json:"universalLink"`
 }
 
 // LinkStatus defines model for Link.Status.

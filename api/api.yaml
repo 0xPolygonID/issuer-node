@@ -2095,6 +2095,8 @@ components:
         - proofTypes
         - schemaHash
         - createdAt
+        - deepLink
+        - universalLink
       properties:
         id:
           type: string
