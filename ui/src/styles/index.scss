@@ -32,6 +32,10 @@
   justify-content: center;
   gap: 8px;
 
+  &-link {
+    color: $primary-color;
+  }
+
   .ant-btn-loading-icon {
     height: 20px;
   }
