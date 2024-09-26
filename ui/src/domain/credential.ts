@@ -1,4 +1,4 @@
-import { AuthBJJCredentialStatus } from "src/domain/issuer";
+import { CredentialStatusType } from "src/domain/issuer";
 
 export type CredentialsTabIDs = "issued" | "links";
 
@@ -15,9 +15,6 @@ export type RefreshService = {
 };
 
 export type Proof = {
-  coreClaim: string;
-  issuerData: Record<string, unknown>;
-  signature: string;
   type: CredentialProofType;
 };
 
@@ -29,7 +26,7 @@ export type CredentialSchema = {
 export type CredentialStatus = {
   id: string;
   revocationNonce: number;
-  type: AuthBJJCredentialStatus;
+  type: CredentialStatusType;
 };
 
 export type CredentialDetail = {
@@ -43,7 +40,7 @@ export type CredentialDetail = {
   id: string;
   issuanceDate: string;
   issuer: string;
-  proof: Proof[];
+  proofTypes: CredentialProofType[];
   refreshService: RefreshService | null;
 };
 
@@ -92,6 +89,7 @@ export type Link = {
   createdAt: Date;
   credentialExpiration: Date | null;
   credentialSubject: Record<string, unknown>;
+  deepLink: string;
   expiration: Date | null;
   id: string;
   issuedClaims: number;
@@ -101,4 +99,5 @@ export type Link = {
   schemaType: string;
   schemaUrl: string;
   status: LinkStatus;
+  universalLink: string;
 };

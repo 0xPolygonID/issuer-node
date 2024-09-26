@@ -117,7 +117,7 @@ export async function getApiSchemas({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/schemas`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/schemas`,
     });
     return buildSuccessResponse(
       getListParser(apiSchemaParser)

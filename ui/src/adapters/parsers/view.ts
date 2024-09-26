@@ -9,12 +9,13 @@ import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import {
   Attribute,
   AttributeValue,
-  AuthBJJCredentialStatus,
   CredentialProofType,
+  CredentialStatusType,
   IssuerType,
   Json,
   JsonLiteral,
   JsonObject,
+  Method,
   ObjectAttribute,
   ProofType,
 } from "src/domain";
@@ -45,14 +46,28 @@ export type CredentialLinkIssuance = CredentialIssuance & {
   type: "credentialLink";
 };
 
-export type IssuerFormData = { blockchain: string; method: string; network: string } & (
-  | {
-      authBJJCredentialStatus: AuthBJJCredentialStatus;
-      type: IssuerType.BJJ;
-    }
-  | {
-      type: IssuerType.ETH;
-    }
+export type IssuerDetailsFormData = {
+  displayName: string;
+};
+
+export type IssuerFormData = {
+  blockchain: string;
+  credentialStatusType: CredentialStatusType;
+  displayName: string;
+  method: Method;
+  network: string;
+  type: IssuerType;
+};
+
+export const issuerFormDataParser = getStrictParser<IssuerFormData>()(
+  z.object({
+    blockchain: z.string(),
+    credentialStatusType: z.nativeEnum(CredentialStatusType),
+    displayName: z.string(),
+    method: z.nativeEnum(Method),
+    network: z.string(),
+    type: z.nativeEnum(IssuerType),
+  })
 );
 
 // Parsers

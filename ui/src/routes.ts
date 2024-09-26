@@ -3,7 +3,6 @@ export type RouteID =
   | "connections"
   | "credentialDetails"
   | "credentialIssuedQR"
-  | "credentialLinkQR"
   | "credentials"
   | "importSchema"
   | "issueCredential"
@@ -13,7 +12,9 @@ export type RouteID =
   | "schemaDetails"
   | "schemas"
   | "issuers"
-  | "createIssuer";
+  | "createIssuer"
+  | "issuerDetails"
+  | "onboarding";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -46,10 +47,6 @@ export const ROUTES: Routes = {
     layout: "fullWidthGrey",
     path: "/credentials/scan-issued/:credentialID",
   },
-  credentialLinkQR: {
-    layout: "fullWidthGrey",
-    path: "/credentials/scan-link/:linkID",
-  },
   credentials: {
     layout: "sider",
     path: "/credentials/:tabID",
@@ -61,6 +58,10 @@ export const ROUTES: Routes = {
   issueCredential: {
     layout: "sider",
     path: "/credentials/issue",
+  },
+  issuerDetails: {
+    layout: "sider",
+    path: "/issuers/details/:issuerID",
   },
   issuers: {
     layout: "sider",
@@ -77,6 +78,10 @@ export const ROUTES: Routes = {
   notFound: {
     layout: "fullWidth",
     path: "/*",
+  },
+  onboarding: {
+    layout: "fullWidth",
+    path: "/onboarding",
   },
   schemaDetails: {
     layout: "sider",

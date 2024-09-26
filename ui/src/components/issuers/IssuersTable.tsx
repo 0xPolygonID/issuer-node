@@ -2,8 +2,7 @@ import {
   Avatar,
   Button,
   Card,
-  Radio,
-  RadioChangeEvent,
+  Dropdown,
   Row,
   Space,
   Table,
@@ -11,37 +10,32 @@ import {
   Typography,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { identifierParser } from "src/adapters/api/issuers";
+import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 import IconIssuers from "src/assets/icons/building-08.svg?react";
+import IconDots from "src/assets/icons/dots-vertical.svg?react";
+import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useIssuerContext } from "src/contexts/Issuer";
 import { Issuer } from "src/domain";
+import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 
-import { ISSUER_ADD, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { DETAILS, DOTS_DROPDOWN_WIDTH, ISSUER_ADD, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { formatIdentifier } from "src/utils/forms";
 
 export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void }) {
-  const { handleChange, issuerIdentifier, issuersList } = useIssuerContext();
+  const { issuersList } = useIssuerContext();
+  const navigate = useNavigate();
+
   const [filteredIdentifiers, setFilteredIdentifiers] = useState<Issuer[]>(() =>
     isAsyncTaskDataAvailable(issuersList) ? issuersList.data : []
   );
   const [searchParams, setSearchParams] = useSearchParams();
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
-
-  const handleIssuerChange = ({ target: { value } }: RadioChangeEvent) => {
-    const parsedIdentifier = identifierParser.safeParse(value);
-
-    if (parsedIdentifier.success) {
-      handleChange(parsedIdentifier.data);
-    } else {
-      handleChange("");
-    }
-  };
 
   useEffect(() => {
     if (isAsyncTaskDataAvailable(issuersList)) {
@@ -76,44 +70,66 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
 
   const tableColumns: TableColumnsType<Issuer> = [
     {
-      align: "center",
-      dataIndex: "identifier",
-      key: "identifier",
-      render: (identifier: Issuer["identifier"]) => <Radio.Button value={identifier} />,
+      dataIndex: "displayName",
+      key: "displayName",
+      render: (displayName: Issuer["displayName"]) => (
+        <Typography.Text strong>{displayName}</Typography.Text>
+      ),
+      sorter: ({ displayName: a }, { displayName: b }) => a.localeCompare(b),
+      title: "Name",
     },
     {
       dataIndex: "identifier",
       key: "identifier",
       render: (identifier: Issuer["identifier"]) => (
-        <Typography.Text strong>{identifier}</Typography.Text>
+        <Typography.Text strong>{formatIdentifier(identifier)}</Typography.Text>
       ),
       sorter: ({ identifier: a }, { identifier: b }) => a.localeCompare(b),
-      title: "Did",
+      title: "DID",
     },
     {
-      dataIndex: "authBJJCredentialStatus",
-      key: "authBJJCredentialStatus",
-      render: (credentialStatus: Issuer["authBJJCredentialStatus"]) => (
-        <Typography.Text strong>{credentialStatus}</Typography.Text>
+      dataIndex: "blockchain",
+      key: "blockchain",
+      render: (blockchain: Issuer["blockchain"]) => (
+        <Typography.Text strong>{blockchain}</Typography.Text>
       ),
-      sorter: ({ authBJJCredentialStatus: a }, { authBJJCredentialStatus: b }) =>
-        a.localeCompare(b),
-
-      title: "Credential Status",
+      sorter: ({ blockchain: a }, { blockchain: b }) => a.localeCompare(b),
+      title: "Blockchain",
     },
     {
       dataIndex: "network",
       key: "network",
-      render: (network: Issuer["network"], { blockchain }: Issuer) => (
-        <Typography.Text strong>
-          {blockchain}-{network}
-        </Typography.Text>
-      ),
-      sorter: (
-        { blockchain: blockchainA, network: networkA },
-        { blockchain: blockchainB, network: networkB }
-      ) => `${blockchainA}-${networkA}`.localeCompare(`${blockchainB}-${networkB}`),
+      render: (network: Issuer["network"]) => <Typography.Text strong>{network}</Typography.Text>,
+      sorter: ({ network: a }, { network: b }) => a.localeCompare(b),
       title: "Network",
+    },
+    {
+      dataIndex: "identifier",
+      key: "identifier",
+      render: (identifier: Issuer["identifier"]) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                icon: <IconInfoCircle />,
+                key: "details",
+                label: DETAILS,
+                onClick: () =>
+                  navigate(
+                    generatePath(ROUTES.issuerDetails.path, {
+                      issuerID: identifier,
+                    })
+                  ),
+              },
+            ],
+          }}
+        >
+          <Row>
+            <IconDots className="icon-secondary" />
+          </Row>
+        </Dropdown>
+      ),
+      width: DOTS_DROPDOWN_WIDTH,
     },
   ];
 
@@ -124,70 +140,61 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
   );
 
   return (
-    <Radio.Group
-      onChange={handleIssuerChange}
-      optionType="default"
-      size="small"
-      style={{ width: "100%" }}
-      value={issuerIdentifier}
-    >
-      <TableCard
-        defaultContents={
-          <>
-            <Avatar className="avatar-color-icon" icon={<IconIssuers />} size={48} />
+    <TableCard
+      defaultContents={
+        <>
+          <Avatar className="avatar-color-icon" icon={<IconIssuers />} size={48} />
 
-            <Typography.Text strong>No issuers</Typography.Text>
+          <Typography.Text strong>No issuers</Typography.Text>
 
-            <Typography.Text type="secondary">
-              Add a new issuer to get the required credential
-            </Typography.Text>
+          <Typography.Text type="secondary">
+            Add a new issuer to get the required credential
+          </Typography.Text>
 
-            {addButton}
-          </>
-        }
-        extraButton={addButton}
-        isLoading={isAsyncTaskStarting(issuersList)}
-        onSearch={onSearch}
-        query={queryParam}
-        searchPlaceholder="Search Issuer"
-        showDefaultContents={
-          issuersList.status === "successful" &&
-          filteredIdentifiers.length === 0 &&
-          queryParam === null
-        }
-        table={
-          <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
+          {addButton}
+        </>
+      }
+      isLoading={isAsyncTaskStarting(issuersList)}
+      onSearch={onSearch}
+      query={queryParam}
+      searchPlaceholder="Search Issuer"
+      showDefaultContents={
+        issuersList.status === "successful" &&
+        filteredIdentifiers.length === 0 &&
+        queryParam === null
+      }
+      table={
+        <Table
+          columns={tableColumns.map(({ title, ...column }) => ({
+            title: (
+              <Typography.Text type="secondary">
+                <>{title}</>
+              </Typography.Text>
+            ),
+            ...column,
+          }))}
+          dataSource={filteredIdentifiers}
+          locale={{
+            emptyText:
+              issuersList.status === "failed" ? (
+                <ErrorResult error={issuersList.error.message} />
+              ) : (
+                <NoResults searchQuery={queryParam} />
               ),
-              ...column,
-            }))}
-            dataSource={filteredIdentifiers}
-            locale={{
-              emptyText:
-                issuersList.status === "failed" ? (
-                  <ErrorResult error={issuersList.error.message} />
-                ) : (
-                  <NoResults searchQuery={queryParam} />
-                ),
-            }}
-            pagination={false}
-            rowKey="identifier"
-            showSorterTooltip
-            sortDirections={["ascend", "descend"]}
-          />
-        }
-        title={
-          <Row justify="space-between">
-            <Space size="middle">
-              <Card.Meta title="List of Issuers" />
-            </Space>
-          </Row>
-        }
-      />
-    </Radio.Group>
+          }}
+          pagination={false}
+          rowKey="identifier"
+          showSorterTooltip
+          sortDirections={["ascend", "descend"]}
+        />
+      }
+      title={
+        <Row justify="space-between">
+          <Space size="middle">
+            <Card.Meta title="Identities" />
+          </Space>
+        </Row>
+      }
+    />
   );
 }

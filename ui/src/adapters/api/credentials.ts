@@ -18,10 +18,10 @@ import {
   getStrictParser,
 } from "src/adapters/parsers";
 import {
-  AuthBJJCredentialStatus,
   Credential,
   CredentialDetail,
   CredentialProofType,
+  CredentialStatusType,
   Env,
   IssuedQRCode,
   IssuerIdentifier,
@@ -36,19 +36,17 @@ import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/
 import { getSchemaHash } from "src/utils/iden3";
 import { List, Resource } from "src/utils/types";
 
-type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
-
-const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
+const proofTypeParser = getStrictParser<CredentialProofType[], ProofType[]>()(
   z
-    .array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
+    .array(z.nativeEnum(CredentialProofType))
     .min(1)
     .transform((values) =>
       values.map((value) => {
         switch (value) {
-          case "BJJSignature2021": {
+          case CredentialProofType.BJJSignature2021: {
             return "SIG";
           }
-          case "SparseMerkleTreeProof": {
+          case CredentialProofType.Iden3SparseMerkleTreeProof: {
             return "MTP";
           }
         }
@@ -87,7 +85,7 @@ type CredentialInput = Omit<
 > & {
   createdAt: string;
   expiresAt: string | null;
-  proofTypes: ProofTypeInput[];
+  proofTypes: CredentialProofType[];
   refreshService?: RefreshService | null;
 };
 
@@ -126,7 +124,7 @@ export const credentialDetailParser = getStrictParser<CredentialDetailInput, Cre
     credentialStatus: z.object({
       id: z.string(),
       revocationNonce: z.number(),
-      type: z.nativeEnum(AuthBJJCredentialStatus),
+      type: z.nativeEnum(CredentialStatusType),
     }),
     credentialSubject: z
       .object({
@@ -137,14 +135,7 @@ export const credentialDetailParser = getStrictParser<CredentialDetailInput, Cre
     id: z.string(),
     issuanceDate: z.string(),
     issuer: z.string(),
-    proof: z.array(
-      z.object({
-        coreClaim: z.string(),
-        issuerData: z.record(z.unknown()),
-        signature: z.string(),
-        type: z.nativeEnum(CredentialProofType),
-      })
-    ),
+    proofTypes: z.array(z.nativeEnum(CredentialProofType)),
     refreshService: z
       .object({ id: z.string(), type: z.literal("Iden3RefreshService2023") })
       .nullable()
@@ -190,7 +181,7 @@ export async function getCredential({
       id,
       issuanceDate,
       issuer,
-      proof,
+      proofTypes,
     } = credentialDetail.data;
 
     const revocationStatus = await getRevocationStatus({
@@ -203,8 +194,6 @@ export async function getCredential({
     if (!revocationStatus.success) {
       return revocationStatus;
     }
-
-    const proofTypes = proof.map(({ type }) => type);
 
     const schemaHash = getSchemaHash({
       id: `${context.at(-1)}#${credentialSubject.type}`,
@@ -293,13 +282,13 @@ export async function getRevocationStatus({
 export async function getCredentials({
   env,
   issuerIdentifier,
-  params: { did, maxResults, page, query, sorters, status },
+  params: { credentialSubject, maxResults, page, query, sorters, status },
   signal,
 }: {
   env: Env;
   issuerIdentifier: IssuerIdentifier;
   params: {
-    did?: string;
+    credentialSubject?: string;
     maxResults?: number;
     page?: number;
     query?: string;
@@ -316,7 +305,7 @@ export async function getCredentials({
       },
       method: "GET",
       params: new URLSearchParams({
-        ...(did !== undefined ? { did } : {}),
+        ...(credentialSubject !== undefined ? { credentialSubject } : {}),
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
         ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
@@ -424,7 +413,7 @@ type LinkInput = Omit<Link, "proofTypes" | "createdAt" | "credentialExpiration" 
   createdAt: string;
   credentialExpiration: string | null;
   expiration: string | null;
-  proofTypes: ProofTypeInput[];
+  proofTypes: CredentialProofType[];
 };
 
 const linkParser = getStrictParser<LinkInput, Link>()(
@@ -433,6 +422,7 @@ const linkParser = getStrictParser<LinkInput, Link>()(
     createdAt: datetimeParser,
     credentialExpiration: datetimeParser.nullable(),
     credentialSubject: z.record(z.unknown()),
+    deepLink: z.string(),
     expiration: datetimeParser.nullable(),
     id: z.string(),
     issuedClaims: z.number(),
@@ -442,6 +432,7 @@ const linkParser = getStrictParser<LinkInput, Link>()(
     schemaType: z.string(),
     schemaUrl: z.string(),
     status: linkStatusParser,
+    universalLink: z.string(),
   })
 );
 
@@ -603,22 +594,22 @@ export async function createLink({
 }
 
 type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
-  linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
+  linkDetail: { proofTypes: CredentialProofType[]; schemaType: string };
 };
 
 export type AuthQRCode = {
+  deepLink: string;
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
-  qrCodeLink: string;
   qrCodeRaw: string;
-  sessionID: string;
+  universalLink: string;
 };
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
+    deepLink: z.string(),
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
-    qrCodeLink: z.string(),
     qrCodeRaw: z.string(),
-    sessionID: z.string(),
+    universalLink: z.string(),
   })
 );
 
@@ -647,17 +638,20 @@ export async function createAuthQRCode({
 }
 
 type IssuedQRCodeInput = {
-  qrCodeLink: string;
   schemaType: string;
+  universalLink: string;
 };
 
 const issuedQRCodeParser = getStrictParser<IssuedQRCodeInput, IssuedQRCode>()(
   z
     .object({
-      qrCodeLink: z.string(),
       schemaType: z.string(),
+      universalLink: z.string(),
     })
-    .transform(({ qrCodeLink, schemaType }) => ({ qrCode: qrCodeLink, schemaType: schemaType }))
+    .transform(({ schemaType, universalLink }) => ({
+      qrCode: universalLink,
+      schemaType: schemaType,
+    }))
 );
 
 export async function getIssuedQRCodes({
@@ -679,7 +673,7 @@ export async function getIssuedQRCodes({
           Authorization: buildAuthorizationHeader(env),
         },
         method: "GET",
-        params: { type: "link" },
+        params: { type: "deepLink" },
         signal,
         url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/${credentialID}/qrcode`,
       }),
@@ -699,44 +693,6 @@ export async function getIssuedQRCodes({
       issuedQRCodeParser.parse(qrLinkResponse.data),
       issuedQRCodeParser.parse(qrRawResponse.data),
     ]);
-  } catch (error) {
-    return buildErrorResponse(error);
-  }
-}
-
-export type ImportQRCode = {
-  qrCode?: string;
-  status: "done" | "pending" | "pendingPublish";
-};
-
-const importQRCodeParser = getStrictParser<ImportQRCode>()(
-  z.object({
-    qrCode: z.string().optional(),
-    status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
-  })
-);
-
-export async function getImportQRCode({
-  env,
-  issuerIdentifier,
-  linkID,
-  sessionID,
-}: {
-  env: Env;
-  issuerIdentifier: IssuerIdentifier;
-  linkID: string;
-  sessionID: string;
-}): Promise<Response<ImportQRCode>> {
-  try {
-    const response = await axios({
-      baseURL: env.api.url,
-      method: "GET",
-      params: {
-        sessionID,
-      },
-      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/links/${linkID}/qrcode`,
-    });
-    return buildSuccessResponse(importQRCodeParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

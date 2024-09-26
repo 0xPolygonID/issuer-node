@@ -2,11 +2,11 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
-import { buildAuthorizationHeader } from "src/adapters/api";
-import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
+import { Sorter, buildAuthorizationHeader, serializeSorters } from "src/adapters/api";
+import { datetimeParser, getResourceParser, getStrictParser } from "src/adapters/parsers";
 import { Env, IssuerIdentifier, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
-import { API_VERSION } from "src/utils/constants";
-import { List } from "src/utils/types";
+import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { Resource } from "src/utils/types";
 
 const transactionStatusParser = getStrictParser<TransactionStatus>()(
   z.union([
@@ -108,12 +108,19 @@ const issuerStatusParser = getStrictParser<IssuerStatus>()(
 export async function getTransactions({
   env,
   issuerIdentifier,
+  params: { maxResults, page, query, sorters },
   signal,
 }: {
   env: Env;
   issuerIdentifier: IssuerIdentifier;
+  params: {
+    maxResults?: number;
+    page?: number;
+    query?: string;
+    sorters?: Sorter[];
+  };
   signal?: AbortSignal;
-}): Promise<Response<List<Transaction>>> {
+}): Promise<Response<Resource<Transaction>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -121,17 +128,17 @@ export async function getTransactions({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
+      params: new URLSearchParams({
+        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
+        ...(page !== undefined ? { page: page.toString() } : {}),
+        ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
+      }),
       signal,
       url: `${API_VERSION}/identities/${issuerIdentifier}/state/transactions`,
     });
-    return buildSuccessResponse(
-      getListParser(transactionParser)
-        .transform(({ failed, successful }) => ({
-          failed,
-          successful: successful.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime()),
-        }))
-        .parse(response.data)
-    );
+
+    return buildSuccessResponse(getResourceParser(transactionParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

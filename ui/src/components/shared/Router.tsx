@@ -5,13 +5,14 @@ import { ConnectionDetails } from "src/components/connections/ConnectionDetails"
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 import { CredentialDetails } from "src/components/credentials/CredentialDetails";
 import { CredentialIssuedQR } from "src/components/credentials/CredentialIssuedQR";
-import { CredentialLinkQR } from "src/components/credentials/CredentialLinkQR";
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
 import { LinkDetails } from "src/components/credentials/LinkDetails";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
 import { CreateIssuer } from "src/components/issuers/CreateIssuer";
+import { IssuerDetails } from "src/components/issuers/IssuerDetails";
 import { Issuers } from "src/components/issuers/Issuers";
+import { Onboarding } from "src/components/issuers/Onboarding";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
@@ -28,14 +29,15 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   createIssuer: CreateIssuer,
   credentialDetails: CredentialDetails,
   credentialIssuedQR: CredentialIssuedQR,
-  credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
+  issuerDetails: IssuerDetails,
   issuers: Issuers,
   issuerState: IssuerState,
   linkDetails: LinkDetails,
   notFound: NotFound,
+  onboarding: Onboarding,
   schemaDetails: SchemaDetails,
   schemas: Schemas,
 };
@@ -71,12 +73,11 @@ export function Router() {
         </>
       ) : (
         <>
-          <Route element={<SiderLayout />}>
-            <Route element={<COMPONENTS.issuers />} path={ROUTES.issuers.path} />
-            <Route element={<COMPONENTS.createIssuer />} path={ROUTES.createIssuer.path} />
+          <Route element={<FullWidthLayout />}>
+            <Route element={<COMPONENTS.onboarding />} path={ROUTES.onboarding.path} />
           </Route>
 
-          <Route element={<Navigate to={ROUTES.issuers.path} />} path="*" />
+          <Route element={<Navigate to={ROUTES.onboarding.path} />} path="*" />
         </>
       )}
     </Routes>

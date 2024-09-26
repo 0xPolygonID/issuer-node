@@ -15,8 +15,11 @@ type StyleVariables = {
   iconColor: string;
   primaryBg: string;
   primaryColor: string;
+  primaryColorDark: string;
+  primaryColorLight: string;
   successBg: string;
   successColor: string;
+  successLightColor: string;
   tagBg: string;
   tagBgSuccess: string;
   tagColor: string;
@@ -37,8 +40,11 @@ const parsedStyleVariables = getStrictParser<StyleVariables>()(
     iconColor: z.string(),
     primaryBg: z.string(),
     primaryColor: z.string(),
+    primaryColorDark: z.string(),
+    primaryColorLight: z.string(),
     successBg: z.string(),
     successColor: z.string(),
+    successLightColor: z.string(),
     tagBg: z.string(),
     tagBgSuccess: z.string(),
     tagColor: z.string(),
@@ -54,6 +60,8 @@ const {
   borderColor,
   errorColor,
   primaryColor,
+  primaryColorDark,
+  primaryColorLight,
   successBg,
   successColor,
   tagBg,
@@ -67,14 +75,15 @@ export const theme: ThemeConfig = {
   components: {
     Avatar: { colorBgBase: avatarBg },
     Button: {
-      colorBgContainerDisabled: successBg,
-      colorPrimaryBg: primaryColor,
-      colorPrimaryHover: "#74F526",
+      colorPrimary: primaryColorLight,
+      colorPrimaryBorder: primaryColor,
+      colorPrimaryText: textColorSecondary,
       controlHeight: 40,
-      defaultHoverBorderColor: primaryColor,
-      defaultHoverColor: primaryColor,
+      defaultBorderColor: primaryColorDark,
+      defaultColor: primaryColorDark,
       paddingContentHorizontal: 16,
       primaryColor: textColor,
+      primaryShadow: "none",
     },
     Card: {
       colorBgBase: primaryColor,
