@@ -308,18 +308,3 @@ func checkQRfetchURL(t *testing.T, qrLink string) string {
 	require.NoError(t, err)
 	return fetchURL
 }
-
-func checkQRFetchURLForLinks(t *testing.T, qrLink string) string {
-	t.Helper()
-	qrURL, err := url.Parse(qrLink)
-	require.NoError(t, err)
-	assert.Equal(t, "iden3comm", qrURL.Scheme)
-	vals, err := url.ParseQuery(qrURL.RawQuery)
-	require.NoError(t, err)
-	val, found := vals["request_uri"]
-	require.True(t, found)
-	fetchURL, err := url.QueryUnescape(val[0])
-	require.NoError(t, err)
-	fetchURL = fetchURL + "&issuer=" + vals["issuer"][0]
-	return fetchURL
-}

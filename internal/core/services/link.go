@@ -13,9 +13,9 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
+	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -141,8 +141,8 @@ func (ls *Link) Activate(ctx context.Context, issuerID w3c.DID, linkID uuid.UUID
 }
 
 // GetByID returns a link by id and issuerDID
-func (ls *Link) GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID, serverURL string) (*domain.Link, error) {
-	link, err := ls.linkRepository.GetByID(ctx, issuerID, id)
+func (ls *Link) GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID, serverURL string) (*domain.Link, error) {
+	link, err := ls.linkRepository.GetByID(ctx, issuerDID, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
 			return nil, ErrLinkNotFound
@@ -150,7 +150,34 @@ func (ls *Link) GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID, ser
 		return nil, err
 	}
 
-	ls.addLinksToLink(link, serverURL, issuerID)
+	if link.AuthorizationRequestMessage == nil {
+		reqID := uuid.New().String()
+		authorizationRequestMessage := &protocol.AuthorizationRequestMessage{
+			From:     issuerDID.String(),
+			ID:       reqID,
+			ThreadID: reqID,
+			Typ:      packers.MediaTypePlainMessage,
+			Type:     protocol.AuthorizationRequestMessageType,
+			Body: protocol.AuthorizationRequestMessageBody{
+				CallbackURL: fmt.Sprintf(ports.LinksCallbackURL, serverURL, issuerDID.String(), link.ID.String()),
+				Reason:      authReason,
+				Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
+			},
+		}
+		if err := ls.linkRepository.AddAuthorizationRequest(ctx, link.ID, issuerDID, authorizationRequestMessage); err != nil {
+			log.Error(ctx, "cannot add the authorization request", "err", err)
+			return nil, err
+		}
+
+		link.AuthorizationRequestMessage = &pgtype.JSONB{}
+		err = link.AuthorizationRequestMessage.Set(authorizationRequestMessage)
+		if err != nil {
+			log.Error(ctx, "cannot assign the authorization", "err", err)
+			return nil, err
+		}
+	}
+
+	ls.addLinksToLink(link, serverURL, issuerDID)
 	return link, nil
 }
 
@@ -169,8 +196,8 @@ func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.Link
 
 func (ls *Link) addLinksToLink(link *domain.Link, serverURL string, issuerDID w3c.DID) {
 	if link.AuthorizationRequestMessage != nil {
-		link.DeepLink = common.ToPointer(qrlink.NewDeepLink(serverURL, link.ID, &issuerDID))
-		link.UniversalLink = common.ToPointer(qrlink.NewUniversal(ls.cfg.BaseUrl, ls.cfg.BaseUrl, link.ID, &issuerDID))
+		link.DeepLink = qrlink.NewDeepLink(serverURL, link.ID, &issuerDID)
+		link.UniversalLink = qrlink.NewUniversal(ls.cfg.BaseUrl, serverURL, link.ID, &issuerDID)
 	}
 }
 
@@ -187,44 +214,18 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 		return nil, err
 	}
 
-	err = ls.validate(ctx, link)
+	err = ls.Validate(ctx, link)
 	if err != nil {
 		return nil, err
 	}
 
 	var authorizationRequestMessage *protocol.AuthorizationRequestMessage
 	var raw []byte
-	if link.AuthorizationRequestMessage == nil {
-		reqID := uuid.New().String()
-		authorizationRequestMessage = &protocol.AuthorizationRequestMessage{
-			From:     issuerDID.String(),
-			ID:       reqID,
-			ThreadID: reqID,
-			Typ:      packers.MediaTypePlainMessage,
-			Type:     protocol.AuthorizationRequestMessageType,
-			Body: protocol.AuthorizationRequestMessageBody{
-				CallbackURL: fmt.Sprintf(ports.LinksCallbackURL, serverURL, issuerDID.String(), linkID.String()),
-				Reason:      authReason,
-				Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
-			},
-		}
-		if err := ls.linkRepository.AddAuthorizationRequest(ctx, linkID, issuerDID, authorizationRequestMessage); err != nil {
-			log.Error(ctx, "cannot add the authorization request", "err", err)
-			return nil, err
-		}
-		raw, err = json.Marshal(authorizationRequestMessage)
-		if err != nil {
-			log.Error(ctx, "cannot marshal the authorization", "err", err)
-		}
-	} else {
-		if err := json.Unmarshal(link.AuthorizationRequestMessage.Bytes, &authorizationRequestMessage); err != nil {
-			log.Error(ctx, "cannot unmarshal the authorization", "err", err)
-			return nil, err
-		}
-		raw = link.AuthorizationRequestMessage.Bytes
-
+	if err := json.Unmarshal(link.AuthorizationRequestMessage.Bytes, &authorizationRequestMessage); err != nil {
+		log.Error(ctx, "cannot unmarshal the authorization", "err", err)
+		return nil, err
 	}
-
+	raw = link.AuthorizationRequestMessage.Bytes
 	return &ports.CreateQRCodeResponse{
 		DeepLink:      qrlink.NewDeepLink(serverURL, linkID, &issuerDID),
 		UniversalLink: qrlink.NewUniversal(ls.cfg.BaseUrl, serverURL, link.ID, &issuerDID),
@@ -248,8 +249,8 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDI
 		return nil, err
 	}
 
-	if err := ls.validate(ctx, link); err != nil {
-		log.Error(ctx, "cannot validate the link", "err", err)
+	if err := ls.Validate(ctx, link); err != nil {
+		log.Error(ctx, "cannot Validate the link", "err", err)
 		return nil, err
 	}
 
@@ -373,7 +374,9 @@ func (ls *Link) ProcessCallBack(ctx context.Context, issuerID w3c.DID, message s
 	return offer, nil
 }
 
-func (ls *Link) validate(ctx context.Context, link *domain.Link) error {
+// Validate - validate the link
+// It checks if the link is active, not expired and has not exceeded the maximum number of claims
+func (ls *Link) Validate(ctx context.Context, link *domain.Link) error {
 	if link.ValidUntil != nil && time.Now().UTC().After(*link.ValidUntil) {
 		log.Debug(ctx, "cannot issue a credential for an expired link")
 		return ErrLinkAlreadyExpired

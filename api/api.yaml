@@ -987,6 +987,8 @@ paths:
                 type: object
         '400':
           $ref: '#/components/responses/400'
+        '410':
+          $ref: '#/components/responses/410'
         '404':
           $ref: '#/components/responses/404'
         '500':
@@ -2093,6 +2095,8 @@ components:
         - proofTypes
         - schemaHash
         - createdAt
+        - deepLink
+        - universalLink
       properties:
         id:
           type: string
@@ -2144,9 +2148,11 @@ components:
           $ref: '#/components/schemas/DisplayMethod'
         deepLink:
           type: string
+          x-omitempty: false
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         universalLink:
           type: string
+          x-omitempty: false
           example: https://wallet.privado.id#request_uri=url
 
     CredentialSubject:
@@ -2412,6 +2418,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '407':
       description: 'Proxy Authentication Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '410':
+      description: 'Gone'
       content:
         application/json:
           schema:

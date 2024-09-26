@@ -29,6 +29,14 @@ func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreReque
 		}
 
 		link, err := s.linkService.GetByID(ctx, *issuerDID, *request.Params.Id, s.cfg.ServerUrl)
+		if err != nil {
+			log.Error(ctx, "getting link by id", "err", err, "link id", *request.Params.Id)
+			return GetQrFromStore404JSONResponse{N404JSONResponse{"link not found"}}, nil
+		}
+		if err := s.linkService.Validate(ctx, link); err != nil {
+			log.Error(ctx, "validating link", "err", err, "link id", *request.Params.Id)
+			return GetQrFromStore410JSONResponse{N410JSONResponse{err.Error()}}, nil
+		}
 
 		if link.AuthorizationRequestMessage == nil {
 			log.Error(ctx, "qr store. Finding qr", "err", err, "id", *request.Params.Id)
