@@ -61,6 +61,7 @@ type Configuration struct {
 	CustomDIDMethods            []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager            MediaTypeManager
 	UniversalLinks              UniversalLinks
+	UniversalDIDResolver        UniversalDIDResolver
 }
 
 // Database has the database configuration
@@ -142,6 +143,11 @@ type KeyStore struct {
 	VaultUserPassAuthPassword    string `env:"ISSUER_VAULT_USERPASS_AUTH_PASSWORD"`
 	TLSEnabled                   bool   `env:"ISSUER_VAULT_TLS_ENABLED"`
 	CertPath                     string `env:"ISSUER_VAULT_TLS_CERT_PATH"`
+}
+
+// UniversalDIDResolver defines the universal DID resolver
+type UniversalDIDResolver struct {
+	UniversalResolverURL *string `env:"ISSUER_UNIVERSAL_DID_RESOLVER_URL"`
 }
 
 // Log holds runtime configurations

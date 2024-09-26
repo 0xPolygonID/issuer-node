@@ -62,4 +62,5 @@ type LinkService interface {
 	CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
 	IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)
 	ProcessCallBack(ctx context.Context, issuerDID w3c.DID, message string, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)
+	Validate(ctx context.Context, link *domain.Link) error
 }

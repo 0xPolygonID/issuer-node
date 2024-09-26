@@ -30,7 +30,11 @@ ENV = $(DOTENV_CMD) -f .env-issuer
 .PHONY: run-full
 run-full:
 	@make down
-	$(DOCKER_COMPOSE_FULL_CMD) up -d
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
+	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
+else
+	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres vault api pending_publisher notifications ui
+endif
 
 .PHONY: build-local
 build-local:
@@ -213,13 +217,11 @@ else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
 	privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
 	@echo ">>> importing private key to VAULT"
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
-	@echo "waiting for vault to start..."
-	sleep 10
 	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
-	docker run --rm -it -v ./.env-issuer:/.env-issuer --network issuer-network \
+	$(eval NETWORK=$(shell docker inspect issuer-vault-1 --format '{{ .HostConfig.NetworkMode }}'))
+	@echo $(NETWORK)
+	docker run --rm -it -v ./.env-issuer:/.env-issuer --network $(NETWORK) \
 		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
-	$(DOCKER_COMPOSE_INFRA_CMD) stop
 else
 	@echo "ISSUER_KMS_ETH_PROVIDER is not set"
 endif
@@ -268,3 +270,4 @@ print-commands:
 .PHONY: clean-volumes
 clean-volumes:
 	$(DOCKER_COMPOSE_INFRA_CMD) down -v
+	$(DOCKER_COMPOSE_FULL_CMD) down -v
