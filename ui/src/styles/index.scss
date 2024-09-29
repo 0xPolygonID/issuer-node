@@ -314,8 +314,9 @@
 
 .ant-typography {
   &:has(.ant-typography-copy) {
-    display: inline-flex;
+    display: flex;
     justify-content: flex-end;
+    word-break: keep-all;
   }
 
   .ant-typography-copy {

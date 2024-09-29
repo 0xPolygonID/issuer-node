@@ -14,7 +14,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { useIssuerContext } from "src/contexts/Issuer";
 import { ROUTES } from "src/routes";
 
-import { FINALISE_SETUP } from "src/utils/constants";
+import { FINALIZE_SETUP } from "src/utils/constants";
 
 const cards = [
   {
@@ -60,7 +60,7 @@ export function Onboarding() {
     <>
       {messageContext}
 
-      <Flex className="onboarding" gap={32} style={{ padding: "0 24px" }} vertical>
+      <Flex className="onboarding" gap={32} style={{ maxWidth: 1312, padding: "0 24px" }} vertical>
         <Flex align="center" gap={8} style={{ textAlign: "center" }} vertical>
           <Avatar
             className="onboarding-check-icon"
@@ -72,9 +72,9 @@ export function Onboarding() {
           <Typography.Text style={{ fontSize: 30 }}>
             You successfully installed Issuer Node
           </Typography.Text>
-          <Typography.Text style={{ fontSize: 20 }}>
+          <Typography.Text style={{ fontSize: 20 }} type="secondary">
             Here&apos;s what you&apos;re going to be able to do with the issuer node, once you
-            finalise your setup
+            finalize your setup
           </Typography.Text>
         </Flex>
 
@@ -116,7 +116,7 @@ export function Onboarding() {
 
         <Divider
           className="onboarding-divider"
-          style={{ alignSelf: "center", borderWidth: 2, height: 48 }}
+          style={{ alignSelf: "center", borderRadius: 1, borderWidth: 2, height: 48 }}
           type="vertical"
         />
 
@@ -126,11 +126,11 @@ export function Onboarding() {
           style={{ alignSelf: "center", maxWidth: 700, paddingBottom: 24 }}
           vertical
         >
-          <Typography.Text style={{ fontSize: 20 }}>
-            Finalise the setup by adding a new identity
+          <Typography.Text style={{ fontSize: 30 }}>
+            Finalize the setup by adding a new identity
           </Typography.Text>
 
-          <IssuerForm onSubmit={handleSubmit} submitBtnText={FINALISE_SETUP} />
+          <IssuerForm onSubmit={handleSubmit} submitBtnText={FINALIZE_SETUP} />
         </Flex>
       </Flex>
     </>

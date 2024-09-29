@@ -192,7 +192,7 @@ export function CredentialDetails() {
             userID,
           } = credential.data;
 
-          const notPuslihedState: boolean = revoked && !credential.data.revoked;
+          const notPublishedState = revoked && !credential.data.revoked;
 
           const qrCodeLink =
             window.location.origin +
@@ -204,7 +204,7 @@ export function CredentialDetails() {
               extra={
                 <Row gutter={[0, 8]} justify="end">
                   <Col>
-                    <Tooltip title={notPuslihedState ? NOT_PUBLISHED_STATE : ""}>
+                    <Tooltip title={notPublishedState ? NOT_PUBLISHED_STATE : ""}>
                       <Button
                         danger
                         disabled={revoked}

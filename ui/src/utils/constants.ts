@@ -33,7 +33,7 @@ export const SCHEMAS = "Schemas";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
 export const NOT_PUBLISHED_STATE = "State not published";
-export const FINALISE_SETUP = "Finalise setup";
+export const FINALIZE_SETUP = "Finalize setup";
 
 // URL params
 export const DID_SEARCH_PARAM = "did";

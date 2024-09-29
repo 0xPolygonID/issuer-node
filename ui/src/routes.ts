@@ -80,7 +80,7 @@ export const ROUTES: Routes = {
     path: "/*",
   },
   onboarding: {
-    layout: "fullWidth",
+    layout: "fullWidthGrey",
     path: "/onboarding",
   },
   schemaDetails: {
