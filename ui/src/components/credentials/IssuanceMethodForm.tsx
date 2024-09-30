@@ -20,7 +20,7 @@ import { getConnections } from "src/adapters/api/connections";
 import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/view";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
@@ -37,7 +37,7 @@ export function IssuanceMethodForm({
   onSubmit: (values: IssuanceMethodFormData) => void;
 }) {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
 
   const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
   const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
@@ -57,7 +57,7 @@ export function IssuanceMethodForm({
       const response = await getConnections({
         credentials: false,
         env,
-        issuerIdentifier,
+        identifier,
         params: {},
         signal,
       });
@@ -69,7 +69,7 @@ export function IssuanceMethodForm({
         setConnections({ error: response.error, status: "failed" });
       }
     },
-    [env, issuerIdentifier]
+    [env, identifier]
   );
 
   useEffect(() => {

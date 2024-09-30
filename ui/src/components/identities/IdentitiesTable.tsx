@@ -18,37 +18,42 @@ import IconPlus from "src/assets/icons/plus.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
-import { useIssuerContext } from "src/contexts/Issuer";
-import { Issuer } from "src/domain";
+import { useIdentityContext } from "src/contexts/Identity";
+import { Identity } from "src/domain";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 
-import { DETAILS, DOTS_DROPDOWN_WIDTH, ISSUER_ADD, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import {
+  DETAILS,
+  DOTS_DROPDOWN_WIDTH,
+  IDENTITY_ADD,
+  QUERY_SEARCH_PARAM,
+} from "src/utils/constants";
 import { formatIdentifier } from "src/utils/forms";
 
-export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void }) {
-  const { issuersList } = useIssuerContext();
+export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () => void }) {
+  const { identitiesList } = useIdentityContext();
   const navigate = useNavigate();
 
-  const [filteredIdentifiers, setFilteredIdentifiers] = useState<Issuer[]>(() =>
-    isAsyncTaskDataAvailable(issuersList) ? issuersList.data : []
+  const [filteredIdentifiers, setFilteredIdentifiers] = useState<Identity[]>(() =>
+    isAsyncTaskDataAvailable(identitiesList) ? identitiesList.data : []
   );
   const [searchParams, setSearchParams] = useSearchParams();
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
 
   useEffect(() => {
-    if (isAsyncTaskDataAvailable(issuersList)) {
+    if (isAsyncTaskDataAvailable(identitiesList)) {
       if (!queryParam) {
-        setFilteredIdentifiers(issuersList.data);
+        setFilteredIdentifiers(identitiesList.data);
       } else {
-        const filteredData = issuersList.data.filter((issuer: Issuer) =>
+        const filteredData = identitiesList.data.filter((issuer: Identity) =>
           Object.values(issuer).some((value: string) => value.includes(queryParam))
         );
         setFilteredIdentifiers(filteredData);
       }
     }
-  }, [queryParam, issuersList]);
+  }, [queryParam, identitiesList]);
 
   const onSearch = useCallback(
     (query: string) => {
@@ -68,11 +73,11 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
     [setSearchParams]
   );
 
-  const tableColumns: TableColumnsType<Issuer> = [
+  const tableColumns: TableColumnsType<Identity> = [
     {
       dataIndex: "displayName",
       key: "displayName",
-      render: (displayName: Issuer["displayName"]) => (
+      render: (displayName: Identity["displayName"]) => (
         <Typography.Text strong>{displayName}</Typography.Text>
       ),
       sorter: ({ displayName: a }, { displayName: b }) => a.localeCompare(b),
@@ -81,7 +86,7 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
     {
       dataIndex: "identifier",
       key: "identifier",
-      render: (identifier: Issuer["identifier"]) => (
+      render: (identifier: Identity["identifier"]) => (
         <Typography.Text strong>{formatIdentifier(identifier)}</Typography.Text>
       ),
       sorter: ({ identifier: a }, { identifier: b }) => a.localeCompare(b),
@@ -90,7 +95,7 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
     {
       dataIndex: "blockchain",
       key: "blockchain",
-      render: (blockchain: Issuer["blockchain"]) => (
+      render: (blockchain: Identity["blockchain"]) => (
         <Typography.Text strong>{blockchain}</Typography.Text>
       ),
       sorter: ({ blockchain: a }, { blockchain: b }) => a.localeCompare(b),
@@ -99,14 +104,14 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
     {
       dataIndex: "network",
       key: "network",
-      render: (network: Issuer["network"]) => <Typography.Text strong>{network}</Typography.Text>,
+      render: (network: Identity["network"]) => <Typography.Text strong>{network}</Typography.Text>,
       sorter: ({ network: a }, { network: b }) => a.localeCompare(b),
       title: "Network",
     },
     {
       dataIndex: "identifier",
       key: "identifier",
-      render: (identifier: Issuer["identifier"]) => (
+      render: (identifier: Identity["identifier"]) => (
         <Dropdown
           menu={{
             items: [
@@ -116,7 +121,7 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
                 label: DETAILS,
                 onClick: () =>
                   navigate(
-                    generatePath(ROUTES.issuerDetails.path, {
+                    generatePath(ROUTES.identityDetails.path, {
                       issuerID: identifier,
                     })
                   ),
@@ -134,8 +139,8 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
   ];
 
   const addButton = (
-    <Button icon={<IconPlus />} onClick={handleAddIssuer} type="primary">
-      {ISSUER_ADD}
+    <Button icon={<IconPlus />} onClick={handleAddIdentity} type="primary">
+      {IDENTITY_ADD}
     </Button>
   );
 
@@ -154,12 +159,12 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
           {addButton}
         </>
       }
-      isLoading={isAsyncTaskStarting(issuersList)}
+      isLoading={isAsyncTaskStarting(identitiesList)}
       onSearch={onSearch}
       query={queryParam}
       searchPlaceholder="Search Issuer"
       showDefaultContents={
-        issuersList.status === "successful" &&
+        identitiesList.status === "successful" &&
         filteredIdentifiers.length === 0 &&
         queryParam === null
       }
@@ -176,8 +181,8 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
           dataSource={filteredIdentifiers}
           locale={{
             emptyText:
-              issuersList.status === "failed" ? (
-                <ErrorResult error={issuersList.error.message} />
+              identitiesList.status === "failed" ? (
+                <ErrorResult error={identitiesList.error.message} />
               ) : (
                 <NoResults searchQuery={queryParam} />
               ),

@@ -32,7 +32,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Link } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -51,7 +51,7 @@ import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
 
   const { md, sm } = Grid.useBreakpoint();
   const [messageAPI, messageContext] = message.useMessage();
@@ -221,7 +221,7 @@ export function LinksTable() {
 
       const response = await getLinks({
         env,
-        issuerIdentifier,
+        identifier,
         params: {
           query: queryParam || undefined,
           status: status,
@@ -238,7 +238,7 @@ export function LinksTable() {
         }
       }
     },
-    [env, queryParam, status, issuerIdentifier]
+    [env, queryParam, status, identifier]
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
@@ -289,7 +289,7 @@ export function LinksTable() {
     void updateLink({
       env,
       id,
-      issuerIdentifier,
+      identifier,
       payload: { active },
     }).then((response) => {
       if (response.success) {

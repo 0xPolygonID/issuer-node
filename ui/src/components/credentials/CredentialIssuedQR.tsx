@@ -6,14 +6,14 @@ import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, IssuedQRCode } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 export function CredentialIssuedQR() {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
 
   const [issuedQRCodes, setIssuedQRCodes] = useState<
     AsyncTask<[IssuedQRCode, IssuedQRCode], AppError>
@@ -28,7 +28,7 @@ export function CredentialIssuedQR() {
       if (credentialID) {
         setIssuedQRCodes({ status: "loading" });
 
-        const response = await getIssuedQRCodes({ credentialID, env, issuerIdentifier, signal });
+        const response = await getIssuedQRCodes({ credentialID, env, identifier, signal });
 
         if (response.success) {
           setIssuedQRCodes({ data: response.data, status: "successful" });
@@ -39,7 +39,7 @@ export function CredentialIssuedQR() {
         }
       }
     },
-    [credentialID, env, issuerIdentifier]
+    [credentialID, env, identifier]
   );
 
   useEffect(() => {

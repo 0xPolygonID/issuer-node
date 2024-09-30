@@ -11,9 +11,9 @@ export type RouteID =
   | "notFound"
   | "schemaDetails"
   | "schemas"
-  | "issuers"
-  | "createIssuer"
-  | "issuerDetails"
+  | "identities"
+  | "createIdentity"
+  | "identityDetails"
   | "onboarding";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
@@ -35,9 +35,9 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/connections",
   },
-  createIssuer: {
+  createIdentity: {
     layout: "sider",
-    path: "/issuers/create",
+    path: "/identities/create",
   },
   credentialDetails: {
     layout: "sider",
@@ -51,6 +51,14 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/credentials/:tabID",
   },
+  identities: {
+    layout: "sider",
+    path: "/identities",
+  },
+  identityDetails: {
+    layout: "sider",
+    path: "/identities/details/:identityID",
+  },
   importSchema: {
     layout: "sider",
     path: "/schemas/import-schema",
@@ -58,14 +66,6 @@ export const ROUTES: Routes = {
   issueCredential: {
     layout: "sider",
     path: "/credentials/issue",
-  },
-  issuerDetails: {
-    layout: "sider",
-    path: "/issuers/details/:issuerID",
-  },
-  issuers: {
-    layout: "sider",
-    path: "/issuers",
   },
   issuerState: {
     layout: "sider",

@@ -387,7 +387,7 @@
 }
 
 .issue-credential-card,
-.issuers-card {
+.identities-card {
   margin: auto;
   max-width: 720px;
   width: 100%;
@@ -475,7 +475,7 @@ svg {
   }
 }
 
-.issuers-dropdown {
+.identities-dropdown {
   .ant-dropdown-menu {
     border-radius: 8px;
     border: 1px solid $border-color;

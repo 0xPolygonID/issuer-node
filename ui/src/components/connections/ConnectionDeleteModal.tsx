@@ -5,7 +5,7 @@ import { useState } from "react";
 import { deleteConnection } from "src/adapters/api/connections";
 import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { CLOSE, DELETE } from "src/utils/constants";
 
@@ -19,7 +19,7 @@ export function ConnectionDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -28,7 +28,7 @@ export function ConnectionDeleteModal({
   const [deleteCredentials, setDeleteCredentials] = useState<boolean>(false);
 
   const handleDeleteConnection = () => {
-    void deleteConnection({ deleteCredentials, env, id, issuerIdentifier, revokeCredentials }).then(
+    void deleteConnection({ deleteCredentials, env, id, identifier, revokeCredentials }).then(
       (response) => {
         if (response.success) {
           onClose();

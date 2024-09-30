@@ -1,8 +1,8 @@
 import { Button, Card, Flex, Form, Input, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getIssuerDetails, updateIssuerDisplayName } from "src/adapters/api/issuers";
-import { IssuerDetailsFormData } from "src/adapters/parsers/view";
+import { getIdentityDetails, updateIdentityDisplayName } from "src/adapters/api/identities";
+import { IdentityDetailsFormData } from "src/adapters/parsers/view";
 import CheckIcon from "src/assets/icons/check.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
 import CloseIcon from "src/assets/icons/x-close.svg?react";
@@ -11,40 +11,40 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, IssuerInfo } from "src/domain";
+import { AppError, IdentityDetails } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { ISSUER_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
+import { IDENTITY_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
 import { formatIdentifier } from "src/utils/forms";
 
-export function IssuerDetails() {
+export function Identity() {
   const env = useEnvContext();
-  const [issuer, setIssuer] = useState<AsyncTask<IssuerInfo, AppError>>({
+  const [identity, setIdentity] = useState<AsyncTask<IdentityDetails, AppError>>({
     status: "pending",
   });
 
   const [displayNameEditable, setDisplayNameEditable] = useState(false);
   const [messageAPI, messageContext] = message.useMessage();
-  const [form] = Form.useForm<IssuerDetailsFormData>();
+  const [form] = Form.useForm<IdentityDetailsFormData>();
 
-  const { issuerID: identifier } = useParams();
+  const { identityID: identifier } = useParams();
 
-  const fetchIssuer = useCallback(
+  const fetchIdentity = useCallback(
     async (signal?: AbortSignal) => {
       if (identifier) {
-        setIssuer({ status: "loading" });
+        setIdentity({ status: "loading" });
 
-        const response = await getIssuerDetails({
+        const response = await getIdentityDetails({
           env,
           identifier,
           signal,
         });
 
         if (response.success) {
-          setIssuer({ data: response.data, status: "successful" });
+          setIdentity({ data: response.data, status: "successful" });
         } else {
           if (!isAbortedError(response.error)) {
-            setIssuer({ error: response.error, status: "failed" });
+            setIdentity({ error: response.error, status: "failed" });
           }
         }
       }
@@ -53,20 +53,20 @@ export function IssuerDetails() {
   );
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(fetchIssuer);
+    const { aborter } = makeRequestAbortable(fetchIdentity);
 
     return aborter;
-  }, [fetchIssuer]);
+  }, [fetchIdentity]);
 
   if (!identifier) {
     return <ErrorResult error="No identifier provided." />;
   }
 
-  const handleEditDisplayName = (formValues: IssuerDetailsFormData) =>
-    void updateIssuerDisplayName({ displayName: formValues.displayName, env, identifier }).then(
+  const handleEditDisplayName = (formValues: IdentityDetailsFormData) =>
+    void updateIdentityDisplayName({ displayName: formValues.displayName, env, identifier }).then(
       (response) => {
         if (response.success) {
-          void fetchIssuer().then(() => {
+          void fetchIdentity().then(() => {
             setDisplayNameEditable(false);
             void messageAPI.success("Identity edited successfully");
           });
@@ -83,21 +83,21 @@ export function IssuerDetails() {
         description="View identity details and edit name"
         showBackButton
         showDivider
-        title={ISSUER_DETAILS}
+        title={IDENTITY_DETAILS}
       >
         {(() => {
-          if (hasAsyncTaskFailed(issuer)) {
+          if (hasAsyncTaskFailed(identity)) {
             return (
               <Card className="centered">
                 <ErrorResult
                   error={[
-                    "An error occurred while downloading an issuer from the API:",
-                    issuer.error.message,
+                    "An error occurred while downloading an identity from the API:",
+                    identity.error.message,
                   ].join("\n")}
                 />
               </Card>
             );
-          } else if (isAsyncTaskStarting(issuer)) {
+          } else if (isAsyncTaskStarting(identity)) {
             return (
               <Card className="centered">
                 <LoadingResult />
@@ -114,7 +114,7 @@ export function IssuerDetails() {
                     {displayNameEditable ? (
                       <Form
                         form={form}
-                        initialValues={{ displayName: issuer.data.displayName }}
+                        initialValues={{ displayName: identity.data.displayName }}
                         onFinish={handleEditDisplayName}
                         style={{ width: "100%" }}
                       >
@@ -137,7 +137,7 @@ export function IssuerDetails() {
                       </Form>
                     ) : (
                       <>
-                        {issuer.data.displayName}
+                        {identity.data.displayName}
                         <Button
                           icon={<EditIcon />}
                           onClick={() => setDisplayNameEditable(true)}
@@ -164,8 +164,8 @@ export function IssuerDetails() {
 
                     <Detail label="Network" text={network} />
 
-                    <Detail label="Type" text={issuer.data.keyType} />
-                    <Detail label="Credential status" text={issuer.data.credentialStatusType} />
+                    <Detail label="Type" text={identity.data.keyType} />
+                    <Detail label="Credential status" text={identity.data.credentialStatusType} />
                   </Space>
                 </Card>
               </Card>

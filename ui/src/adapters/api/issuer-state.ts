@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { Sorter, buildAuthorizationHeader, serializeSorters } from "src/adapters/api";
 import { datetimeParser, getResourceParser, getStrictParser } from "src/adapters/parsers";
-import { Env, IssuerIdentifier, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
+import { Env, Identifier, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { Resource } from "src/utils/types";
 
@@ -34,10 +34,10 @@ const transactionParser = getStrictParser<TransactionInput, Transaction>()(
 
 export async function publishState({
   env,
-  issuerIdentifier,
+  identifier,
 }: {
   env: Env;
-  issuerIdentifier: IssuerIdentifier;
+  identifier: Identifier;
 }): Promise<Response<null>> {
   try {
     await axios({
@@ -46,7 +46,7 @@ export async function publishState({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/identities/${issuerIdentifier}/state/publish`,
+      url: `${API_VERSION}/identities/${identifier}/state/publish`,
     });
     return buildSuccessResponse(null);
   } catch (error) {
@@ -56,10 +56,10 @@ export async function publishState({
 
 export async function retryPublishState({
   env,
-  issuerIdentifier,
+  identifier,
 }: {
   env: Env;
-  issuerIdentifier: IssuerIdentifier;
+  identifier: Identifier;
 }): Promise<Response<null>> {
   try {
     await axios({
@@ -68,7 +68,7 @@ export async function retryPublishState({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/identities/${issuerIdentifier}/state/retry`,
+      url: `${API_VERSION}/identities/${identifier}/state/retry`,
     });
     return buildSuccessResponse(null);
   } catch (error) {
@@ -78,11 +78,11 @@ export async function retryPublishState({
 
 export async function getStatus({
   env,
-  issuerIdentifier,
+  identifier,
   signal,
 }: {
   env: Env;
-  issuerIdentifier: IssuerIdentifier;
+  identifier: Identifier;
   signal?: AbortSignal;
 }): Promise<Response<IssuerStatus>> {
   try {
@@ -93,7 +93,7 @@ export async function getStatus({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/identities/${issuerIdentifier}/state/status`,
+      url: `${API_VERSION}/identities/${identifier}/state/status`,
     });
     return buildSuccessResponse(issuerStatusParser.parse(response.data));
   } catch (error) {
@@ -107,12 +107,12 @@ const issuerStatusParser = getStrictParser<IssuerStatus>()(
 
 export async function getTransactions({
   env,
-  issuerIdentifier,
+  identifier,
   params: { maxResults, page, query, sorters },
   signal,
 }: {
   env: Env;
-  issuerIdentifier: IssuerIdentifier;
+  identifier: Identifier;
   params: {
     maxResults?: number;
     page?: number;
@@ -135,7 +135,7 @@ export async function getTransactions({
         ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
-      url: `${API_VERSION}/identities/${issuerIdentifier}/state/transactions`,
+      url: `${API_VERSION}/identities/${identifier}/state/transactions`,
     });
 
     return buildSuccessResponse(getResourceParser(transactionParser).parse(response.data));

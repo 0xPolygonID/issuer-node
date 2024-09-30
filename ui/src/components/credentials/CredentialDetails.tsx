@@ -1,6 +1,6 @@
-import { Button, Card, Col, Grid, Row, Space, Tooltip, Typography } from "antd";
+import { Button, Card, Col, Grid, Row, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { generatePath, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { generatePath, useNavigate, useParams } from "react-router-dom";
 
 import { getCredential } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
@@ -15,7 +15,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Credential, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
@@ -25,13 +25,7 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import {
-  CREDENTIALS_TABS,
-  DELETE,
-  NOT_PUBLISHED_STATE,
-  REVOKE,
-  REVOKED_SEARCH_PARAM,
-} from "src/utils/constants";
+import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
 import { buildAppError, credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 import { extractCredentialSubjectAttribute } from "src/utils/jsonSchemas";
@@ -43,7 +37,7 @@ export function CredentialDetails() {
   const { sm } = Grid.useBreakpoint();
 
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
 
   const [credentialSubjectValue, setCredentialSubjectValue] = useState<
     AsyncTask<ObjectAttributeValue, AppError>
@@ -55,11 +49,6 @@ export function CredentialDetails() {
   });
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [showRevokeModal, setShowRevokeModal] = useState<boolean>(false);
-
-  const [searchParams] = useSearchParams();
-
-  const queryParam = searchParams.get(REVOKED_SEARCH_PARAM);
-  const revoked = queryParam === "true";
 
   const fetchJsonSchemaFromUrl = useCallback(
     ({ credential }: { credential: Credential }): void => {
@@ -121,7 +110,7 @@ export function CredentialDetails() {
         const response = await getCredential({
           credentialID,
           env,
-          issuerIdentifier,
+          identifier,
           signal,
         });
 
@@ -135,7 +124,7 @@ export function CredentialDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, credentialID, issuerIdentifier]
+    [env, fetchJsonSchemaFromUrl, credentialID, identifier]
   );
 
   useEffect(() => {
@@ -187,12 +176,11 @@ export function CredentialDetails() {
             expiresAt,
             proofTypes,
             refreshService,
+            revoked,
             schemaHash,
             schemaType,
             userID,
           } = credential.data;
-
-          const notPublishedState = revoked && !credential.data.revoked;
 
           const qrCodeLink =
             window.location.origin +
@@ -204,17 +192,15 @@ export function CredentialDetails() {
               extra={
                 <Row gutter={[0, 8]} justify="end">
                   <Col>
-                    <Tooltip title={notPublishedState ? NOT_PUBLISHED_STATE : ""}>
-                      <Button
-                        danger
-                        disabled={revoked}
-                        icon={<IconClose />}
-                        onClick={() => setShowRevokeModal(true)}
-                        type="text"
-                      >
-                        {sm && REVOKE}
-                      </Button>
-                    </Tooltip>
+                    <Button
+                      danger
+                      disabled={revoked}
+                      icon={<IconClose />}
+                      onClick={() => setShowRevokeModal(true)}
+                      type="text"
+                    >
+                      {sm && REVOKE}
+                    </Button>
                   </Col>
 
                   <Col>
@@ -280,7 +266,7 @@ export function CredentialDetails() {
       })()}
       {isAsyncTaskDataAvailable(credential) && showDeleteModal && (
         <CredentialDeleteModal
-          credential={{ ...credential.data, revoked }}
+          credential={credential.data}
           onClose={() => setShowDeleteModal(false)}
           onDelete={() =>
             navigate(
@@ -293,7 +279,7 @@ export function CredentialDetails() {
       )}
       {isAsyncTaskDataAvailable(credential) && showRevokeModal && (
         <CredentialRevokeModal
-          credential={{ ...credential.data, revoked }}
+          credential={credential.data}
           onClose={() => setShowRevokeModal(false)}
           onRevoke={() => void fetchCredential()}
         />

@@ -12,7 +12,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ApiSchema, AppError, Json, JsonLdType, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
@@ -26,7 +26,7 @@ import {
 import { formatDate } from "src/utils/forms";
 
 export function SchemaDetails() {
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
   const navigate = useNavigate();
   const { schemaID } = useParams();
 
@@ -97,7 +97,7 @@ export function SchemaDetails() {
 
         const response = await getApiSchema({
           env,
-          issuerIdentifier,
+          identifier,
           schemaID,
           signal,
         });
@@ -112,7 +112,7 @@ export function SchemaDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, schemaID, issuerIdentifier]
+    [env, fetchJsonSchemaFromUrl, schemaID, identifier]
   );
 
   useEffect(() => {

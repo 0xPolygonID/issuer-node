@@ -1,17 +1,17 @@
 import { Avatar, Card, Divider, Flex, Grid, Typography, message } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { createIssuer } from "../../adapters/api/issuers";
-import { IssuerFormData } from "src/adapters/parsers/view";
+import { createIdentity } from "../../adapters/api/identities";
+import { IdentityFormData } from "src/adapters/parsers/view";
 import IconCheck from "src/assets/icons/check.svg?react";
 import IconIssue from "src/assets/icons/credential-card.svg?react";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
 import IconIdentity from "src/assets/icons/fingerprint-02.svg?react";
 
-import { IssuerForm } from "src/components/issuers/IssuerForm";
+import { IdentityForm } from "src/components/identities/IdentityForm";
 import { useEnvContext } from "src/contexts/Env";
 
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ROUTES } from "src/routes";
 
 import { FINALIZE_SETUP } from "src/utils/constants";
@@ -36,14 +36,14 @@ const cards = [
 
 export function Onboarding() {
   const env = useEnvContext();
-  const { handleChange } = useIssuerContext();
+  const { handleChange } = useIdentityContext();
   const navigate = useNavigate();
   const [messageAPI, messageContext] = message.useMessage();
 
   const { lg } = Grid.useBreakpoint();
 
-  const handleSubmit = (formValues: IssuerFormData) =>
-    void createIssuer({ env, payload: formValues }).then((response) => {
+  const handleSubmit = (formValues: IdentityFormData) =>
+    void createIdentity({ env, payload: formValues }).then((response) => {
       if (response.success) {
         const {
           data: { identifier },
@@ -130,7 +130,25 @@ export function Onboarding() {
             Finalize the setup by adding a new identity
           </Typography.Text>
 
-          <IssuerForm onSubmit={handleSubmit} submitBtnText={FINALIZE_SETUP} />
+          <Card
+            styles={{
+              header: {
+                border: "none",
+                paddingTop: 24,
+              },
+              title: { display: "flex", flexDirection: "column" },
+            }}
+            title={
+              <>
+                Add new identity
+                <Typography.Text style={{ fontSize: 16 }} type="secondary">
+                  You will be able to add more identities later on.
+                </Typography.Text>
+              </>
+            }
+          >
+            <IdentityForm onSubmit={handleSubmit} submitBtnText={FINALIZE_SETUP} />
+          </Card>
         </Flex>
       </Flex>
     </>

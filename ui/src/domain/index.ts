@@ -10,8 +10,6 @@ export type {
   LinkStatus,
   ProofType,
   RefreshService,
-  CredentialDetail,
-  RevocationStatus,
 } from "src/domain/credential";
 
 export { CredentialProofType } from "src/domain/credential";
@@ -61,6 +59,6 @@ export type {
 
 export type { Schema as ApiSchema } from "src/domain/schema";
 
-export type { IssuerIdentifier, Issuer, IssuerInfo, SupportedNetwork } from "src/domain/issuer";
+export type { Identifier, Identity, IdentityDetails, SupportedNetwork } from "src/domain/identity";
 
-export { IssuerType, CredentialStatusType, Method } from "src/domain/issuer";
+export { IdentityType, CredentialStatusType, Method } from "src/domain/identity";

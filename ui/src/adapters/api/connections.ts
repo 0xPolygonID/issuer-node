@@ -16,7 +16,7 @@ import {
   getResourceParser,
   getStrictParser,
 } from "src/adapters/parsers";
-import { Connection, Env, IssuerIdentifier } from "src/domain";
+import { Connection, Env, Identifier } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { Resource } from "src/utils/types";
 
@@ -38,12 +38,12 @@ const connectionParser = getStrictParser<ConnectionInput, Connection>()(
 export async function getConnection({
   env,
   id,
-  issuerIdentifier,
+  identifier,
   signal,
 }: {
   env: Env;
   id: string;
-  issuerIdentifier: IssuerIdentifier;
+  identifier: Identifier;
   signal: AbortSignal;
 }): Promise<Response<Connection>> {
   try {
@@ -54,7 +54,7 @@ export async function getConnection({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/identities/${issuerIdentifier}/connections/${id}`,
+      url: `${API_VERSION}/identities/${identifier}/connections/${id}`,
     });
     return buildSuccessResponse(connectionParser.parse(response.data));
   } catch (error) {
@@ -65,13 +65,13 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
-  issuerIdentifier,
+  identifier,
   params: { maxResults, page, query, sorters },
   signal,
 }: {
   credentials: boolean;
   env: Env;
-  issuerIdentifier: IssuerIdentifier;
+  identifier: Identifier;
   params: {
     maxResults?: number;
     page?: number;
@@ -95,7 +95,7 @@ export async function getConnections({
         ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
-      url: `${API_VERSION}/identities/${issuerIdentifier}/connections`,
+      url: `${API_VERSION}/identities/${identifier}/connections`,
     });
     return buildSuccessResponse(getResourceParser(connectionParser).parse(response.data));
   } catch (error) {
@@ -107,13 +107,13 @@ export async function deleteConnection({
   deleteCredentials,
   env,
   id,
-  issuerIdentifier,
+  identifier,
   revokeCredentials,
 }: {
   deleteCredentials: boolean;
   env: Env;
   id: string;
-  issuerIdentifier: IssuerIdentifier;
+  identifier: Identifier;
   revokeCredentials: boolean;
 }): Promise<Response<Message>> {
   try {
@@ -127,7 +127,7 @@ export async function deleteConnection({
         ...(revokeCredentials ? { revokeCredentials: "true" } : {}),
         ...(deleteCredentials ? { deleteCredentials: "true" } : {}),
       }),
-      url: `${API_VERSION}/identities/${issuerIdentifier}/connections/${id}`,
+      url: `${API_VERSION}/identities/${identifier}/connections/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {

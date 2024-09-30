@@ -5,27 +5,27 @@ import IconCheck from "src/assets/icons/check.svg?react";
 import IconChevron from "src/assets/icons/chevron-selector-vertical.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable } from "src/utils/async";
-import { ISSUER_ADD } from "src/utils/constants";
+import { IDENTITY_ADD } from "src/utils/constants";
 
 export function UserDisplay() {
   const { issuer } = useEnvContext();
-  const { handleChange, issuerDisplayName, issuerIdentifier, issuersList } = useIssuerContext();
+  const { handleChange, identifier, identitiesList, identityDisplayName } = useIdentityContext();
   const navigate = useNavigate();
 
-  const issuerItems = isAsyncTaskDataAvailable(issuersList)
-    ? issuersList.data
-        .toSorted((item) => (item.identifier === issuerIdentifier ? -1 : 0))
-        .map(({ displayName, identifier }, index) => {
-          const currentIssuer = identifier === issuerIdentifier;
+  const identityItems = isAsyncTaskDataAvailable(identitiesList)
+    ? identitiesList.data
+        .toSorted((item) => (item.identifier === identifier ? -1 : 0))
+        .map((identity, index) => {
+          const currentIdentity = identity.identifier === identifier;
           return {
             key: `${index}`,
             label: (
               <Flex
                 align="center"
-                className={currentIssuer ? "active" : ""}
+                className={currentIdentity ? "active" : ""}
                 gap={16}
                 justify="space-between"
               >
@@ -35,14 +35,14 @@ export function UserDisplay() {
                   }}
                   vertical
                 >
-                  <Tooltip title={displayName}>
-                    <Typography.Text ellipsis>{displayName}</Typography.Text>
+                  <Tooltip title={identity.displayName}>
+                    <Typography.Text ellipsis>{identity.displayName}</Typography.Text>
                   </Tooltip>
                 </Flex>
-                {currentIssuer && <IconCheck />}
+                {currentIdentity && <IconCheck />}
               </Flex>
             ),
-            onClick: () => handleChange(identifier),
+            onClick: () => handleChange(identity.identifier),
           };
         })
     : [];
@@ -53,12 +53,12 @@ export function UserDisplay() {
       label: (
         <Flex gap={16}>
           <IconPlus style={{ height: 20, width: 20 }} />
-          <Typography.Text>{ISSUER_ADD}</Typography.Text>
+          <Typography.Text>{IDENTITY_ADD}</Typography.Text>
         </Flex>
       ),
-      onClick: () => navigate(ROUTES.createIssuer.path),
+      onClick: () => navigate(ROUTES.createIdentity.path),
     },
-    ...issuerItems,
+    ...identityItems,
   ];
 
   return (
@@ -68,16 +68,16 @@ export function UserDisplay() {
       </Flex>
 
       <Flex style={{ maxWidth: 188, width: "100%" }} vertical>
-        <Tooltip title={issuerDisplayName}>
-          <Typography.Text ellipsis>{issuerDisplayName}</Typography.Text>
+        <Tooltip title={identityDisplayName}>
+          <Typography.Text ellipsis>{identityDisplayName}</Typography.Text>
         </Tooltip>
-        <Typography.Text type="secondary">{formatIdentifier(issuerIdentifier)}</Typography.Text>
+        <Typography.Text type="secondary">{formatIdentifier(identifier)}</Typography.Text>
       </Flex>
 
       <Flex>
         <Dropdown
           menu={{ items }}
-          overlayClassName="issuers-dropdown"
+          overlayClassName="identities-dropdown"
           placement="bottom"
           trigger={["click"]}
         >

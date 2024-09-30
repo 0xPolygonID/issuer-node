@@ -11,7 +11,7 @@ import {
   AttributeValue,
   CredentialProofType,
   CredentialStatusType,
-  IssuerType,
+  IdentityType,
   Json,
   JsonLiteral,
   JsonObject,
@@ -46,27 +46,27 @@ export type CredentialLinkIssuance = CredentialIssuance & {
   type: "credentialLink";
 };
 
-export type IssuerDetailsFormData = {
+export type IdentityDetailsFormData = {
   displayName: string;
 };
 
-export type IssuerFormData = {
+export type IdentityFormData = {
   blockchain: string;
   credentialStatusType: CredentialStatusType;
   displayName: string;
   method: Method;
   network: string;
-  type: IssuerType;
+  type: IdentityType;
 };
 
-export const issuerFormDataParser = getStrictParser<IssuerFormData>()(
+export const identityFormDataParser = getStrictParser<IdentityFormData>()(
   z.object({
     blockchain: z.string(),
     credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string(),
     method: z.nativeEnum(Method),
     network: z.string(),
-    type: z.nativeEnum(IssuerType),
+    type: z.nativeEnum(IdentityType),
   })
 );
 

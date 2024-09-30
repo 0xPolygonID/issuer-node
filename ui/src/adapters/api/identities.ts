@@ -7,10 +7,10 @@ import { getListParser, getStrictParser } from "src/adapters/parsers";
 import {
   CredentialStatusType,
   Env,
-  Issuer,
-  IssuerIdentifier,
-  IssuerInfo,
-  IssuerType,
+  Identifier,
+  Identity,
+  IdentityDetails,
+  IdentityType,
   Method,
   SupportedNetwork,
 } from "src/domain";
@@ -18,7 +18,7 @@ import {
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
 
-const apiIssuerParser = getStrictParser<Issuer>()(
+const identityParser = getStrictParser<Identity>()(
   z.object({
     blockchain: z.string(),
     credentialStatusType: z.nativeEnum(CredentialStatusType),
@@ -29,15 +29,15 @@ const apiIssuerParser = getStrictParser<Issuer>()(
   })
 );
 
-export const identifierParser = getStrictParser<IssuerIdentifier>()(z.string());
+export const identifierParser = getStrictParser<Identifier>()(z.string());
 
-export async function getIssuers({
+export async function getIdentities({
   env,
   signal,
 }: {
   env: Env;
   signal: AbortSignal;
-}): Promise<Response<List<Issuer>>> {
+}): Promise<Response<List<Identity>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -49,38 +49,38 @@ export async function getIssuers({
       url: `${API_VERSION}/identities`,
     });
 
-    return buildSuccessResponse(getListParser(apiIssuerParser).parse(response.data || []));
+    return buildSuccessResponse(getListParser(identityParser).parse(response.data || []));
   } catch (error) {
     return buildErrorResponse(error);
   }
 }
 
-export type CreateIssuer = {
+export type CreateIdentity = {
   blockchain: string;
   credentialStatusType: CredentialStatusType;
   displayName: string;
   method: string;
   network: string;
-  type: IssuerType;
+  type: IdentityType;
 };
 
-type CreatedIssuer = {
+type CreatedIdentity = {
   identifier: string;
 };
 
-export const createIssuerParser = getStrictParser<CreatedIssuer>()(
+export const createIdentityParser = getStrictParser<CreatedIdentity>()(
   z.object({
     identifier: z.string(),
   })
 );
 
-export async function createIssuer({
+export async function createIdentity({
   env,
   payload,
 }: {
   env: Env;
-  payload: CreateIssuer;
-}): Promise<Response<CreatedIssuer>> {
+  payload: CreateIdentity;
+}): Promise<Response<CreatedIdentity>> {
   try {
     const { credentialStatusType, displayName, ...didMetadata } = payload;
     const response = await axios({
@@ -93,30 +93,30 @@ export async function createIssuer({
       url: `${API_VERSION}/identities`,
     });
 
-    return buildSuccessResponse(createIssuerParser.parse(response.data));
+    return buildSuccessResponse(createIdentityParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
 }
 
-export const issuerDetailsParser = getStrictParser<IssuerInfo>()(
+export const identityDetailsParser = getStrictParser<IdentityDetails>()(
   z.object({
     credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string(),
     identifier: z.string(),
-    keyType: z.nativeEnum(IssuerType),
+    keyType: z.nativeEnum(IdentityType),
   })
 );
 
-export async function getIssuerDetails({
+export async function getIdentityDetails({
   env,
   identifier,
   signal,
 }: {
   env: Env;
-  identifier: IssuerIdentifier;
+  identifier: Identifier;
   signal?: AbortSignal;
-}): Promise<Response<IssuerInfo>> {
+}): Promise<Response<IdentityDetails>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -129,20 +129,20 @@ export async function getIssuerDetails({
       url: `${API_VERSION}/identities/${identifier}/details`,
     });
 
-    return buildSuccessResponse(issuerDetailsParser.parse(response.data));
+    return buildSuccessResponse(identityDetailsParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
 }
 
-export async function updateIssuerDisplayName({
+export async function updateIdentityDisplayName({
   displayName,
   env,
   identifier,
 }: {
   displayName: string;
   env: Env;
-  identifier: IssuerIdentifier;
+  identifier: Identifier;
 }): Promise<Response<void>> {
   try {
     await axios({

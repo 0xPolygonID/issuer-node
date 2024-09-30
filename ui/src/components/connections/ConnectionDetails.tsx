@@ -11,7 +11,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -20,7 +20,7 @@ import { formatDate } from "src/utils/forms";
 
 export function ConnectionDetails() {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
   const navigate = useNavigate();
 
   const [connection, setConnection] = useState<AsyncTask<Connection, AppError>>({
@@ -38,7 +38,7 @@ export function ConnectionDetails() {
         const response = await getConnection({
           env,
           id: connectionID,
-          issuerIdentifier,
+          identifier,
           signal,
         });
         if (response.success) {
@@ -53,7 +53,7 @@ export function ConnectionDetails() {
         }
       }
     },
-    [connectionID, env, issuerIdentifier]
+    [connectionID, env, identifier]
   );
 
   useEffect(() => {

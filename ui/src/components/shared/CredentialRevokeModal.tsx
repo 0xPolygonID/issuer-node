@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { revokeCredential } from "src/adapters/api/credentials";
 import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
 import { CLOSE, REVOKE, REVOKED_SEARCH_PARAM } from "src/utils/constants";
@@ -20,7 +20,7 @@ export function CredentialRevokeModal({
   onRevoke: () => void;
 }) {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -33,7 +33,7 @@ export function CredentialRevokeModal({
   const handleRevokeCredential = () => {
     setIsLoading(true);
 
-    void revokeCredential({ env, issuerIdentifier, nonce }).then((response) => {
+    void revokeCredential({ env, identifier, nonce }).then((response) => {
       if (response.success) {
         onClose();
         onRevoke();

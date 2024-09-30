@@ -8,32 +8,32 @@ import { CredentialIssuedQR } from "src/components/credentials/CredentialIssuedQ
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
 import { LinkDetails } from "src/components/credentials/LinkDetails";
+import { CreateIdentity } from "src/components/identities/CreateIdentity";
+import { Identities } from "src/components/identities/Identities";
+import { Identity } from "src/components/identities/Identity";
+import { Onboarding } from "src/components/identities/Onboarding";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
-import { CreateIssuer } from "src/components/issuers/CreateIssuer";
-import { IssuerDetails } from "src/components/issuers/IssuerDetails";
-import { Issuers } from "src/components/issuers/Issuers";
-import { Onboarding } from "src/components/issuers/Onboarding";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
 import { SchemaDetails } from "src/components/schemas/SchemaDetails";
 import { Schemas } from "src/components/schemas/Schemas";
 import { NotFound } from "src/components/shared/NotFound";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { Layout, ROUTES, RouteID } from "src/routes";
 import { ROOT_PATH } from "src/utils/constants";
 
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
-  createIssuer: CreateIssuer,
+  createIdentity: CreateIdentity,
   credentialDetails: CredentialDetails,
   credentialIssuedQR: CredentialIssuedQR,
   credentials: Credentials,
+  identities: Identities,
+  identityDetails: Identity,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
-  issuerDetails: IssuerDetails,
-  issuers: Issuers,
   issuerState: IssuerState,
   linkDetails: LinkDetails,
   notFound: NotFound,
@@ -43,7 +43,7 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
 };
 
 export function Router() {
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
 
   const getLayoutRoutes = (currentLayout: Layout) =>
     Object.entries(ROUTES).reduce((acc: React.ReactElement[], [keyRoute, { layout, path }]) => {
@@ -59,7 +59,7 @@ export function Router() {
 
   return (
     <Routes>
-      {issuerIdentifier ? (
+      {identifier ? (
         <>
           <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
 
@@ -73,7 +73,7 @@ export function Router() {
         </>
       ) : (
         <>
-          <Route element={<FullWidthLayout />}>
+          <Route element={<FullWidthLayout background="background-grey" />}>
             <Route element={<COMPONENTS.onboarding />} path={ROUTES.onboarding.path} />
           </Route>
 

@@ -3,7 +3,7 @@ import { Modal, Typography, message } from "antd";
 import { deleteLink } from "src/adapters/api/credentials";
 import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { CLOSE, DELETE } from "src/utils/constants";
 
 export function LinkDeleteModal({
@@ -16,12 +16,12 @@ export function LinkDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
 
   const [messageAPI, messageContext] = message.useMessage();
 
   const handleDeleteLink = () => {
-    void deleteLink({ env, id, issuerIdentifier }).then((response) => {
+    void deleteLink({ env, id, identifier }).then((response) => {
       if (response.success) {
         onClose();
         onDelete();

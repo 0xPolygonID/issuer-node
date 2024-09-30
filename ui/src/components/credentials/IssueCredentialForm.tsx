@@ -36,7 +36,7 @@ import { InputErrors, ObjectAttributeForm } from "src/components/credentials/Obj
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -93,7 +93,7 @@ export function IssueCredentialForm({
   type: "directIssue" | "credentialLink";
 }) {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
   const [form] = Form.useForm<IssueCredentialFormData>();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -304,7 +304,7 @@ export function IssueCredentialForm({
 
       const response = await getApiSchemas({
         env,
-        issuerIdentifier,
+        identifier,
         params: {},
         signal,
       });
@@ -327,7 +327,7 @@ export function IssueCredentialForm({
         }
       }
     },
-    [env, fetchJsonSchema, initialValues.schemaID, messageAPI, issuerIdentifier]
+    [env, fetchJsonSchema, initialValues.schemaID, messageAPI, identifier]
   );
 
   useEffect(() => {

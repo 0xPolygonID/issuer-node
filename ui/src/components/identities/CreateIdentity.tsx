@@ -1,22 +1,22 @@
 import { Card, Space, message } from "antd";
 import { useNavigate } from "react-router-dom";
-import { createIssuer } from "src/adapters/api/issuers";
-import { IssuerFormData } from "src/adapters/parsers/view";
-import { IssuerForm } from "src/components/issuers/IssuerForm";
+import { createIdentity } from "src/adapters/api/identities";
+import { IdentityFormData } from "src/adapters/parsers/view";
+import { IdentityForm } from "src/components/identities/IdentityForm";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ROUTES } from "src/routes";
-import { ISSUER_ADD, ISSUER_ADD_NEW, ISSUER_DETAILS } from "src/utils/constants";
+import { IDENTITY_ADD, IDENTITY_ADD_NEW, IDENTITY_DETAILS } from "src/utils/constants";
 
-export function CreateIssuer() {
+export function CreateIdentity() {
   const env = useEnvContext();
-  const { handleChange } = useIssuerContext();
+  const { handleChange } = useIdentityContext();
   const [messageAPI, messageContext] = message.useMessage();
   const navigate = useNavigate();
 
-  const handleSubmit = (formValues: IssuerFormData) =>
-    void createIssuer({ env, payload: formValues }).then((response) => {
+  const handleSubmit = (formValues: IdentityFormData) =>
+    void createIdentity({ env, payload: formValues }).then((response) => {
       if (response.success) {
         const {
           data: { identifier },
@@ -24,7 +24,7 @@ export function CreateIssuer() {
 
         void messageAPI.success("Identity added successfully");
         handleChange(identifier);
-        navigate(ROUTES.issuers.path);
+        navigate(ROUTES.identities.path);
       } else {
         void messageAPI.error(response.error.message);
       }
@@ -38,11 +38,11 @@ export function CreateIssuer() {
         description="View identity details and edit name"
         showBackButton
         showDivider
-        title={ISSUER_ADD_NEW}
+        title={IDENTITY_ADD_NEW}
       >
-        <Card className="issuers-card" title={ISSUER_DETAILS}>
+        <Card className="identities-card" title={IDENTITY_DETAILS}>
           <Space direction="vertical">
-            <IssuerForm onSubmit={handleSubmit} submitBtnText={ISSUER_ADD} />
+            <IdentityForm onSubmit={handleSubmit} submitBtnText={IDENTITY_ADD} />
           </Space>
         </Card>
       </SiderLayoutContent>

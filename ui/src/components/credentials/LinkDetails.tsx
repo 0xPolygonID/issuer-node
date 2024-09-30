@@ -13,7 +13,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Link, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
@@ -33,7 +33,7 @@ export function LinkDetails() {
   const { linkID } = useParams();
 
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
 
   const [credentialSubjectValue, setCredentialSubjectValue] = useState<
     AsyncTask<ObjectAttributeValue, AppError>
@@ -108,7 +108,7 @@ export function LinkDetails() {
 
         const response = await getLink({
           env,
-          issuerIdentifier,
+          identifier,
           linkID,
           signal,
         });
@@ -123,7 +123,7 @@ export function LinkDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, linkID, issuerIdentifier]
+    [env, fetchJsonSchemaFromUrl, linkID, identifier]
   );
 
   useEffect(() => {

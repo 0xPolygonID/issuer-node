@@ -7,7 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { Router } from "src/components/shared/Router";
 import { EnvProvider } from "src/contexts/Env";
-import { IssuerProvider } from "src/contexts/Issuer";
+import { IdentityProvider } from "src/contexts/Identity";
 import { IssuerStateProvider } from "src/contexts/IssuerState";
 import { theme } from "src/styles/theme";
 import { TOAST_NOTIFICATION_TIMEOUT } from "src/utils/constants";
@@ -31,11 +31,11 @@ root.render(
     <BrowserRouter>
       <ConfigProvider theme={theme}>
         <EnvProvider>
-          <IssuerProvider>
+          <IdentityProvider>
             <IssuerStateProvider>
               <Router />
             </IssuerStateProvider>
-          </IssuerProvider>
+          </IdentityProvider>
         </EnvProvider>
       </ConfigProvider>
     </BrowserRouter>

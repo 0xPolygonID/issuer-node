@@ -26,7 +26,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { AppError, Transaction } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -51,7 +51,7 @@ const PUBLISHED_MESSAGE = "Issuer state is being published";
 
 export function IssuerState() {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
   const { refreshStatus, status } = useIssuerStateContext();
 
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
@@ -94,7 +94,7 @@ export function IssuerState() {
 
     const functionToExecute = failedTransaction ? retryPublishState : publishState;
 
-    void functionToExecute({ env, issuerIdentifier }).then((response) => {
+    void functionToExecute({ env, identifier }).then((response) => {
       if (response.success) {
         void messageAPI.success(PUBLISHED_MESSAGE);
       } else {
@@ -143,7 +143,7 @@ export function IssuerState() {
 
       const response = await getTransactions({
         env,
-        issuerIdentifier,
+        identifier,
         params: {
           maxResults: paginationMaxResults,
           page: paginationPage,
@@ -167,15 +167,7 @@ export function IssuerState() {
         }
       }
     },
-    [
-      env,
-      issuerIdentifier,
-      paginationMaxResults,
-      paginationPage,
-      queryParam,
-      sortParam,
-      updateUrlParams,
-    ]
+    [env, identifier, paginationMaxResults, paginationPage, queryParam, sortParam, updateUrlParams]
   );
 
   const tableColumns: TableColumnsType<Transaction> = [

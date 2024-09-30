@@ -22,7 +22,7 @@ import { IssueCredentialForm } from "src/components/credentials/IssueCredentialF
 import { Summary } from "src/components/credentials/Summary";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { useIssuerContext } from "src/contexts/Issuer";
+import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ApiSchema, AppError, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
@@ -48,7 +48,7 @@ const defaultCredentialFormInput: CredentialFormInput = {
 
 export function IssueCredential() {
   const env = useEnvContext();
-  const { issuerIdentifier } = useIssuerContext();
+  const { identifier } = useIdentityContext();
   const { notifyChange } = useIssuerStateContext();
 
   const navigate = useNavigate();
@@ -134,14 +134,14 @@ export function IssueCredential() {
       if (serializedCredentialForm.success) {
         const linkResponse = await createLink({
           env,
-          issuerIdentifier,
+          identifier,
           payload: serializedCredentialForm.data,
         });
 
         if (linkResponse.success) {
           const authQRResponse = await createAuthQRCode({
             env,
-            issuerIdentifier,
+            identifier,
             linkID: linkResponse.data.id,
           });
 
@@ -187,7 +187,7 @@ export function IssueCredential() {
       if (serializedCredentialForm.success) {
         const response = await createCredential({
           env,
-          issuerIdentifier,
+          identifier,
           payload: serializedCredentialForm.data,
         });
         if (response.success) {
