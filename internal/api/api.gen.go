@@ -305,7 +305,7 @@ type CredentialW3C struct {
 
 // CredentialsPaginated defines model for CredentialsPaginated.
 type CredentialsPaginated struct {
-	Items []Credential      `json:"items"`
+	Items []CredentialW3C   `json:"items"`
 	Meta  PaginatedMetadata `json:"meta"`
 }
 
