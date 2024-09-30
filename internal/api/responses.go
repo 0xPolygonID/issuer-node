@@ -154,7 +154,7 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 }
 
 func connectionResponse(conn *domain.Connection, credentials []*domain.Claim) (GetConnectionResponse, error) {
-	credResp := make([]CredentialW3C, len(credentials))
+	credResp := make([]Credential, len(credentials))
 	for i := range credentials {
 		w3Cred, err := schema.FromClaimModelToW3CCredential(*credentials[i])
 		if err != nil {

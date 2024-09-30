@@ -873,9 +873,9 @@ func TestServer_GetCredential(t *testing.T) {
 
 			switch v := tc.expected.response.(type) {
 			case GetCredential200JSONResponse:
-				var response CredentialW3C
+				var response Credential
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				validateCredential(t, response, CredentialW3C(v))
+				validateCredential(t, response, Credential(v))
 
 			case GetCredential400JSONResponse:
 				var response GetCredential404JSONResponse
@@ -1542,7 +1542,7 @@ func TestServer_GetRevocationStatusV2(t *testing.T) {
 	}
 }
 
-func validateCredential(t *testing.T, resp, tc CredentialW3C) {
+func validateCredential(t *testing.T, resp, tc Credential) {
 	t.Helper()
 	var responseCredentialStatus verifiable.CredentialStatus
 

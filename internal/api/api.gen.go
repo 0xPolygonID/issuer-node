@@ -264,6 +264,15 @@ type CreateLinkRequest struct {
 	SignatureProof       bool              `json:"signatureProof"`
 }
 
+// Credential defines model for Credential.
+type Credential struct {
+	Id         string                   `json:"id"`
+	ProofTypes []string                 `json:"proofTypes"`
+	Revoked    bool                     `json:"revoked"`
+	SchemaHash string                   `json:"schemaHash"`
+	Vc         verifiable.W3CCredential `json:"vc"`
+}
+
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
 type CredentialLinkQrCodeResponse struct {
 	DeepLink      string            `json:"deepLink"`
@@ -276,18 +285,9 @@ type CredentialLinkQrCodeResponse struct {
 // CredentialSubject defines model for CredentialSubject.
 type CredentialSubject = map[string]interface{}
 
-// CredentialW3C defines model for CredentialW3C.
-type CredentialW3C struct {
-	Id         string                   `json:"id"`
-	ProofTypes []string                 `json:"proofTypes"`
-	Revoked    bool                     `json:"revoked"`
-	SchemaHash string                   `json:"schemaHash"`
-	Vc         verifiable.W3CCredential `json:"vc"`
-}
-
 // CredentialsPaginated defines model for CredentialsPaginated.
 type CredentialsPaginated struct {
-	Items []CredentialW3C   `json:"items"`
+	Items []Credential      `json:"items"`
 	Meta  PaginatedMetadata `json:"meta"`
 }
 
@@ -317,11 +317,11 @@ type GetAuthenticationConnectionResponse struct {
 
 // GetConnectionResponse defines model for GetConnectionResponse.
 type GetConnectionResponse struct {
-	CreatedAt   TimeUTC         `json:"createdAt"`
-	Credentials []CredentialW3C `json:"credentials"`
-	Id          string          `json:"id"`
-	IssuerID    string          `json:"issuerID"`
-	UserID      string          `json:"userID"`
+	CreatedAt   TimeUTC      `json:"createdAt"`
+	Credentials []Credential `json:"credentials"`
+	Id          string       `json:"id"`
+	IssuerID    string       `json:"issuerID"`
+	UserID      string       `json:"userID"`
 }
 
 // GetConnectionsResponse defines model for GetConnectionsResponse.
@@ -4003,7 +4003,7 @@ type GetCredentialResponseObject interface {
 	VisitGetCredentialResponse(w http.ResponseWriter) error
 }
 
-type GetCredential200JSONResponse CredentialW3C
+type GetCredential200JSONResponse Credential
 
 func (response GetCredential200JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

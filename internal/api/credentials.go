@@ -233,7 +233,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 		log.Error(ctx, "loading credentials", "err", err, "req", request)
 		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-	response := make([]CredentialW3C, len(credentials))
+	response := make([]Credential, len(credentials))
 	for i, credential := range credentials {
 		w3c, err := schema.FromClaimModelToW3CCredential(*credential)
 		if err != nil {
@@ -363,8 +363,8 @@ func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
 	}
 }
 
-func toGetCredential200Response(w3cCredential *verifiable.W3CCredential, cred *domain.Claim) CredentialW3C {
-	return CredentialW3C{
+func toGetCredential200Response(w3cCredential *verifiable.W3CCredential, cred *domain.Claim) Credential {
+	return Credential{
 		Vc:         *w3cCredential,
 		Id:         cred.ID.String(),
 		Revoked:    cred.Revoked,
