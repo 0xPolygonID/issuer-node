@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/google/uuid"
+	verifiable "github.com/iden3/go-schema-processor/v2/verifiable"
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
@@ -265,20 +266,11 @@ type CreateLinkRequest struct {
 
 // Credential defines model for Credential.
 type Credential struct {
-	CreatedAt         TimeUTC                `json:"createdAt"`
-	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	DisplayMethod     *DisplayMethod         `json:"displayMethod,omitempty"`
-	Expired           bool                   `json:"expired"`
-	ExpiresAt         *TimeUTC               `json:"expiresAt"`
-	Id                uuid.UUID              `json:"id"`
-	ProofTypes        []string               `json:"proofTypes"`
-	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
-	RevNonce          uint64                 `json:"revNonce"`
-	Revoked           bool                   `json:"revoked"`
-	SchemaHash        string                 `json:"schemaHash"`
-	SchemaType        string                 `json:"schemaType"`
-	SchemaUrl         string                 `json:"schemaUrl"`
-	UserID            string                 `json:"userID"`
+	Id         string                   `json:"id"`
+	ProofTypes []string                 `json:"proofTypes"`
+	Revoked    bool                     `json:"revoked"`
+	SchemaHash string                   `json:"schemaHash"`
+	Vc         verifiable.W3CCredential `json:"vc"`
 }
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
@@ -288,12 +280,6 @@ type CredentialLinkQrCodeResponse struct {
 	LinkDetail    LinkSimple        `json:"linkDetail"`
 	QrCodeRaw     string            `json:"qrCodeRaw"`
 	UniversalLink string            `json:"universalLink"`
-}
-
-// CredentialSchema defines model for CredentialSchema.
-type CredentialSchema struct {
-	Id   string `json:"id"`
-	Type string `json:"type"`
 }
 
 // CredentialSubject defines model for CredentialSubject.
@@ -340,23 +326,6 @@ type GetConnectionResponse struct {
 
 // GetConnectionsResponse defines model for GetConnectionsResponse.
 type GetConnectionsResponse = []GetConnectionResponse
-
-// GetCredentialResponse defines model for GetCredentialResponse.
-type GetCredentialResponse struct {
-	Context           []string               `json:"@context"`
-	CredentialSchema  CredentialSchema       `json:"credentialSchema"`
-	CredentialStatus  interface{}            `json:"credentialStatus"`
-	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	DisplayMethod     *DisplayMethod         `json:"displayMethod,omitempty"`
-	ExpirationDate    *TimeUTC               `json:"expirationDate"`
-	Id                string                 `json:"id"`
-	IssuanceDate      *TimeUTC               `json:"issuanceDate"`
-	Issuer            string                 `json:"issuer"`
-	Proof             interface{}            `json:"proof"`
-	ProofTypes        []string               `json:"proofTypes"`
-	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
-	Type              []string               `json:"type"`
-}
 
 // GetIdentitiesResponse defines model for GetIdentitiesResponse.
 type GetIdentitiesResponse struct {
@@ -4034,7 +4003,7 @@ type GetCredentialResponseObject interface {
 	VisitGetCredentialResponse(w http.ResponseWriter) error
 }
 
-type GetCredential200JSONResponse GetCredentialResponse
+type GetCredential200JSONResponse Credential
 
 func (response GetCredential200JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
