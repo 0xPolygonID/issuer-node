@@ -1611,7 +1611,7 @@ components:
           type: array
           x-omitempty: false
           items:
-            $ref: '#/components/schemas/Credential'
+            $ref: '#/components/schemas/CredentialW3C'
 
     # refresh service
     RefreshService:

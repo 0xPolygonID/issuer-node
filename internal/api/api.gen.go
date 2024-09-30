@@ -264,24 +264,6 @@ type CreateLinkRequest struct {
 	SignatureProof       bool              `json:"signatureProof"`
 }
 
-// Credential defines model for Credential.
-type Credential struct {
-	CreatedAt         TimeUTC                `json:"createdAt"`
-	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	DisplayMethod     *DisplayMethod         `json:"displayMethod,omitempty"`
-	Expired           bool                   `json:"expired"`
-	ExpiresAt         *TimeUTC               `json:"expiresAt"`
-	Id                uuid.UUID              `json:"id"`
-	ProofTypes        []string               `json:"proofTypes"`
-	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
-	RevNonce          uint64                 `json:"revNonce"`
-	Revoked           bool                   `json:"revoked"`
-	SchemaHash        string                 `json:"schemaHash"`
-	SchemaType        string                 `json:"schemaType"`
-	SchemaUrl         string                 `json:"schemaUrl"`
-	UserID            string                 `json:"userID"`
-}
-
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
 type CredentialLinkQrCodeResponse struct {
 	DeepLink      string            `json:"deepLink"`
@@ -335,11 +317,11 @@ type GetAuthenticationConnectionResponse struct {
 
 // GetConnectionResponse defines model for GetConnectionResponse.
 type GetConnectionResponse struct {
-	CreatedAt   TimeUTC      `json:"createdAt"`
-	Credentials []Credential `json:"credentials"`
-	Id          string       `json:"id"`
-	IssuerID    string       `json:"issuerID"`
-	UserID      string       `json:"userID"`
+	CreatedAt   TimeUTC         `json:"createdAt"`
+	Credentials []CredentialW3C `json:"credentials"`
+	Id          string          `json:"id"`
+	IssuerID    string          `json:"issuerID"`
+	UserID      string          `json:"userID"`
 }
 
 // GetConnectionsResponse defines model for GetConnectionsResponse.
