@@ -2,21 +2,56 @@ package loader
 
 import (
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/iden3/go-schema-processor/v2/loaders"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/piprate/json-gold/ld"
 )
 
+const defaultSchemaCacheDuration = 30 * time.Minute
+
 // W3CDocumentLoader is a document loader for w3c documents
 type W3CDocumentLoader struct {
 	l ld.DocumentLoader
 }
 
+type w3CDocumentLoaderLocalCache struct {
+	mutex sync.Mutex
+	data  map[string]*ld.RemoteDocument
+}
+
+func newLocalCache() *w3CDocumentLoaderLocalCache {
+	return &w3CDocumentLoaderLocalCache{
+		mutex: sync.Mutex{},
+		data:  make(map[string]*ld.RemoteDocument),
+	}
+}
+
+func (c *w3CDocumentLoaderLocalCache) Get(key string) (doc *ld.RemoteDocument, expireTime time.Time, err error) {
+	doc, ok := c.data[key]
+	if !ok {
+		return nil, time.Time{}, nil
+	}
+	return doc, time.Now().Add(defaultSchemaCacheDuration), nil
+}
+
+func (c *w3CDocumentLoaderLocalCache) Set(key string, doc *ld.RemoteDocument, expireTime time.Time) error {
+	c.mutex.Lock()
+	c.data[key] = doc
+	c.mutex.Unlock()
+	return nil
+}
+
 // NewW3CDocumentLoader creates a new document loader with a predefined http schema
-func NewW3CDocumentLoader(_ *shell.Shell, ipfsGW string) ld.DocumentLoader {
+func NewW3CDocumentLoader(_ *shell.Shell, ipfsGW string, withCache bool) ld.DocumentLoader {
+	if !withCache {
+		return loaders.NewDocumentLoader(nil, ipfsGW)
+	}
+	option := loaders.WithCacheEngine(newLocalCache())
 	return &W3CDocumentLoader{
-		l: loaders.NewDocumentLoader(nil, ipfsGW),
+		l: loaders.NewDocumentLoader(nil, ipfsGW, option),
 	}
 }
 

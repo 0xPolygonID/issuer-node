@@ -12,7 +12,7 @@ import (
 func TestValidateCredentialSubject(t *testing.T) {
 	const ipfsGatewayURL = "http://127.0.0.1:8080"
 	ctx := context.Background()
-	ld := loader.NewDocumentLoader(ipfsGatewayURL)
+	ld := loader.NewDocumentLoader(ipfsGatewayURL, false)
 
 	type config struct {
 		name              string
