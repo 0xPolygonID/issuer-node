@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getIdentities, identifierParser } from "src/adapters/api/identities";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Identifier, Identity } from "src/domain";
@@ -20,7 +20,7 @@ import {
   makeRequestAbortable,
   setStorageByKey,
 } from "src/utils/browser";
-import { IDENTIFIER_LOCAL_STORAGE_KEY } from "src/utils/constants";
+import { IDENTIFIER_LOCAL_STORAGE_KEY, IDENTIFIER_SEARCH_PARAM } from "src/utils/constants";
 
 type IdentityState = {
   fetchIdentities: (signal: AbortSignal) => void;
@@ -48,10 +48,14 @@ export function IdentityProvider(props: PropsWithChildren) {
     status: "pending",
   });
   const [identifier, setIdentifier] = useState<Identifier>("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const identity =
-    identitiesList.status === "successful" &&
+    (identitiesList.status === "successful" || identitiesList.status === "reloading") &&
     identitiesList.data.find((identity) => identity.identifier === identifier);
   const identityDisplayName = identity ? identity.displayName : "";
+
+  const identifierParam = searchParams.get(IDENTIFIER_SEARCH_PARAM);
 
   const fetchIdentities = useCallback(
     async (signal: AbortSignal) => {
@@ -75,7 +79,12 @@ export function IdentityProvider(props: PropsWithChildren) {
         });
 
         setIdentitiesList({ data: identities, status: "successful" });
-        if (identities.some(({ identifier }) => identifier === savedIdentifier)) {
+        if (
+          identifierParam &&
+          identities.some(({ identifier }) => identifier === identifierParam)
+        ) {
+          setIdentifier(identifierParam);
+        } else if (identities.some(({ identifier }) => identifier === savedIdentifier)) {
           setIdentifier(savedIdentifier);
         } else if (identities.length > 0 && identities[0]) {
           setIdentifier(identities[0].identifier);
@@ -87,7 +96,7 @@ export function IdentityProvider(props: PropsWithChildren) {
         }
       }
     },
-    [env, messageAPI]
+    [env, messageAPI, identifierParam]
   );
 
   const handleChange = useCallback(
@@ -100,9 +109,14 @@ export function IdentityProvider(props: PropsWithChildren) {
 
   useEffect(() => {
     if (identifier) {
+      setSearchParams((previousParams) => {
+        const params = new URLSearchParams(previousParams);
+        params.set(IDENTIFIER_SEARCH_PARAM, identifier);
+        return params;
+      });
       setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
     }
-  }, [identifier]);
+  }, [identifier, setSearchParams]);
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchIdentities);
