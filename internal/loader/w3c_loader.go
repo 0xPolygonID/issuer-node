@@ -18,13 +18,13 @@ type W3CDocumentLoader struct {
 }
 
 type w3CDocumentLoaderLocalCache struct {
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	data  map[string]*ld.RemoteDocument
 }
 
 func newLocalCache() *w3CDocumentLoaderLocalCache {
 	return &w3CDocumentLoaderLocalCache{
-		mutex: sync.Mutex{},
+		mutex: sync.RWMutex{},
 		data:  make(map[string]*ld.RemoteDocument),
 	}
 }
@@ -39,8 +39,8 @@ func (c *w3CDocumentLoaderLocalCache) Get(key string) (doc *ld.RemoteDocument, e
 
 func (c *w3CDocumentLoaderLocalCache) Set(key string, doc *ld.RemoteDocument, expireTime time.Time) error {
 	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	c.data[key] = doc
-	c.mutex.Unlock()
 	return nil
 }
 
