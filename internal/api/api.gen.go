@@ -3199,6 +3199,15 @@ func (response CreateIdentity403JSONResponse) VisitCreateIdentityResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
+type CreateIdentity409JSONResponse struct{ N409JSONResponse }
+
+func (response CreateIdentity409JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type CreateIdentity500JSONResponse struct{ N500JSONResponse }
 
 func (response CreateIdentity500JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
