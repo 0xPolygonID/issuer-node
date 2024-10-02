@@ -7,16 +7,25 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
 import { ROUTES } from "src/routes";
+import { isAsyncTaskDataAvailable } from "src/utils/async";
 import { IDENTITY_ADD, IDENTITY_ADD_NEW, IDENTITY_DETAILS } from "src/utils/constants";
 
 export function CreateIdentity() {
   const env = useEnvContext();
-  const { handleChange } = useIdentityContext();
+  const { handleChange, identitiesList } = useIdentityContext();
   const [messageAPI, messageContext] = message.useMessage();
   const navigate = useNavigate();
 
-  const handleSubmit = (formValues: IdentityFormData) =>
-    void createIdentity({ env, payload: formValues }).then((response) => {
+  const handleSubmit = (formValues: IdentityFormData) => {
+    const isUnique =
+      isAsyncTaskDataAvailable(identitiesList) &&
+      !identitiesList.data.some((identity) => identity.displayName === formValues.displayName);
+
+    if (!isUnique) {
+      return void messageAPI.error(`${formValues.displayName} is already exists`);
+    }
+
+    return void createIdentity({ env, payload: formValues }).then((response) => {
       if (response.success) {
         const {
           data: { identifier },
@@ -29,6 +38,7 @@ export function CreateIdentity() {
         void messageAPI.error(response.error.message);
       }
     });
+  };
 
   return (
     <>

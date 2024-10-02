@@ -1,6 +1,7 @@
 import { Button, Card, Flex, Form, Input, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useIdentityContext } from "../../contexts/Identity";
 import { getIdentityDetails, updateIdentityDisplayName } from "src/adapters/api/identities";
 import { IdentityDetailsFormData } from "src/adapters/parsers/view";
 import CheckIcon from "src/assets/icons/check.svg?react";
@@ -12,7 +13,12 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, IdentityDetails } from "src/domain";
-import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
+import {
+  AsyncTask,
+  hasAsyncTaskFailed,
+  isAsyncTaskDataAvailable,
+  isAsyncTaskStarting,
+} from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { IDENTITY_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
 import { formatIdentifier } from "src/utils/forms";
@@ -22,6 +28,7 @@ export function Identity() {
   const [identity, setIdentity] = useState<AsyncTask<IdentityDetails, AppError>>({
     status: "pending",
   });
+  const { fetchIdentities, identitiesList } = useIdentityContext();
 
   const [displayNameEditable, setDisplayNameEditable] = useState(false);
   const [messageAPI, messageContext] = message.useMessage();
@@ -62,19 +69,34 @@ export function Identity() {
     return <ErrorResult error="No identifier provided." />;
   }
 
-  const handleEditDisplayName = (formValues: IdentityDetailsFormData) =>
-    void updateIdentityDisplayName({ displayName: formValues.displayName, env, identifier }).then(
-      (response) => {
-        if (response.success) {
-          void fetchIdentity().then(() => {
-            setDisplayNameEditable(false);
-            void messageAPI.success("Identity edited successfully");
-          });
-        } else {
-          void messageAPI.error(response.error.message);
-        }
+  const handleEditDisplayName = (formValues: IdentityDetailsFormData) => {
+    const isUnique =
+      isAsyncTaskDataAvailable(identitiesList) &&
+      !identitiesList.data.some(
+        (identity) =>
+          identity.identifier !== identifier && identity.displayName === formValues.displayName
+      );
+
+    if (!isUnique) {
+      return void messageAPI.error(`${formValues.displayName} is already exists`);
+    }
+
+    return void updateIdentityDisplayName({
+      displayName: formValues.displayName,
+      env,
+      identifier,
+    }).then((response) => {
+      if (response.success) {
+        void fetchIdentity().then(() => {
+          setDisplayNameEditable(false);
+          makeRequestAbortable(fetchIdentities);
+          void messageAPI.success("Identity edited successfully");
+        });
+      } else {
+        void messageAPI.error(response.error.message);
       }
-    );
+    });
+  };
 
   return (
     <>
@@ -108,7 +130,7 @@ export function Identity() {
             return (
               <Card
                 className="centered"
-                headStyle={{ border: "none" }}
+                styles={{ header: { border: "none" } }}
                 title={
                   <Flex align="center" gap={8} style={{ paddingTop: "24px" }}>
                     {displayNameEditable ? (
