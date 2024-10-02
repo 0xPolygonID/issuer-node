@@ -30,6 +30,8 @@ func newLocalCache() *w3CDocumentLoaderLocalCache {
 }
 
 func (c *w3CDocumentLoaderLocalCache) Get(key string) (doc *ld.RemoteDocument, expireTime time.Time, err error) {
+	c.mutex.RLock()
+	defer c.mutex.Unlock()
 	doc, ok := c.data[key]
 	if !ok {
 		return nil, time.Time{}, nil
