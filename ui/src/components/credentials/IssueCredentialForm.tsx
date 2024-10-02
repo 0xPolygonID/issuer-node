@@ -1,5 +1,5 @@
-import Ajv, { ErrorObject } from "ajv";
-import Ajv2020 from "ajv/dist/2020";
+import { Ajv, ErrorObject } from "ajv";
+import { Ajv2020 } from "ajv/dist/2020";
 import addFormats from "ajv-formats";
 import applyDraft2019Formats from "ajv-formats-draft2019";
 import {
