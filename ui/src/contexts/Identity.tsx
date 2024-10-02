@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -48,6 +49,7 @@ export function IdentityProvider(props: PropsWithChildren) {
     status: "pending",
   });
   const [identifier, setIdentifier] = useState<Identifier>("");
+  const previousIdentifier = useRef<Identifier | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const identity =
@@ -108,15 +110,26 @@ export function IdentityProvider(props: PropsWithChildren) {
   );
 
   useEffect(() => {
-    if (identifier) {
-      setSearchParams((previousParams) => {
-        const params = new URLSearchParams(previousParams);
-        params.set(IDENTIFIER_SEARCH_PARAM, identifier);
-        return params;
-      });
+    if (
+      identifierParam &&
+      identifier !== identifierParam &&
+      isAsyncTaskDataAvailable(identitiesList) &&
+      identitiesList.data.some((identity) => identity.identifier === identifierParam)
+    ) {
+      setIdentifier(identifierParam);
+    } else if (identifier && identifier !== previousIdentifier.current) {
+      setSearchParams(
+        (previousParams) => {
+          const params = new URLSearchParams(previousParams);
+          params.set(IDENTIFIER_SEARCH_PARAM, identifier);
+          return params;
+        },
+        { replace: true }
+      );
       setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
+      previousIdentifier.current = identifier;
     }
-  }, [identifier, setSearchParams]);
+  }, [identifier, identifierParam, identitiesList, setSearchParams]);
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchIdentities);
