@@ -482,7 +482,7 @@ svg {
     padding: 0;
     max-height: 336px;
     overflow: scroll;
-    transform: translateX(-116px);
+    transform: translateX(10px);
 
     @media screen and (width <= 576px) {
       transform: translateX(0);
@@ -524,4 +524,8 @@ svg {
       }
     }
   }
+}
+
+.user-display:hover {
+  background-color: $bg-light;
 }

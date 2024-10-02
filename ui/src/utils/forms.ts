@@ -11,9 +11,12 @@ export function formatDate(
   return dayjs(date).format(template);
 }
 
-export function formatIdentifier(identifier: Identifier): string {
+export function formatIdentifier(identifier: Identifier, short?: boolean): string {
   const parts = identifier.split(":");
   const id = parts.at(-1);
   const shortId = `${id?.slice(0, 5)}...${id?.slice(-4)}`;
+  if (short) {
+    return shortId;
+  }
   return parts.toSpliced(-1, 1, shortId).join(":");
 }
