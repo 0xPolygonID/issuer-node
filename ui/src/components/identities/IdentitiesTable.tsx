@@ -122,7 +122,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
                 onClick: () =>
                   navigate(
                     generatePath(ROUTES.identityDetails.path, {
-                      issuerID: identifier,
+                      identityID: identifier,
                     })
                   ),
               },
