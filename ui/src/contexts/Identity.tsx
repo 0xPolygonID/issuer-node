@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -49,7 +48,6 @@ export function IdentityProvider(props: PropsWithChildren) {
     status: "pending",
   });
   const [identifier, setIdentifier] = useState<Identifier>("");
-  const previousIdentifier = useRef<Identifier | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const identity =
@@ -58,6 +56,23 @@ export function IdentityProvider(props: PropsWithChildren) {
   const identityDisplayName = identity ? identity.displayName : "";
 
   const identifierParam = searchParams.get(IDENTIFIER_SEARCH_PARAM);
+
+  const updateIdentifier = useCallback(
+    (identifier: Identifier) => {
+      setIdentifier(identifier);
+      setSearchParams(
+        (previousParams) => {
+          const params = new URLSearchParams(previousParams);
+          params.set(IDENTIFIER_SEARCH_PARAM, identifier);
+
+          return params;
+        },
+        { replace: true }
+      );
+      setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
+    },
+    [setSearchParams]
+  );
 
   const fetchIdentities = useCallback(
     async (signal: AbortSignal) => {
@@ -85,11 +100,11 @@ export function IdentityProvider(props: PropsWithChildren) {
           identifierParam &&
           identities.some(({ identifier }) => identifier === identifierParam)
         ) {
-          setIdentifier(identifierParam);
+          updateIdentifier(identifierParam);
         } else if (identities.some(({ identifier }) => identifier === savedIdentifier)) {
-          setIdentifier(savedIdentifier);
+          updateIdentifier(savedIdentifier);
         } else if (identities.length > 0 && identities[0]) {
-          setIdentifier(identities[0].identifier);
+          updateIdentifier(identities[0].identifier);
         }
       } else {
         if (!isAbortedError(response.error)) {
@@ -98,15 +113,15 @@ export function IdentityProvider(props: PropsWithChildren) {
         }
       }
     },
-    [env, messageAPI, identifierParam]
+    [env, messageAPI, identifierParam, updateIdentifier]
   );
 
   const handleChange = useCallback(
     (identifier: Identifier) => {
-      setIdentifier(identifier);
+      updateIdentifier(identifier);
       navigate(ROUTES.schemas.path);
     },
-    [navigate]
+    [navigate, updateIdentifier]
   );
 
   useEffect(() => {
@@ -116,20 +131,9 @@ export function IdentityProvider(props: PropsWithChildren) {
       isAsyncTaskDataAvailable(identitiesList) &&
       identitiesList.data.some((identity) => identity.identifier === identifierParam)
     ) {
-      setIdentifier(identifierParam);
-    } else if (identifier && identifier !== previousIdentifier.current) {
-      setSearchParams(
-        (previousParams) => {
-          const params = new URLSearchParams(previousParams);
-          params.set(IDENTIFIER_SEARCH_PARAM, identifier);
-          return params;
-        },
-        { replace: true }
-      );
-      setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
-      previousIdentifier.current = identifier;
+      updateIdentifier(identifierParam);
     }
-  }, [identifier, identifierParam, identitiesList, setSearchParams]);
+  }, [identifier, identifierParam, identitiesList, updateIdentifier]);
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchIdentities);

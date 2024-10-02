@@ -21,7 +21,7 @@ import { Schemas } from "src/components/schemas/Schemas";
 import { NotFound } from "src/components/shared/NotFound";
 import { useIdentityContext } from "src/contexts/Identity";
 import { Layout, ROUTES, RouteID } from "src/routes";
-import { IDENTIFIER_SEARCH_PARAM, ROOT_PATH } from "src/utils/constants";
+import { ROOT_PATH } from "src/utils/constants";
 
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
@@ -61,17 +61,7 @@ export function Router() {
     <Routes>
       {identifier ? (
         <>
-          <Route
-            element={
-              <Navigate
-                to={{
-                  pathname: ROUTES.schemas.path,
-                  search: `${IDENTIFIER_SEARCH_PARAM}=${identifier}`,
-                }}
-              />
-            }
-            path={ROOT_PATH}
-          />
+          <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
 
           <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
 
