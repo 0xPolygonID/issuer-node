@@ -358,13 +358,13 @@ export function IssueCredentialForm({
             onSubmit({ apiSchema, jsonSchema: jsonSchemaData, values });
           }
         }}
-        onValuesChange={(_, values: IssueCredentialFormData) => {
+        onValuesChange={(changedValue: Partial<IssueCredentialFormData>) => {
           const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
           const credentialSubjectAttributeWithoutId =
             jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
-          values.credentialSubject &&
+          changedValue.credentialSubject &&
             credentialSubjectAttributeWithoutId &&
-            isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
+            isFormValid(changedValue.credentialSubject, credentialSubjectAttributeWithoutId);
         }}
       >
         <Form.Item
