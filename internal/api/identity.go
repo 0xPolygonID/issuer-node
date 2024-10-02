@@ -78,7 +78,6 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 				},
 			}, nil
 		}
-
 		if errors.Is(err, kms.ErrPermissionDenied) {
 			var message string
 			if s.cfg.KeyStore.VaultUserPassAuthEnabled {
@@ -91,6 +90,13 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 			return CreateIdentity403JSONResponse{
 				N403JSONResponse{
 					Message: message,
+				},
+			}, nil
+		}
+		if errors.Is(err, services.ErrIdentityDisplayNameDuplicated) {
+			return CreateIdentity409JSONResponse{
+				N409JSONResponse{
+					Message: fmt.Sprintf("display name field already exists: <%s>", *request.Body.DisplayName),
 				},
 			}, nil
 		}
