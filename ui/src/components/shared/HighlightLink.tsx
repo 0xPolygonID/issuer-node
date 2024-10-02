@@ -24,17 +24,7 @@ export function HighlightLink({ link, openable }: { link: string; openable: bool
       {messageContext}
       <Flex gap={6} vertical>
         <Card bordered={false} className="background-grey" style={{ boxShadow: "none" }}>
-          <Typography.Text
-            style={{
-              color: token.colorTextSecondary,
-              fontFamily: "RobotoMono-Regular",
-              fontSize: 12,
-            }}
-          >
-            {link}
-          </Typography.Text>
-
-          <Flex gap={8} style={{ position: "absolute", right: 16, top: 14 }}>
+          <Flex gap={8} style={{ float: "right", paddingLeft: 12 }}>
             {openable && (
               <Button
                 href={link}
@@ -49,6 +39,15 @@ export function HighlightLink({ link, openable }: { link: string; openable: bool
               style={{ borderColor: token.colorTextSecondary, color: token.colorTextSecondary }}
             />
           </Flex>
+          <Typography.Text
+            style={{
+              color: token.colorTextSecondary,
+              fontFamily: "RobotoMono-Regular",
+              fontSize: 12,
+            }}
+          >
+            {link}
+          </Typography.Text>
         </Card>
       </Flex>
     </>
