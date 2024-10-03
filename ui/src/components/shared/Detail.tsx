@@ -74,7 +74,7 @@ export function Detail({
           {(() => {
             if (donwloadLink && href) {
               return (
-                <Flex align="center" gap={8} justify="flex-end">
+                <Flex align="center" gap={8} justify={sm ? "flex-end" : "flex-start"}>
                   <DownloadQRLink
                     button={
                       <Button

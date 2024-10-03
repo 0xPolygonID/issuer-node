@@ -317,6 +317,10 @@
     display: flex;
     justify-content: flex-end;
     word-break: keep-all;
+
+    @media screen and (width <= 576px) {
+      justify-content: flex-start;
+    }
   }
 
   .ant-typography-copy {
