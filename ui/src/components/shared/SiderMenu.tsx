@@ -82,7 +82,14 @@ export function SiderMenu({
     } else if (matchRoutes([{ path: issuerStatePath }], pathname)) {
       return [issuerStatePath];
     } else if (
-      matchRoutes([{ path: identitiesPath }, { path: ROUTES.createIdentity.path }], pathname)
+      matchRoutes(
+        [
+          { path: identitiesPath },
+          { path: ROUTES.createIdentity.path },
+          { path: ROUTES.identityDetails.path },
+        ],
+        pathname
+      )
     ) {
       return [identitiesPath];
     }

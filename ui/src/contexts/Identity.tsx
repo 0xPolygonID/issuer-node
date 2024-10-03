@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { getIdentities, identifierParser } from "src/adapters/api/identities";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Identifier, Identity } from "src/domain";
@@ -20,7 +20,11 @@ import {
   makeRequestAbortable,
   setStorageByKey,
 } from "src/utils/browser";
-import { IDENTIFIER_LOCAL_STORAGE_KEY, IDENTIFIER_SEARCH_PARAM } from "src/utils/constants";
+import {
+  IDENTIFIER_LOCAL_STORAGE_KEY,
+  IDENTIFIER_SEARCH_PARAM,
+  ROOT_PATH,
+} from "src/utils/constants";
 
 type IdentityState = {
   fetchIdentities: (signal: AbortSignal) => void;
@@ -44,6 +48,7 @@ export function IdentityProvider(props: PropsWithChildren) {
   const env = useEnvContext();
   const [messageAPI, messageContext] = message.useMessage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [identitiesList, setIdentitiesList] = useState<AsyncTask<Identity[], AppError>>({
     status: "pending",
   });
@@ -56,23 +61,6 @@ export function IdentityProvider(props: PropsWithChildren) {
   const identityDisplayName = identity ? identity.displayName : "";
 
   const identifierParam = searchParams.get(IDENTIFIER_SEARCH_PARAM);
-
-  const updateIdentifier = useCallback(
-    (identifier: Identifier) => {
-      setIdentifier(identifier);
-      setSearchParams(
-        (previousParams) => {
-          const params = new URLSearchParams(previousParams);
-          params.set(IDENTIFIER_SEARCH_PARAM, identifier);
-
-          return params;
-        },
-        { replace: true }
-      );
-      setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
-    },
-    [setSearchParams]
-  );
 
   const fetchIdentities = useCallback(
     async (signal: AbortSignal) => {
@@ -100,11 +88,11 @@ export function IdentityProvider(props: PropsWithChildren) {
           identifierParam &&
           identities.some(({ identifier }) => identifier === identifierParam)
         ) {
-          updateIdentifier(identifierParam);
+          setIdentifier(identifierParam);
         } else if (identities.some(({ identifier }) => identifier === savedIdentifier)) {
-          updateIdentifier(savedIdentifier);
+          setIdentifier(savedIdentifier);
         } else if (identities.length > 0 && identities[0]) {
-          updateIdentifier(identities[0].identifier);
+          setIdentifier(identities[0].identifier);
         }
       } else {
         if (!isAbortedError(response.error)) {
@@ -113,15 +101,15 @@ export function IdentityProvider(props: PropsWithChildren) {
         }
       }
     },
-    [env, messageAPI, identifierParam, updateIdentifier]
+    [env, messageAPI, identifierParam]
   );
 
   const handleChange = useCallback(
     (identifier: Identifier) => {
-      updateIdentifier(identifier);
+      setIdentifier(identifier);
       navigate(ROUTES.schemas.path);
     },
-    [navigate, updateIdentifier]
+    [navigate]
   );
 
   useEffect(() => {
@@ -131,9 +119,21 @@ export function IdentityProvider(props: PropsWithChildren) {
       isAsyncTaskDataAvailable(identitiesList) &&
       identitiesList.data.some((identity) => identity.identifier === identifierParam)
     ) {
-      updateIdentifier(identifierParam);
+      setIdentifier(identifierParam);
+    } else if (identifier && identifier !== identifierParam && location.pathname !== ROOT_PATH) {
+      setIdentifier(identifier);
+      setSearchParams(
+        (previousParams) => {
+          const params = new URLSearchParams(previousParams);
+          params.set(IDENTIFIER_SEARCH_PARAM, identifier);
+
+          return params;
+        },
+        { replace: true }
+      );
+      setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
     }
-  }, [identifier, identifierParam, identitiesList, updateIdentifier]);
+  }, [identifier, identifierParam, identitiesList, location, setSearchParams]);
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchIdentities);
