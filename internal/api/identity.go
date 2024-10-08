@@ -36,6 +36,10 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		}, nil
 	}
 
+	if request.Body.DisplayName != nil {
+		request.Body.DisplayName = common.ToPointer(strings.TrimSpace(*request.Body.DisplayName))
+	}
+
 	var credentialStatusType verifiable.CredentialStatusType
 	if credentialStatusTypeRequest != nil && *credentialStatusTypeRequest != "" {
 		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
