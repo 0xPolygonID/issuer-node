@@ -82,7 +82,7 @@ export function Identity() {
     }
 
     return void updateIdentityDisplayName({
-      displayName: formValues.displayName,
+      displayName: formValues.displayName.trim(),
       env,
       identifier,
     }).then((response) => {

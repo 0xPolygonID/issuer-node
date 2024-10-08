@@ -43,7 +43,10 @@ export function Onboarding() {
   const { lg } = Grid.useBreakpoint();
 
   const handleSubmit = (formValues: IdentityFormData) =>
-    void createIdentity({ env, payload: formValues }).then((response) => {
+    void createIdentity({
+      env,
+      payload: { ...formValues, displayName: formValues.displayName.trim() },
+    }).then((response) => {
       if (response.success) {
         const {
           data: { identifier },

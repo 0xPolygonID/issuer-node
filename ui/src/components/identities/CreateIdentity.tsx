@@ -25,7 +25,10 @@ export function CreateIdentity() {
       return void messageAPI.error(`${formValues.displayName} is already exists`);
     }
 
-    return void createIdentity({ env, payload: formValues }).then((response) => {
+    return void createIdentity({
+      env,
+      payload: { ...formValues, displayName: formValues.displayName.trim() },
+    }).then((response) => {
       if (response.success) {
         const {
           data: { identifier },
