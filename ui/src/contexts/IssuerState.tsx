@@ -1,4 +1,4 @@
-import { Space, Typography, message } from "antd";
+import { App, Space, Typography } from "antd";
 import {
   PropsWithChildren,
   createContext,
@@ -36,7 +36,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
 
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
 
   const [status, setStatus] = useState<AsyncTask<boolean, AppError>>({ status: "pending" });
 
@@ -49,12 +49,12 @@ export function IssuerStateProvider(props: PropsWithChildren) {
           setStatus({ data: response.data.pendingActions, status: "successful" });
         } else {
           if (!isAbortedError(response.error)) {
-            void messageAPI.error(response.error.message);
+            void message.error(response.error.message);
           }
         }
       }
     },
-    [env, messageAPI, identifier]
+    [env, message, identifier]
   );
 
   const notifyChange = useCallback(
@@ -64,7 +64,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
         revoke: "Revocation",
       };
 
-      void messageAPI.info({
+      void message.info({
         content: (
           <Space align="start" direction="vertical" style={{ width: "auto" }}>
             <Typography.Text strong>
@@ -79,7 +79,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
 
       return refreshStatus();
     },
-    [messageAPI, refreshStatus]
+    [message, refreshStatus]
   );
 
   useEffect(() => {
@@ -92,13 +92,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
     return { notifyChange, refreshStatus, status };
   }, [notifyChange, refreshStatus, status]);
 
-  return (
-    <>
-      {messageContext}
-
-      <IssuerStateContext.Provider value={value} {...props} />
-    </>
-  );
+  return <IssuerStateContext.Provider value={value} {...props} />;
 }
 
 export function useIssuerStateContext() {

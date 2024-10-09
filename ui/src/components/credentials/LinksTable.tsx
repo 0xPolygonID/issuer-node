@@ -1,4 +1,5 @@
 import {
+  App,
   Avatar,
   Button,
   Card,
@@ -14,7 +15,6 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
 } from "antd";
 
 import dayjs from "dayjs";
@@ -54,7 +54,7 @@ export function LinksTable() {
   const { identifier } = useIdentityContext();
 
   const { md, sm } = Grid.useBreakpoint();
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -295,9 +295,9 @@ export function LinksTable() {
       if (response.success) {
         updateCredentialInState(active, id);
 
-        void messageAPI.success(response.data.message);
+        void message.success(response.data.message);
       } else {
-        void messageAPI.error(response.error.message);
+        void message.error(response.error.message);
       }
 
       setLinkUpdating((currentLinksUpdating) => {
@@ -333,8 +333,6 @@ export function LinksTable() {
 
   return (
     <>
-      {messageContext}
-
       <TableCard
         defaultContents={
           <>

@@ -1,4 +1,4 @@
-import { Row, Typography, message } from "antd";
+import { App, Row, Typography } from "antd";
 
 import { downloadJsonFromUrl } from "src/adapters/json";
 import { Env } from "src/domain";
@@ -12,7 +12,7 @@ export function DownloadSchema({
   fileName: string;
   url: string;
 }) {
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
 
   const handleDownload = () => {
     downloadJsonFromUrl({
@@ -21,22 +21,18 @@ export function DownloadSchema({
       url,
     })
       .then(() => {
-        void messageAPI.success("Schema downloaded successfully.");
+        void message.success("Schema downloaded successfully.");
       })
       .catch(() => {
-        void messageAPI.error("An error occurred while downloading the schema. Please try again.");
+        void message.error("An error occurred while downloading the schema. Please try again.");
       });
   };
 
   return (
-    <>
-      {messageContext}
+    <Row justify="space-between">
+      <Typography.Text type="secondary">Download</Typography.Text>
 
-      <Row justify="space-between">
-        <Typography.Text type="secondary">Download</Typography.Text>
-
-        <Typography.Link onClick={handleDownload}>JSON Schema</Typography.Link>
-      </Row>
-    </>
+      <Typography.Link onClick={handleDownload}>JSON Schema</Typography.Link>
+    </Row>
   );
 }

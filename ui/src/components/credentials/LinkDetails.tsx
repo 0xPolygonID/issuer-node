@@ -225,7 +225,7 @@ export function LinkDetails() {
 
                     <Detail
                       copyable
-                      donwloadLink
+                      downloadLink
                       href={universalLink}
                       label="Universal link"
                       text={universalLink}
@@ -233,7 +233,7 @@ export function LinkDetails() {
 
                     <Detail
                       copyable
-                      donwloadLink
+                      downloadLink
                       href={deepLink}
                       label="Deep link"
                       text={deepLink}

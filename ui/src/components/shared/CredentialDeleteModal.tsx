@@ -1,4 +1,4 @@
-import { Alert, Button, Flex, Modal, Space, Typography, message } from "antd";
+import { Alert, App, Button, Flex, Modal, Space, Typography } from "antd";
 import { useState } from "react";
 
 import { deleteCredential, revokeCredential } from "src/adapters/api/credentials";
@@ -23,7 +23,7 @@ export function CredentialDeleteModal({
   const { identifier } = useIdentityContext();
   const { notifyChange } = useIssuerStateContext();
 
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -37,9 +37,9 @@ export function CredentialDeleteModal({
         onClose();
         onDelete();
 
-        void messageAPI.success(response.data.message);
+        void message.success(response.data.message);
       } else {
-        void messageAPI.error(response.error.message);
+        void message.error(response.error.message);
       }
 
       setIsLoading(false);
@@ -57,63 +57,59 @@ export function CredentialDeleteModal({
       } else {
         setIsLoading(false);
 
-        void messageAPI.error(response.error.message);
+        void message.error(response.error.message);
       }
     });
   };
 
   return (
-    <>
-      {messageContext}
+    <Modal
+      centered
+      closable
+      closeIcon={<IconClose />}
+      footer={
+        <Flex gap={8} justify="end">
+          <Button onClick={onClose}>{CLOSE}</Button>
 
-      <Modal
-        centered
-        closable
-        closeIcon={<IconClose />}
-        footer={
-          <Flex gap={8} justify="end">
-            <Button onClick={onClose}>{CLOSE}</Button>
-
-            <Button danger loading={isLoading} onClick={handleDeleteCredential} type="primary">
-              {DELETE}
-            </Button>
-
-            {!revoked && (
-              <Button danger loading={isLoading} onClick={handleRevokeCredential} type="primary">
-                Delete & Revoke
-              </Button>
-            )}
-          </Flex>
-        }
-        maskClosable
-        onCancel={onClose}
-        open
-        title="Are you sure you want to delete this credential?"
-      >
-        <Space direction="vertical">
-          <Typography.Text type="secondary">
-            Credential data will be deleted from the database.
-          </Typography.Text>
+          <Button danger loading={isLoading} onClick={handleDeleteCredential} type="primary">
+            {DELETE}
+          </Button>
 
           {!revoked && (
-            <Alert
-              description={
-                <Typography.Text type="warning">
-                  Revoking requires publishing the issuer state. This action cannot be undone.
-                </Typography.Text>
-              }
-              icon={<IconAlert />}
-              message={
-                <Typography.Text strong type="warning">
-                  If a credential is deleted but not revoked, it can still be used by end users.
-                </Typography.Text>
-              }
-              showIcon
-              type="warning"
-            />
+            <Button danger loading={isLoading} onClick={handleRevokeCredential} type="primary">
+              Delete & Revoke
+            </Button>
           )}
-        </Space>
-      </Modal>
-    </>
+        </Flex>
+      }
+      maskClosable
+      onCancel={onClose}
+      open
+      title="Are you sure you want to delete this credential?"
+    >
+      <Space direction="vertical">
+        <Typography.Text type="secondary">
+          Credential data will be deleted from the database.
+        </Typography.Text>
+
+        {!revoked && (
+          <Alert
+            description={
+              <Typography.Text type="warning">
+                Revoking requires publishing the issuer state. This action cannot be undone.
+              </Typography.Text>
+            }
+            icon={<IconAlert />}
+            message={
+              <Typography.Text strong type="warning">
+                If a credential is deleted but not revoked, it can still be used by end users.
+              </Typography.Text>
+            }
+            showIcon
+            type="warning"
+          />
+        )}
+      </Space>
+    </Modal>
   );
 }

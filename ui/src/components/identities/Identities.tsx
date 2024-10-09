@@ -1,4 +1,4 @@
-import { Button, Divider, Space, message } from "antd";
+import { Button, Divider, Space } from "antd";
 import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import IconPlus from "src/assets/icons/plus.svg?react";
@@ -12,7 +12,6 @@ import { IDENTITIES, IDENTITY_ADD } from "src/utils/constants";
 export function Identities() {
   const { fetchIdentities } = useIdentityContext();
 
-  const [, messageContext] = message.useMessage();
   const navigate = useNavigate();
 
   const fetchData = useCallback(() => {
@@ -25,27 +24,23 @@ export function Identities() {
   }, [fetchData]);
 
   return (
-    <>
-      {messageContext}
-
-      <SiderLayoutContent
-        description="Add new identities and view existing identity details"
-        extra={
-          <Button
-            icon={<IconPlus />}
-            onClick={() => navigate(ROUTES.createIdentity.path)}
-            type="primary"
-          >
-            {IDENTITY_ADD}
-          </Button>
-        }
-        title={IDENTITIES}
-      >
-        <Divider />
-        <Space direction="vertical" size="large">
-          <IdentitiesTable handleAddIdentity={() => navigate(ROUTES.createIdentity.path)} />
-        </Space>
-      </SiderLayoutContent>
-    </>
+    <SiderLayoutContent
+      description="Add new identities and view existing identity details"
+      extra={
+        <Button
+          icon={<IconPlus />}
+          onClick={() => navigate(ROUTES.createIdentity.path)}
+          type="primary"
+        >
+          {IDENTITY_ADD}
+        </Button>
+      }
+      title={IDENTITIES}
+    >
+      <Divider />
+      <Space direction="vertical" size="large">
+        <IdentitiesTable handleAddIdentity={() => navigate(ROUTES.createIdentity.path)} />
+      </Space>
+    </SiderLayoutContent>
   );
 }

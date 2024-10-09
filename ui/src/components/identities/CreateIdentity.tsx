@@ -1,4 +1,4 @@
-import { Card, Space, message } from "antd";
+import { App, Card, Space } from "antd";
 import { useNavigate } from "react-router-dom";
 import { createIdentity } from "src/adapters/api/identities";
 import { IdentityFormData } from "src/adapters/parsers/view";
@@ -13,7 +13,7 @@ import { IDENTITY_ADD, IDENTITY_ADD_NEW, IDENTITY_DETAILS } from "src/utils/cons
 export function CreateIdentity() {
   const env = useEnvContext();
   const { handleChange, identitiesList } = useIdentityContext();
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
   const navigate = useNavigate();
 
   const handleSubmit = (formValues: IdentityFormData) => {
@@ -22,7 +22,7 @@ export function CreateIdentity() {
       !identitiesList.data.some((identity) => identity.displayName === formValues.displayName);
 
     if (!isUnique) {
-      return void messageAPI.error(`${formValues.displayName} is already exists`);
+      return void message.error(`${formValues.displayName} is already exists`);
     }
 
     return void createIdentity({ env, payload: formValues }).then((response) => {
@@ -31,31 +31,27 @@ export function CreateIdentity() {
           data: { identifier },
         } = response;
 
-        void messageAPI.success("Identity added successfully");
+        void message.success("Identity added successfully");
         handleChange(identifier);
         navigate(ROUTES.identities.path);
       } else {
-        void messageAPI.error(response.error.message);
+        void message.error(response.error.message);
       }
     });
   };
 
   return (
-    <>
-      {messageContext}
-
-      <SiderLayoutContent
-        description="View identity details and edit name"
-        showBackButton
-        showDivider
-        title={IDENTITY_ADD_NEW}
-      >
-        <Card className="identities-card" title={IDENTITY_DETAILS}>
-          <Space direction="vertical">
-            <IdentityForm onSubmit={handleSubmit} submitBtnText={IDENTITY_ADD} />
-          </Space>
-        </Card>
-      </SiderLayoutContent>
-    </>
+    <SiderLayoutContent
+      description="View identity details and edit name"
+      showBackButton
+      showDivider
+      title={IDENTITY_ADD_NEW}
+    >
+      <Card className="identities-card" title={IDENTITY_DETAILS}>
+        <Space direction="vertical">
+          <IdentityForm onSubmit={handleSubmit} submitBtnText={IDENTITY_ADD} />
+        </Space>
+      </Card>
+    </SiderLayoutContent>
   );
 }

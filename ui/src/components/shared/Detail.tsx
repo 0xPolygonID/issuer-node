@@ -1,4 +1,4 @@
-import { Button, Col, Flex, Grid, Row, Tag, TagProps, Typography, message } from "antd";
+import { App, Button, Col, Flex, Grid, Row, Tag, TagProps, Typography } from "antd";
 
 import copy from "copy-to-clipboard";
 import { useRef } from "react";
@@ -10,7 +10,7 @@ import { DownloadQRLink } from "src/components/shared/DownloadQRLink";
 export function Detail({
   copyable,
   copyableText,
-  donwloadLink,
+  downloadLink,
   ellipsisPosition,
   href,
   label,
@@ -19,7 +19,7 @@ export function Detail({
 }: {
   copyable?: boolean;
   copyableText?: string;
-  donwloadLink?: boolean;
+  downloadLink?: boolean;
   ellipsisPosition?: number;
   href?: string;
   label: string;
@@ -27,8 +27,8 @@ export function Detail({
   text: string;
 }) {
   const { sm } = Grid.useBreakpoint();
-  const [messageAPI, messageContext] = message.useMessage();
-  const donwloadLinkRef = useRef<HTMLButtonElement | null>(null);
+  const { message } = App.useApp();
+  const downloadLinkRef = useRef<HTMLButtonElement | null>(null);
 
   const onCopyToClipboard = (link: string) => {
     const hasCopied = copy(link, {
@@ -36,9 +36,9 @@ export function Detail({
     });
 
     if (hasCopied) {
-      void messageAPI.success("Link copied to clipboard.");
+      void message.success("Link copied to clipboard.");
     } else {
-      void messageAPI.error("Couldn't copy link. Please try again.");
+      void message.error("Couldn't copy link. Please try again.");
     }
   };
   const value = ellipsisPosition ? text.slice(0, text.length - ellipsisPosition) : text;
@@ -64,58 +64,55 @@ export function Detail({
   );
 
   return (
-    <>
-      {messageContext}
-      <Row justify="space-between">
-        <Col sm={10} xs={24}>
-          <Typography.Text type="secondary">{label}</Typography.Text>
-        </Col>
-        <Col sm={14} xs={24}>
-          {(() => {
-            if (donwloadLink && href) {
-              return (
-                <Flex align="center" gap={8} justify={sm ? "flex-end" : "flex-start"}>
-                  <DownloadQRLink
-                    button={
-                      <Button
-                        icon={<IconDownload />}
-                        iconPosition="end"
-                        ref={donwloadLinkRef}
-                        style={{ height: "auto", padding: 0 }}
-                        type="link"
-                      >
-                        Download QR
-                      </Button>
-                    }
-                    fileName={label}
-                    hidden
-                    link={href}
-                  />
-                  {copyable && (
+    <Row justify="space-between">
+      <Col sm={10} xs={24}>
+        <Typography.Text type="secondary">{label}</Typography.Text>
+      </Col>
+      <Col sm={14} xs={24}>
+        {(() => {
+          if (downloadLink && href) {
+            return (
+              <Flex align="center" gap={8} justify={sm ? "flex-end" : "flex-start"}>
+                <DownloadQRLink
+                  button={
                     <Button
-                      icon={<IconCopy />}
+                      icon={<IconDownload />}
                       iconPosition="end"
-                      onClick={() => onCopyToClipboard(href)}
+                      ref={downloadLinkRef}
                       style={{ height: "auto", padding: 0 }}
                       type="link"
                     >
-                      Copy link
+                      Download QR
                     </Button>
-                  )}
-                </Flex>
-              );
-            } else if (href) {
-              return (
-                <Typography.Link ellipsis href={href} target="_blank">
-                  {element}
-                </Typography.Link>
-              );
-            } else {
-              return element;
-            }
-          })()}
-        </Col>
-      </Row>
-    </>
+                  }
+                  fileName={label}
+                  hidden
+                  link={href}
+                />
+                {copyable && (
+                  <Button
+                    icon={<IconCopy />}
+                    iconPosition="end"
+                    onClick={() => onCopyToClipboard(href)}
+                    style={{ height: "auto", padding: 0 }}
+                    type="link"
+                  >
+                    Copy link
+                  </Button>
+                )}
+              </Flex>
+            );
+          } else if (href) {
+            return (
+              <Typography.Link ellipsis href={href} target="_blank">
+                {element}
+              </Typography.Link>
+            );
+          } else {
+            return element;
+          }
+        })()}
+      </Col>
+    </Row>
   );
 }
