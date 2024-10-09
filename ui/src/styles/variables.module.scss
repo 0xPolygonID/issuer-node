@@ -11,6 +11,7 @@ $primary-color: #2f8507;
 $success-bg: #f1ffe5;
 $selected-bg: #f1ffe5;
 $success-color: #2f8507;
+$success-light-color: #d1fadf;
 $tag-bg: #f2f4f7;
 $tag-bg-success: #ecfdf3;
 $tag-color: #344054;
@@ -18,6 +19,7 @@ $text-color: #131313;
 $text-color-secondary: #667085;
 $text-color-warning: #b54708;
 $primary-color-light: #93f558;
+$primary-color-dark: #24580f;
 
 :export {
   avatarBg: $avatar-bg;
@@ -34,10 +36,12 @@ $primary-color-light: #93f558;
   successBg: $success-bg;
   selectedBg: $selected-bg;
   successColor: $success-color;
+  successLightColor: $success-light-color;
   tagBg: $tag-bg;
   tagBgSuccess: $tag-bg-success;
   tagColor: $tag-color;
   textColor: $text-color;
   textColorSecondary: $text-color-secondary;
   textColorWarning: $text-color-warning;
+  primaryColorDark: $primary-color-dark;
 }

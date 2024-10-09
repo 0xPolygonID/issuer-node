@@ -94,7 +94,7 @@ export function CredentialQR({
         items={qrCodeTabs}
         style={{ margin: "auto", width: lg ? 800 : "100%" }}
       />
-      <Card bodyStyle={{ padding: 0 }} style={{ margin: "auto", width: lg ? 800 : "100%" }}>
+      <Card style={{ margin: "auto", width: lg ? 800 : "100%" }} styles={{ body: { padding: 0 } }}>
         {schemaType && (
           <Row>
             <Col

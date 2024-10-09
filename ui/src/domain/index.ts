@@ -12,6 +12,8 @@ export type {
   RefreshService,
 } from "src/domain/credential";
 
+export { CredentialProofType } from "src/domain/credential";
+
 export type { Env } from "src/domain/env";
 
 export type { IssuerStatus, Transaction, TransactionStatus } from "src/domain/issuer-state";
@@ -56,3 +58,7 @@ export type {
 } from "src/domain/jsonSchema";
 
 export type { Schema as ApiSchema } from "src/domain/schema";
+
+export type { Identifier, Identity, IdentityDetails, SupportedNetwork } from "src/domain/identity";
+
+export { IdentityType, CredentialStatusType, Method } from "src/domain/identity";

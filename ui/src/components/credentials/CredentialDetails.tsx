@@ -15,6 +15,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Credential, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
@@ -36,6 +37,7 @@ export function CredentialDetails() {
   const { sm } = Grid.useBreakpoint();
 
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
 
   const [credentialSubjectValue, setCredentialSubjectValue] = useState<
     AsyncTask<ObjectAttributeValue, AppError>
@@ -108,6 +110,7 @@ export function CredentialDetails() {
         const response = await getCredential({
           credentialID,
           env,
+          identifier,
           signal,
         });
 
@@ -121,7 +124,7 @@ export function CredentialDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, credentialID]
+    [env, fetchJsonSchemaFromUrl, credentialID, identifier]
   );
 
   useEffect(() => {

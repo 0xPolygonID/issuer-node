@@ -29,8 +29,10 @@ export function TableCard({
 
   return (
     <Card
-      bodyStyle={{ padding: 0 }}
-      headStyle={{ padding: md ? "0 24px" : "0 16px" }}
+      styles={{
+        body: { padding: 0 },
+        header: { padding: md ? "0 24px" : "0 16px" },
+      }}
       title={title}
     >
       {!showDefaultContents && onSearch && searchPlaceholder && query !== undefined && (

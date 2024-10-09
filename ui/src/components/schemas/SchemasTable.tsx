@@ -22,6 +22,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ApiSchema, AppError } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -38,6 +39,8 @@ import { formatDate } from "src/utils/forms";
 
 export function SchemasTable() {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
+
   const [apiSchemas, setApiSchemas] = useState<AsyncTask<ApiSchema[], AppError>>({
     status: "pending",
   });
@@ -127,6 +130,7 @@ export function SchemasTable() {
       );
       const response = await getApiSchemas({
         env,
+        identifier,
         params: {
           query: queryParam || undefined,
         },
@@ -141,7 +145,7 @@ export function SchemasTable() {
         }
       }
     },
-    [env, queryParam]
+    [env, queryParam, identifier]
   );
 
   const onSearch = useCallback(

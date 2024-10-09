@@ -29,6 +29,7 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Connection } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -52,7 +53,7 @@ import { notifyParseErrors } from "src/utils/error";
 
 export function ConnectionsTable() {
   const env = useEnvContext();
-
+  const { identifier } = useIdentityContext();
   const navigate = useNavigate();
 
   const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
@@ -197,6 +198,7 @@ export function ConnectionsTable() {
       const response = await getConnections({
         credentials: true,
         env,
+        identifier,
         params: {
           maxResults: paginationMaxResults,
           page: paginationPage,
@@ -222,7 +224,7 @@ export function ConnectionsTable() {
         }
       }
     },
-    [env, paginationMaxResults, paginationPage, queryParam, sortParam, updateUrlParams]
+    [env, paginationMaxResults, paginationPage, queryParam, sortParam, updateUrlParams, identifier]
   );
 
   const onSearch = useCallback(

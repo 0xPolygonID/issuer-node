@@ -273,3 +273,4 @@ This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will 
 ## License
 
 See [LICENSE](LICENSE.md).
+

@@ -7,6 +7,7 @@ import { FormData, ImportSchemaForm } from "src/components/schemas/ImportSchemaF
 import { ImportSchemaPreview } from "src/components/schemas/ImportSchemaPreview";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ROUTES } from "src/routes";
 import { IMPORT_SCHEMA } from "src/utils/constants";
 
@@ -22,6 +23,7 @@ type Step =
 
 export function ImportSchema() {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
   const navigate = useNavigate();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -38,17 +40,23 @@ export function ImportSchema() {
     },
     schemaUrl,
   }: FormData) =>
-    void importSchema({ description, env, jsonLdType, schemaUrl, title, version }).then(
-      (response) => {
-        if (response.success) {
-          navigate(ROUTES.schemas.path);
+    void importSchema({
+      description,
+      env,
+      identifier,
+      jsonLdType,
+      schemaUrl,
+      title,
+      version,
+    }).then((response) => {
+      if (response.success) {
+        navigate(ROUTES.schemas.path);
 
-          void messageAPI.success("Schema successfully imported");
-        } else {
-          void messageAPI.error(response.error.message);
-        }
+        void messageAPI.success("Schema successfully imported");
+      } else {
+        void messageAPI.error(response.error.message);
       }
-    );
+    });
 
   return (
     <>

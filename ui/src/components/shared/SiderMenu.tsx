@@ -5,6 +5,7 @@ import { generatePath, matchRoutes, useLocation, useNavigate } from "react-route
 import IconCredentials from "src/assets/icons/credit-card-refresh.svg?react";
 import IconFile from "src/assets/icons/file-05.svg?react";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
+import IconIdentities from "src/assets/icons/fingerprint-02.svg?react";
 import IconLink from "src/assets/icons/link-external-01.svg?react";
 import IconSettings from "src/assets/icons/settings-01.svg?react";
 import IconIssuerState from "src/assets/icons/switch-horizontal.svg?react";
@@ -13,6 +14,7 @@ import { LogoLink } from "src/components/shared/LogoLink";
 import { SettingsModal } from "src/components/shared/SettingsModal";
 import { UserDisplay } from "src/components/shared/UserDisplay";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable } from "src/utils/async";
@@ -21,6 +23,7 @@ import {
   CREDENTIALS,
   CREDENTIALS_TABS,
   DOCS_URL,
+  IDENTITIES,
   ISSUER_STATE,
   SCHEMAS,
 } from "src/utils/constants";
@@ -34,6 +37,8 @@ export function SiderMenu({
 }) {
   const { buildTag } = useEnvContext();
   const { status } = useIssuerStateContext();
+  const { identifier } = useIdentityContext();
+
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [messageAPI, messageContext] = message.useMessage();
@@ -44,6 +49,7 @@ export function SiderMenu({
   const credentialsPath = ROUTES.credentials.path;
   const issuerStatePath = ROUTES.issuerState.path;
   const schemasPath = ROUTES.schemas.path;
+  const identitiesPath = ROUTES.identities.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -75,6 +81,17 @@ export function SiderMenu({
       return [connectionsPath];
     } else if (matchRoutes([{ path: issuerStatePath }], pathname)) {
       return [issuerStatePath];
+    } else if (
+      matchRoutes(
+        [
+          { path: identitiesPath },
+          { path: ROUTES.createIdentity.path },
+          { path: ROUTES.identityDetails.path },
+        ],
+        pathname
+      )
+    ) {
+      return [identitiesPath];
     }
 
     return [];
@@ -93,7 +110,7 @@ export function SiderMenu({
         className="menu-sider-layout"
         justify="space-between"
         style={{
-          padding: isBreakpoint ? "32px 24px" : "96px 24px 32px",
+          padding: isBreakpoint ? "32px 16px" : "96px 16px 32px",
         }}
       >
         <Col>
@@ -104,6 +121,7 @@ export function SiderMenu({
           <Menu
             items={[
               {
+                disabled: !identifier,
                 icon: <IconSchema />,
                 key: schemasPath,
                 label: SCHEMAS,
@@ -111,6 +129,7 @@ export function SiderMenu({
                 title: "",
               },
               {
+                disabled: !identifier,
                 icon: <IconCredentials />,
                 key: credentialsPath,
                 label: CREDENTIALS,
@@ -123,6 +142,7 @@ export function SiderMenu({
                 title: "",
               },
               {
+                disabled: !identifier,
                 icon: <IconConnections />,
                 key: connectionsPath,
                 label: CONNECTIONS,
@@ -130,6 +150,7 @@ export function SiderMenu({
                 title: "",
               },
               {
+                disabled: !identifier,
                 icon: <IconIssuerState />,
                 key: issuerStatePath,
                 label:
@@ -142,6 +163,13 @@ export function SiderMenu({
                     ISSUER_STATE
                   ),
                 onClick: () => onMenuClick(issuerStatePath),
+                title: "",
+              },
+              {
+                icon: <IconIdentities />,
+                key: identitiesPath,
+                label: IDENTITIES,
+                onClick: () => onMenuClick(identitiesPath),
                 title: "",
               },
             ]}

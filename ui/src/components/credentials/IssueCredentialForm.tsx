@@ -1,5 +1,5 @@
-import Ajv, { ErrorObject } from "ajv";
-import Ajv2020 from "ajv/dist/2020";
+import { Ajv, ErrorObject } from "ajv";
+import { Ajv2020 } from "ajv/dist/2020";
 import addFormats from "ajv-formats";
 import applyDraft2019Formats from "ajv-formats-draft2019";
 import {
@@ -36,6 +36,7 @@ import { InputErrors, ObjectAttributeForm } from "src/components/credentials/Obj
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -92,6 +93,7 @@ export function IssueCredentialForm({
   type: "directIssue" | "credentialLink";
 }) {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
   const [form] = Form.useForm<IssueCredentialFormData>();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -302,6 +304,7 @@ export function IssueCredentialForm({
 
       const response = await getApiSchemas({
         env,
+        identifier,
         params: {},
         signal,
       });
@@ -324,7 +327,7 @@ export function IssueCredentialForm({
         }
       }
     },
-    [env, fetchJsonSchema, initialValues.schemaID, messageAPI]
+    [env, fetchJsonSchema, initialValues.schemaID, messageAPI, identifier]
   );
 
   useEffect(() => {
@@ -355,13 +358,13 @@ export function IssueCredentialForm({
             onSubmit({ apiSchema, jsonSchema: jsonSchemaData, values });
           }
         }}
-        onValuesChange={(_, values: IssueCredentialFormData) => {
+        onValuesChange={(changedValue: Partial<IssueCredentialFormData>) => {
           const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
           const credentialSubjectAttributeWithoutId =
             jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
-          values.credentialSubject &&
+          changedValue.credentialSubject &&
             credentialSubjectAttributeWithoutId &&
-            isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
+            isFormValid(changedValue.credentialSubject, credentialSubjectAttributeWithoutId);
         }}
       >
         <Form.Item
