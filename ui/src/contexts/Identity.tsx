@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+
 import { getIdentities, identifierParser } from "src/adapters/api/identities";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Identifier, Identity } from "src/domain";
@@ -25,6 +26,7 @@ import {
   IDENTIFIER_SEARCH_PARAM,
   ROOT_PATH,
 } from "src/utils/constants";
+import { buildAppError } from "src/utils/error";
 
 type IdentityState = {
   fetchIdentities: (signal: AbortSignal) => void;
@@ -77,6 +79,13 @@ export function IdentityProvider(props: PropsWithChildren) {
 
       if (response.success) {
         const identities = response.data.successful;
+
+        if (response.data.failed.length) {
+          void messageAPI.error(
+            response.data.failed.map((error) => buildAppError(error).message).join("\n")
+          );
+        }
+
         const savedIdentifier = getStorageByKey({
           defaultValue: "",
           key: IDENTIFIER_LOCAL_STORAGE_KEY,

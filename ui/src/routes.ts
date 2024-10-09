@@ -57,7 +57,7 @@ export const ROUTES: Routes = {
   },
   identityDetails: {
     layout: "sider",
-    path: "/identities/details/:identityID",
+    path: "/identities/:identityID",
   },
   importSchema: {
     layout: "sider",

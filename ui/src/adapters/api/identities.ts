@@ -64,11 +64,11 @@ export type CreateIdentity = {
   type: IdentityType;
 };
 
-type CreatedIdentity = {
+type CreatedIdentityResponse = {
   identifier: string;
 };
 
-export const createIdentityParser = getStrictParser<CreatedIdentity>()(
+export const createIdentityResponseParser = getStrictParser<CreatedIdentityResponse>()(
   z.object({
     identifier: z.string(),
   })
@@ -80,7 +80,7 @@ export async function createIdentity({
 }: {
   env: Env;
   payload: CreateIdentity;
-}): Promise<Response<CreatedIdentity>> {
+}): Promise<Response<CreatedIdentityResponse>> {
   try {
     const { credentialStatusType, displayName, ...didMetadata } = payload;
     const response = await axios({
@@ -93,7 +93,7 @@ export async function createIdentity({
       url: `${API_VERSION}/identities`,
     });
 
-    return buildSuccessResponse(createIdentityParser.parse(response.data));
+    return buildSuccessResponse(createIdentityResponseParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
@@ -108,7 +108,7 @@ export const identityDetailsParser = getStrictParser<IdentityDetails>()(
   })
 );
 
-export async function getIdentityDetails({
+export async function getIdentity({
   env,
   identifier,
   signal,

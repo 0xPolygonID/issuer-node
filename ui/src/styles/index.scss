@@ -348,6 +348,15 @@
   color: $text-color-secondary;
 }
 
+.ant-message-notice {
+  .ant-message-notice-content {
+    .ant-message-custom-content {
+      white-space: break-spaces;
+      text-align: left;
+    }
+  }
+}
+
 /* CUSTOM */
 
 .background-grey {

@@ -45,8 +45,12 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
 export function Router() {
   const { identifier } = useIdentityContext();
 
+  const filteredRoutes = identifier
+    ? Object.entries(ROUTES).filter(([, { path }]) => path !== ROUTES.onboarding.path)
+    : Object.entries(ROUTES).filter(([, { path }]) => path === ROUTES.onboarding.path);
+
   const getLayoutRoutes = (currentLayout: Layout) =>
-    Object.entries(ROUTES).reduce((acc: React.ReactElement[], [keyRoute, { layout, path }]) => {
+    filteredRoutes.reduce((acc: React.ReactElement[], [keyRoute, { layout, path }]) => {
       const componentsEntry = Object.entries(COMPONENTS).find(
         ([keyComponent]) => keyComponent === keyRoute
       );
@@ -59,27 +63,18 @@ export function Router() {
 
   return (
     <Routes>
-      {identifier ? (
-        <>
-          <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
+      <Route
+        element={<Navigate to={identifier ? ROUTES.schemas.path : ROUTES.onboarding.path} />}
+        path={identifier ? ROOT_PATH : "*"}
+      />
 
-          <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
+      <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
 
-          <Route element={<FullWidthLayout background="bg-light" />}>
-            {getLayoutRoutes("fullWidthGrey")}
-          </Route>
+      <Route element={<FullWidthLayout background="bg-light" />}>
+        {getLayoutRoutes("fullWidthGrey")}
+      </Route>
 
-          <Route element={<SiderLayout />}>{getLayoutRoutes("sider")}</Route>
-        </>
-      ) : (
-        <>
-          <Route element={<FullWidthLayout background="background-grey" />}>
-            <Route element={<COMPONENTS.onboarding />} path={ROUTES.onboarding.path} />
-          </Route>
-
-          <Route element={<Navigate to={ROUTES.onboarding.path} />} path="*" />
-        </>
-      )}
+      <Route element={<SiderLayout />}>{getLayoutRoutes("sider")}</Route>
     </Routes>
   );
 }

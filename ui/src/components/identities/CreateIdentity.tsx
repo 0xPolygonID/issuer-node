@@ -22,7 +22,7 @@ export function CreateIdentity() {
       !identitiesList.data.some((identity) => identity.displayName === formValues.displayName);
 
     if (!isUnique) {
-      return void messageAPI.error(`${formValues.displayName} is already exists`);
+      return void messageAPI.error(`${formValues.displayName} already exists`);
     }
 
     return void createIdentity({

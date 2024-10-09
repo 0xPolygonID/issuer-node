@@ -2,7 +2,7 @@ import { Button, Card, Flex, Form, Input, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useIdentityContext } from "../../contexts/Identity";
-import { getIdentityDetails, updateIdentityDisplayName } from "src/adapters/api/identities";
+import { getIdentity, updateIdentityDisplayName } from "src/adapters/api/identities";
 import { IdentityDetailsFormData } from "src/adapters/parsers/view";
 import CheckIcon from "src/assets/icons/check.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
@@ -41,7 +41,7 @@ export function Identity() {
       if (identifier) {
         setIdentity({ status: "loading" });
 
-        const response = await getIdentityDetails({
+        const response = await getIdentity({
           env,
           identifier,
           signal,
@@ -78,7 +78,7 @@ export function Identity() {
       );
 
     if (!isUnique) {
-      return void messageAPI.error(`${formValues.displayName} is already exists`);
+      return void messageAPI.error(`${formValues.displayName} already exists`);
     }
 
     return void updateIdentityDisplayName({

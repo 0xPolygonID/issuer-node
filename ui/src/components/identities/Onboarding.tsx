@@ -76,8 +76,8 @@ export function Onboarding() {
             You successfully installed Issuer Node
           </Typography.Text>
           <Typography.Text style={{ fontSize: 20 }} type="secondary">
-            Here&apos;s what you&apos;re going to be able to do with the issuer node, once you
-            finalize your setup
+            Here&apos;s what you&apos;ll be able to do with the issuer node once you finalize your
+            setup
           </Typography.Text>
         </Flex>
 

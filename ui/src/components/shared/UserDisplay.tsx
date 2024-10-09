@@ -50,7 +50,7 @@ export function UserDisplay() {
 
   const items = [
     {
-      key: "test",
+      key: "add",
       label: (
         <Flex gap={16}>
           <IconPlus style={{ height: 20, width: 20 }} />
@@ -108,31 +108,5 @@ export function UserDisplay() {
         </Flex>
       </Card>
     </Dropdown>
-
-    // <Flex gap={12} justify="space-between">
-    //   <Flex>
-    //     <Avatar shape="square" size="large" src={issuer.logo} />
-    //   </Flex>
-
-    //   <Flex style={{ maxWidth: 188, width: "100%" }} vertical>
-    //     <Tooltip title={identityDisplayName}>
-    //       <Typography.Text ellipsis>{identityDisplayName}</Typography.Text>
-    //     </Tooltip>
-    //     <Typography.Text type="secondary">{formatIdentifier(identifier)}</Typography.Text>
-    //   </Flex>
-
-    //   <Flex>
-    //     <Dropdown
-    //       menu={{ items }}
-    //       overlayClassName="identities-dropdown"
-    //       placement="bottom"
-    //       trigger={["click"]}
-    //     >
-    //       <Row style={{ cursor: "pointer" }}>
-    //         <IconChevron />
-    //       </Row>
-    //     </Dropdown>
-    //   </Flex>
-    // </Flex>
   );
 }
