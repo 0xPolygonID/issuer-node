@@ -77,21 +77,6 @@ func FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.W3CCredentia
 	return &cred, nil
 }
 
-// FromClaimsModelToW3CCredential JSON-LD response base on claim
-func FromClaimsModelToW3CCredential(credentials domain.Credentials) ([]*verifiable.W3CCredential, error) {
-	w3Credentials := make([]*verifiable.W3CCredential, len(credentials))
-	for i := range credentials {
-		w3Cred, err := FromClaimModelToW3CCredential(*credentials[i])
-		if err != nil {
-			return nil, err
-		}
-
-		w3Credentials[i] = w3Cred
-	}
-
-	return w3Credentials, nil
-}
-
 // Process data and schema and create Index and Value slots
 func Process(ctx context.Context, loader loader.DocumentLoader, schemaURL string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
 	var parser processor.Parser

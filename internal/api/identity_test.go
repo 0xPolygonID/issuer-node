@@ -95,7 +95,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Method     string                               `json:"method"`
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
-				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("my display name"),
+				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("blockchain display name"),
 				CredentialStatusType: &authBJJCredentialStatus,
 			},
 			expected: expected{
@@ -236,6 +236,40 @@ func TestServer_CreateIdentity(t *testing.T) {
 			}
 		})
 	}
+	t.Run("Duplicated display name", func(t *testing.T) {
+		bodyRequest := CreateIdentityRequest{
+			DidMetadata: struct {
+				Blockchain string                               `json:"blockchain"`
+				Method     string                               `json:"method"`
+				Network    string                               `json:"network"`
+				Type       CreateIdentityRequestDidMetadataType `json:"type"`
+			}{
+				Blockchain: blockchain,
+				Method:     method,
+				Network:    network,
+				Type:       BJJ,
+			},
+			DisplayName: common.ToPointer("Very common display name"),
+		}
+		// First request
+		req, err := http.NewRequest("POST", "/v2/identities", tests.JSONBody(t, bodyRequest))
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusCreated, rr.Code) // First time we expect 201
+
+		// Second request
+		req, err = http.NewRequest("POST", "/v2/identities", tests.JSONBody(t, bodyRequest))
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		rr = httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusConflict, rr.Code) // Second time we expect a conflict 409
+		var response CreateIdentity409JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "display name field already exists: <Very common display name>", response.Message)
+	})
 }
 
 func TestServer_GetIdentities(t *testing.T) {

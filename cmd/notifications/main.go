@@ -144,8 +144,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
-	// TODO: Cache only if cfg.APIUI.SchemaCache == true
-	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL, cfg.SchemaCache)
 
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)

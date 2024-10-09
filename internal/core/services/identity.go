@@ -34,6 +34,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/qrlink"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/internal/urn"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
@@ -53,12 +54,17 @@ const (
 
 // ErrWrongDIDMetada - represents an error in the identity metadata
 var (
-	// ErrWrongDIDMetada - represents an error in the identity metadata
-	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
 	// ErrAssigningMTPProof - represents an error in the identity metadata
 	ErrAssigningMTPProof = errors.New("error assigning the MTP Proof from Auth Claim. If this identity has keyType=ETH you must to publish the state first")
+
+	// ErrIdentityDisplayNameDuplicated - returned when trying to create an identity with a duplicated display name
+	ErrIdentityDisplayNameDuplicated = errors.New("duplicated identity display name")
+
 	// ErrNoClaimsFoundToProcess - means that there are no claims to process
 	ErrNoClaimsFoundToProcess = errors.New("no MTP or revoked claims found to process")
+
+	// ErrWrongDIDMetada - represents an error in the identity metadata
+	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
 )
 
 type identity struct {
@@ -676,6 +682,9 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 	identity.DisplayName = didOptions.DisplayName
 
 	if err = i.identityRepository.Save(ctx, tx, identity); err != nil {
+		if errors.Is(err, repositories.ErrDisplayNameDuplicated) {
+			return nil, nil, ErrIdentityDisplayNameDuplicated
+		}
 		log.Error(ctx, "saving identity", "err", err)
 		return nil, nil, errors.Join(err, errors.New("can't save identity"))
 	}
@@ -784,6 +793,9 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 	}
 
 	if err = i.identityRepository.Save(ctx, tx, identity); err != nil {
+		if errors.Is(err, repositories.ErrDisplayNameDuplicated) {
+			return nil, nil, ErrIdentityDisplayNameDuplicated
+		}
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 

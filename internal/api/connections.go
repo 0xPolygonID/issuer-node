@@ -17,7 +17,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
-	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 // GetConnections returns the list of connections of a determined issuer
@@ -163,13 +162,13 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
 	}
 
-	w3credentials, err := schema.FromClaimsModelToW3CCredential(credentials)
+	resp, err := connectionResponse(conn, credentials)
 	if err != nil {
-		log.Debug(ctx, "get connection internal server error converting credentials to w3c", "err", err, "req", request)
+		log.Error(ctx, "get connection internal server error converting credentials to w3c", "err", err)
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error parsing the credential of the given connection"}}, nil
 	}
 
-	return GetConnection200JSONResponse(connectionResponse(conn, w3credentials, credentials)), nil
+	return GetConnection200JSONResponse(resp), nil
 }
 
 // DeleteConnectionCredentials deletes all the credentials of the given connection

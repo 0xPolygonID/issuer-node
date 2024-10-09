@@ -194,6 +194,8 @@ paths:
           $ref: '#/components/responses/401'
         '403':
           $ref: '#/components/responses/403'
+        '409':
+          $ref: '#/components/responses/409'
         '500':
           $ref: '#/components/responses/500'
     get:
@@ -753,7 +755,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetCredentialResponse'
+                $ref: '#/components/schemas/Credential'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -1803,71 +1805,6 @@ components:
           type: string
           x-omitempty: false
 
-    Credential:
-      type: object
-      required:
-        - id
-        - proofTypes
-        - createdAt
-        - expired
-        - schemaHash
-        - schemaType
-        - schemaUrl
-        - revNonce
-        - credentialSubject
-        - revoked
-        - userID
-      properties:
-        id:
-          type: string
-          x-go-type: uuid.UUID
-          x-go-type-import:
-            name: uuid
-            path: github.com/google/uuid
-          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
-        proofTypes:
-          type: array
-          items:
-            type: string
-          example: [ "BJJSignature2021" ]
-        createdAt:
-          $ref: '#/components/schemas/TimeUTC'
-        expiresAt:
-          $ref: '#/components/schemas/TimeUTC'
-        expired:
-          type: boolean
-          example: true
-        schemaHash:
-          type: string
-          example: "c9b2370371b7fa8b3dab2a5ba81b6838"
-        schemaType:
-          type: string
-          example: "KYCAgeCredential"
-        schemaUrl:
-          type: string
-          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-        revoked:
-          type: boolean
-          example: false
-        revNonce:
-          type: integer
-          format: uint64
-          example: 2136005230
-        credentialSubject:
-          type: object
-          x-omitempty: false
-          example:
-            birthday: 19960424
-            documentType: 2
-            id: "did:polygonid:polygon:amoy:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
-        userID:
-          type: string
-          example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
-        refreshService:
-          $ref: '#/components/schemas/RefreshService'
-        displayMethod:
-          $ref: '#/components/schemas/DisplayMethod'
-
     AuthenticationConnection:
       type: object
       required:
@@ -1896,58 +1833,35 @@ components:
         connection:
           $ref: '#/components/schemas/AuthenticationConnection'
 
-    GetCredentialResponse:
+    Credential:
       type: object
       required:
         - id
-        - "@context"
-        - type
-        - credentialSubject
-        - credentialStatus
-        - issuer
-        - credentialSchema
-        - proof
         - proofTypes
+        - revoked
+        - schemaHash
+        - vc
       properties:
         id:
           type: string
-          x-omitempty: false
-        "@context":
-          type: array
-          x-omitempty: false
-          items:
-            type: string
-        type:
-          type: array
-          x-omitempty: false
-          items:
-            type: string
-        expirationDate:
-          $ref: '#/components/schemas/TimeUTC'
-        issuanceDate:
-          $ref: '#/components/schemas/TimeUTC'
-        credentialSubject:
-          type: object
-          x-omitempty: false
-        credentialStatus:
-          type: null
-        issuer:
-          type: string
-          x-omitempty: false
-        credentialSchema:
-          $ref: '#/components/schemas/CredentialSchema'
           x-omitempty: false
         proofTypes:
           type: array
           items:
             type: string
           example: [ "BJJSignature2021" ]
-        proof:
-          type: null
-        displayMethod:
-          $ref: '#/components/schemas/DisplayMethod'
-        refreshService:
-          $ref: '#/components/schemas/RefreshService'
+        revoked:
+          type: boolean
+          example: false
+        schemaHash:
+          type: string
+          example: "c9b2370371b7fa8b3dab2a5ba81b6838"
+        vc:
+          type: object
+          x-go-type: verifiable.W3CCredential
+          x-go-type-import:
+              name: verifiable
+              path: "github.com/iden3/go-schema-processor/v2/verifiable"
 
     QrCodeLinkShortResponse:
       type: object
