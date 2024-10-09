@@ -1,4 +1,5 @@
 import {
+  App,
   Avatar,
   Button,
   Card,
@@ -10,7 +11,6 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
 } from "antd";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -59,7 +59,7 @@ export function IssuerState() {
     status: "pending",
   });
 
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
   const transactionsList = useMemo(
     () => (isAsyncTaskDataAvailable(transactions) ? transactions.data : []),
     [transactions]
@@ -96,9 +96,9 @@ export function IssuerState() {
 
     void functionToExecute({ env, identifier }).then((response) => {
       if (response.success) {
-        void messageAPI.success(PUBLISHED_MESSAGE);
+        void message.success(PUBLISHED_MESSAGE);
       } else {
-        void messageAPI.error(response.error.message);
+        void message.error(response.error.message);
       }
 
       void refreshStatus();
@@ -265,115 +265,111 @@ export function IssuerState() {
   }, [fetchTransactions, transactionsList]);
 
   return (
-    <>
-      {messageContext}
+    <SiderLayoutContent
+      description="Issuing Merkle tree type credentials and revoking credentials require an additional step, known as publishing issuer state."
+      title={ISSUER_STATE}
+    >
+      <Divider />
 
-      <SiderLayoutContent
-        description="Issuing Merkle tree type credentials and revoking credentials require an additional step, known as publishing issuer state."
-        title={ISSUER_STATE}
-      >
-        <Divider />
-
-        <Space direction="vertical" size="large">
-          <Card>
-            <Row gutter={[0, 16]} justify="space-between">
-              {disablePublishState ? (
-                <Card.Meta title="No pending actions" />
-              ) : (
-                <Card.Meta
-                  avatar={
-                    failedTransaction && (
-                      <Avatar className="avatar-color-error" icon={<IconAlert />} />
-                    )
-                  }
-                  description={
-                    failedTransaction
-                      ? "Please try again."
-                      : "You can publish issuer state now or bulk publish with other actions."
-                  }
-                  title={
-                    failedTransaction
-                      ? "Transaction failed to publish"
-                      : "Pending actions to be published"
-                  }
-                />
-              )}
-              <Button
-                disabled={disablePublishState}
-                loading={isPublishing || isAsyncTaskStarting(status)}
-                onClick={publish}
-                type="primary"
-              >
-                {failedTransaction ? "Republish" : "Publish"} issuer state
-              </Button>
-            </Row>
-          </Card>
-
-          <TableCard
-            defaultContents={
-              <>
-                <Avatar className="avatar-color-icon" icon={<IconSwitch />} size={48} />
-
-                <Typography.Text strong>No transactions</Typography.Text>
-
-                <Typography.Text type="secondary">
-                  Published transactions will be listed here
-                </Typography.Text>
-              </>
-            }
-            isLoading={isAsyncTaskStarting(transactions)}
-            showDefaultContents={
-              transactions.status === "successful" && transactionsList.length === 0
-            }
-            table={
-              <Table
-                columns={tableColumns.map(({ title, ...column }) => ({
-                  title: (
-                    <Typography.Text type="secondary">
-                      <>{title}</>
-                    </Typography.Text>
-                  ),
-                  ...column,
-                }))}
-                dataSource={transactionsList}
-                locale={{
-                  emptyText: transactions.status === "failed" && (
-                    <ErrorResult error={transactions.error.message} />
-                  ),
-                }}
-                onChange={({ current, pageSize, total }, _, sorters) => {
-                  setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
-                  const parsedSorters = tableSorterParser.safeParse(sorters);
-                  updateUrlParams({
-                    maxResults: pageSize,
-                    page: current,
-                    sorters: parsedSorters.success ? parsedSorters.data : [],
-                  });
-                }}
-                pagination={{
-                  current: paginationPage,
-                  hideOnSinglePage: true,
-                  pageSize: paginationMaxResults,
-                  position: ["bottomRight"],
-                  total: paginationTotal,
-                }}
-                rowKey="id"
-                showSorterTooltip
-                sortDirections={["ascend", "descend"]}
+      <Space direction="vertical" size="large">
+        <Card>
+          <Row gutter={[0, 16]} justify="space-between">
+            {disablePublishState ? (
+              <Card.Meta title="No pending actions" />
+            ) : (
+              <Card.Meta
+                avatar={
+                  failedTransaction && (
+                    <Avatar className="avatar-color-error" icon={<IconAlert />} />
+                  )
+                }
+                description={
+                  failedTransaction
+                    ? "Please try again."
+                    : "You can publish issuer state now or bulk publish with other actions."
+                }
+                title={
+                  failedTransaction
+                    ? "Transaction failed to publish"
+                    : "Pending actions to be published"
+                }
               />
-            }
-            title={
-              <Row justify="space-between">
-                <Space align="end" size="middle">
-                  <Card.Meta title="Published states" />
+            )}
+            <Button
+              disabled={disablePublishState}
+              loading={isPublishing || isAsyncTaskStarting(status)}
+              onClick={publish}
+              type="primary"
+            >
+              {failedTransaction ? "Republish" : "Publish"} issuer state
+            </Button>
+          </Row>
+        </Card>
 
-                  <Tag>{transactionsList.length}</Tag>
-                </Space>
-              </Row>
-            }
-          />
-        </Space>
-      </SiderLayoutContent>
-    </>
+        <TableCard
+          defaultContents={
+            <>
+              <Avatar className="avatar-color-icon" icon={<IconSwitch />} size={48} />
+
+              <Typography.Text strong>No transactions</Typography.Text>
+
+              <Typography.Text type="secondary">
+                Published transactions will be listed here
+              </Typography.Text>
+            </>
+          }
+          isLoading={isAsyncTaskStarting(transactions)}
+          showDefaultContents={
+            transactions.status === "successful" && transactionsList.length === 0
+          }
+          table={
+            <Table
+              columns={tableColumns.map(({ title, ...column }) => ({
+                title: (
+                  <Typography.Text type="secondary">
+                    <>{title}</>
+                  </Typography.Text>
+                ),
+                ...column,
+              }))}
+              dataSource={transactionsList}
+              locale={{
+                emptyText: transactions.status === "failed" && (
+                  <ErrorResult error={transactions.error.message} />
+                ),
+              }}
+              onChange={({ current, pageSize, total }, _, sorters) => {
+                setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
+                const parsedSorters = tableSorterParser.safeParse(sorters);
+                updateUrlParams({
+                  maxResults: pageSize,
+                  page: current,
+                  sorters: parsedSorters.success ? parsedSorters.data : [],
+                });
+              }}
+              pagination={{
+                current: paginationPage,
+                hideOnSinglePage: true,
+                pageSize: paginationMaxResults,
+                position: ["bottomRight"],
+                total: paginationTotal,
+              }}
+              rowKey="id"
+              showSorterTooltip
+              sortDirections={["ascend", "descend"]}
+            />
+          }
+          title={
+            <Row justify="space-between">
+              <Space align="end" size="middle">
+                <Card.Meta title="Published states" />
+
+                <Tag>{transactionsList.length}</Tag>
+              </Space>
+            </Row>
+          }
+        />
+      </Space>
+    </SiderLayoutContent>
   );
 }

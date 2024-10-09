@@ -1,4 +1,4 @@
-import { Col, Divider, Menu, Row, Space, Tag, Typography, message } from "antd";
+import { App, Col, Divider, Menu, Row, Space, Tag, Typography } from "antd";
 import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
@@ -41,7 +41,7 @@ export function SiderMenu({
 
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
   const [isSettingsModalMounted, setIsSettingsModalMounted] = useState<boolean>(false);
 
@@ -104,8 +104,6 @@ export function SiderMenu({
 
   return (
     <>
-      {messageContext}
-
       <Row
         className="menu-sider-layout"
         justify="space-between"
@@ -229,7 +227,7 @@ export function SiderMenu({
           }}
           onSave={() => {
             setIsSettingsModalOpen(false);
-            void messageAPI.success("IPFS gateway successfully changed");
+            void message.success("IPFS gateway successfully changed");
           }}
         />
       )}

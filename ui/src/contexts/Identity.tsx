@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { App } from "antd";
 import {
   PropsWithChildren,
   createContext,
@@ -46,7 +46,8 @@ const IdentityContext = createContext(defaultIdentityState);
 
 export function IdentityProvider(props: PropsWithChildren) {
   const env = useEnvContext();
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
+
   const navigate = useNavigate();
   const location = useLocation();
   const [identitiesList, setIdentitiesList] = useState<AsyncTask<Identity[], AppError>>({
@@ -97,11 +98,11 @@ export function IdentityProvider(props: PropsWithChildren) {
       } else {
         if (!isAbortedError(response.error)) {
           setIdentitiesList({ error: response.error, status: "failed" });
-          void messageAPI.error(response.error.message);
+          void message.error(response.error.message);
         }
       }
     },
-    [env, messageAPI, identifierParam]
+    [env, message, identifierParam]
   );
 
   const handleChange = useCallback(
@@ -152,12 +153,9 @@ export function IdentityProvider(props: PropsWithChildren) {
   }, [identifier, identityDisplayName, identitiesList, handleChange, fetchIdentities]);
 
   return (
-    <>
-      {messageContext}
-      {(identitiesList.status === "successful" || identitiesList.status === "reloading") && (
-        <IdentityContext.Provider value={value} {...props} />
-      )}
-    </>
+    (identitiesList.status === "successful" || identitiesList.status === "reloading") && (
+      <IdentityContext.Provider value={value} {...props} />
+    )
   );
 }
 
