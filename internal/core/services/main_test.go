@@ -103,7 +103,7 @@ func TestMain(m *testing.M) {
 
 	cachex = cache.NewMemoryCache()
 
-	docLoader = loader.NewDocumentLoader(ipfsGatewayURL)
+	docLoader = loader.NewDocumentLoader(ipfsGatewayURL, false)
 	cfg.Ethereum = cfgForTesting.Ethereum
 	cfg.ServerUrl = "http://localhost:3001"
 	m.Run()
