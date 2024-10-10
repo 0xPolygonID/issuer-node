@@ -70,7 +70,7 @@ services:
       - api
 
   api:
-    image: privadoid/issuernode
+    image: privadoid/issuernode-api
     pull_policy: always
     ports:
       - "3001:3001"
@@ -91,7 +91,7 @@ services:
       - redis
 
   notifications:
-    image: privadoid/issuernode
+    image: privadoid/issuernode-api
     pull_policy: always
     env_file:
       - ../../.env-issuer
@@ -108,7 +108,7 @@ services:
       - api
 
   pending_publisher:
-    image: privadoid/issuernode
+    image: privadoid/issuernode-api
     pull_policy: always
     env_file:
       - ../../.env-issuer

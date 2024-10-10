@@ -25,7 +25,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
   - [Quick Start Installation](#quick-start-installation)
     - [Prerequisites](#prerequisites)
     - [Run Issuer Node API and UI (docker compose with images from privadoid dockerhub registry)](#run-issuer-node-api-and-ui-docker-compose-with-images-from-privadoid-registry)
-    - [Install and run Issuer Node API and UI (docker compose and build from source)](#install-and-run-issuer-node-api-and-ui-docker-compose-and-build-from-source)
+    - [Install and run Issuer Node API and UI (docker compose and build from source)](#install-and-run-issuer-node-api-and-ui---docker-compose-and-build-from-source)
     - [Running only Issuer Node API (docker compose and build from source)](#running-only-issuer-node-api-docker-compose-and-build-from-source)
   - [KMS Providers Configuration](#kms-providers-configuration)
   - [Quick Start Demo](#quick-start-demo)
@@ -75,11 +75,11 @@ cp resolvers_settings_sample.yaml resolvers_settings.yaml
 ```
 then modify the file with the proper values. The most important fields to run the issuer node are RPC (`networkURL`) fields.
 In this file you can define customizations for each type of blockchain and network. For this example, we only need to
-define the RPCs. that will use.
+define the RPCs that we will use.
 
 4. Run
 ```shell
-make run-full
+make run-all-registry
 ```
 
 after a few seconds, the issuer node will be running and you can check the docker containers with `docker ps` and you 
@@ -182,7 +182,7 @@ make up
 Then run: 
 
 ```shell
-make build && make run
+make build-api && make run-api
 ```
 ----
 **Troubleshooting:**

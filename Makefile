@@ -27,8 +27,8 @@ REQUIRED_FILE := ${ISSUER_RESOLVER_PATH}
 DOTENV_CMD = $(BIN)/godotenv
 ENV = $(DOTENV_CMD) -f .env-issuer
 
-.PHONY: run-full
-run-full:
+.PHONY: run-all-registry
+run-all-registry:
 	@make down
 ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
 	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
@@ -50,10 +50,6 @@ build/docker: ## Build the docker image.
 		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
 		.
 
-.PHONY: clean
-clean: ## Go clean
-	$(GO) clean ./...
-
 .PHONY: tests
 tests:
 	$(GO) test -v ./... --count=1
@@ -73,7 +69,7 @@ api: $(BIN)/oapi-codegen
 .PHONY: up
 up:
 ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
-		$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
 else
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
 endif
@@ -84,14 +80,14 @@ endif
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
 
 # Build the docker image for the issuer-api
-.PHONY: build
-build:
-	docker build -t issuer-api:local -f ./Dockerfile .
+.PHONY: build-api
+build-api:
+	docker build -t issuernode-api:local -f ./Dockerfile .
 
 # Build the docker image for the issuer-ui
 .PHONY: build-ui
 build-ui:
-	docker build -t issuer-ui:local -f ./ui/Dockerfile ./ui
+	docker build -t issuernode-ui:local -f ./ui/Dockerfile ./ui
 
 
 .PHONY: validate_issuer_resolver_file
@@ -125,8 +121,8 @@ validate_localstorage_file:
 	fi
 
 # Run the api, pending_publisher and notifications services
-.PHONY: run
-run: validate_issuer_resolver_file validate_localstorage_file up
+.PHONY: run-api
+run-api: validate_issuer_resolver_file validate_localstorage_file up
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications
 
 # Run the ui.
@@ -137,7 +133,7 @@ run-ui: build-ui add-host-url-swagger
 
 # Run all services
 .PHONE: run-all
-run-all: build build-ui validate_localstorage_file up add-host-url-swagger
+run-all: build-api build-ui validate_localstorage_file up add-host-url-swagger
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications
 
 
