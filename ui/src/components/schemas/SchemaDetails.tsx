@@ -2,7 +2,7 @@ import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
-import { getApiSchema } from "src/adapters/api/schemas";
+import { getApiSchema, processUrl } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import CreditCardIcon from "src/assets/icons/credit-card-plus.svg?react";
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
@@ -171,6 +171,7 @@ export function SchemaDetails() {
           );
         } else {
           const { bigInt, createdAt, hash, url, version } = schema.data;
+          const processedSchemaUrl = processUrl(url, env);
           const [jsonSchema, jsonSchemaObject] = jsonSchemaTuple.data;
           const [jsonLdType, jsonLdContextObject] = contextTuple.data;
 
@@ -204,7 +205,12 @@ export function SchemaDetails() {
 
                   <Detail copyable label="Hash" text={hash} />
 
-                  <Detail copyable href={url} label="URL" text={url} />
+                  <Detail
+                    copyable
+                    href={processedSchemaUrl.success ? processedSchemaUrl.data : url}
+                    label="URL"
+                    text={url}
+                  />
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
 
