@@ -331,7 +331,7 @@ type GetConnectionsResponse = []GetConnectionResponse
 type GetIdentitiesResponse struct {
 	Blockchain           string                                     `json:"blockchain"`
 	CredentialStatusType *GetIdentitiesResponseCredentialStatusType `json:"credentialStatusType,omitempty"`
-	DisplayName          *string                                    `json:"displayName,omitempty"`
+	DisplayName          *string                                    `json:"displayName"`
 	Identifier           string                                     `json:"identifier"`
 	Method               string                                     `json:"method"`
 	Network              string                                     `json:"network"`

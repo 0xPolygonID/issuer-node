@@ -1583,7 +1583,7 @@ components:
           example: "amoy"
         displayName:
           type: string
-          x-omitempty: true
+          x-omitempty: false
           example: "KYCAgeCredential Issuer identity"
 
     GetConnectionResponse:
