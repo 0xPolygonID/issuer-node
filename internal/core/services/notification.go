@@ -67,6 +67,7 @@ func (n *notification) sendRevokeCredentialNotification(ctx context.Context, sta
 		return err
 	}
 
+	log.Info(ctx, "sendRevokeCredentialNotification: credentials to revoke", "count", len(rCreds))
 	for _, rCred := range rCreds {
 		issuerDID, err := w3c.ParseDID(rCred.Issuer)
 		if err != nil {
