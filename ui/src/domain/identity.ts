@@ -1,5 +1,3 @@
-export type Identifier = string;
-
 export enum IdentityType {
   BJJ = "BJJ",
   ETH = "ETH",
@@ -24,7 +22,7 @@ export type SupportedNetwork = {
 export type Identity = {
   blockchain: string;
   credentialStatusType: CredentialStatusType;
-  displayName: string;
+  displayName: string | null;
   identifier: string;
   method: Method;
   network: string;
@@ -32,7 +30,7 @@ export type Identity = {
 
 export type IdentityDetails = {
   credentialStatusType: CredentialStatusType;
-  displayName: string;
-  identifier: Identifier;
+  displayName: string | null;
+  identifier: string;
   keyType: IdentityType;
 };

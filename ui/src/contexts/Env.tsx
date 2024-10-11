@@ -15,7 +15,6 @@ const defaultEnvContext: Env = {
   blockExplorerUrl: "",
   ipfsGatewayUrl: "",
   issuer: {
-    did: "",
     logo: "",
     name: "",
   },

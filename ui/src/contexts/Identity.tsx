@@ -10,28 +10,19 @@ import {
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
-import { getIdentities, identifierParser } from "src/adapters/api/identities";
+import { getIdentities } from "src/adapters/api/identities";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Identifier, Identity } from "src/domain";
+import { AppError, Identity } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import {
-  getStorageByKey,
-  isAbortedError,
-  makeRequestAbortable,
-  setStorageByKey,
-} from "src/utils/browser";
-import {
-  IDENTIFIER_LOCAL_STORAGE_KEY,
-  IDENTIFIER_SEARCH_PARAM,
-  ROOT_PATH,
-} from "src/utils/constants";
+import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
+import { IDENTIFIER_SEARCH_PARAM, ROOT_PATH } from "src/utils/constants";
 import { buildAppError } from "src/utils/error";
 
 type IdentityState = {
   fetchIdentities: (signal: AbortSignal) => void;
-  handleChange: (identifier: Identifier) => void;
-  identifier: Identifier;
+  handleChange: (identifier: string) => void;
+  identifier: string;
   identitiesList: AsyncTask<Identity[], AppError>;
   identityDisplayName: string;
 };
@@ -54,13 +45,13 @@ export function IdentityProvider(props: PropsWithChildren) {
   const [identitiesList, setIdentitiesList] = useState<AsyncTask<Identity[], AppError>>({
     status: "pending",
   });
-  const [identifier, setIdentifier] = useState<Identifier>("");
+  const [identifier, setIdentifier] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
 
   const identity =
     (identitiesList.status === "successful" || identitiesList.status === "reloading") &&
     identitiesList.data.find((identity) => identity.identifier === identifier);
-  const identityDisplayName = identity ? identity.displayName : "";
+  const identityDisplayName = identity && identity.displayName ? identity.displayName : "";
 
   const identifierParam = searchParams.get(IDENTIFIER_SEARCH_PARAM);
 
@@ -86,20 +77,12 @@ export function IdentityProvider(props: PropsWithChildren) {
           );
         }
 
-        const savedIdentifier = getStorageByKey({
-          defaultValue: "",
-          key: IDENTIFIER_LOCAL_STORAGE_KEY,
-          parser: identifierParser,
-        });
-
         setIdentitiesList({ data: identities, status: "successful" });
         if (
           identifierParam &&
           identities.some(({ identifier }) => identifier === identifierParam)
         ) {
           setIdentifier(identifierParam);
-        } else if (identities.some(({ identifier }) => identifier === savedIdentifier)) {
-          setIdentifier(savedIdentifier);
         } else if (identities.length > 0 && identities[0]) {
           setIdentifier(identities[0].identifier);
         }
@@ -114,7 +97,7 @@ export function IdentityProvider(props: PropsWithChildren) {
   );
 
   const handleChange = useCallback(
-    (identifier: Identifier) => {
+    (identifier: string) => {
       setIdentifier(identifier);
       navigate(ROUTES.schemas.path);
     },
@@ -140,7 +123,6 @@ export function IdentityProvider(props: PropsWithChildren) {
         },
         { replace: true }
       );
-      setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
     }
   }, [identifier, identifierParam, identitiesList, location, setSearchParams]);
 

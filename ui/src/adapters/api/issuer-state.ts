@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { Sorter, buildAuthorizationHeader, serializeSorters } from "src/adapters/api";
 import { datetimeParser, getResourceParser, getStrictParser } from "src/adapters/parsers";
-import { Env, Identifier, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
+import { Env, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { Resource } from "src/utils/types";
 
@@ -37,7 +37,7 @@ export async function publishState({
   identifier,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
 }): Promise<Response<null>> {
   try {
     await axios({
@@ -59,7 +59,7 @@ export async function retryPublishState({
   identifier,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
 }): Promise<Response<null>> {
   try {
     await axios({
@@ -82,7 +82,7 @@ export async function getStatus({
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   signal?: AbortSignal;
 }): Promise<Response<IssuerStatus>> {
   try {
@@ -112,7 +112,7 @@ export async function getTransactions({
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   params: {
     maxResults?: number;
     page?: number;

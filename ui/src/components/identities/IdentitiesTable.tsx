@@ -7,6 +7,7 @@ import {
   Space,
   Table,
   TableColumnsType,
+  Tag,
   Typography,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
@@ -48,7 +49,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
         setFilteredIdentifiers(identitiesList.data);
       } else {
         const filteredData = identitiesList.data.filter((issuer: Identity) =>
-          Object.values(issuer).some((value: string) => value.includes(queryParam))
+          Object.values(issuer).some((value: string | null) => value?.includes(queryParam))
         );
         setFilteredIdentifiers(filteredData);
       }
@@ -80,7 +81,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
       render: (displayName: Identity["displayName"]) => (
         <Typography.Text strong>{displayName}</Typography.Text>
       ),
-      sorter: ({ displayName: a }, { displayName: b }) => a.localeCompare(b),
+      sorter: ({ displayName: a }, { displayName: b }) => (a || "").localeCompare(b || ""),
       title: "Name",
     },
     {
@@ -162,7 +163,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
       isLoading={isAsyncTaskStarting(identitiesList)}
       onSearch={onSearch}
       query={queryParam}
-      searchPlaceholder="Search Issuer"
+      searchPlaceholder="Search identity name"
       showDefaultContents={
         identitiesList.status === "successful" &&
         filteredIdentifiers.length === 0 &&
@@ -197,6 +198,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
         <Row justify="space-between">
           <Space size="middle">
             <Card.Meta title="Identities" />
+            <Tag>{filteredIdentifiers.length}</Tag>
           </Space>
         </Row>
       }

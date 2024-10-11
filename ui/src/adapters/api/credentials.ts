@@ -21,7 +21,6 @@ import {
   Credential,
   CredentialProofType,
   Env,
-  Identifier,
   IssuedQRCode,
   Json,
   Link,
@@ -61,13 +60,12 @@ type CredentialInput = Pick<Credential, "id" | "revoked" | "schemaHash"> & {
     credentialStatus: {
       revocationNonce: number;
     } & Record<string, unknown>;
-    credentialSubject: {
-      type: string;
-    } & Record<string, unknown>;
+    credentialSubject: Record<string, unknown>;
     expirationDate?: string | null;
     issuanceDate: string;
     issuer: string;
     refreshService?: RefreshService | null;
+    type: [string, string];
   };
 };
 
@@ -89,11 +87,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
             revocationNonce: z.number(),
           })
           .and(z.record(z.unknown())),
-        credentialSubject: z
-          .object({
-            type: z.string(),
-          })
-          .and(z.record(z.unknown())),
+        credentialSubject: z.record(z.unknown()),
         expirationDate: datetimeParser.nullable().default(null),
         issuanceDate: datetimeParser,
         issuer: z.string(),
@@ -101,6 +95,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
           .object({ id: z.string(), type: z.literal("Iden3RefreshService2023") })
           .nullable()
           .default(null),
+        type: z.tuple([z.string(), z.string()]),
       }),
     })
     .transform(
@@ -117,22 +112,24 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
           issuanceDate,
           issuer,
           refreshService,
+          type,
         },
       }) => {
         const expired = expirationDate ? new Date() > new Date(expirationDate) : false;
+        const [, schemaType] = type;
 
         return {
-          createdAt: issuanceDate,
           credentialSubject,
+          expirationDate,
           expired,
-          expiresAt: expirationDate,
           id,
+          issuanceDate,
           proofTypes,
-          refreshService: refreshService,
+          refreshService,
           revNonce: credentialStatus.revocationNonce,
           revoked,
           schemaHash,
-          schemaType: credentialSubject.type,
+          schemaType,
           schemaUrl: credentialSchema.id,
           userID: issuer,
         };
@@ -154,7 +151,7 @@ export async function getCredential({
 }: {
   credentialID: string;
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   signal?: AbortSignal;
 }): Promise<Response<Credential>> {
   try {
@@ -180,7 +177,7 @@ export async function getCredentials({
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   params: {
     credentialSubject?: string;
     maxResults?: number;
@@ -230,7 +227,7 @@ export async function createCredential({
   payload,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   payload: CreateCredential;
 }): Promise<Response<ID>> {
   try {
@@ -255,7 +252,7 @@ export async function revokeCredential({
   nonce,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   nonce: number;
 }): Promise<Response<Message>> {
   try {
@@ -280,7 +277,7 @@ export async function deleteCredential({
 }: {
   env: Env;
   id: string;
-  identifier: Identifier;
+  identifier: string;
 }): Promise<Response<Message>> {
   try {
     const response = await axios({
@@ -337,7 +334,7 @@ export async function getLink({
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   linkID: string;
   signal: AbortSignal;
 }): Promise<Response<Link>> {
@@ -364,7 +361,7 @@ export async function getLinks({
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   params: {
     query?: string;
     status?: LinkStatus;
@@ -406,7 +403,7 @@ export async function updateLink({
 }: {
   env: Env;
   id: string;
-  identifier: Identifier;
+  identifier: string;
   payload: {
     active: boolean;
   };
@@ -434,7 +431,7 @@ export async function deleteLink({
 }: {
   env: Env;
   id: string;
-  identifier: Identifier;
+  identifier: string;
 }): Promise<Response<Message>> {
   try {
     const response = await axios({
@@ -468,7 +465,7 @@ export async function createLink({
   payload,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   payload: CreateLink;
 }): Promise<Response<ID>> {
   try {
@@ -514,7 +511,7 @@ export async function createAuthQRCode({
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   linkID: string;
   signal?: AbortSignal;
 }): Promise<Response<AuthQRCode>> {
@@ -537,15 +534,10 @@ type IssuedQRCodeInput = {
 };
 
 const issuedQRCodeParser = getStrictParser<IssuedQRCodeInput, IssuedQRCode>()(
-  z
-    .object({
-      schemaType: z.string(),
-      universalLink: z.string(),
-    })
-    .transform(({ schemaType, universalLink }) => ({
-      qrCode: universalLink,
-      schemaType: schemaType,
-    }))
+  z.object({
+    schemaType: z.string(),
+    universalLink: z.string(),
+  })
 );
 
 export async function getIssuedQRCodes({
@@ -556,7 +548,7 @@ export async function getIssuedQRCodes({
 }: {
   credentialID: string;
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   signal: AbortSignal;
 }): Promise<Response<[IssuedQRCode, IssuedQRCode]>> {
   try {

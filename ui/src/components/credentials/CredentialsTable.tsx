@@ -97,6 +97,7 @@ export function CredentialsTable() {
     : DEFAULT_PAGINATION_MAX_RESULTS;
 
   const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
+
   const showDefaultContent =
     credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
 
@@ -117,25 +118,25 @@ export function CredentialsTable() {
       title: "Credential",
     },
     {
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+      dataIndex: "issuanceDate",
+      key: "issuanceDate",
+      render: (issuanceDate: Credential["issuanceDate"]) => (
+        <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
       sorter: {
         multiple: 2,
       },
-      sortOrder: sorters.find(({ field }) => field === "createdAt")?.order,
+      sortOrder: sorters.find(({ field }) => field === "issuanceDate")?.order,
       title: ISSUE_DATE,
     },
     {
-      dataIndex: "expiresAt",
-      key: "expiresAt",
-      render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
-        expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
+      dataIndex: "expirationDate",
+      key: "expirationDate",
+      render: (expirationDate: Credential["expirationDate"], credential: Credential) =>
+        expirationDate ? (
+          <Tooltip placement="topLeft" title={formatDate(expirationDate)}>
             <Typography.Text>
-              {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
+              {credential.expired ? "Expired" : dayjs(expirationDate).fromNow(true)}
             </Typography.Text>
           </Tooltip>
         ) : (
@@ -145,7 +146,7 @@ export function CredentialsTable() {
       sorter: {
         multiple: 3,
       },
-      sortOrder: sorters.find(({ field }) => field === "expiresAt")?.order,
+      sortOrder: sorters.find(({ field }) => field === "expirationDate")?.order,
       title: EXPIRATION,
     },
     {

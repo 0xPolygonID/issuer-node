@@ -172,8 +172,8 @@ export function CredentialDetails() {
           );
         } else {
           const {
-            createdAt,
-            expiresAt,
+            expirationDate,
+            issuanceDate,
             proofTypes,
             refreshService,
             revoked,
@@ -224,11 +224,11 @@ export function CredentialDetails() {
 
                     <Detail label="Proof type" text={proofTypes.join(", ")} />
 
-                    <Detail label="Issue date" text={formatDate(createdAt)} />
+                    <Detail label="Issue date" text={formatDate(issuanceDate)} />
 
                     <Detail
                       label="Credential expiration date"
-                      text={expiresAt ? formatDate(expiresAt) : "-"}
+                      text={expirationDate ? formatDate(expirationDate) : "-"}
                     />
 
                     <Detail

@@ -475,7 +475,7 @@ svg {
 }
 
 .onboarding {
-  &-check-icon {
+  .onboarding-check-icon {
     background-color: $success-light-color;
 
     path {
@@ -483,18 +483,19 @@ svg {
     }
   }
 
-  &-divider {
+  .onboarding-divider {
     border-color: $icon-color;
   }
 }
 
 .identities-dropdown {
   .ant-dropdown-menu {
+    scrollbar-width: thin;
     border-radius: 8px;
     border: 1px solid $border-color;
     padding: 0;
     max-height: 336px;
-    overflow: scroll;
+    overflow-y: scroll;
     transform: translateX(10px);
 
     @media screen and (width <= 576px) {

@@ -59,6 +59,6 @@ export type {
 
 export type { Schema as ApiSchema } from "src/domain/schema";
 
-export type { Identifier, Identity, IdentityDetails, SupportedNetwork } from "src/domain/identity";
+export type { Identity, IdentityDetails, SupportedNetwork } from "src/domain/identity";
 
 export { IdentityType, CredentialStatusType, Method } from "src/domain/identity";

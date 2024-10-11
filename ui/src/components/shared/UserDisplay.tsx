@@ -17,35 +17,33 @@ export function UserDisplay() {
   const { token } = theme.useToken();
 
   const identityItems = isAsyncTaskDataAvailable(identitiesList)
-    ? identitiesList.data
-        .toSorted((item) => (item.identifier === identifier ? -1 : 0))
-        .map((identity, index) => {
-          const currentIdentity = identity.identifier === identifier;
-          return {
-            key: `${index}`,
-            label: (
+    ? identitiesList.data.map((identity, index) => {
+        const currentIdentity = identity.identifier === identifier;
+        return {
+          key: `${index}`,
+          label: (
+            <Flex
+              align="center"
+              className={currentIdentity ? "active" : ""}
+              gap={16}
+              justify="space-between"
+            >
               <Flex
-                align="center"
-                className={currentIdentity ? "active" : ""}
-                gap={16}
-                justify="space-between"
+                style={{
+                  width: 242,
+                }}
+                vertical
               >
-                <Flex
-                  style={{
-                    width: 242,
-                  }}
-                  vertical
-                >
-                  <Tooltip title={identity.displayName}>
-                    <Typography.Text ellipsis>{identity.displayName}</Typography.Text>
-                  </Tooltip>
-                </Flex>
-                {currentIdentity && <IconCheck />}
+                <Tooltip title={identity.displayName}>
+                  <Typography.Text ellipsis>{identity.displayName}</Typography.Text>
+                </Tooltip>
               </Flex>
-            ),
-            onClick: () => handleChange(identity.identifier),
-          };
-        })
+              {currentIdentity && <IconCheck />}
+            </Flex>
+          ),
+          onClick: () => handleChange(identity.identifier),
+        };
+      })
     : [];
 
   const items = [
@@ -76,11 +74,13 @@ export function UserDisplay() {
             <IconChevron />
           </Flex>
           <Flex gap={4} vertical>
-            <Tooltip title={identityDisplayName}>
-              <Typography.Text ellipsis style={{ fontWeight: 600 }} type="secondary">
-                {identityDisplayName}
-              </Typography.Text>
-            </Tooltip>
+            <Typography.Text
+              ellipsis={{ tooltip: identityDisplayName }}
+              style={{ fontWeight: 600 }}
+              type="secondary"
+            >
+              {identityDisplayName}
+            </Typography.Text>
 
             <Flex align="center" gap={4}>
               <Tag

@@ -70,8 +70,8 @@ export function CredentialIssuedQR() {
   const [issuedQRCodeLink, issuedQRCodeRaw] = issuedQRCodes.data;
   return (
     <CredentialQR
-      qrCodeLink={issuedQRCodeLink.qrCode}
-      qrCodeRaw={issuedQRCodeRaw.qrCode}
+      qrCodeLink={issuedQRCodeLink.universalLink}
+      qrCodeRaw={issuedQRCodeRaw.universalLink}
       schemaType={issuedQRCodeLink.schemaType}
       subTitle="Scan the QR code with your Polygon ID wallet to add the credential."
     />

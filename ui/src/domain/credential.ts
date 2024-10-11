@@ -17,13 +17,11 @@ export type Proof = {
 };
 
 export type Credential = {
-  createdAt: Date;
-  credentialSubject: {
-    type: string;
-  } & Record<string, unknown>;
+  credentialSubject: Record<string, unknown>;
+  expirationDate: Date | null;
   expired: boolean;
-  expiresAt: Date | null;
   id: string;
+  issuanceDate: Date;
   proofTypes: ProofType[];
   refreshService: RefreshService | null;
   revNonce: number;
@@ -35,8 +33,8 @@ export type Credential = {
 };
 
 export type IssuedQRCode = {
-  qrCode: string;
   schemaType: string;
+  universalLink: string;
 };
 
 export type LinkStatus = "active" | "inactive" | "exceeded";

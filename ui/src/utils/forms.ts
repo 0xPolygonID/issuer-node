@@ -1,5 +1,4 @@
 import dayjs from "dayjs";
-import { Identifier } from "src/domain";
 
 export function formatDate(
   date: dayjs.Dayjs | Date,
@@ -11,7 +10,7 @@ export function formatDate(
   return dayjs(date).format(template);
 }
 
-export function formatIdentifier(identifier: Identifier, short?: boolean): string {
+export function formatIdentifier(identifier: string, short?: boolean): string {
   const parts = identifier.split(":");
   const id = parts.at(-1);
   const shortId = `${id?.slice(0, 5)}...${id?.slice(-4)}`;

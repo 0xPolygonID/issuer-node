@@ -8,7 +8,6 @@ export type Env = {
   buildTag?: string;
   ipfsGatewayUrl: string;
   issuer: {
-    did: string;
     logo: string;
     name: string;
   };
