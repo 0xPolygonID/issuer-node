@@ -28,6 +28,8 @@ const identityParser = getStrictParser<Identity>()(
   })
 );
 
+export const identifierParser = getStrictParser<string>()(z.string());
+
 export async function getIdentities({
   env,
   signal,

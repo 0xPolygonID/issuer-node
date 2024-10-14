@@ -96,3 +96,5 @@ export const IPFS_CUSTOM_GATEWAY_KEY = "ipfsGatewayUrl";
 
 export const URL_FIELD_ERROR_MESSAGE =
   "Must be a valid URL that includes a scheme such as https://";
+
+export const IDENTIFIER_LOCAL_STORAGE_KEY = "identifier";

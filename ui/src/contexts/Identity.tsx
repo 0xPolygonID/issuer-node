@@ -10,13 +10,22 @@ import {
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
-import { getIdentities } from "src/adapters/api/identities";
+import { getIdentities, identifierParser } from "src/adapters/api/identities";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Identity } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { IDENTIFIER_SEARCH_PARAM, ROOT_PATH } from "src/utils/constants";
+import {
+  getStorageByKey,
+  isAbortedError,
+  makeRequestAbortable,
+  setStorageByKey,
+} from "src/utils/browser";
+import {
+  IDENTIFIER_LOCAL_STORAGE_KEY,
+  IDENTIFIER_SEARCH_PARAM,
+  ROOT_PATH,
+} from "src/utils/constants";
 import { buildAppError } from "src/utils/error";
 
 type IdentityState = {
@@ -77,12 +86,20 @@ export function IdentityProvider(props: PropsWithChildren) {
           );
         }
 
+        const savedIdentifier = getStorageByKey({
+          defaultValue: "",
+          key: IDENTIFIER_LOCAL_STORAGE_KEY,
+          parser: identifierParser,
+        });
+
         setIdentitiesList({ data: identities, status: "successful" });
         if (
           identifierParam &&
           identities.some(({ identifier }) => identifier === identifierParam)
         ) {
           setIdentifier(identifierParam);
+        } else if (identities.some(({ identifier }) => identifier === savedIdentifier)) {
+          setIdentifier(savedIdentifier);
         } else if (identities.length > 0 && identities[0]) {
           setIdentifier(identities[0].identifier);
         }
@@ -123,6 +140,7 @@ export function IdentityProvider(props: PropsWithChildren) {
         },
         { replace: true }
       );
+      setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
     }
   }, [identifier, identifierParam, identitiesList, location, setSearchParams]);
 
