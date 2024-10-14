@@ -88,7 +88,7 @@ func (c *claims) GetRevoked(ctx context.Context, conn db.Querier, currentState s
 		mtp,
 		claims.created_at
 	FROM claims
-	LEFT JOIN revocation ON claims.rev_nonce = revocation.nonce AND claims.issuer = revocation.identifier
+	INNER JOIN revocation ON claims.rev_nonce = revocation.nonce AND claims.issuer = revocation.identifier
 	WHERE claims.identity_state = $1`
 
 	rows, err := conn.Query(ctx, query, currentState)

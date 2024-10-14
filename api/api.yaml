@@ -262,7 +262,6 @@ paths:
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
 
-  /v2/identities/{identifier}/details:
     get:
       summary: Get Identity Detail
       operationId: GetIdentityDetails
@@ -1378,7 +1377,7 @@ components:
           enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         displayName:
           type: string
-          x-omitempty: true
+          x-omitempty: false
           example: "KYCAgeCredential Issuer identity"
 
     CreateIdentityResponse:
@@ -1420,6 +1419,7 @@ components:
         identifier:
           type: string
         displayName:
+          x-omitempty: false
           type: string
         state:
           $ref: '#/components/schemas/IdentityState'
@@ -1583,7 +1583,7 @@ components:
           example: "amoy"
         displayName:
           type: string
-          x-omitempty: true
+          x-omitempty: false
           example: "KYCAgeCredential Issuer identity"
 
     GetConnectionResponse:

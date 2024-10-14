@@ -392,7 +392,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/v2/identities/%s/details", tc.did)
+			url := fmt.Sprintf("/v2/identities/%s", tc.did)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
