@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
-  AuthQRCode,
-  createAuthQRCode,
+  AuthMessage,
+  createAuthMessage,
   createCredential,
   createLink,
 } from "src/adapters/api/credentials";
@@ -72,7 +72,7 @@ export function IssueCredential() {
         }
   );
 
-  const [authQRCode, setAuthQRCode] = useState<AsyncTask<AuthQRCode, AppError>>({
+  const [authMessage, setAuthMessage] = useState<AsyncTask<AuthMessage, AppError>>({
     status: "pending",
   });
 
@@ -139,18 +139,18 @@ export function IssueCredential() {
         });
 
         if (linkResponse.success) {
-          const authQRResponse = await createAuthQRCode({
+          const authMessageResponse = await createAuthMessage({
             env,
             identifier,
             linkID: linkResponse.data.id,
           });
 
-          if (authQRResponse.success) {
-            setAuthQRCode({ data: authQRResponse.data, status: "successful" });
+          if (authMessageResponse.success) {
+            setAuthMessage({ data: authMessageResponse.data, status: "successful" });
             setStep("summary");
           } else {
-            setAuthQRCode({ error: authQRResponse.error, status: "failed" });
-            void messageAPI.error(authQRResponse.error.message);
+            setAuthMessage({ error: authMessageResponse.error, status: "failed" });
+            void messageAPI.error(authMessageResponse.error.message);
           }
 
           void messageAPI.success("Credential link created");
@@ -302,10 +302,10 @@ export function IssueCredential() {
 
             case "summary": {
               return (
-                isAsyncTaskDataAvailable(authQRCode) && (
+                isAsyncTaskDataAvailable(authMessage) && (
                   <Summary
-                    deepLink={authQRCode.data.deepLink}
-                    universalLink={authQRCode.data.universalLink}
+                    deepLink={authMessage.data.deepLink}
+                    universalLink={authMessage.data.universalLink}
                   />
                 )
               );

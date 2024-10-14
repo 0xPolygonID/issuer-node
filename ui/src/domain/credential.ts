@@ -26,7 +26,7 @@ export type Credential = {
   userID: string;
 };
 
-export type IssuedQRCode = {
+export type IssuedMessage = {
   schemaType: string;
   universalLink: string;
 };

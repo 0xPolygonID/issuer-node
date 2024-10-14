@@ -5,7 +5,7 @@ export type { Connection } from "src/domain/connection";
 export type {
   Credential,
   CredentialsTabIDs,
-  IssuedQRCode,
+  IssuedMessage,
   Link,
   LinkStatus,
   RefreshService,
