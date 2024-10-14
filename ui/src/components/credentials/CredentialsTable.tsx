@@ -174,12 +174,11 @@ export function CredentialsTable() {
                 key: "details",
                 label: DETAILS,
                 onClick: () =>
-                  navigate({
-                    pathname: generatePath(ROUTES.credentialDetails.path, {
+                  navigate(
+                    generatePath(ROUTES.credentialDetails.path, {
                       credentialID: id,
-                    }),
-                    search: new URLSearchParams({ revoked: `${credential.revoked}` }).toString(),
-                  }),
+                    })
+                  ),
               },
               {
                 key: "divider1",

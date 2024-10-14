@@ -1,6 +1,6 @@
 export type CredentialsTabIDs = "issued" | "links";
 
-export enum CredentialProofType {
+export enum ProofType {
   BJJSignature2021 = "BJJSignature2021",
   Iden3SparseMerkleTreeProof = "Iden3SparseMerkleTreeProof",
 }
@@ -16,7 +16,7 @@ export type Credential = {
   expired: boolean;
   id: string;
   issuanceDate: Date;
-  proofTypes: CredentialProofType[];
+  proofTypes: ProofType[];
   refreshService: RefreshService | null;
   revNonce: number;
   revoked: boolean;
@@ -43,7 +43,7 @@ export type Link = {
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
-  proofTypes: CredentialProofType[];
+  proofTypes: ProofType[];
   schemaHash: string;
   schemaType: string;
   schemaUrl: string;

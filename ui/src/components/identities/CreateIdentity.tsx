@@ -12,14 +12,14 @@ import { IDENTITY_ADD, IDENTITY_ADD_NEW, IDENTITY_DETAILS } from "src/utils/cons
 
 export function CreateIdentity() {
   const env = useEnvContext();
-  const { handleChange, identitiesList } = useIdentityContext();
+  const { handleChange, identityList } = useIdentityContext();
   const [messageAPI, messageContext] = message.useMessage();
   const navigate = useNavigate();
 
   const handleSubmit = (formValues: IdentityFormData) => {
     const isUnique =
-      isAsyncTaskDataAvailable(identitiesList) &&
-      !identitiesList.data.some((identity) => identity.displayName === formValues.displayName);
+      isAsyncTaskDataAvailable(identityList) &&
+      !identityList.data.some((identity) => identity.displayName === formValues.displayName);
 
     if (!isUnique) {
       return void messageAPI.error(`${formValues.displayName} already exists`);

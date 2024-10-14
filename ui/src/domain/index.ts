@@ -11,7 +11,7 @@ export type {
   RefreshService,
 } from "src/domain/credential";
 
-export { CredentialProofType } from "src/domain/credential";
+export { ProofType } from "src/domain/credential";
 
 export type { Env } from "src/domain/env";
 

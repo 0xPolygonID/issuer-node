@@ -9,7 +9,6 @@ import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import {
   Attribute,
   AttributeValue,
-  CredentialProofType,
   CredentialStatusType,
   IdentityType,
   Json,
@@ -17,6 +16,7 @@ import {
   JsonObject,
   Method,
   ObjectAttribute,
+  ProofType,
 } from "src/domain";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
@@ -187,7 +187,7 @@ export const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormDa
 export type IssueCredentialFormData = {
   credentialExpiration?: dayjs.Dayjs | null;
   credentialSubject?: Record<string, unknown>;
-  proofTypes: CredentialProofType[];
+  proofTypes: ProofType[];
   refreshService: { enabled: boolean; url: string };
   schemaID?: string;
 };
@@ -196,9 +196,7 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
   z.object({
     credentialExpiration: dayjsInstanceParser.nullable().optional(),
     credentialSubject: z.record(z.unknown()).optional(),
-    proofTypes: z
-      .array(z.nativeEnum(CredentialProofType))
-      .min(1, "At least one proof type is required"),
+    proofTypes: z.array(z.nativeEnum(ProofType)).min(1, "At least one proof type is required"),
     refreshService: z.object({
       enabled: z.boolean(),
       url: z.union([z.string().url(), z.literal("")]),
@@ -230,8 +228,8 @@ export const credentialFormParser = getStrictParser<
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
         credentialRefreshService: refreshService.enabled ? refreshService.url : undefined,
         credentialSubject,
-        mtProof: proofTypes.includes(CredentialProofType.Iden3SparseMerkleTreeProof),
-        signatureProof: proofTypes.includes(CredentialProofType.BJJSignature2021),
+        mtProof: proofTypes.includes(ProofType.Iden3SparseMerkleTreeProof),
+        signatureProof: proofTypes.includes(ProofType.BJJSignature2021),
       };
 
       if (type === "credentialLink") {
@@ -454,8 +452,8 @@ export function serializeCredentialIssuance({
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: credentialExpiration ? dayjs(credentialExpiration).unix() : null,
         proofs: [
-          ...(mtProof ? [CredentialProofType.Iden3SparseMerkleTreeProof] : []),
-          ...(signatureProof ? [CredentialProofType.BJJSignature2021] : []),
+          ...(mtProof ? [ProofType.Iden3SparseMerkleTreeProof] : []),
+          ...(signatureProof ? [ProofType.BJJSignature2021] : []),
         ],
         refreshService: credentialRefreshService
           ? {

@@ -28,7 +28,7 @@ export function Identity() {
   const [identity, setIdentity] = useState<AsyncTask<IdentityDetails, AppError>>({
     status: "pending",
   });
-  const { fetchIdentities, identitiesList } = useIdentityContext();
+  const { fetchIdentities, identityList } = useIdentityContext();
 
   const [displayNameEditable, setDisplayNameEditable] = useState(false);
   const [messageAPI, messageContext] = message.useMessage();
@@ -71,8 +71,8 @@ export function Identity() {
 
   const handleEditDisplayName = (formValues: IdentityDetailsFormData) => {
     const isUnique =
-      isAsyncTaskDataAvailable(identitiesList) &&
-      !identitiesList.data.some(
+      isAsyncTaskDataAvailable(identityList) &&
+      !identityList.data.some(
         (identity) =>
           identity.identifier !== identifier && identity.displayName === formValues.displayName
       );

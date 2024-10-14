@@ -19,12 +19,12 @@ import {
 } from "src/adapters/parsers";
 import {
   Credential,
-  CredentialProofType,
   Env,
   IssuedMessage,
   Json,
   Link,
   LinkStatus,
+  ProofType,
   RefreshService,
 } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
@@ -33,7 +33,7 @@ import { List, Resource } from "src/utils/types";
 // Credentials
 
 type CredentialInput = Pick<Credential, "id" | "revoked" | "schemaHash"> & {
-  proofTypes: CredentialProofType[];
+  proofTypes: ProofType[];
   vc: {
     credentialSchema: {
       id: string;
@@ -54,7 +54,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   z
     .object({
       id: z.string(),
-      proofTypes: z.array(z.nativeEnum(CredentialProofType)),
+      proofTypes: z.array(z.nativeEnum(ProofType)),
       revoked: z.boolean(),
       schemaHash: z.string(),
       vc: z.object({
@@ -197,7 +197,7 @@ export type CreateCredential = {
   credentialSchema: string;
   credentialSubject: Json;
   expiration: number | null;
-  proofs: CredentialProofType[];
+  proofs: ProofType[];
   refreshService: RefreshService | null;
   type: string;
 };
@@ -285,7 +285,7 @@ type LinkInput = Omit<Link, "proofTypes" | "createdAt" | "credentialExpiration" 
   createdAt: string;
   credentialExpiration: string | null;
   expiration: string | null;
-  proofTypes: CredentialProofType[];
+  proofTypes: ProofType[];
 };
 
 const linkParser = getStrictParser<LinkInput, Link>()(
@@ -299,7 +299,7 @@ const linkParser = getStrictParser<LinkInput, Link>()(
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().nullable(),
-    proofTypes: z.array(z.nativeEnum(CredentialProofType)),
+    proofTypes: z.array(z.nativeEnum(ProofType)),
     schemaHash: z.string(),
     schemaType: z.string(),
     schemaUrl: z.string(),
@@ -467,7 +467,7 @@ export async function createLink({
 
 export type AuthMessage = {
   deepLink: string;
-  linkDetail: { proofTypes: CredentialProofType[]; schemaType: string };
+  linkDetail: { proofTypes: ProofType[]; schemaType: string };
   qrCodeRaw: string;
   universalLink: string;
 };
@@ -476,7 +476,7 @@ const authMessageParser = getStrictParser<AuthMessage>()(
   z.object({
     deepLink: z.string(),
     linkDetail: z.object({
-      proofTypes: z.array(z.nativeEnum(CredentialProofType)),
+      proofTypes: z.array(z.nativeEnum(ProofType)),
       schemaType: z.string(),
     }),
     qrCodeRaw: z.string(),

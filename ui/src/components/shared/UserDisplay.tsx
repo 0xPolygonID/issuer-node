@@ -12,13 +12,14 @@ import { IDENTITY_ADD } from "src/utils/constants";
 
 export function UserDisplay() {
   const { issuer } = useEnvContext();
-  const { handleChange, identifier, identitiesList, identityDisplayName } = useIdentityContext();
+  const { handleChange, identifier, identityDisplayName, identityList } = useIdentityContext();
   const navigate = useNavigate();
   const { token } = theme.useToken();
 
-  const identityItems = isAsyncTaskDataAvailable(identitiesList)
-    ? identitiesList.data.map((identity, index) => {
+  const identityItems = isAsyncTaskDataAvailable(identityList)
+    ? identityList.data.map((identity, index) => {
         const currentIdentity = identity.identifier === identifier;
+        const formattedIdentifier = formatIdentifier(identity.identifier, { short: true });
         return {
           key: `${index}`,
           label: (
@@ -34,9 +35,11 @@ export function UserDisplay() {
                 }}
                 vertical
               >
-                <Tooltip title={identity.displayName}>
-                  <Typography.Text ellipsis>{identity.displayName}</Typography.Text>
-                </Tooltip>
+                <Typography.Text
+                  ellipsis={{ tooltip: identity.displayName || formattedIdentifier }}
+                >
+                  {identity.displayName || formattedIdentifier}
+                </Typography.Text>
               </Flex>
               {currentIdentity && <IconCheck />}
             </Flex>
@@ -100,7 +103,7 @@ export function UserDisplay() {
               </Tag>
               <Tooltip title={identifier}>
                 <Typography.Text type="secondary">
-                  {formatIdentifier(identifier, true)}
+                  {formatIdentifier(identifier, { short: true })}
                 </Typography.Text>
               </Tooltip>
             </Flex>

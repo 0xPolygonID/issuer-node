@@ -1,5 +1,6 @@
 import { Button, Card, Divider, Flex, Row, Tabs, TabsProps, Typography, theme } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
+import { AuthMessage } from "src/adapters/api/credentials";
 
 import DownloadIcon from "src/assets/icons/download-01.svg?react";
 import { DownloadQRLink } from "src/components/shared/DownloadQRLink";
@@ -43,7 +44,7 @@ function QRTab({
   );
 }
 
-export function Summary({ deepLink, universalLink }: { deepLink: string; universalLink: string }) {
+export function Summary({ authMessage }: { authMessage: AuthMessage }) {
   const navigate = useNavigate();
 
   const items: TabsProps["items"] = [
@@ -52,7 +53,7 @@ export function Summary({ deepLink, universalLink }: { deepLink: string; univers
         <QRTab
           description="When the recipient interacts with the universal link, it will launch the Privado ID web or mobile wallet interface, displaying the credential offer."
           fileName="Universal link"
-          link={universalLink}
+          link={authMessage.universalLink}
           openable={true}
         />
       ),
@@ -64,7 +65,7 @@ export function Summary({ deepLink, universalLink }: { deepLink: string; univers
         <QRTab
           description="When the recipient interacts with the deep link with supported identity wallets, they will receive a credential offer."
           fileName="Deep link"
-          link={deepLink}
+          link={authMessage.deepLink}
           openable={false}
         />
       ),

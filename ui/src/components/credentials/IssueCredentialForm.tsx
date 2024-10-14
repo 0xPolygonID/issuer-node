@@ -37,14 +37,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
-import {
-  ApiSchema,
-  AppError,
-  Attribute,
-  CredentialProofType,
-  JsonSchema,
-  ObjectAttribute,
-} from "src/domain";
+import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute, ProofType } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
@@ -460,7 +453,7 @@ export function IssueCredentialForm({
                         >
                           <Checkbox.Group>
                             <Space direction="vertical">
-                              <Checkbox value={CredentialProofType.BJJSignature2021}>
+                              <Checkbox value={ProofType.BJJSignature2021}>
                                 <Typography.Text>Signature-based</Typography.Text>
 
                                 <Typography.Text type="secondary">
@@ -468,7 +461,7 @@ export function IssueCredentialForm({
                                 </Typography.Text>
                               </Checkbox>
 
-                              <Checkbox value={CredentialProofType.Iden3SparseMerkleTreeProof}>
+                              <Checkbox value={ProofType.Iden3SparseMerkleTreeProof}>
                                 <Typography.Text>Merkle Tree Proof</Typography.Text>
 
                                 <Typography.Text type="secondary">
