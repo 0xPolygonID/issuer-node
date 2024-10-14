@@ -60,13 +60,24 @@ export function getResourceParser<Input, Output = Input>(
 export const datetimeParser = getStrictParser<string, Date>()(
   z
     .string()
-    .datetime()
+    .refine(
+      (val) => {
+        return !isNaN(Date.parse(val));
+      },
+      {
+        message: "Invalid date string",
+      }
+    )
     .transform((datetime, context) => {
-      const parsedDate = z.coerce.date().safeParse(datetime);
-      if (parsedDate.success) {
-        return parsedDate.data;
+      const parsedDate = new Date(datetime);
+
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate;
       } else {
-        parsedDate.error.issues.map(context.addIssue);
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid date or time zone format",
+        });
         return z.NEVER;
       }
     })
