@@ -5,15 +5,9 @@ export enum CredentialProofType {
   Iden3SparseMerkleTreeProof = "Iden3SparseMerkleTreeProof",
 }
 
-export type ProofType = "MTP" | "SIG";
-
 export type RefreshService = {
   id: string;
   type: "Iden3RefreshService2023";
-};
-
-export type Proof = {
-  type: CredentialProofType;
 };
 
 export type Credential = {
@@ -22,7 +16,7 @@ export type Credential = {
   expired: boolean;
   id: string;
   issuanceDate: Date;
-  proofTypes: ProofType[];
+  proofTypes: CredentialProofType[];
   refreshService: RefreshService | null;
   revNonce: number;
   revoked: boolean;
@@ -49,7 +43,7 @@ export type Link = {
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
-  proofTypes: ProofType[];
+  proofTypes: CredentialProofType[];
   schemaHash: string;
   schemaType: string;
   schemaUrl: string;

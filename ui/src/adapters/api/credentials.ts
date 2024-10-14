@@ -25,29 +25,10 @@ import {
   Json,
   Link,
   LinkStatus,
-  ProofType,
   RefreshService,
 } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List, Resource } from "src/utils/types";
-
-const proofTypeParser = getStrictParser<CredentialProofType[], ProofType[]>()(
-  z
-    .array(z.nativeEnum(CredentialProofType))
-    .min(1)
-    .transform((values) =>
-      values.map((value) => {
-        switch (value) {
-          case CredentialProofType.BJJSignature2021: {
-            return "SIG";
-          }
-          case CredentialProofType.Iden3SparseMerkleTreeProof: {
-            return "MTP";
-          }
-        }
-      })
-    )
-);
 
 // Credentials
 
@@ -73,7 +54,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   z
     .object({
       id: z.string(),
-      proofTypes: proofTypeParser,
+      proofTypes: z.array(z.nativeEnum(CredentialProofType)),
       revoked: z.boolean(),
       schemaHash: z.string(),
       vc: z.object({
@@ -318,7 +299,7 @@ const linkParser = getStrictParser<LinkInput, Link>()(
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().nullable(),
-    proofTypes: proofTypeParser,
+    proofTypes: z.array(z.nativeEnum(CredentialProofType)),
     schemaHash: z.string(),
     schemaType: z.string(),
     schemaUrl: z.string(),
@@ -484,21 +465,20 @@ export async function createLink({
   }
 }
 
-type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
-  linkDetail: { proofTypes: CredentialProofType[]; schemaType: string };
-};
-
 export type AuthQRCode = {
   deepLink: string;
-  linkDetail: { proofTypes: ProofType[]; schemaType: string };
+  linkDetail: { proofTypes: CredentialProofType[]; schemaType: string };
   qrCodeRaw: string;
   universalLink: string;
 };
 
-const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
+const authQRCodeParser = getStrictParser<AuthQRCode>()(
   z.object({
     deepLink: z.string(),
-    linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
+    linkDetail: z.object({
+      proofTypes: z.array(z.nativeEnum(CredentialProofType)),
+      schemaType: z.string(),
+    }),
     qrCodeRaw: z.string(),
     universalLink: z.string(),
   })

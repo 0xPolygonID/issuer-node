@@ -17,7 +17,6 @@ import {
   JsonObject,
   Method,
   ObjectAttribute,
-  ProofType,
 } from "src/domain";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
@@ -188,7 +187,7 @@ export const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormDa
 export type IssueCredentialFormData = {
   credentialExpiration?: dayjs.Dayjs | null;
   credentialSubject?: Record<string, unknown>;
-  proofTypes: ProofType[];
+  proofTypes: CredentialProofType[];
   refreshService: { enabled: boolean; url: string };
   schemaID?: string;
 };
@@ -198,7 +197,7 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     credentialExpiration: dayjsInstanceParser.nullable().optional(),
     credentialSubject: z.record(z.unknown()).optional(),
     proofTypes: z
-      .array(z.union([z.literal("MTP"), z.literal("SIG")]))
+      .array(z.nativeEnum(CredentialProofType))
       .min(1, "At least one proof type is required"),
     refreshService: z.object({
       enabled: z.boolean(),
@@ -231,8 +230,8 @@ export const credentialFormParser = getStrictParser<
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
         credentialRefreshService: refreshService.enabled ? refreshService.url : undefined,
         credentialSubject,
-        mtProof: proofTypes.includes("MTP"),
-        signatureProof: proofTypes.includes("SIG"),
+        mtProof: proofTypes.includes(CredentialProofType.Iden3SparseMerkleTreeProof),
+        signatureProof: proofTypes.includes(CredentialProofType.BJJSignature2021),
       };
 
       if (type === "credentialLink") {

@@ -24,7 +24,7 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { ApiSchema, AppError, JsonSchema } from "src/domain";
+import { ApiSchema, AppError, CredentialProofType, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { DID_SEARCH_PARAM, ISSUE_CREDENTIAL, SCHEMA_SEARCH_PARAM } from "src/utils/constants";
@@ -41,7 +41,7 @@ const defaultCredentialFormInput: CredentialFormInput = {
     type: "directIssue",
   },
   issueCredential: {
-    proofTypes: ["SIG"],
+    proofTypes: [CredentialProofType.BJJSignature2021],
     refreshService: { enabled: false, url: "" },
   },
 };

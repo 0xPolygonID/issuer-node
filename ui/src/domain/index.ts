@@ -8,7 +8,6 @@ export type {
   IssuedQRCode,
   Link,
   LinkStatus,
-  ProofType,
   RefreshService,
 } from "src/domain/credential";
 
