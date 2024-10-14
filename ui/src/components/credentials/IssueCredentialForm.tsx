@@ -461,7 +461,7 @@ export function IssueCredentialForm({
                           <Checkbox.Group>
                             <Space direction="vertical">
                               <Checkbox value={CredentialProofType.BJJSignature2021}>
-                                <Typography.Text>Signature-based (SIG)</Typography.Text>
+                                <Typography.Text>Signature-based</Typography.Text>
 
                                 <Typography.Text type="secondary">
                                   Credential signed by the issuer using a BJJ private key.
@@ -469,7 +469,7 @@ export function IssueCredentialForm({
                               </Checkbox>
 
                               <Checkbox value={CredentialProofType.Iden3SparseMerkleTreeProof}>
-                                <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
+                                <Typography.Text>Merkle Tree Proof</Typography.Text>
 
                                 <Typography.Text type="secondary">
                                   Credential will be added to the issuer&apos;s state tree. The
