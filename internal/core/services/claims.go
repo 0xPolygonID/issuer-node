@@ -340,10 +340,12 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 
 	claim, err := c.GetByID(ctx, issID, id)
 	if err != nil {
+		log.Error(ctx, "getCredentialQrQrCode: get credential by id", "err", err, "id", id)
 		return nil, err
 	}
 
 	if !claim.ValidProof() {
+		log.Error(ctx, "getCredentialQrQrCode: invalid proof", "id", id)
 		return nil, ErrEmptyMTPProof
 	}
 	credID := uuid.New()
@@ -367,10 +369,12 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 
 	raw, err := json.Marshal(qrCode)
 	if err != nil {
+		log.Error(ctx, "getCredentialQrQrCode: marshal qr code", "err", err)
 		return nil, err
 	}
 	qrID, err := c.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
+		log.Error(ctx, "getCredentialQrQrCode: store qr code", "err", err)
 		return nil, err
 	}
 	return &ports.GetCredentialQrCodeResponse{
