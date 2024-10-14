@@ -87,9 +87,9 @@ should see something like this:
 ```shell
 CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS                    PORTS                                        NAMES
 6e923fa11228   privadoid/issuernode-ui         "/bin/sh /app/script…"   37 seconds ago   Up 32 seconds (healthy)   0.0.0.0:8088->80/tcp                         issuer-ui-1
-16afc9d66591   privadoid/issuernode            "sh -c ./pending_pub…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-pending_publisher-1
-ceb41877c041   privadoid/issuernode            "sh -c ./notificatio…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-notifications-1
-bd7b69984f1c   privadoid/issuernode            "sh -c './migrate &&…"   38 seconds ago   Up 34 seconds (healthy)   0.0.0.0:3001->3001/tcp                       issuer-api-1
+16afc9d66591   privadoid/issuernode-api        "sh -c ./pending_pub…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-pending_publisher-1
+ceb41877c041   privadoid/issuernode-api        "sh -c ./notificatio…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-notifications-1
+bd7b69984f1c   privadoid/issuernode-api        "sh -c './migrate &&…"   38 seconds ago   Up 34 seconds (healthy)   0.0.0.0:3001->3001/tcp                       issuer-api-1
 25ae0fcac183   postgres:14-alpine              "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   5432/tcp                                     issuer-postgres-1
 a4a1d3ec9159   redis:6-alpine                  "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   6379/tcp                                     issuer-redis-1
 ```

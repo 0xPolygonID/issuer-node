@@ -173,8 +173,13 @@ func connectionResponse(conn *domain.Connection, credentials []*domain.Claim) (G
 
 func connectionsResponse(conns []domain.Connection) (GetConnectionsResponse, error) {
 	resp := make([]GetConnectionResponse, 0)
+
 	for _, conn := range conns {
-		connResp, err := connectionResponse(&conn, *conn.Credentials)
+		var credentials []*domain.Claim
+		if conn.Credentials != nil {
+			credentials = *conn.Credentials
+		}
+		connResp, err := connectionResponse(&conn, credentials)
 		if err != nil {
 			return GetConnectionsResponse{}, err
 		}
