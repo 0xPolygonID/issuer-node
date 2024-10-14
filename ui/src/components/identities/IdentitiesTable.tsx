@@ -163,7 +163,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
       isLoading={isAsyncTaskStarting(identitiesList)}
       onSearch={onSearch}
       query={queryParam}
-      searchPlaceholder="Search identity name"
+      searchPlaceholder="Search identity name, DID, etc..."
       showDefaultContents={
         identitiesList.status === "successful" &&
         filteredIdentifiers.length === 0 &&
