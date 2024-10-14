@@ -149,10 +149,6 @@ func (p *publisher) publishState(ctx context.Context, identifier *w3c.DID) (*dom
 		return nil, err
 	}
 
-	if err = p.notificationPublisher.Publish(ctx, event.CreateStateEvent, &event.CreateState{State: *updatedState.State}); err != nil {
-		log.Error(ctx, "publish EventCreateState", "err", err.Error(), "state", *updatedState.State)
-	}
-
 	return &domain.PublishedState{
 		TxID:               txID,
 		ClaimsTreeRoot:     updatedState.ClaimsTreeRoot,
@@ -466,6 +462,11 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, identity *d
 				continue
 			}
 		}
+
+		if err = p.notificationPublisher.Publish(ctx, event.CreateStateEvent, &event.CreateState{State: *state.State}); err != nil {
+			log.Error(ctx, "publish EventCreateState", "err", err.Error(), "state", *state.State)
+		}
+
 	} else {
 		state.Status = domain.StatusFailed
 		err = p.identityService.UpdateIdentityState(ctx, state)
