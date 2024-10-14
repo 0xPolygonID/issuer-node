@@ -123,7 +123,7 @@ export async function getIdentity({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/identities/${identifier}/details`,
+      url: `${API_VERSION}/identities/${identifier}`,
     });
 
     return buildSuccessResponse(identityDetailsParser.parse(response.data));
