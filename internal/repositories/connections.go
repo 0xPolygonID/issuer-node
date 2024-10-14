@@ -63,8 +63,14 @@ func (c *connections) SaveUserAuthentication(ctx context.Context, conn db.Querie
 }
 
 func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID w3c.DID) error {
-	sql := `DELETE FROM connections WHERE id = $1 AND issuer_id = $2`
-	cmd, err := conn.Exec(ctx, sql, id.String(), issuerDID.String())
+	sqlAuthentications := `DELETE FROM user_authentications WHERE connection_id = $1`
+	_, err := conn.Exec(ctx, sqlAuthentications, id.String())
+	if err != nil {
+		return err
+	}
+
+	sqlConnections := `DELETE FROM connections WHERE id = $1 AND issuer_id = $2`
+	cmd, err := conn.Exec(ctx, sqlConnections, id.String(), issuerDID.String())
 	if err != nil {
 		return err
 	}
