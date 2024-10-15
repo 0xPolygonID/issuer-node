@@ -345,7 +345,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 		displayName          *string
 		status               string
 		state                string
-		identifier           *string
+		identifier           string
 		keyType              string
 		credentialStatusType verifiable.CredentialStatusType
 	}
@@ -380,7 +380,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 			did:  identity.Identifier,
 			expected: expected{
 				httpCode:             200,
-				identifier:           &identity.Identifier,
+				identifier:           identity.Identifier,
 				displayName:          common.ToPointer("my display name"),
 				status:               "confirmed",
 				state:                "state",
