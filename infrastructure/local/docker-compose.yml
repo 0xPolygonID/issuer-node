@@ -1,6 +1,6 @@
 services:
   ui:
-    image: issuer-ui:local
+    image: issuernode-ui:local
     ports:
       - "8088:80"
     env_file:
@@ -13,7 +13,7 @@ services:
       retries: 5
 
   api:
-    image: issuer-api:local
+    image: issuernode-api:local
     ports:
       - "3001:3001"
     env_file:
@@ -29,7 +29,7 @@ services:
     command: sh -c "sleep 4s && ./migrate && ./platform"
 
   notifications:
-    image: issuer-api:local
+    image: issuernode-api:local
     ports:
       - "3004:3004"
     env_file:
@@ -44,7 +44,7 @@ services:
       retries: 5
 
   pending_publisher:
-    image: issuer-api:local
+    image: issuernode-api:local
     ports:
       - "3005:3005"
     env_file:

@@ -16,7 +16,7 @@ import {
   getResourceParser,
   getStrictParser,
 } from "src/adapters/parsers";
-import { Connection, Env, Identifier } from "src/domain";
+import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { Resource } from "src/utils/types";
 
@@ -43,7 +43,7 @@ export async function getConnection({
 }: {
   env: Env;
   id: string;
-  identifier: Identifier;
+  identifier: string;
   signal: AbortSignal;
 }): Promise<Response<Connection>> {
   try {
@@ -71,7 +71,7 @@ export async function getConnections({
 }: {
   credentials: boolean;
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   params: {
     maxResults?: number;
     page?: number;
@@ -113,7 +113,7 @@ export async function deleteConnection({
   deleteCredentials: boolean;
   env: Env;
   id: string;
-  identifier: Identifier;
+  identifier: string;
   revokeCredentials: boolean;
 }): Promise<Response<Message>> {
   try {

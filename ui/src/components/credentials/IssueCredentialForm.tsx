@@ -37,7 +37,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
-import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute } from "src/domain";
+import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute, ProofType } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
@@ -95,7 +95,9 @@ export function IssueCredentialForm({
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
   const [form] = Form.useForm<IssueCredentialFormData>();
+
   const { message } = App.useApp();
+
   const [apiSchema, setApiSchema] = useState<ApiSchema>();
   const [apiSchemas, setApiSchemas] = useState<AsyncTask<ApiSchema[], undefined>>({
     status: "pending",
@@ -158,7 +160,8 @@ export function IssueCredentialForm({
             required,
             type,
           });
-          const valid = validate(serializedSchemaForm.data);
+
+          const valid = validate(serializedSchemaForm.data || {});
 
           if (valid) {
             setInputErrors(undefined);
@@ -352,15 +355,17 @@ export function IssueCredentialForm({
           apiSchema
         ) {
           onSubmit({ apiSchema, jsonSchema: jsonSchemaData, values });
+        } else {
+          void message.error("Error validating the data against the schema");
         }
       }}
-      onValuesChange={(changedValue: Partial<IssueCredentialFormData>) => {
+      onValuesChange={(_, values: IssueCredentialFormData) => {
         const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
         const credentialSubjectAttributeWithoutId =
           jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
-        changedValue.credentialSubject &&
+        values.credentialSubject &&
           credentialSubjectAttributeWithoutId &&
-          isFormValid(changedValue.credentialSubject, credentialSubjectAttributeWithoutId);
+          isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
       }}
     >
       <Form.Item
@@ -449,16 +454,20 @@ export function IssueCredentialForm({
                       >
                         <Checkbox.Group>
                           <Space direction="vertical">
-                            <Checkbox value="SIG">
-                              <Typography.Text>Signature-based (SIG)</Typography.Text>
+                            <Checkbox value={ProofType.BJJSignature2021}>
+                              <Typography.Text>
+                                Signature-based ({ProofType.BJJSignature2021})
+                              </Typography.Text>
 
                               <Typography.Text type="secondary">
                                 Credential signed by the issuer using a BJJ private key.
                               </Typography.Text>
                             </Checkbox>
 
-                            <Checkbox value="MTP">
-                              <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
+                            <Checkbox value={ProofType.Iden3SparseMerkleTreeProof}>
+                              <Typography.Text>
+                                Merkle Tree Proof ({ProofType.Iden3SparseMerkleTreeProof})
+                              </Typography.Text>
 
                               <Typography.Text type="secondary">
                                 Credential will be added to the issuer&apos;s state tree. The state

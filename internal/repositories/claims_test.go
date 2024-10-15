@@ -741,3 +741,86 @@ func TestGetClaimsIssuedForUserID(t *testing.T) {
 		})
 	}
 }
+
+func TestGeRevoked(t *testing.T) {
+	fixture := NewFixture(storage)
+	idStr := "did:polygonid:polygon:amoy:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW"
+	identity := &domain.Identity{
+		Identifier: idStr,
+	}
+	fixture.CreateIdentity(t, identity)
+	idClaim, _ := uuid.NewUUID()
+	idClaim2, _ := uuid.NewUUID()
+	idClaim3, _ := uuid.NewUUID()
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim,
+		Identifier:      &idStr,
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        0,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "123",
+		IdentityState:   common.ToPointer("current-state"),
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim2,
+		Identifier:      &idStr,
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e7",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        100,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "456",
+		IdentityState:   common.ToPointer("current-state"),
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim3,
+		Identifier:      &idStr,
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e7",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         1,
+		RevNonce:        200,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "789",
+		IdentityState:   common.ToPointer("current-state"),
+	})
+
+	claimsRepo := NewClaims()
+	t.Run("should get no credentials", func(t *testing.T) {
+		claims, err := claimsRepo.GetRevoked(context.Background(), storage.Pgx, "current-state")
+		assert.NoError(t, err)
+		assert.Len(t, claims, 0)
+	})
+
+	t.Run("should get 1 credential", func(t *testing.T) {
+		revocation := &domain.Revocation{
+			ID:         int64(123),
+			Identifier: idStr,
+			Version:    uint32(1),
+			Status:     domain.RevPublished,
+			Nonce:      100,
+		}
+		require.NoError(t, claimsRepo.Revoke(context.Background(), storage.Pgx, revocation))
+		claims, err := claimsRepo.GetRevoked(context.Background(), storage.Pgx, "current-state")
+		assert.NoError(t, err)
+		assert.Len(t, claims, 1)
+	})
+}

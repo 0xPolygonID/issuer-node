@@ -7,7 +7,6 @@ import { getListParser, getStrictParser } from "src/adapters/parsers";
 import {
   CredentialStatusType,
   Env,
-  Identifier,
   Identity,
   IdentityDetails,
   IdentityType,
@@ -22,14 +21,14 @@ const identityParser = getStrictParser<Identity>()(
   z.object({
     blockchain: z.string(),
     credentialStatusType: z.nativeEnum(CredentialStatusType),
-    displayName: z.string(),
+    displayName: z.string().nullable(),
     identifier: z.string(),
     method: z.nativeEnum(Method),
     network: z.string(),
   })
 );
 
-export const identifierParser = getStrictParser<Identifier>()(z.string());
+export const identifierParser = getStrictParser<string>()(z.string());
 
 export async function getIdentities({
   env,
@@ -64,11 +63,11 @@ export type CreateIdentity = {
   type: IdentityType;
 };
 
-type CreatedIdentity = {
+type CreateIdentityResponse = {
   identifier: string;
 };
 
-export const createIdentityParser = getStrictParser<CreatedIdentity>()(
+export const createIdentityResponseParser = getStrictParser<CreateIdentityResponse>()(
   z.object({
     identifier: z.string(),
   })
@@ -80,7 +79,7 @@ export async function createIdentity({
 }: {
   env: Env;
   payload: CreateIdentity;
-}): Promise<Response<CreatedIdentity>> {
+}): Promise<Response<CreateIdentityResponse>> {
   try {
     const { credentialStatusType, displayName, ...didMetadata } = payload;
     const response = await axios({
@@ -93,7 +92,7 @@ export async function createIdentity({
       url: `${API_VERSION}/identities`,
     });
 
-    return buildSuccessResponse(createIdentityParser.parse(response.data));
+    return buildSuccessResponse(createIdentityResponseParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
@@ -102,19 +101,19 @@ export async function createIdentity({
 export const identityDetailsParser = getStrictParser<IdentityDetails>()(
   z.object({
     credentialStatusType: z.nativeEnum(CredentialStatusType),
-    displayName: z.string(),
+    displayName: z.string().nullable(),
     identifier: z.string(),
     keyType: z.nativeEnum(IdentityType),
   })
 );
 
-export async function getIdentityDetails({
+export async function getIdentity({
   env,
   identifier,
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   signal?: AbortSignal;
 }): Promise<Response<IdentityDetails>> {
   try {
@@ -126,7 +125,7 @@ export async function getIdentityDetails({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/identities/${identifier}/details`,
+      url: `${API_VERSION}/identities/${identifier}`,
     });
 
     return buildSuccessResponse(identityDetailsParser.parse(response.data));
@@ -142,7 +141,7 @@ export async function updateIdentityDisplayName({
 }: {
   displayName: string;
   env: Env;
-  identifier: Identifier;
+  identifier: string;
 }): Promise<Response<void>> {
   try {
     await axios({
@@ -164,7 +163,7 @@ export async function updateIdentityDisplayName({
 export const supportedNetworkParser = getStrictParser<SupportedNetwork>()(
   z.object({
     blockchain: z.string(),
-    networks: z.array(z.string()).nonempty(),
+    networks: z.tuple([z.string()]).rest(z.string()),
   })
 );
 

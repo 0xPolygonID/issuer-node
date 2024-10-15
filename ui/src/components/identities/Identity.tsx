@@ -2,7 +2,7 @@ import { App, Button, Card, Flex, Form, Input, Space } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useIdentityContext } from "../../contexts/Identity";
-import { getIdentityDetails, updateIdentityDisplayName } from "src/adapters/api/identities";
+import { getIdentity, updateIdentityDisplayName } from "src/adapters/api/identities";
 import { IdentityDetailsFormData } from "src/adapters/parsers/view";
 import CheckIcon from "src/assets/icons/check.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
@@ -28,7 +28,7 @@ export function Identity() {
   const [identity, setIdentity] = useState<AsyncTask<IdentityDetails, AppError>>({
     status: "pending",
   });
-  const { fetchIdentities, identitiesList } = useIdentityContext();
+  const { fetchIdentities, identityList } = useIdentityContext();
 
   const [displayNameEditable, setDisplayNameEditable] = useState(false);
   const { message } = App.useApp();
@@ -41,7 +41,7 @@ export function Identity() {
       if (identifier) {
         setIdentity({ status: "loading" });
 
-        const response = await getIdentityDetails({
+        const response = await getIdentity({
           env,
           identifier,
           signal,
@@ -71,18 +71,18 @@ export function Identity() {
 
   const handleEditDisplayName = (formValues: IdentityDetailsFormData) => {
     const isUnique =
-      isAsyncTaskDataAvailable(identitiesList) &&
-      !identitiesList.data.some(
+      isAsyncTaskDataAvailable(identityList) &&
+      !identityList.data.some(
         (identity) =>
           identity.identifier !== identifier && identity.displayName === formValues.displayName
       );
 
     if (!isUnique) {
-      return void message.error(`${formValues.displayName} is already exists`);
+      return void message.error(`${formValues.displayName} already exists`);
     }
 
     return void updateIdentityDisplayName({
-      displayName: formValues.displayName,
+      displayName: formValues.displayName.trim(),
       env,
       identifier,
     }).then((response) => {

@@ -9,9 +9,10 @@ import {
   useState,
 } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+
 import { getIdentities, identifierParser } from "src/adapters/api/identities";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Identifier, Identity } from "src/domain";
+import { AppError, Identity } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import {
@@ -25,21 +26,24 @@ import {
   IDENTIFIER_SEARCH_PARAM,
   ROOT_PATH,
 } from "src/utils/constants";
+import { buildAppError } from "src/utils/error";
 
 type IdentityState = {
   fetchIdentities: (signal: AbortSignal) => void;
-  handleChange: (identifier: Identifier) => void;
-  identifier: Identifier;
-  identitiesList: AsyncTask<Identity[], AppError>;
+  getSelectedIdentity: () => Identity | undefined;
+  identifier: string;
   identityDisplayName: string;
+  identityList: AsyncTask<Identity[], AppError>;
+  selectIdentity: (identifier: string) => void;
 };
 
 const defaultIdentityState: IdentityState = {
   fetchIdentities: () => void {},
-  handleChange: () => void {},
+  getSelectedIdentity: () => void {},
   identifier: "",
-  identitiesList: { status: "pending" },
   identityDisplayName: "",
+  identityList: { status: "pending" },
+  selectIdentity: () => void {},
 };
 
 const IdentityContext = createContext(defaultIdentityState);
@@ -47,25 +51,24 @@ const IdentityContext = createContext(defaultIdentityState);
 export function IdentityProvider(props: PropsWithChildren) {
   const env = useEnvContext();
   const { message } = App.useApp();
-
   const navigate = useNavigate();
   const location = useLocation();
-  const [identitiesList, setIdentitiesList] = useState<AsyncTask<Identity[], AppError>>({
+  const [identityList, setIdentityList] = useState<AsyncTask<Identity[], AppError>>({
     status: "pending",
   });
-  const [identifier, setIdentifier] = useState<Identifier>("");
+  const [identifier, setIdentifier] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
 
   const identity =
-    (identitiesList.status === "successful" || identitiesList.status === "reloading") &&
-    identitiesList.data.find((identity) => identity.identifier === identifier);
-  const identityDisplayName = identity ? identity.displayName : "";
+    (identityList.status === "successful" || identityList.status === "reloading") &&
+    identityList.data.find((identity) => identity.identifier === identifier);
+  const identityDisplayName = identity && identity.displayName ? identity.displayName : "";
 
   const identifierParam = searchParams.get(IDENTIFIER_SEARCH_PARAM);
 
   const fetchIdentities = useCallback(
     async (signal: AbortSignal) => {
-      setIdentitiesList((previousState) =>
+      setIdentityList((previousState) =>
         isAsyncTaskDataAvailable(previousState)
           ? { data: previousState.data, status: "reloading" }
           : { status: "loading" }
@@ -78,13 +81,20 @@ export function IdentityProvider(props: PropsWithChildren) {
 
       if (response.success) {
         const identities = response.data.successful;
+
+        if (response.data.failed.length) {
+          void message.error(
+            response.data.failed.map((error) => buildAppError(error).message).join("\n")
+          );
+        }
+
         const savedIdentifier = getStorageByKey({
           defaultValue: "",
           key: IDENTIFIER_LOCAL_STORAGE_KEY,
           parser: identifierParser,
         });
 
-        setIdentitiesList({ data: identities, status: "successful" });
+        setIdentityList({ data: identities, status: "successful" });
         if (
           identifierParam &&
           identities.some(({ identifier }) => identifier === identifierParam)
@@ -97,7 +107,7 @@ export function IdentityProvider(props: PropsWithChildren) {
         }
       } else {
         if (!isAbortedError(response.error)) {
-          setIdentitiesList({ error: response.error, status: "failed" });
+          setIdentityList({ error: response.error, status: "failed" });
           void message.error(response.error.message);
         }
       }
@@ -105,20 +115,26 @@ export function IdentityProvider(props: PropsWithChildren) {
     [env, message, identifierParam]
   );
 
-  const handleChange = useCallback(
-    (identifier: Identifier) => {
+  const selectIdentity = useCallback(
+    (identifier: string) => {
       setIdentifier(identifier);
       navigate(ROUTES.schemas.path);
     },
     [navigate]
   );
 
+  const getSelectedIdentity = useCallback(() => {
+    return isAsyncTaskDataAvailable(identityList)
+      ? identityList.data.find((identity) => identity.identifier === identifier)
+      : undefined;
+  }, [identifier, identityList]);
+
   useEffect(() => {
     if (
       identifierParam &&
       identifier !== identifierParam &&
-      isAsyncTaskDataAvailable(identitiesList) &&
-      identitiesList.data.some((identity) => identity.identifier === identifierParam)
+      isAsyncTaskDataAvailable(identityList) &&
+      identityList.data.some((identity) => identity.identifier === identifierParam)
     ) {
       setIdentifier(identifierParam);
     } else if (identifier && identifier !== identifierParam && location.pathname !== ROOT_PATH) {
@@ -134,7 +150,7 @@ export function IdentityProvider(props: PropsWithChildren) {
       );
       setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: identifier });
     }
-  }, [identifier, identifierParam, identitiesList, location, setSearchParams]);
+  }, [identifier, identifierParam, identityList, location, setSearchParams]);
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchIdentities);
@@ -145,15 +161,23 @@ export function IdentityProvider(props: PropsWithChildren) {
   const value = useMemo(() => {
     return {
       fetchIdentities,
-      handleChange,
+      getSelectedIdentity,
       identifier,
-      identitiesList,
       identityDisplayName,
+      identityList,
+      selectIdentity,
     };
-  }, [identifier, identityDisplayName, identitiesList, handleChange, fetchIdentities]);
+  }, [
+    identifier,
+    identityDisplayName,
+    identityList,
+    selectIdentity,
+    fetchIdentities,
+    getSelectedIdentity,
+  ]);
 
   return (
-    (identitiesList.status === "successful" || identitiesList.status === "reloading") && (
+    (identityList.status === "successful" || identityList.status === "reloading") && (
       <IdentityContext.Provider value={value} {...props} />
     )
   );

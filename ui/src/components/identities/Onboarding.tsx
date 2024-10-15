@@ -36,20 +36,23 @@ const cards = [
 
 export function Onboarding() {
   const env = useEnvContext();
-  const { handleChange } = useIdentityContext();
+  const { selectIdentity } = useIdentityContext();
   const navigate = useNavigate();
   const { message } = App.useApp();
 
   const { lg } = Grid.useBreakpoint();
 
   const handleSubmit = (formValues: IdentityFormData) =>
-    void createIdentity({ env, payload: formValues }).then((response) => {
+    void createIdentity({
+      env,
+      payload: { ...formValues, displayName: formValues.displayName.trim() },
+    }).then((response) => {
       if (response.success) {
         const {
           data: { identifier },
         } = response;
         void message.success("Identity added successfully");
-        handleChange(identifier);
+        selectIdentity(identifier);
         navigate(ROUTES.schemas.path);
       } else {
         void message.error(response.error.message);
@@ -70,8 +73,8 @@ export function Onboarding() {
           You successfully installed Issuer Node
         </Typography.Text>
         <Typography.Text style={{ fontSize: 20 }} type="secondary">
-          Here&apos;s what you&apos;re going to be able to do with the issuer node, once you
-          finalize your setup
+          Here&apos;s what you&apos;ll be able to do with the issuer node once you finalize your
+          setup
         </Typography.Text>
       </Flex>
 

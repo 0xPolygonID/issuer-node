@@ -60,9 +60,10 @@ export function getResourceParser<Input, Output = Input>(
 export const datetimeParser = getStrictParser<string, Date>()(
   z
     .string()
-    .datetime()
+    .datetime({ offset: true })
     .transform((datetime, context) => {
       const parsedDate = z.coerce.date().safeParse(datetime);
+
       if (parsedDate.success) {
         return parsedDate.data;
       } else {

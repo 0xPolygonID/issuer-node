@@ -9,7 +9,6 @@ import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import {
   Attribute,
   AttributeValue,
-  CredentialProofType,
   CredentialStatusType,
   IdentityType,
   Json,
@@ -138,11 +137,20 @@ const schemaFormValuesParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStri
   z
     .lazy(() => z.record(z.union([formLiteralParser, schemaFormValuesParser])))
     .transform((data, context) => {
-      const parsedJson = jsonParser.safeParse(data);
-      if (parsedJson.success) {
-        return parsedJson.data;
-      } else {
-        parsedJson.error.issues.map(context.addIssue);
+      try {
+        const valueWithoutUndefined: unknown = JSON.parse(JSON.stringify(data));
+        const parsedJson = jsonParser.safeParse(valueWithoutUndefined);
+        if (parsedJson.success) {
+          return parsedJson.data;
+        } else {
+          parsedJson.error.issues.map(context.addIssue);
+          return z.NEVER;
+        }
+      } catch (error) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "The provided input is not a valid JSON object",
+        });
         return z.NEVER;
       }
     })
@@ -197,9 +205,7 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
   z.object({
     credentialExpiration: dayjsInstanceParser.nullable().optional(),
     credentialSubject: z.record(z.unknown()).optional(),
-    proofTypes: z
-      .array(z.union([z.literal("MTP"), z.literal("SIG")]))
-      .min(1, "At least one proof type is required"),
+    proofTypes: z.array(z.nativeEnum(ProofType)).min(1, "At least one proof type is required"),
     refreshService: z.object({
       enabled: z.boolean(),
       url: z.union([z.string().url(), z.literal("")]),
@@ -231,8 +237,8 @@ export const credentialFormParser = getStrictParser<
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
         credentialRefreshService: refreshService.enabled ? refreshService.url : undefined,
         credentialSubject,
-        mtProof: proofTypes.includes("MTP"),
-        signatureProof: proofTypes.includes("SIG"),
+        mtProof: proofTypes.includes(ProofType.Iden3SparseMerkleTreeProof),
+        signatureProof: proofTypes.includes(ProofType.BJJSignature2021),
       };
 
       if (type === "credentialLink") {
@@ -455,8 +461,8 @@ export function serializeCredentialIssuance({
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: credentialExpiration ? dayjs(credentialExpiration).unix() : null,
         proofs: [
-          ...(mtProof ? [CredentialProofType.Iden3SparseMerkleTreeProof] : []),
-          ...(signatureProof ? [CredentialProofType.BJJSignature2021] : []),
+          ...(mtProof ? [ProofType.Iden3SparseMerkleTreeProof] : []),
+          ...(signatureProof ? [ProofType.BJJSignature2021] : []),
         ],
         refreshService: credentialRefreshService
           ? {

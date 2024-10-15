@@ -2,12 +2,7 @@ import { App, Card, Space } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import {
-  AuthQRCode,
-  createAuthQRCode,
-  createCredential,
-  createLink,
-} from "src/adapters/api/credentials";
+import { createCredential, createLink } from "src/adapters/api/credentials";
 import {
   CredentialDirectIssuance,
   CredentialFormInput,
@@ -24,7 +19,7 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { ApiSchema, AppError, JsonSchema } from "src/domain";
+import { ApiSchema, JsonSchema, ProofType } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { DID_SEARCH_PARAM, ISSUE_CREDENTIAL, SCHEMA_SEARCH_PARAM } from "src/utils/constants";
@@ -41,7 +36,7 @@ const defaultCredentialFormInput: CredentialFormInput = {
     type: "directIssue",
   },
   issueCredential: {
-    proofTypes: ["SIG"],
+    proofTypes: [ProofType.BJJSignature2021],
     refreshService: { enabled: false, url: "" },
   },
 };
@@ -50,13 +45,15 @@ export function IssueCredential() {
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
   const { notifyChange } = useIssuerStateContext();
-  const { message } = App.useApp();
+
   const navigate = useNavigate();
+  const { message } = App.useApp();
   const [searchParams] = useSearchParams();
 
   const schemaID = searchParams.get(SCHEMA_SEARCH_PARAM) || undefined;
   const did = searchParams.get(DID_SEARCH_PARAM) || undefined;
 
+  const [linkID, setLinkID] = useState<AsyncTask<string, null>>({ status: "pending" });
   const [step, setStep] = useState<Step>(did ? "issueCredential" : "issuanceMethod");
   const [credentialFormInput, setCredentialFormInput] = useState<CredentialFormInput>(
     defaultCredentialFormInput.issuanceMethod.type === "directIssue"
@@ -70,10 +67,6 @@ export function IssueCredential() {
           issueCredential: { ...defaultCredentialFormInput.issueCredential, schemaID },
         }
   );
-
-  const [authQRCode, setAuthQRCode] = useState<AsyncTask<AuthQRCode, AppError>>({
-    status: "pending",
-  });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -131,30 +124,19 @@ export function IssueCredential() {
       });
 
       if (serializedCredentialForm.success) {
-        const linkResponse = await createLink({
+        const response = await createLink({
           env,
           identifier,
           payload: serializedCredentialForm.data,
         });
 
-        if (linkResponse.success) {
-          const authQRResponse = await createAuthQRCode({
-            env,
-            identifier,
-            linkID: linkResponse.data.id,
-          });
-
-          if (authQRResponse.success) {
-            setAuthQRCode({ data: authQRResponse.data, status: "successful" });
-            setStep("summary");
-          } else {
-            setAuthQRCode({ error: authQRResponse.error, status: "failed" });
-            void message.error(authQRResponse.error.message);
-          }
-
+        if (response.success) {
+          setLinkID({ data: response.data.id, status: "successful" });
+          setStep("summary");
           void message.success("Credential link created");
         } else {
-          void message.error(linkResponse.error.message);
+          setLinkID({ error: null, status: "failed" });
+          void message.error(response.error.message);
         }
       } else {
         notifyParseError(serializedCredentialForm.error);
@@ -297,14 +279,7 @@ export function IssueCredential() {
           }
 
           case "summary": {
-            return (
-              isAsyncTaskDataAvailable(authQRCode) && (
-                <Summary
-                  deepLink={authQRCode.data.deepLink}
-                  universalLink={authQRCode.data.universalLink}
-                />
-              )
-            );
+            return isAsyncTaskDataAvailable(linkID) && <Summary linkID={linkID.data} />;
           }
         }
       })()}

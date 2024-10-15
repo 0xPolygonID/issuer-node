@@ -12,27 +12,30 @@ import { IDENTITY_ADD, IDENTITY_ADD_NEW, IDENTITY_DETAILS } from "src/utils/cons
 
 export function CreateIdentity() {
   const env = useEnvContext();
-  const { handleChange, identitiesList } = useIdentityContext();
+  const { identityList, selectIdentity } = useIdentityContext();
   const { message } = App.useApp();
   const navigate = useNavigate();
 
   const handleSubmit = (formValues: IdentityFormData) => {
     const isUnique =
-      isAsyncTaskDataAvailable(identitiesList) &&
-      !identitiesList.data.some((identity) => identity.displayName === formValues.displayName);
+      isAsyncTaskDataAvailable(identityList) &&
+      !identityList.data.some((identity) => identity.displayName === formValues.displayName);
 
     if (!isUnique) {
-      return void message.error(`${formValues.displayName} is already exists`);
+      return void message.error(`${formValues.displayName} already exists`);
     }
 
-    return void createIdentity({ env, payload: formValues }).then((response) => {
+    return void createIdentity({
+      env,
+      payload: { ...formValues, displayName: formValues.displayName.trim() },
+    }).then((response) => {
       if (response.success) {
         const {
           data: { identifier },
         } = response;
 
         void message.success("Identity added successfully");
-        handleChange(identifier);
+        selectIdentity(identifier);
         navigate(ROUTES.identities.path);
       } else {
         void message.error(response.error.message);

@@ -7,6 +7,7 @@ import {
   Space,
   Table,
   TableColumnsType,
+  Tag,
   Typography,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
@@ -32,28 +33,30 @@ import {
 import { formatIdentifier } from "src/utils/forms";
 
 export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () => void }) {
-  const { identitiesList } = useIdentityContext();
+  const { identityList } = useIdentityContext();
   const navigate = useNavigate();
 
   const [filteredIdentifiers, setFilteredIdentifiers] = useState<Identity[]>(() =>
-    isAsyncTaskDataAvailable(identitiesList) ? identitiesList.data : []
+    isAsyncTaskDataAvailable(identityList) ? identityList.data : []
   );
   const [searchParams, setSearchParams] = useSearchParams();
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
 
   useEffect(() => {
-    if (isAsyncTaskDataAvailable(identitiesList)) {
+    if (isAsyncTaskDataAvailable(identityList)) {
       if (!queryParam) {
-        setFilteredIdentifiers(identitiesList.data);
+        setFilteredIdentifiers(identityList.data);
       } else {
-        const filteredData = identitiesList.data.filter((issuer: Identity) =>
-          Object.values(issuer).some((value: string) => value.includes(queryParam))
+        const filteredData = identityList.data.filter((issuer: Identity) =>
+          Object.values(issuer).some((value: string | null) =>
+            value?.toLowerCase().includes(queryParam.toLowerCase())
+          )
         );
         setFilteredIdentifiers(filteredData);
       }
     }
-  }, [queryParam, identitiesList]);
+  }, [queryParam, identityList]);
 
   const onSearch = useCallback(
     (query: string) => {
@@ -77,10 +80,13 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
     {
       dataIndex: "displayName",
       key: "displayName",
-      render: (displayName: Identity["displayName"]) => (
-        <Typography.Text strong>{displayName}</Typography.Text>
+      render: (displayName: Identity["displayName"], identity: Identity) => (
+        <Typography.Text strong>
+          {displayName || formatIdentifier(identity.identifier, { short: true })}
+        </Typography.Text>
       ),
-      sorter: ({ displayName: a }, { displayName: b }) => a.localeCompare(b),
+      sorter: (a, b) =>
+        (a.displayName || a.identifier).localeCompare(b.displayName || b.identifier),
       title: "Name",
     },
     {
@@ -159,12 +165,12 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
           {addButton}
         </>
       }
-      isLoading={isAsyncTaskStarting(identitiesList)}
+      isLoading={isAsyncTaskStarting(identityList)}
       onSearch={onSearch}
       query={queryParam}
-      searchPlaceholder="Search Issuer"
+      searchPlaceholder="Search identity name, DID, etc..."
       showDefaultContents={
-        identitiesList.status === "successful" &&
+        identityList.status === "successful" &&
         filteredIdentifiers.length === 0 &&
         queryParam === null
       }
@@ -181,8 +187,8 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
           dataSource={filteredIdentifiers}
           locale={{
             emptyText:
-              identitiesList.status === "failed" ? (
-                <ErrorResult error={identitiesList.error.message} />
+              identityList.status === "failed" ? (
+                <ErrorResult error={identityList.error.message} />
               ) : (
                 <NoResults searchQuery={queryParam} />
               ),
@@ -197,6 +203,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
         <Row justify="space-between">
           <Space size="middle">
             <Card.Meta title="Identities" />
+            <Tag>{filteredIdentifiers.length}</Tag>
           </Space>
         </Row>
       }

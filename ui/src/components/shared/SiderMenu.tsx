@@ -1,4 +1,4 @@
-import { App, Col, Divider, Menu, Row, Space, Tag, Typography } from "antd";
+import { App, Col, Menu, Row, Space, Tag, Typography } from "antd";
 import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
@@ -114,8 +114,6 @@ export function SiderMenu({
         <Col>
           <UserDisplay />
 
-          <Divider />
-
           <Menu
             items={[
               {
@@ -172,6 +170,7 @@ export function SiderMenu({
               },
             ]}
             selectedKeys={getSelectedKey()}
+            style={{ marginTop: 16 }}
           />
         </Col>
 

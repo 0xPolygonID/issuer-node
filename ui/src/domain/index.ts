@@ -5,14 +5,13 @@ export type { Connection } from "src/domain/connection";
 export type {
   Credential,
   CredentialsTabIDs,
-  IssuedQRCode,
+  IssuedMessage,
   Link,
   LinkStatus,
-  ProofType,
   RefreshService,
 } from "src/domain/credential";
 
-export { CredentialProofType } from "src/domain/credential";
+export { ProofType } from "src/domain/credential";
 
 export type { Env } from "src/domain/env";
 
@@ -59,6 +58,6 @@ export type {
 
 export type { Schema as ApiSchema } from "src/domain/schema";
 
-export type { Identifier, Identity, IdentityDetails, SupportedNetwork } from "src/domain/identity";
+export type { Identity, IdentityDetails, SupportedNetwork } from "src/domain/identity";
 
 export { IdentityType, CredentialStatusType, Method } from "src/domain/identity";

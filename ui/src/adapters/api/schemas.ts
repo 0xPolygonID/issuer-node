@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
-import { ApiSchema, Env, Identifier, JsonLdType } from "src/domain";
+import { ApiSchema, Env, JsonLdType } from "src/domain";
 import { getStorageByKey } from "src/utils/browser";
 import { API_VERSION, IPFS_CUSTOM_GATEWAY_KEY, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -38,7 +38,7 @@ export async function importSchema({
 }: {
   description?: string;
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   jsonLdType: JsonLdType;
   schemaUrl: string;
   title?: string;
@@ -73,7 +73,7 @@ export async function getApiSchema({
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   schemaID: string;
   signal: AbortSignal;
 }): Promise<Response<ApiSchema>> {
@@ -100,7 +100,7 @@ export async function getApiSchemas({
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  identifier: string;
   params: {
     query?: string;
   };

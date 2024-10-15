@@ -12,45 +12,48 @@ import { IDENTITY_ADD } from "src/utils/constants";
 
 export function UserDisplay() {
   const { issuer } = useEnvContext();
-  const { handleChange, identifier, identitiesList, identityDisplayName } = useIdentityContext();
+  const { getSelectedIdentity, identifier, identityList, selectIdentity } = useIdentityContext();
   const navigate = useNavigate();
   const { token } = theme.useToken();
+  const selectedIdentity = getSelectedIdentity();
+  const selectedIdentityDisplayName = selectedIdentity ? selectedIdentity.displayName : "";
 
-  const identityItems = isAsyncTaskDataAvailable(identitiesList)
-    ? identitiesList.data
-        .toSorted((item) => (item.identifier === identifier ? -1 : 0))
-        .map((identity, index) => {
-          const currentIdentity = identity.identifier === identifier;
-          return {
-            key: `${index}`,
-            label: (
+  const identityItems = isAsyncTaskDataAvailable(identityList)
+    ? identityList.data.map((identity, index) => {
+        const currentIdentity = identity.identifier === identifier;
+        const formattedIdentifier = formatIdentifier(identity.identifier, { short: true });
+        return {
+          key: `${index}`,
+          label: (
+            <Flex
+              align="center"
+              className={currentIdentity ? "active" : ""}
+              gap={16}
+              justify="space-between"
+            >
               <Flex
-                align="center"
-                className={currentIdentity ? "active" : ""}
-                gap={16}
-                justify="space-between"
+                style={{
+                  width: 242,
+                }}
+                vertical
               >
-                <Flex
-                  style={{
-                    width: 242,
-                  }}
-                  vertical
+                <Typography.Text
+                  ellipsis={{ tooltip: identity.displayName || formattedIdentifier }}
                 >
-                  <Tooltip title={identity.displayName}>
-                    <Typography.Text ellipsis>{identity.displayName}</Typography.Text>
-                  </Tooltip>
-                </Flex>
-                {currentIdentity && <IconCheck />}
+                  {identity.displayName || formattedIdentifier}
+                </Typography.Text>
               </Flex>
-            ),
-            onClick: () => handleChange(identity.identifier),
-          };
-        })
+              {currentIdentity && <IconCheck />}
+            </Flex>
+          ),
+          onClick: () => selectIdentity(identity.identifier),
+        };
+      })
     : [];
 
   const items = [
     {
-      key: "test",
+      key: "add",
       label: (
         <Flex gap={16}>
           <IconPlus style={{ height: 20, width: 20 }} />
@@ -76,11 +79,13 @@ export function UserDisplay() {
             <IconChevron />
           </Flex>
           <Flex gap={4} vertical>
-            <Tooltip title={identityDisplayName}>
-              <Typography.Text ellipsis style={{ fontWeight: 600 }} type="secondary">
-                {identityDisplayName}
-              </Typography.Text>
-            </Tooltip>
+            <Typography.Text
+              ellipsis={{ tooltip: selectedIdentityDisplayName }}
+              style={{ fontWeight: 600 }}
+              type="secondary"
+            >
+              {selectedIdentityDisplayName}
+            </Typography.Text>
 
             <Flex align="center" gap={4}>
               <Tag
@@ -100,7 +105,7 @@ export function UserDisplay() {
               </Tag>
               <Tooltip title={identifier}>
                 <Typography.Text type="secondary">
-                  {formatIdentifier(identifier, true)}
+                  {formatIdentifier(identifier, { short: true })}
                 </Typography.Text>
               </Tooltip>
             </Flex>
@@ -108,31 +113,5 @@ export function UserDisplay() {
         </Flex>
       </Card>
     </Dropdown>
-
-    // <Flex gap={12} justify="space-between">
-    //   <Flex>
-    //     <Avatar shape="square" size="large" src={issuer.logo} />
-    //   </Flex>
-
-    //   <Flex style={{ maxWidth: 188, width: "100%" }} vertical>
-    //     <Tooltip title={identityDisplayName}>
-    //       <Typography.Text ellipsis>{identityDisplayName}</Typography.Text>
-    //     </Tooltip>
-    //     <Typography.Text type="secondary">{formatIdentifier(identifier)}</Typography.Text>
-    //   </Flex>
-
-    //   <Flex>
-    //     <Dropdown
-    //       menu={{ items }}
-    //       overlayClassName="identities-dropdown"
-    //       placement="bottom"
-    //       trigger={["click"]}
-    //     >
-    //       <Row style={{ cursor: "pointer" }}>
-    //         <IconChevron />
-    //       </Row>
-    //     </Dropdown>
-    //   </Flex>
-    // </Flex>
   );
 }

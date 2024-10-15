@@ -25,7 +25,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
   - [Quick Start Installation](#quick-start-installation)
     - [Prerequisites](#prerequisites)
     - [Run Issuer Node API and UI (docker compose with images from privadoid dockerhub registry)](#run-issuer-node-api-and-ui-docker-compose-with-images-from-privadoid-registry)
-    - [Install and run Issuer Node API and UI (docker compose and build from source)](#install-and-run-issuer-node-api-and-ui-docker-compose-and-build-from-source)
+    - [Install and run Issuer Node API and UI (docker compose and build from source)](#install-and-run-issuer-node-api-and-ui---docker-compose-and-build-from-source)
     - [Running only Issuer Node API (docker compose and build from source)](#running-only-issuer-node-api-docker-compose-and-build-from-source)
   - [KMS Providers Configuration](#kms-providers-configuration)
   - [Quick Start Demo](#quick-start-demo)
@@ -75,11 +75,11 @@ cp resolvers_settings_sample.yaml resolvers_settings.yaml
 ```
 then modify the file with the proper values. The most important fields to run the issuer node are RPC (`networkURL`) fields.
 In this file you can define customizations for each type of blockchain and network. For this example, we only need to
-define the RPCs. that will use.
+define the RPCs that we will use.
 
 4. Run
 ```shell
-make run-full
+make run-all-registry
 ```
 
 after a few seconds, the issuer node will be running and you can check the docker containers with `docker ps` and you 
@@ -87,9 +87,9 @@ should see something like this:
 ```shell
 CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS                    PORTS                                        NAMES
 6e923fa11228   privadoid/issuernode-ui         "/bin/sh /app/script…"   37 seconds ago   Up 32 seconds (healthy)   0.0.0.0:8088->80/tcp                         issuer-ui-1
-16afc9d66591   privadoid/issuernode            "sh -c ./pending_pub…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-pending_publisher-1
-ceb41877c041   privadoid/issuernode            "sh -c ./notificatio…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-notifications-1
-bd7b69984f1c   privadoid/issuernode            "sh -c './migrate &&…"   38 seconds ago   Up 34 seconds (healthy)   0.0.0.0:3001->3001/tcp                       issuer-api-1
+16afc9d66591   privadoid/issuernode-api        "sh -c ./pending_pub…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-pending_publisher-1
+ceb41877c041   privadoid/issuernode-api        "sh -c ./notificatio…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-notifications-1
+bd7b69984f1c   privadoid/issuernode-api        "sh -c './migrate &&…"   38 seconds ago   Up 34 seconds (healthy)   0.0.0.0:3001->3001/tcp                       issuer-api-1
 25ae0fcac183   postgres:14-alpine              "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   5432/tcp                                     issuer-postgres-1
 a4a1d3ec9159   redis:6-alpine                  "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   6379/tcp                                     issuer-redis-1
 ```
@@ -182,7 +182,7 @@ make up
 Then run: 
 
 ```shell
-make build && make run
+make build-api && make run-api
 ```
 ----
 **Troubleshooting:**

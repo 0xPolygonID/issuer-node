@@ -2,7 +2,7 @@ import { Button, Card, Col, Grid, Row, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
-import { getCredential } from "src/adapters/api/credentials";
+import { getCredential, getIssuedMessages } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import IconTrash from "src/assets/icons/trash-01.svg?react";
@@ -16,7 +16,7 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
-import { AppError, Credential, ObjectAttributeValue } from "src/domain";
+import { AppError, Credential, IssuedMessage, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -45,6 +45,11 @@ export function CredentialDetails() {
     status: "pending",
   });
   const [credential, setCredential] = useState<AsyncTask<Credential, AppError>>({
+    status: "pending",
+  });
+  const [issuedMessages, setIssuedMessages] = useState<
+    AsyncTask<[IssuedMessage, IssuedMessage], AppError>
+  >({
     status: "pending",
   });
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
@@ -102,6 +107,25 @@ export function CredentialDetails() {
     [env]
   );
 
+  const fetchCredentialIssuedMessages = useCallback(
+    (signal?: AbortSignal) => {
+      if (credentialID) {
+        setIssuedMessages({ status: "loading" });
+
+        void getIssuedMessages({ credentialID, env, identifier, signal }).then((response) => {
+          if (response.success) {
+            setIssuedMessages({ data: response.data, status: "successful" });
+          } else {
+            if (!isAbortedError(response.error)) {
+              setIssuedMessages({ error: response.error, status: "failed" });
+            }
+          }
+        });
+      }
+    },
+    [credentialID, env, identifier]
+  );
+
   const fetchCredential = useCallback(
     async (signal?: AbortSignal) => {
       if (credentialID) {
@@ -117,6 +141,7 @@ export function CredentialDetails() {
         if (response.success) {
           setCredential({ data: response.data, status: "successful" });
           fetchJsonSchemaFromUrl({ credential: response.data });
+          fetchCredentialIssuedMessages(signal);
         } else {
           if (!isAbortedError(response.error)) {
             setCredential({ error: response.error, status: "failed" });
@@ -124,7 +149,7 @@ export function CredentialDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, credentialID, identifier]
+    [env, fetchJsonSchemaFromUrl, fetchCredentialIssuedMessages, credentialID, identifier]
   );
 
   useEffect(() => {
@@ -135,7 +160,10 @@ export function CredentialDetails() {
     return;
   }, [fetchCredential, credentialID]);
 
-  const loading = isAsyncTaskStarting(credential) || isAsyncTaskStarting(credentialSubjectValue);
+  const loading =
+    isAsyncTaskStarting(credential) ||
+    isAsyncTaskStarting(credentialSubjectValue) ||
+    isAsyncTaskStarting(issuedMessages);
 
   return (
     <SiderLayoutContent
@@ -156,6 +184,8 @@ export function CredentialDetails() {
               />
             </Card>
           );
+        } else if (hasAsyncTaskFailed(issuedMessages)) {
+          return <ErrorResult error={issuedMessages.error.message} />;
         } else if (hasAsyncTaskFailed(credentialSubjectValue)) {
           return (
             <Card className="centered">
@@ -172,8 +202,8 @@ export function CredentialDetails() {
           );
         } else {
           const {
-            createdAt,
-            expiresAt,
+            expirationDate,
+            issuanceDate,
             proofTypes,
             refreshService,
             revoked,
@@ -182,9 +212,7 @@ export function CredentialDetails() {
             userID,
           } = credential.data;
 
-          const qrCodeLink =
-            window.location.origin +
-            generatePath(ROUTES.credentialIssuedQR.path, { credentialID: credentialID });
+          const [universalLinkResponse, deepLinkResponse] = issuedMessages.data;
 
           return (
             <Card
@@ -224,11 +252,11 @@ export function CredentialDetails() {
 
                     <Detail label="Proof type" text={proofTypes.join(", ")} />
 
-                    <Detail label="Issue date" text={formatDate(createdAt)} />
+                    <Detail label="Creation date" text={formatDate(issuanceDate)} />
 
                     <Detail
                       label="Credential expiration date"
-                      text={expiresAt ? formatDate(expiresAt) : "-"}
+                      text={expirationDate ? formatDate(expirationDate) : "-"}
                     />
 
                     <Detail
@@ -245,7 +273,21 @@ export function CredentialDetails() {
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
 
-                    <Detail copyable href={qrCodeLink} label="QR code link" text={qrCodeLink} />
+                    <Detail
+                      copyable
+                      downloadLink
+                      href={universalLinkResponse.universalLink}
+                      label="Universal link"
+                      text={universalLinkResponse.universalLink}
+                    />
+
+                    <Detail
+                      copyable
+                      downloadLink
+                      href={deepLinkResponse.universalLink}
+                      label="Deep link"
+                      text={deepLinkResponse.universalLink}
+                    />
                   </Space>
                 </Card>
 
