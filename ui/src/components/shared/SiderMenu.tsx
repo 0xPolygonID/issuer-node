@@ -14,7 +14,6 @@ import { LogoLink } from "src/components/shared/LogoLink";
 import { SettingsModal } from "src/components/shared/SettingsModal";
 import { UserDisplay } from "src/components/shared/UserDisplay";
 import { useEnvContext } from "src/contexts/Env";
-import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable } from "src/utils/async";
@@ -37,7 +36,6 @@ export function SiderMenu({
 }) {
   const { buildTag } = useEnvContext();
   const { status } = useIssuerStateContext();
-  const { identifier } = useIdentityContext();
 
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -117,7 +115,6 @@ export function SiderMenu({
           <Menu
             items={[
               {
-                disabled: !identifier,
                 icon: <IconSchema />,
                 key: schemasPath,
                 label: SCHEMAS,
@@ -125,7 +122,6 @@ export function SiderMenu({
                 title: "",
               },
               {
-                disabled: !identifier,
                 icon: <IconCredentials />,
                 key: credentialsPath,
                 label: CREDENTIALS,
@@ -138,7 +134,6 @@ export function SiderMenu({
                 title: "",
               },
               {
-                disabled: !identifier,
                 icon: <IconConnections />,
                 key: connectionsPath,
                 label: CONNECTIONS,
@@ -146,7 +141,6 @@ export function SiderMenu({
                 title: "",
               },
               {
-                disabled: !identifier,
                 icon: <IconIssuerState />,
                 key: issuerStatePath,
                 label:

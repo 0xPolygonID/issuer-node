@@ -17,7 +17,7 @@ import { VALUE_REQUIRED } from "src/utils/constants";
 
 const initialValues: IdentityFormData = {
   blockchain: "",
-  credentialStatusType: CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
+  credentialStatusType: CredentialStatusType["Iden3commRevocationStatusV1.0"],
   displayName: "",
   method: Method.iden3,
   network: "",
