@@ -18,7 +18,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/schema"
+	"github.com/polygonid/sh-id-platform/internal/schema"
 )
 
 // DeleteCredential deletes a credential

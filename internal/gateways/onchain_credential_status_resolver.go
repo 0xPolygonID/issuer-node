@@ -12,7 +12,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/network"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
 // OnChainCredStatusResolverService - on chain credential status networkResolver service

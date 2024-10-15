@@ -15,7 +15,7 @@ type ZKProof struct {
 	A        []string   `json:"pi_a"`
 	B        [][]string `json:"pi_b"`
 	C        []string   `json:"pi_c"`
-	Protocol string     `json:"protocol"`
+	Protocol string     `json:"package_manager"`
 }
 
 // FullProof is ZKP proof with public signals

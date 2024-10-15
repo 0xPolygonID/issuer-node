@@ -19,6 +19,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -27,15 +28,14 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	network2 "github.com/polygonid/sh-id-platform/internal/network"
+	protocol2 "github.com/polygonid/sh-id-platform/internal/package_manager"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
+	"github.com/polygonid/sh-id-platform/internal/revocation_status"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/protocol"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 var build = buildinfo.Revision()
@@ -90,18 +90,18 @@ func main() {
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 
-	reader, err := network.GetReaderFromConfig(cfg, ctx)
+	reader, err := network2.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
 		log.Error(ctx, "cannot read network resolver file", "err", err)
 		return
 	}
-	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
+	networkResolver, err := network2.NewResolver(ctx, *cfg, keyStore, reader)
 	if err != nil {
 		log.Error(ctx, "failed initialize network resolver", "err", err)
 		return
 	}
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
@@ -130,11 +130,11 @@ func main() {
 	if cfg.UniversalDIDResolver.UniversalResolverURL != nil && *cfg.UniversalDIDResolver.UniversalResolverURL != "" {
 		universalDIDResolverUrl = *cfg.UniversalDIDResolver.UniversalResolverURL
 	}
-	universalDIDResolverHandler := protocol.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
+	universalDIDResolverHandler := protocol2.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
 
-	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
+	packageManager, err := protocol2.New(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
 	if err != nil {
-		log.Error(ctx, "failed init package protocol", "err", err)
+		log.Error(ctx, "failed init package package_manager", "err", err)
 		return
 	}
 

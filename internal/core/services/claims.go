@@ -29,16 +29,15 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/jsonschema"
+	"github.com/polygonid/sh-id-platform/internal/json_schema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/revocation_status"
+	schemaPkg "github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/urn"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/rand"
-	schemaPkg "github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 var (
@@ -139,7 +138,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	if req.RevNonce != nil {
 		nonce = *req.RevNonce
 	} else {
-		nonce, err = rand.Int64()
+		nonce, err = common.Int64()
 	}
 	if err != nil {
 		log.Error(ctx, "create a nonce", "err", err)
@@ -179,7 +178,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	jsonLD, err := jsonschema.Load(ctx, jsonLdContext, c.loader)
+	jsonLD, err := json_schema.Load(ctx, jsonLdContext, c.loader)
 	if err != nil {
 		log.Error(ctx, "loading jsonLdContext", "err", err, "url", jsonLdContext)
 		return nil, err

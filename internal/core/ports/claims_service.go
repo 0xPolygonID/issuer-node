@@ -14,7 +14,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/sqltools"
+	"github.com/polygonid/sh-id-platform/internal/sql_tools"
 )
 
 // ClaimRequestProofs - defines the proofs that can be requested for a claim
@@ -59,14 +59,14 @@ type AgentRequest struct {
 // Constants defining sort by fields passed from the API
 // TIP: Use the sql field name in these constants. A little bit coupled but easy to construct the ORDER BY clause later
 const (
-	ConnectionsCreatedAt        sqltools.SQLFieldName = "connections.created_at"
-	ConnectionsUserID           sqltools.SQLFieldName = "connections.user_id"
-	CredentialSchemaType        sqltools.SQLFieldName = "claims.schema_type"
-	CredentialCreatedAt         sqltools.SQLFieldName = "claims.created_at"
-	CredentialExpiresAt         sqltools.SQLFieldName = "claims.expiration"
-	CredentialRevoked           sqltools.SQLFieldName = "claims.revoked"
-	StateTransitionsPublishDate sqltools.SQLFieldName = "created_at"
-	StateTransitionsStatus      sqltools.SQLFieldName = "status"
+	ConnectionsCreatedAt        sql_tools.SQLFieldName = "connections.created_at"
+	ConnectionsUserID           sql_tools.SQLFieldName = "connections.user_id"
+	CredentialSchemaType        sql_tools.SQLFieldName = "claims.schema_type"
+	CredentialCreatedAt         sql_tools.SQLFieldName = "claims.created_at"
+	CredentialExpiresAt         sql_tools.SQLFieldName = "claims.expiration"
+	CredentialRevoked           sql_tools.SQLFieldName = "claims.revoked"
+	StateTransitionsPublishDate sql_tools.SQLFieldName = "created_at"
+	StateTransitionsStatus      sql_tools.SQLFieldName = "status"
 )
 
 // ClaimsFilter struct
@@ -84,7 +84,7 @@ type ClaimsFilter struct {
 	Proofs          []verifiable.ProofType
 	MaxResults      uint  // Max number of results to return on each call.
 	Page            *uint // Page number to return. First is 1. if nul, then there is no limit in the number to return
-	OrderBy         sqltools.OrderByFilters
+	OrderBy         sql_tools.OrderByFilters
 }
 
 // NewClaimsFilter returns a valid claims filter

@@ -13,7 +13,6 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 )
 
 // CreateQRCodeResponse - is the result of creating a link QRcode.
@@ -46,10 +45,17 @@ func LinkTypeReqFromString(s string) (LinkStatus, error) {
 	return LinkStatus(s), nil
 }
 
+// State - Link state.
+type State struct {
+	Status  string  `json:"status,omitempty"`
+	Message string  `json:"message,omitempty"`
+	QRCode  *string `json:"qrcode"`
+}
+
 // GetQRCodeResponse - is the get link qrcode response.
 type GetQRCodeResponse struct {
 	Link  *domain.Link
-	State *linkState.State
+	State *State
 }
 
 // LinkService - the interface that defines the available methods

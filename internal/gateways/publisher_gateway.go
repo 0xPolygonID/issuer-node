@@ -16,10 +16,10 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/eth"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
-	"github.com/polygonid/sh-id-platform/pkg/network"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
 // PublisherEthGateway interact with blockchain

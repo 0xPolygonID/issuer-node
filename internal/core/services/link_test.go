@@ -18,12 +18,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	networkPkg "github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
+	"github.com/polygonid/sh-id-platform/internal/revocation_status"
 )
 
 func Test_link_issueClaim(t *testing.T) {
@@ -37,11 +36,11 @@ func Test_link_issueClaim(t *testing.T) {
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
 
-	reader := helpers.CreateFile(t)
+	reader := common.CreateFile(t)
 	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 	sessionRepository := repositories.NewSessionCached(cachex)

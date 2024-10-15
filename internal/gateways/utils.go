@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/eth"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
-	"github.com/polygonid/sh-id-platform/pkg/network"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
 func getEthClient(ctx context.Context, identity *domain.Identity, resolver network.Resolver) (*eth.Client, error) {

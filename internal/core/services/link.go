@@ -20,14 +20,14 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/jsonschema"
+	"github.com/polygonid/sh-id-platform/internal/json_schema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/notifications"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/notifications"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
 var (
@@ -396,7 +396,7 @@ func (ls *Link) Validate(ctx context.Context, link *domain.Link) error {
 }
 
 func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaDB *domain.Schema) error {
-	return jsonschema.ValidateCredentialSubject(ctx, ls.loader, schemaDB.URL, schemaDB.Type, cSubject)
+	return json_schema.ValidateCredentialSubject(ctx, ls.loader, schemaDB.URL, schemaDB.Type, cSubject)
 }
 
 func (ls *Link) validateRefreshService(rs *verifiable.RefreshService, expiration *time.Time) error {

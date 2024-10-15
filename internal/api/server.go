@@ -11,7 +11,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/health"
-	"github.com/polygonid/sh-id-platform/pkg/network"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers

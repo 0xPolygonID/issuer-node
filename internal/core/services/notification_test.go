@@ -17,13 +17,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
+	"github.com/polygonid/sh-id-platform/internal/http"
+	networkPkg "github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	"github.com/polygonid/sh-id-platform/pkg/http"
-	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
+	"github.com/polygonid/sh-id-platform/internal/revocation_status"
 )
 
 func TestNotification_SendNotification(t *testing.T) {
@@ -41,11 +40,11 @@ func TestNotification_SendNotification(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 
-	reader := helpers.CreateFile(t)
+	reader := common.CreateFile(t)
 	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 

@@ -14,8 +14,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/notifications"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
+	notifications2 "github.com/polygonid/sh-id-platform/internal/notifications"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 )
 
 type notification struct {
@@ -220,12 +220,12 @@ func getCredentialOfferData(conn *domain.Connection, credentials ...*domain.Clai
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("unmarshal managedDIDDoc, err: %v", err.Error())
 	}
 
-	managedService, err := notifications.FindServiceByType(managedDIDDoc, verifiable.Iden3CommServiceType)
+	managedService, err := notifications2.FindServiceByType(managedDIDDoc, verifiable.Iden3CommServiceType)
 	if err != nil {
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("unmarshal managedService, err: %v", err.Error())
 	}
 
-	credOffer, err := notifications.NewOfferMsg(managedService.ServiceEndpoint, credentials...)
+	credOffer, err := notifications2.NewOfferMsg(managedService.ServiceEndpoint, credentials...)
 	if err != nil {
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("newOfferMsg, err: %v", err.Error())
 	}
@@ -250,7 +250,7 @@ func getRevokedCredentialData(conn *domain.Connection, credential *domain.Claim)
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("unmarshal managedDIDDoc, err: %v", err.Error())
 	}
 
-	credOfferBytes, err = notifications.NewRevokedMsg(credential)
+	credOfferBytes, err = notifications2.NewRevokedMsg(credential)
 	if err != nil {
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("NewRevokedMsg, err: %v", err.Error())
 	}

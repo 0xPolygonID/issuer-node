@@ -24,9 +24,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/sync_ttl_map"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
+	"github.com/polygonid/sh-id-platform/internal/sync_ttl_map"
 )
 
 type jobIDType string

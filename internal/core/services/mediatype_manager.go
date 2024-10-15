@@ -4,7 +4,7 @@ import (
 	"github.com/iden3/iden3comm/v2"
 )
 
-// MediaTypeManager manages the list of allowed media types for the protocol message type
+// MediaTypeManager manages the list of allowed media types for the package_manager message type
 // if strictMode is true, then all messages that do not exist in the allowed list will be rejected
 type MediaTypeManager struct {
 	enabled   bool
@@ -19,7 +19,7 @@ func NewMediaTypeManager(allowList map[iden3comm.ProtocolMessage][]string, enabl
 	}
 }
 
-// AllowMediaType check if the protocol message supports the mediaType type
+// AllowMediaType check if the package_manager message supports the mediaType type
 func (m *MediaTypeManager) AllowMediaType(protoclMessage iden3comm.ProtocolMessage, mediaType iden3comm.MediaType) bool {
 	if !m.enabled {
 		return true

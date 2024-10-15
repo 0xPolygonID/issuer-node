@@ -12,23 +12,23 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
+	httpPkg "github.com/polygonid/sh-id-platform/internal/http"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	network2 "github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	httpPkg "github.com/polygonid/sh-id-platform/pkg/http"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
+	"github.com/polygonid/sh-id-platform/internal/revocation_status"
 )
 
 var build = buildinfo.Revision()
@@ -131,18 +131,18 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 
-	reader, err := network.GetReaderFromConfig(cfg, ctx)
+	reader, err := network2.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
 		log.Error(ctx, "cannot read network resolver file", "err", err)
 		return nil, err
 	}
-	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
+	networkResolver, err := network2.NewResolver(ctx, *cfg, keyStore, reader)
 	if err != nil {
 		log.Error(ctx, "failed initialize network resolver", "err", err)
 		return nil, err
 	}
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL, cfg.SchemaCache)
 

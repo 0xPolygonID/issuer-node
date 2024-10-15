@@ -20,12 +20,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
+	"github.com/polygonid/sh-id-platform/internal/revocation_status"
 )
 
 const (
@@ -46,11 +45,11 @@ func Test_identity_CreateIdentity(t *testing.T) {
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
 
-	reader := helpers.CreateFile(t)
+	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 
@@ -115,17 +114,17 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
 
-	reader := helpers.CreateFile(t)
+	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
 	t.Run("should create BJJ identity with RHS", func(t *testing.T) {
-		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
-		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublishers := make([]reverse_hash2.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
 
 		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
 			Type: kms.KeyTypeEthereum,
 			ID:   "pbkey",
@@ -147,12 +146,12 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 	})
 
 	t.Run("should return an error when publish state fail", func(t *testing.T) {
-		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
-		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublishers := make([]reverse_hash2.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(errors.New("error"))
 
 		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
 			Type: kms.KeyTypeEthereum,
 			ID:   "pbkey",
@@ -166,7 +165,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 	})
 
 	t.Run("should create ETH identity with RHS", func(t *testing.T) {
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: ETH})
@@ -182,14 +181,14 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 	})
 
 	t.Run("should create BJJ identity with RHS and 2 publishers", func(t *testing.T) {
-		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
-		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublishers := make([]reverse_hash2.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
-		rhsPublisherOnChainMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherOnChainMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherOnChainMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
 
 		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock, rhsPublisherOnChainMock)
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
 			Type: kms.KeyTypeEthereum,
 			ID:   "pbkey",
@@ -212,12 +211,12 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 	})
 
 	t.Run("should create BJJ identity with RHS Iden3commRevocationStatusV1 ", func(t *testing.T) {
-		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
-		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublishers := make([]reverse_hash2.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
 
 		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
 			Type: kms.KeyTypeEthereum,
 			ID:   "pbkey",
@@ -249,17 +248,17 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
 
-	reader := helpers.CreateFileWithRHSOffChain(t)
+	reader := common.CreateFileWithRHSOffChain(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
 	t.Run("should create BJJ identity with RHS", func(t *testing.T) {
-		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
-		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublishers := make([]reverse_hash2.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
 
 		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
 			Type: kms.KeyTypeEthereum,
 			ID:   "pbkey",
@@ -281,12 +280,12 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 	})
 
 	t.Run("should return an error when publish state fail", func(t *testing.T) {
-		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
-		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublishers := make([]reverse_hash2.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(errors.New("error"))
 
 		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
 			Type: kms.KeyTypeEthereum,
 			ID:   "pbkey",
@@ -300,7 +299,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 	})
 
 	t.Run("should create ETH identity with RHS", func(t *testing.T) {
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: ETH})
@@ -316,14 +315,14 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 	})
 
 	t.Run("should create BJJ identity with RHS and 2 publishers", func(t *testing.T) {
-		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
-		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublishers := make([]reverse_hash2.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
-		rhsPublisherOnChainMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherOnChainMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherOnChainMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
 
 		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock, rhsPublisherOnChainMock)
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
 			Type: kms.KeyTypeEthereum,
 			ID:   "pbkey",
@@ -346,12 +345,12 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 	})
 
 	t.Run("should create BJJ identity with RHS Iden3ReverseSparseMerkleTreeProof ", func(t *testing.T) {
-		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
-		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublishers := make([]reverse_hash2.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash2.NewMockRhsPublisher(t)
 		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
 
 		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
-		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock := reverse_hash2.NewMockFactory(t)
 		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
 			Type: kms.KeyTypeEthereum,
 			ID:   "pbkey",
@@ -383,11 +382,11 @@ func Test_identity_UpdateState(t *testing.T) {
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
 
-	reader := helpers.CreateFile(t)
+	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 
@@ -576,11 +575,11 @@ func Test_identity_GetByDID(t *testing.T) {
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
 
-	reader := helpers.CreateFile(t)
+	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
@@ -633,11 +632,11 @@ func Test_identity_GetLatestStateByID(t *testing.T) {
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
 
-	reader := helpers.CreateFile(t)
+	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})

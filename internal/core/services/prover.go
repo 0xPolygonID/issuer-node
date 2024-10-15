@@ -10,8 +10,8 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	client "github.com/polygonid/sh-id-platform/internal/http"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	client "github.com/polygonid/sh-id-platform/pkg/http"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 )
 

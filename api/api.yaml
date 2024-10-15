@@ -1989,10 +1989,10 @@ components:
 
     TimeUTC:
       type: string
-      x-go-type: timeapi.Time
+      x-go-type: time_api.Time
       x-go-type-import:
-        name: timeapi
-        path: github.com/polygonid/sh-id-platform/internal/timeapi
+        name: time_api
+        path: github.com/polygonid/sh-id-platform/internal/time_api
       example: '2023-10-26T10:59:08Z'
       x-omitempty: false
 
