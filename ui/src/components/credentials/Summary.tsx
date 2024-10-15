@@ -1,15 +1,4 @@
-import {
-  Button,
-  Card,
-  Divider,
-  Flex,
-  Row,
-  Tabs,
-  TabsProps,
-  Typography,
-  message,
-  theme,
-} from "antd";
+import { Button, Card, Divider, Flex, Row, Tabs, TabsProps, Typography, theme } from "antd";
 import { useEffect, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
 
@@ -69,7 +58,6 @@ export function Summary({ linkID }: { linkID: string }) {
   const [authMessage, setAuthMessage] = useState<AsyncTask<AuthRequestMessage, AppError>>({
     status: "pending",
   });
-  const [messageAPI, messageContext] = message.useMessage();
 
   useEffect(() => {
     void createAuthRequestMessage({
@@ -81,10 +69,9 @@ export function Summary({ linkID }: { linkID: string }) {
         setAuthMessage({ data: response.data, status: "successful" });
       } else {
         setAuthMessage({ error: response.error, status: "failed" });
-        void messageAPI.error(response.error.message);
       }
     });
-  }, [linkID, env, identifier, messageAPI]);
+  }, [linkID, env, identifier]);
 
   const navigateToLinks = () => {
     navigate(
@@ -96,8 +83,6 @@ export function Summary({ linkID }: { linkID: string }) {
 
   return (
     <>
-      {messageContext}
-
       {(() => {
         if (hasAsyncTaskFailed(authMessage)) {
           return (
