@@ -602,7 +602,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim: uuid.New(),
 			expected: expected{
 				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
-					Message: "Credential not found",
+					Message: "QrCode not found",
 				}},
 				httpCode: http.StatusNotFound,
 			},
@@ -614,7 +614,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim: claim.ID,
 			expected: expected{
 				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
-					Message: "Credential not found",
+					Message: "QrCode not found",
 				}},
 				httpCode: http.StatusNotFound,
 			},

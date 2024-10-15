@@ -317,7 +317,7 @@ func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQ
 	resp, err := s.claimService.GetCredentialQrCode(ctx, did, claimID, s.cfg.ServerUrl)
 	if err != nil {
 		if errors.Is(err, services.ErrCredentialNotFound) {
-			return GetCredentialQrCode404JSONResponse{N404JSONResponse{"Credential not found"}}, nil
+			return GetCredentialQrCode404JSONResponse{N404JSONResponse{"QrCode not found"}}, nil
 		}
 		if errors.Is(err, services.ErrEmptyMTPProof) {
 			return GetCredentialQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credentials"}}, nil
