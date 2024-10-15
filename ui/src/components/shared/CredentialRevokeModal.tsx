@@ -8,7 +8,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
-import { CLOSE, REVOKE, REVOKED_SEARCH_PARAM } from "src/utils/constants";
+import { CLOSE, REVOKE } from "src/utils/constants";
 
 export function CredentialRevokeModal({
   credential,
@@ -39,7 +39,6 @@ export function CredentialRevokeModal({
         onRevoke();
         setSearchParams((previousParams) => {
           const params = new URLSearchParams(previousParams);
-          params.set(REVOKED_SEARCH_PARAM, "true");
           return params;
         });
         void notifyChange("revoke");
