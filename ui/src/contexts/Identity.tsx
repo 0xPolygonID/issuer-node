@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { Space, message } from "antd";
 import {
   PropsWithChildren,
   createContext,
@@ -11,6 +11,8 @@ import {
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getIdentities, identifierParser } from "src/adapters/api/identities";
+import { ErrorResult } from "src/components/shared/ErrorResult";
+import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Identity } from "src/domain";
 import { ROUTES } from "src/routes";
@@ -32,7 +34,6 @@ type IdentityState = {
   fetchIdentities: (signal: AbortSignal) => void;
   getSelectedIdentity: () => Identity | undefined;
   identifier: string;
-  identityDisplayName: string;
   identityList: AsyncTask<Identity[], AppError>;
   selectIdentity: (identifier: string) => void;
 };
@@ -41,7 +42,6 @@ const defaultIdentityState: IdentityState = {
   fetchIdentities: () => void {},
   getSelectedIdentity: () => void {},
   identifier: "",
-  identityDisplayName: "",
   identityList: { status: "pending" },
   selectIdentity: () => void {},
 };
@@ -58,11 +58,6 @@ export function IdentityProvider(props: PropsWithChildren) {
   });
   const [identifier, setIdentifier] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
-
-  const identity =
-    (identityList.status === "successful" || identityList.status === "reloading") &&
-    identityList.data.find((identity) => identity.identifier === identifier);
-  const identityDisplayName = identity && identity.displayName ? identity.displayName : "";
 
   const identifierParam = searchParams.get(IDENTIFIER_SEARCH_PARAM);
 
@@ -108,7 +103,6 @@ export function IdentityProvider(props: PropsWithChildren) {
       } else {
         if (!isAbortedError(response.error)) {
           setIdentityList({ error: response.error, status: "failed" });
-          void messageAPI.error(response.error.message);
         }
       }
     },
@@ -163,25 +157,42 @@ export function IdentityProvider(props: PropsWithChildren) {
       fetchIdentities,
       getSelectedIdentity,
       identifier,
-      identityDisplayName,
       identityList,
       selectIdentity,
     };
-  }, [
-    identifier,
-    identityDisplayName,
-    identityList,
-    selectIdentity,
-    fetchIdentities,
-    getSelectedIdentity,
-  ]);
+  }, [identifier, identityList, selectIdentity, fetchIdentities, getSelectedIdentity]);
 
   return (
     <>
       {messageContext}
-      {(identityList.status === "successful" || identityList.status === "reloading") && (
-        <IdentityContext.Provider value={value} {...props} />
-      )}
+
+      {(() => {
+        switch (identityList.status) {
+          case "successful":
+          case "reloading": {
+            return <IdentityContext.Provider value={value} {...props} />;
+          }
+          case "failed": {
+            return <ErrorResult error={identityList.error.message} />;
+          }
+          case "pending":
+          case "loading": {
+            return (
+              <Space
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  height: "100vh",
+                  justifyContent: "center",
+                  width: "100vw",
+                }}
+              >
+                <LoadingResult />
+              </Space>
+            );
+          }
+        }
+      })()}
     </>
   );
 }
