@@ -1,4 +1,4 @@
-package sql_tools
+package sqltools
 
 import (
 	"testing"

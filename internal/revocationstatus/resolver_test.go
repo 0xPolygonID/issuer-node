@@ -1,4 +1,4 @@
-package revocation_status
+package revocationstatus
 
 import (
 	"context"

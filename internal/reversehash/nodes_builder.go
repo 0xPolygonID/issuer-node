@@ -1,4 +1,4 @@
-package reverse_hash
+package reversehash
 
 import (
 	"context"

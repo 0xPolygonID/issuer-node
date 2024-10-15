@@ -9,7 +9,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/pagination"
 	"github.com/polygonid/sh-id-platform/internal/schema"
-	"github.com/polygonid/sh-id-platform/internal/time_api"
+	"github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
 // CustomQrContentResponse is a wrapper to return any content as an api response.
@@ -45,9 +45,9 @@ func getLinkResponses(links []*domain.Link) []Link {
 
 func getLinkResponse(link *domain.Link) Link {
 	hash, _ := link.Schema.Hash.MarshalText()
-	var credentialExpiration *time_api.Time
+	var credentialExpiration *timeapi.Time
 	if link.CredentialExpiration != nil {
-		t := time_api.Time(*link.CredentialExpiration)
+		t := timeapi.Time(*link.CredentialExpiration)
 		credentialExpiration = common.ToPointer(t.UTCZeroHHMMSS())
 	}
 

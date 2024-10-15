@@ -16,7 +16,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/internal/sql_tools"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // GetConnections returns the list of connections of a determined issuer
@@ -205,7 +205,7 @@ func getConnectionsFilter(req GetConnectionsRequestObject) (*ports.NewGetAllConn
 	if req.Params.Page != nil && *req.Params.Page <= 0 {
 		return nil, errors.New("page must be greater than 0")
 	}
-	orderBy := sql_tools.OrderByFilters{}
+	orderBy := sqltools.OrderByFilters{}
 	if req.Params.Sort != nil {
 		for _, sortBy := range *req.Params.Sort {
 			var err error

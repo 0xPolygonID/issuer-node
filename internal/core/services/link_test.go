@@ -21,8 +21,8 @@ import (
 	networkPkg "github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
-	"github.com/polygonid/sh-id-platform/internal/revocation_status"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 )
 
 func Test_link_issueClaim(t *testing.T) {
@@ -41,7 +41,7 @@ func Test_link_issueClaim(t *testing.T) {
 	require.NoError(t, err)
 
 	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	schemaService := NewSchema(schemaRepository, docLoader)

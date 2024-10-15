@@ -1,4 +1,4 @@
-package sync_ttl_map
+package syncttlmap
 
 import (
 	"testing"

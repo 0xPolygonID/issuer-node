@@ -29,13 +29,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/json_schema"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/internal/revocation_status"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	schemaPkg "github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/urn"
 )
@@ -72,12 +72,12 @@ type claim struct {
 	loader                   loader.DocumentLoader
 	publisher                pubsub.Publisher
 	ipfsClient               *shell.Shell
-	revocationStatusResolver *revocation_status.RevocationStatusResolver
+	revocationStatusResolver *revocationstatus.Resolver
 	mediatypeManager         ports.MediatypeManager
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver, mediatypeManager ports.MediatypeManager, cfg config.UniversalLinks) ports.ClaimService {
+func NewClaim(repo ports.ClaimRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocationstatus.Resolver, mediatypeManager ports.MediatypeManager, cfg config.UniversalLinks) ports.ClaimService {
 	s := &claim{
 		host:                     host,
 		icRepo:                   repo,
@@ -178,7 +178,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	jsonLD, err := json_schema.Load(ctx, jsonLdContext, c.loader)
+	jsonLD, err := jsonschema.Load(ctx, jsonLdContext, c.loader)
 	if err != nil {
 		log.Error(ctx, "loading jsonLdContext", "err", err, "url", jsonLdContext)
 		return nil, err

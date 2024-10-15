@@ -12,7 +12,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/internal/sql_tools"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // PublishIdentityState - publish identity state on chain
@@ -113,7 +113,7 @@ func getStateTransitionsFilter(req GetStateTransactionsRequestObject) (request *
 	if req.Params.Filter != nil && !slices.Contains([]string{"all", "latest"}, strings.ToLower(string(*req.Params.Filter))) {
 		return nil, errors.New("invalid filter")
 	}
-	orderBy := sql_tools.OrderByFilters{}
+	orderBy := sqltools.OrderByFilters{}
 	if req.Params.Sort != nil {
 		for _, sortBy := range *req.Params.Sort {
 			var err error

@@ -1,4 +1,4 @@
-package revocation_status
+package revocationstatus
 
 import (
 	ethcommon "github.com/ethereum/go-ethereum/common"

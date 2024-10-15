@@ -30,8 +30,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
-	"github.com/polygonid/sh-id-platform/internal/revocation_status"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 )
 
 var (
@@ -278,7 +278,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 
 	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore, common.CreateFile(t))
 	require.NoError(t, err)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 
 	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
 	qrService := services.NewQrStoreService(cachex)

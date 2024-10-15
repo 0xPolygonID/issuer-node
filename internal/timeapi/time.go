@@ -1,4 +1,4 @@
-package time_api
+package timeapi
 
 import (
 	"encoding/json"

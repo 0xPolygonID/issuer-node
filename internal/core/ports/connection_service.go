@@ -8,7 +8,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/pagination"
-	"github.com/polygonid/sh-id-platform/internal/sql_tools"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // NewGetAllConnectionsRequest struct
@@ -16,11 +16,11 @@ type NewGetAllConnectionsRequest struct {
 	WithCredentials bool
 	Query           string
 	Pagination      pagination.Filter
-	OrderBy         sql_tools.OrderByFilters
+	OrderBy         sqltools.OrderByFilters
 }
 
 // NewGetAllRequest returns the request object for obtaining all connections
-func NewGetAllRequest(withCredentials *bool, query *string, page *uint, maxResults *uint, orderBy sql_tools.OrderByFilters) *NewGetAllConnectionsRequest {
+func NewGetAllRequest(withCredentials *bool, query *string, page *uint, maxResults *uint, orderBy sqltools.OrderByFilters) *NewGetAllConnectionsRequest {
 	var connQuery string
 
 	if query != nil {
@@ -41,11 +41,11 @@ func NewGetAllRequest(withCredentials *bool, query *string, page *uint, maxResul
 type GetStateTransactionsRequest struct {
 	Filter     string
 	Pagination pagination.Filter
-	OrderBy    sql_tools.OrderByFilters
+	OrderBy    sqltools.OrderByFilters
 }
 
 // NewGetStateTransactionsRequest creates a new GetStateTransactionsRequest
-func NewGetStateTransactionsRequest(filter string, page *uint, maxResults *uint, orderBy sql_tools.OrderByFilters) *GetStateTransactionsRequest {
+func NewGetStateTransactionsRequest(filter string, page *uint, maxResults *uint, orderBy sqltools.OrderByFilters) *GetStateTransactionsRequest {
 	pagFilter := pagination.NewFilter(maxResults, page)
 	return &GetStateTransactionsRequest{
 		Filter:     filter,

@@ -29,12 +29,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	network2 "github.com/polygonid/sh-id-platform/internal/network"
-	protocol2 "github.com/polygonid/sh-id-platform/internal/package_manager"
+	protocol2 "github.com/polygonid/sh-id-platform/internal/packagemanager"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
-	"github.com/polygonid/sh-id-platform/internal/revocation_status"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
 )
 
@@ -134,7 +134,7 @@ func main() {
 
 	packageManager, err := protocol2.New(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
 	if err != nil {
-		log.Error(ctx, "failed init package package_manager", "err", err)
+		log.Error(ctx, "failed init package packagemanager", "err", err)
 		return
 	}
 
@@ -145,7 +145,7 @@ func main() {
 		return
 	}
 
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	proofService := services.NewProver(circuitsLoaderService)

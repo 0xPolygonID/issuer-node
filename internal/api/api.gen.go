@@ -17,7 +17,7 @@ import (
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
-	time_api "github.com/polygonid/sh-id-platform/internal/time_api"
+	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
 const (
@@ -531,7 +531,7 @@ type SupportedNetworks struct {
 }
 
 // TimeUTC defines model for TimeUTC.
-type TimeUTC = time_api.Time
+type TimeUTC = timeapi.Time
 
 // UUIDResponse defines model for UUIDResponse.
 type UUIDResponse struct {

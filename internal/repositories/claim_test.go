@@ -18,7 +18,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/sql_tools"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 func TestSaveClaim(t *testing.T) {
@@ -624,7 +624,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 	t.Run("should order by created_at ASC", func(t *testing.T) {
 		claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.ClaimsFilter{
 			Subject: userDID.String(),
-			OrderBy: []sql_tools.OrderByFilter{{Field: ports.CredentialCreatedAt, Desc: false}},
+			OrderBy: []sqltools.OrderByFilter{{Field: ports.CredentialCreatedAt, Desc: false}},
 		})
 		require.NoError(t, err)
 		assert.Len(t, claims, 100)
@@ -639,7 +639,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 	t.Run("should order by revoked (first false, then true) and createdAt ASC", func(t *testing.T) {
 		claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.ClaimsFilter{
 			Subject: userDID.String(),
-			OrderBy: []sql_tools.OrderByFilter{
+			OrderBy: []sqltools.OrderByFilter{
 				{Field: ports.CredentialRevoked, Desc: false},
 				{Field: ports.CredentialCreatedAt, Desc: false},
 			},

@@ -27,8 +27,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reverse_hash"
-	"github.com/polygonid/sh-id-platform/internal/revocation_status"
+	reverse_hash2 "github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 )
 
 var build = buildinfo.Revision()
@@ -143,7 +143,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 	}
 
 	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL, cfg.SchemaCache)
 
 	mtService := services.NewIdentityMerkleTrees(mtRepository)

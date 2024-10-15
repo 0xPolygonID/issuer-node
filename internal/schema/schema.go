@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/json_schema"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -30,7 +30,7 @@ var (
 func LoadSchema(ctx context.Context, loader loader.DocumentLoader, jsonSchemaURL string) (jsonSuiteV1.Schema, error) {
 	var schema jsonSuiteV1.Schema
 
-	schemaBytes, err := json_schema.Load(ctx, jsonSchemaURL, loader)
+	schemaBytes, err := jsonschema.Load(ctx, jsonSchemaURL, loader)
 	if err != nil {
 		return schema, err
 	}

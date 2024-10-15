@@ -10,7 +10,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/json_schema"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -45,20 +45,20 @@ func (s *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) (
 
 // ImportSchema process an schema url and imports into the system
 func (s *schema) ImportSchema(ctx context.Context, did w3c.DID, req *ports.ImportSchemaRequest) (*domain.Schema, error) {
-	remoteSchema, err := json_schema.Load(ctx, req.URL, s.loader)
+	remoteSchema, err := jsonschema.Load(ctx, req.URL, s.loader)
 	if err != nil {
-		log.Error(ctx, "loading json_schema", "err", err, "json_schema", req.URL)
+		log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", req.URL)
 		return nil, ErrLoadingSchema
 	}
 	attributeNames, err := remoteSchema.Attributes()
 	if err != nil {
-		log.Error(ctx, "processing json_schema", "err", err, "json_schema", req.URL)
+		log.Error(ctx, "processing jsonschema", "err", err, "jsonschema", req.URL)
 		return nil, ErrProcessSchema
 	}
 
 	hash, err := remoteSchema.SchemaHash(req.SType)
 	if err != nil {
-		log.Error(ctx, "hashing schema", "err", err, "json_schema", req.URL)
+		log.Error(ctx, "hashing schema", "err", err, "jsonschema", req.URL)
 		return nil, ErrProcessSchema
 	}
 

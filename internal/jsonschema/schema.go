@@ -1,4 +1,4 @@
-package json_schema
+package jsonschema
 
 import (
 	"context"
@@ -25,7 +25,7 @@ const (
 // Attributes is a list of Attribute entities
 type Attributes []Attribute
 
-// SchemaAttrs converts json_schema.Attributes into []string]
+// SchemaAttrs converts jsonschema.Attributes into []string]
 func (a Attributes) SchemaAttrs() []string {
 	out := make([]string, len(a))
 	for i, attr := range a {

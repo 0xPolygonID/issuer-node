@@ -1,4 +1,4 @@
-package json_schema
+package jsonschema
 
 import (
 	"context"

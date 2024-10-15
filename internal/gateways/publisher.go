@@ -26,7 +26,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
-	"github.com/polygonid/sh-id-platform/internal/sync_ttl_map"
+	"github.com/polygonid/sh-id-platform/internal/syncttlmap"
 )
 
 type jobIDType string
@@ -61,13 +61,13 @@ type publisher struct {
 	networkResolver       *network.Resolver
 	zkService             ports.ZKGenerator
 	publisherGateway      PublisherGateway
-	pendingTransactions   *sync_ttl_map.TTLMap
+	pendingTransactions   *syncttlmap.TTLMap
 	notificationPublisher pubsub.Publisher
 }
 
 // NewPublisher - Constructor
 func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, networkResolver *network.Resolver, notificationPublisher pubsub.Publisher) *publisher {
-	pendingTransactions := sync_ttl_map.New(ttl)
+	pendingTransactions := syncttlmap.New(ttl)
 	pendingTransactions.CleaningBackground(transactionCleanup)
 
 	return &publisher{
