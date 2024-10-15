@@ -346,9 +346,9 @@ type GetIdentityDetailsResponse struct {
 	Balance              *string                                        `json:"balance,omitempty"`
 	CredentialStatusType GetIdentityDetailsResponseCredentialStatusType `json:"credentialStatusType"`
 	DisplayName          *string                                        `json:"displayName"`
-	Identifier           *string                                        `json:"identifier,omitempty"`
+	Identifier           string                                         `json:"identifier"`
 	KeyType              string                                         `json:"keyType"`
-	State                *IdentityState                                 `json:"state,omitempty"`
+	State                IdentityState                                  `json:"state"`
 }
 
 // GetIdentityDetailsResponseCredentialStatusType defines model for GetIdentityDetailsResponse.CredentialStatusType.

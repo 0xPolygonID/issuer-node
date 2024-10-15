@@ -1407,11 +1407,11 @@ components:
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
-
     GetIdentityDetailsResponse:
       type: object
       required:
-        - identity
+        - identifier
+        - state
         - status
         - keyType
         - credentialStatusType

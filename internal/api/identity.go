@@ -277,8 +277,8 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 	}
 
 	response := GetIdentityDetails200JSONResponse{
-		Identifier: &identity.Identifier,
-		State: &IdentityState{
+		Identifier: identity.Identifier,
+		State: IdentityState{
 			BlockNumber:        identity.State.BlockNumber,
 			BlockTimestamp:     identity.State.BlockTimestamp,
 			ClaimsTreeRoot:     identity.State.ClaimsTreeRoot,
