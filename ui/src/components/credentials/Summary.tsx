@@ -1,6 +1,6 @@
 import { Button, Card, Divider, Flex, Row, Tabs, TabsProps, Typography, theme } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
-import { AuthMessage } from "src/adapters/api/credentials";
+import { AuthRequestMessage } from "src/adapters/api/credentials";
 
 import DownloadIcon from "src/assets/icons/download-01.svg?react";
 import { DownloadQRLink } from "src/components/shared/DownloadQRLink";
@@ -44,7 +44,7 @@ function QRTab({
   );
 }
 
-export function Summary({ authMessage }: { authMessage: AuthMessage }) {
+export function Summary({ authMessage }: { authMessage: AuthRequestMessage }) {
   const navigate = useNavigate();
 
   const items: TabsProps["items"] = [

@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
-  AuthMessage,
-  createAuthMessage,
+  AuthRequestMessage,
+  createAuthRequestMessage,
   createCredential,
   createLink,
 } from "src/adapters/api/credentials";
@@ -72,7 +72,7 @@ export function IssueCredential() {
         }
   );
 
-  const [authMessage, setAuthMessage] = useState<AsyncTask<AuthMessage, AppError>>({
+  const [authMessage, setAuthMessage] = useState<AsyncTask<AuthRequestMessage, AppError>>({
     status: "pending",
   });
 
@@ -139,7 +139,7 @@ export function IssueCredential() {
         });
 
         if (linkResponse.success) {
-          const authMessageResponse = await createAuthMessage({
+          const authMessageResponse = await createAuthRequestMessage({
             env,
             identifier,
             linkID: linkResponse.data.id,

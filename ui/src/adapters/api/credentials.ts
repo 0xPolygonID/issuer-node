@@ -465,26 +465,26 @@ export async function createLink({
   }
 }
 
-export type AuthMessage = {
+export type AuthRequestMessage = {
   deepLink: string;
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
-  qrCodeRaw: string;
+  message: string;
   universalLink: string;
 };
 
-const authMessageParser = getStrictParser<AuthMessage>()(
+const authRequestMessageParser = getStrictParser<AuthRequestMessage>()(
   z.object({
     deepLink: z.string(),
     linkDetail: z.object({
       proofTypes: z.array(z.nativeEnum(ProofType)),
       schemaType: z.string(),
     }),
-    qrCodeRaw: z.string(),
+    message: z.string(),
     universalLink: z.string(),
   })
 );
 
-export async function createAuthMessage({
+export async function createAuthRequestMessage({
   env,
   identifier,
   linkID,
@@ -494,7 +494,7 @@ export async function createAuthMessage({
   identifier: string;
   linkID: string;
   signal?: AbortSignal;
-}): Promise<Response<AuthMessage>> {
+}): Promise<Response<AuthRequestMessage>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -502,7 +502,7 @@ export async function createAuthMessage({
       signal,
       url: `${API_VERSION}/identities/${identifier}/credentials/links/${linkID}/qrcode`,
     });
-    return buildSuccessResponse(authMessageParser.parse(response.data));
+    return buildSuccessResponse(authRequestMessageParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
