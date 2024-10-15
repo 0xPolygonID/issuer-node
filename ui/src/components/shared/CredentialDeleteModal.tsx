@@ -1,10 +1,11 @@
-import { Alert, Button, Modal, Row, Space, Typography, message } from "antd";
+import { Alert, Button, Flex, Modal, Space, Typography, message } from "antd";
 import { useState } from "react";
 
 import { deleteCredential, revokeCredential } from "src/adapters/api/credentials";
 import IconAlert from "src/assets/icons/alert-triangle.svg?react";
 import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
 import { CLOSE, DELETE } from "src/utils/constants";
@@ -19,6 +20,7 @@ export function CredentialDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -30,7 +32,7 @@ export function CredentialDeleteModal({
   const handleDeleteCredential = () => {
     setIsLoading(true);
 
-    void deleteCredential({ env, id }).then((response) => {
+    void deleteCredential({ env, id, identifier }).then((response) => {
       if (response.success) {
         onClose();
         onDelete();
@@ -47,7 +49,7 @@ export function CredentialDeleteModal({
   const handleRevokeCredential = () => {
     setIsLoading(true);
 
-    void revokeCredential({ env, nonce }).then((response) => {
+    void revokeCredential({ env, identifier, nonce }).then((response) => {
       if (response.success) {
         handleDeleteCredential();
 
@@ -69,7 +71,7 @@ export function CredentialDeleteModal({
         closable
         closeIcon={<IconClose />}
         footer={
-          <Row gutter={[8, 8]} justify="end">
+          <Flex gap={8} justify="end">
             <Button onClick={onClose}>{CLOSE}</Button>
 
             <Button danger loading={isLoading} onClick={handleDeleteCredential} type="primary">
@@ -81,7 +83,7 @@ export function CredentialDeleteModal({
                 Delete & Revoke
               </Button>
             )}
-          </Row>
+          </Flex>
         }
         maskClosable
         onCancel={onClose}

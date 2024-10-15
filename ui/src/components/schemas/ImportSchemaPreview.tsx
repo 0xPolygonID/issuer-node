@@ -29,7 +29,7 @@ export function ImportSchemaPreview({
   const bigintResult = getBigint(jsonLdType);
   const bigint = bigintResult && bigintResult.success ? bigintResult.data : null;
   const schemaHashResult = getSchemaHash(jsonLdType);
-  const schemaHash = schemaHashResult && schemaHashResult.success ? schemaHashResult.data : null;
+  const schemaHash = schemaHashResult.success ? schemaHashResult.data : null;
   const version = jsonSchema.jsonSchemaProps.$metadata.version;
 
   return (

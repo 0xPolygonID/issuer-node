@@ -56,3 +56,15 @@ export function setStorageByKey<T>({ key, value }: { key: string; value: T }) {
 
   return value;
 }
+
+export function downloadQRCanvas(canvas: HTMLCanvasElement, fileName: string) {
+  const imageURL = canvas.toDataURL("image/png");
+
+  const downloadLink = document.createElement("a");
+  downloadLink.href = imageURL;
+  downloadLink.download = `${fileName}.png`;
+
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}

@@ -3,7 +3,7 @@ name: Deploy Issuer Node UI to Testing AWS Environment
 on:
   push:
     branches:
-      - develop
+      - feature/PID-2297-migrate-ui-on-core-api
 
 env:
   AWS_ACCOUNT_ID: ${{ secrets.TEST_AWS_ACCOUNT_ID }}
@@ -12,7 +12,7 @@ env:
 
 jobs:
   deploy:
-    name: Build and Deploy UI to Testing AWS Environment
+    name: Build and Deploy Issuer Node UI to Testing AWS Environment
     runs-on: ubuntu-latest
     permissions:
       id-token: write

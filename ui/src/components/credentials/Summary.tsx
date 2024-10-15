@@ -1,19 +1,77 @@
-import { Button, Card, Divider, Form, Input, Row, Space, message } from "antd";
-import copy from "copy-to-clipboard";
+import { Button, Card, Divider, Flex, Row, Tabs, TabsProps, Typography, theme } from "antd";
+import { useEffect, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
 
-import IconCopy from "src/assets/icons/copy-01.svg?react";
-import ExternalLinkIcon from "src/assets/icons/link-external-01.svg?react";
+import { AuthRequestMessage, createAuthRequestMessage } from "src/adapters/api/credentials";
+import DownloadIcon from "src/assets/icons/download-01.svg?react";
+import { DownloadQRLink } from "src/components/shared/DownloadQRLink";
+import { ErrorResult } from "src/components/shared/ErrorResult";
+import { HighlightLink } from "src/components/shared/HighlightLink";
+import { LoadingResult } from "src/components/shared/LoadingResult";
+import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
+import { AppError } from "src/domain";
 import { ROUTES } from "src/routes";
+import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { CREDENTIALS_TABS, CREDENTIAL_LINK } from "src/utils/constants";
 
-export function Summary({ linkID }: { linkID: string }) {
-  const [messageAPI, messageContext] = message.useMessage();
-  const navigate = useNavigate();
+function QRTab({
+  description,
+  fileName,
+  link,
+  openable,
+}: {
+  description: string;
+  fileName: string;
+  link: string;
+  openable: boolean;
+}) {
+  const { token } = theme.useToken();
 
-  const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
-    linkID,
-  })}`;
+  return (
+    <Flex gap={16} vertical>
+      <Typography.Text type="secondary">{description}</Typography.Text>
+      <HighlightLink link={link} openable={openable} />
+      <Card style={{ alignSelf: "center" }}>
+        <DownloadQRLink
+          button={
+            <Button
+              icon={<DownloadIcon />}
+              style={{ borderColor: token.colorTextSecondary, color: token.colorTextSecondary }}
+            >
+              Download QR
+            </Button>
+          }
+          fileName={fileName}
+          hidden={false}
+          link={link}
+        />
+      </Card>
+    </Flex>
+  );
+}
+
+export function Summary({ linkID }: { linkID: string }) {
+  const env = useEnvContext();
+  const { identifier } = useIdentityContext();
+  const navigate = useNavigate();
+  const [authMessage, setAuthMessage] = useState<AsyncTask<AuthRequestMessage, AppError>>({
+    status: "pending",
+  });
+
+  useEffect(() => {
+    void createAuthRequestMessage({
+      env,
+      identifier,
+      linkID,
+    }).then((response) => {
+      if (response.success) {
+        setAuthMessage({ data: response.data, status: "successful" });
+      } else {
+        setAuthMessage({ error: response.error, status: "failed" });
+      }
+    });
+  }, [linkID, env, identifier]);
 
   const navigateToLinks = () => {
     navigate(
@@ -23,54 +81,68 @@ export function Summary({ linkID }: { linkID: string }) {
     );
   };
 
-  const onCopyToClipboard = () => {
-    const hasCopied = copy(linkURL, {
-      format: "text/plain",
-    });
-
-    if (hasCopied) {
-      void messageAPI.success("Credential link copied to clipboard.");
-    } else {
-      void messageAPI.error("Couldn't copy credential link. Please try again.");
-    }
-  };
-
   return (
     <>
-      {messageContext}
+      {(() => {
+        if (hasAsyncTaskFailed(authMessage)) {
+          return (
+            <Card className="centered">
+              <ErrorResult error={authMessage.error.message} />;
+            </Card>
+          );
+        } else if (isAsyncTaskStarting(authMessage)) {
+          return (
+            <Card className="centered">
+              <LoadingResult />
+            </Card>
+          );
+        } else {
+          const items: TabsProps["items"] = [
+            {
+              children: (
+                <QRTab
+                  description="When the recipient interacts with the universal link, it will launch the Privado ID web or mobile wallet interface, displaying the credential offer."
+                  fileName="Universal link"
+                  link={authMessage.data.universalLink}
+                  openable={true}
+                />
+              ),
+              key: "1",
+              label: "Universal link",
+            },
+            {
+              children: (
+                <QRTab
+                  description="When the recipient interacts with the deep link with supported identity wallets, they will receive a credential offer."
+                  fileName="Deep link"
+                  link={authMessage.data.deepLink}
+                  openable={false}
+                />
+              ),
+              key: "2",
+              label: "Deep link",
+            },
+          ];
 
-      <Card
-        className="issue-credential-card"
-        extra={
-          <Button
-            href={generatePath(ROUTES.credentialLinkQR.path, { linkID })}
-            icon={<ExternalLinkIcon />}
-            target="_blank"
-            type="link"
-          >
-            View link
-          </Button>
+          return (
+            <Card
+              className="issue-credential-card"
+              styles={{ body: { paddingTop: 0 }, header: { border: "none" } }}
+              title={CREDENTIAL_LINK}
+            >
+              <Tabs defaultActiveKey="1" items={items} />
+
+              <Divider />
+
+              <Row justify="end">
+                <Button onClick={navigateToLinks} type="primary">
+                  Done
+                </Button>
+              </Row>
+            </Card>
+          );
         }
-        title={CREDENTIAL_LINK}
-      >
-        <Form layout="vertical">
-          <Form.Item>
-            <Space.Compact className="full-width">
-              <Input allowClear disabled value={linkURL} />
-
-              <Button icon={<IconCopy style={{ marginRight: 0 }} />} onClick={onCopyToClipboard} />
-            </Space.Compact>
-          </Form.Item>
-        </Form>
-
-        <Divider />
-
-        <Row justify="end">
-          <Button onClick={navigateToLinks} type="primary">
-            Done
-          </Button>
-        </Row>
-      </Card>
+      })()}
     </>
   );
 }

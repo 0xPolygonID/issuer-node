@@ -1,9 +1,11 @@
 import { Modal, Space, Typography, message } from "antd";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { revokeCredential } from "src/adapters/api/credentials";
 import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
 import { CLOSE, REVOKE } from "src/utils/constants";
@@ -18,22 +20,27 @@ export function CredentialRevokeModal({
   onRevoke: () => void;
 }) {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [, setSearchParams] = useSearchParams();
 
   const { revNonce: nonce } = credential;
 
   const handleRevokeCredential = () => {
     setIsLoading(true);
 
-    void revokeCredential({ env, nonce }).then((response) => {
+    void revokeCredential({ env, identifier, nonce }).then((response) => {
       if (response.success) {
         onClose();
         onRevoke();
-
+        setSearchParams((previousParams) => {
+          const params = new URLSearchParams(previousParams);
+          return params;
+        });
         void notifyChange("revoke");
         void messageAPI.success(response.data.message);
       } else {

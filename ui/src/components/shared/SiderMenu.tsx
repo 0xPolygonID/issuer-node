@@ -1,10 +1,11 @@
-import { Col, Divider, Menu, Row, Space, Tag, Typography, message } from "antd";
+import { Col, Menu, Row, Space, Tag, Typography, message } from "antd";
 import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
 import IconCredentials from "src/assets/icons/credit-card-refresh.svg?react";
 import IconFile from "src/assets/icons/file-05.svg?react";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
+import IconIdentities from "src/assets/icons/fingerprint-02.svg?react";
 import IconLink from "src/assets/icons/link-external-01.svg?react";
 import IconSettings from "src/assets/icons/settings-01.svg?react";
 import IconIssuerState from "src/assets/icons/switch-horizontal.svg?react";
@@ -21,6 +22,7 @@ import {
   CREDENTIALS,
   CREDENTIALS_TABS,
   DOCS_URL,
+  IDENTITIES,
   ISSUER_STATE,
   SCHEMAS,
 } from "src/utils/constants";
@@ -34,6 +36,7 @@ export function SiderMenu({
 }) {
   const { buildTag } = useEnvContext();
   const { status } = useIssuerStateContext();
+
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [messageAPI, messageContext] = message.useMessage();
@@ -44,6 +47,7 @@ export function SiderMenu({
   const credentialsPath = ROUTES.credentials.path;
   const issuerStatePath = ROUTES.issuerState.path;
   const schemasPath = ROUTES.schemas.path;
+  const identitiesPath = ROUTES.identities.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -75,6 +79,17 @@ export function SiderMenu({
       return [connectionsPath];
     } else if (matchRoutes([{ path: issuerStatePath }], pathname)) {
       return [issuerStatePath];
+    } else if (
+      matchRoutes(
+        [
+          { path: identitiesPath },
+          { path: ROUTES.createIdentity.path },
+          { path: ROUTES.identityDetails.path },
+        ],
+        pathname
+      )
+    ) {
+      return [identitiesPath];
     }
 
     return [];
@@ -93,13 +108,11 @@ export function SiderMenu({
         className="menu-sider-layout"
         justify="space-between"
         style={{
-          padding: isBreakpoint ? "32px 24px" : "96px 24px 32px",
+          padding: isBreakpoint ? "32px 16px" : "96px 16px 32px",
         }}
       >
         <Col>
           <UserDisplay />
-
-          <Divider />
 
           <Menu
             items={[
@@ -144,8 +157,16 @@ export function SiderMenu({
                 onClick: () => onMenuClick(issuerStatePath),
                 title: "",
               },
+              {
+                icon: <IconIdentities />,
+                key: identitiesPath,
+                label: IDENTITIES,
+                onClick: () => onMenuClick(identitiesPath),
+                title: "",
+              },
             ]}
             selectedKeys={getSelectedKey()}
+            style={{ marginTop: 16 }}
           />
         </Col>
 

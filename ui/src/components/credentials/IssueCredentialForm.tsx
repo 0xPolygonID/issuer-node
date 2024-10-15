@@ -1,5 +1,5 @@
-import Ajv, { ErrorObject } from "ajv";
-import Ajv2020 from "ajv/dist/2020";
+import { Ajv, ErrorObject } from "ajv";
+import { Ajv2020 } from "ajv/dist/2020";
 import addFormats from "ajv-formats";
 import applyDraft2019Formats from "ajv-formats-draft2019";
 import {
@@ -36,7 +36,8 @@ import { InputErrors, ObjectAttributeForm } from "src/components/credentials/Obj
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute } from "src/domain";
+import { useIdentityContext } from "src/contexts/Identity";
+import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute, ProofType } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
@@ -92,6 +93,7 @@ export function IssueCredentialForm({
   type: "directIssue" | "credentialLink";
 }) {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
   const [form] = Form.useForm<IssueCredentialFormData>();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -158,7 +160,8 @@ export function IssueCredentialForm({
             required,
             type,
           });
-          const valid = validate(serializedSchemaForm.data);
+
+          const valid = validate(serializedSchemaForm.data || {});
 
           if (valid) {
             setInputErrors(undefined);
@@ -302,6 +305,7 @@ export function IssueCredentialForm({
 
       const response = await getApiSchemas({
         env,
+        identifier,
         params: {},
         signal,
       });
@@ -324,7 +328,7 @@ export function IssueCredentialForm({
         }
       }
     },
-    [env, fetchJsonSchema, initialValues.schemaID, messageAPI]
+    [env, fetchJsonSchema, initialValues.schemaID, messageAPI, identifier]
   );
 
   useEffect(() => {
@@ -353,6 +357,8 @@ export function IssueCredentialForm({
             apiSchema
           ) {
             onSubmit({ apiSchema, jsonSchema: jsonSchemaData, values });
+          } else {
+            void messageAPI.error("Error validating the data against the schema");
           }
         }}
         onValuesChange={(_, values: IssueCredentialFormData) => {
@@ -450,16 +456,20 @@ export function IssueCredentialForm({
                         >
                           <Checkbox.Group>
                             <Space direction="vertical">
-                              <Checkbox value="SIG">
-                                <Typography.Text>Signature-based (SIG)</Typography.Text>
+                              <Checkbox value={ProofType.BJJSignature2021}>
+                                <Typography.Text>
+                                  Signature-based ({ProofType.BJJSignature2021})
+                                </Typography.Text>
 
                                 <Typography.Text type="secondary">
                                   Credential signed by the issuer using a BJJ private key.
                                 </Typography.Text>
                               </Checkbox>
 
-                              <Checkbox value="MTP">
-                                <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
+                              <Checkbox value={ProofType.Iden3SparseMerkleTreeProof}>
+                                <Typography.Text>
+                                  Merkle Tree Proof ({ProofType.Iden3SparseMerkleTreeProof})
+                                </Typography.Text>
 
                                 <Typography.Text type="secondary">
                                   Credential will be added to the issuer&apos;s state tree. The
