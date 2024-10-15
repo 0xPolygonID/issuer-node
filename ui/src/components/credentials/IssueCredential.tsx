@@ -2,12 +2,7 @@ import { Card, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import {
-  AuthRequestMessage,
-  createAuthRequestMessage,
-  createCredential,
-  createLink,
-} from "src/adapters/api/credentials";
+import { createCredential, createLink } from "src/adapters/api/credentials";
 import {
   CredentialDirectIssuance,
   CredentialFormInput,
@@ -24,7 +19,7 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { ApiSchema, AppError, JsonSchema, ProofType } from "src/domain";
+import { ApiSchema, JsonSchema, ProofType } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { DID_SEARCH_PARAM, ISSUE_CREDENTIAL, SCHEMA_SEARCH_PARAM } from "src/utils/constants";
@@ -58,6 +53,7 @@ export function IssueCredential() {
   const schemaID = searchParams.get(SCHEMA_SEARCH_PARAM) || undefined;
   const did = searchParams.get(DID_SEARCH_PARAM) || undefined;
 
+  const [linkID, setLinkID] = useState<AsyncTask<string, null>>({ status: "pending" });
   const [step, setStep] = useState<Step>(did ? "issueCredential" : "issuanceMethod");
   const [credentialFormInput, setCredentialFormInput] = useState<CredentialFormInput>(
     defaultCredentialFormInput.issuanceMethod.type === "directIssue"
@@ -71,10 +67,6 @@ export function IssueCredential() {
           issueCredential: { ...defaultCredentialFormInput.issueCredential, schemaID },
         }
   );
-
-  const [authMessage, setAuthMessage] = useState<AsyncTask<AuthRequestMessage, AppError>>({
-    status: "pending",
-  });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -132,30 +124,19 @@ export function IssueCredential() {
       });
 
       if (serializedCredentialForm.success) {
-        const linkResponse = await createLink({
+        const response = await createLink({
           env,
           identifier,
           payload: serializedCredentialForm.data,
         });
 
-        if (linkResponse.success) {
-          const authMessageResponse = await createAuthRequestMessage({
-            env,
-            identifier,
-            linkID: linkResponse.data.id,
-          });
-
-          if (authMessageResponse.success) {
-            setAuthMessage({ data: authMessageResponse.data, status: "successful" });
-            setStep("summary");
-          } else {
-            setAuthMessage({ error: authMessageResponse.error, status: "failed" });
-            void messageAPI.error(authMessageResponse.error.message);
-          }
-
+        if (response.success) {
+          setLinkID({ data: response.data.id, status: "successful" });
+          setStep("summary");
           void messageAPI.success("Credential link created");
         } else {
-          void messageAPI.error(linkResponse.error.message);
+          setLinkID({ error: null, status: "failed" });
+          void messageAPI.error(response.error.message);
         }
       } else {
         notifyParseError(serializedCredentialForm.error);
@@ -301,9 +282,7 @@ export function IssueCredential() {
             }
 
             case "summary": {
-              return (
-                isAsyncTaskDataAvailable(authMessage) && <Summary authMessage={authMessage.data} />
-              );
+              return isAsyncTaskDataAvailable(linkID) && <Summary linkID={linkID.data} />;
             }
           }
         })()}
