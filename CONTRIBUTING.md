@@ -19,7 +19,7 @@ Welcome to Issuer Node! We're thrilled to have you here. Before you get started,
 
 **Requesting Features**: If you have ideas for new features or enhancements, please submit a feature request on GitHub.
 
-**Submitting Changes**: Fork the repository, make your changes, and submit a pull request. Be sure to follow the guidelines outlined below.
+**Submitting Changes**: Fork the repository, make your changes, and submit a pull request. The `develop` branch is the default branch for development. Pull request to `main` branch only will be accepted for hotfixes or releases. Please follow the guidelines outlined below.
 
 ## Getting Started
 
@@ -41,7 +41,7 @@ Submit concise and focused pull requests with clear descriptions.
 
 Follow the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) specification both for the commits and PR names.
 
-Use develop as the base and target branch for pull requests.
+Use `develop` as the base and target branch for pull requests. Develop is our base branch for development. We create feature branches from develop and merge them back into develop when the feature is complete. From time to time we integrate the `develop` branch into `main`.   
 
 Be responsive to feedback and address any review comments promptly.
 

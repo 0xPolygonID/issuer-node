@@ -71,7 +71,7 @@ func main() {
 	}
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
-	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL, cfg.SchemaCache)
 
 	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
@@ -126,8 +126,20 @@ func main() {
 		*cfg.MediaTypeManager.Enabled,
 	)
 
+	universalDIDResolverUrl := auth.UniversalResolverURL
+	if cfg.UniversalDIDResolver.UniversalResolverURL != nil && *cfg.UniversalDIDResolver.UniversalResolverURL != "" {
+		universalDIDResolverUrl = *cfg.UniversalDIDResolver.UniversalResolverURL
+	}
+	universalDIDResolverHandler := protocol.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
+
+	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
+	if err != nil {
+		log.Error(ctx, "failed init package protocol", "err", err)
+		return
+	}
+
 	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
-	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers())
+	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
 	if err != nil {
 		log.Error(ctx, "failed init verifier", "err", err)
 		return
@@ -154,11 +166,6 @@ func main() {
 	}
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, networkResolver, ps)
-	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path)
-	if err != nil {
-		log.Error(ctx, "failed init package protocol", "err", err)
-		return
-	}
 
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,

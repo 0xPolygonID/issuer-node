@@ -2,8 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
@@ -132,61 +130,6 @@ func getProofs(credential *domain.Claim) []string {
 	return proofs
 }
 
-func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) Credential {
-	var expiresAt *TimeUTC
-	expired := false
-	if w3c.Expiration != nil {
-		if time.Now().UTC().After(w3c.Expiration.UTC()) {
-			expired = true
-		}
-		expiresAt = common.ToPointer(TimeUTC(*w3c.Expiration))
-	}
-
-	proofs := getProofs(credential)
-
-	var refreshService *RefreshService
-	if w3c.RefreshService != nil {
-		refreshService = &RefreshService{
-			Id:   w3c.RefreshService.ID,
-			Type: RefreshServiceType(w3c.RefreshService.Type),
-		}
-	}
-
-	var displayService *DisplayMethod
-	if w3c.DisplayMethod != nil {
-		displayService = &DisplayMethod{
-			Id:   w3c.DisplayMethod.ID,
-			Type: DisplayMethodType(w3c.DisplayMethod.Type),
-		}
-	}
-
-	return Credential{
-		CredentialSubject: w3c.CredentialSubject,
-		CreatedAt:         TimeUTC(*w3c.IssuanceDate),
-		Expired:           expired,
-		ExpiresAt:         expiresAt,
-		Id:                credential.ID,
-		ProofTypes:        proofs,
-		RevNonce:          uint64(credential.RevNonce),
-		Revoked:           credential.Revoked,
-		SchemaHash:        credential.SchemaHash,
-		SchemaType:        shortType(credential.SchemaType),
-		SchemaUrl:         credential.SchemaURL,
-		UserID:            credential.OtherIdentifier,
-		RefreshService:    refreshService,
-		DisplayMethod:     displayService,
-	}
-}
-
-func shortType(id string) string {
-	parts := strings.Split(id, "#")
-	l := len(parts)
-	if l == 0 {
-		return ""
-	}
-	return parts[l-1]
-}
-
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
 	return Schema{
@@ -210,39 +153,38 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 	return res
 }
 
-func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredential, credentials []*domain.Claim) GetConnectionResponse {
-	credResp := make([]Credential, len(w3cs))
-	if w3cs != nil {
-		for i := range credentials {
-			credResp[i] = credentialResponse(w3cs[i], credentials[i])
+func connectionResponse(conn *domain.Connection, credentials []*domain.Claim) (GetConnectionResponse, error) {
+	credResp := make([]Credential, len(credentials))
+	for i := range credentials {
+		w3Cred, err := schema.FromClaimModelToW3CCredential(*credentials[i])
+		if err != nil {
+			return GetConnectionResponse{}, err
 		}
+		credResp[i] = toGetCredential200Response(w3Cred, credentials[i])
 	}
-
 	return GetConnectionResponse{
 		CreatedAt:   TimeUTC(conn.CreatedAt),
 		Id:          conn.ID.String(),
 		UserID:      conn.UserDID.String(),
 		IssuerID:    conn.IssuerDID.String(),
 		Credentials: credResp,
-	}
+	}, nil
 }
 
 func connectionsResponse(conns []domain.Connection) (GetConnectionsResponse, error) {
 	resp := make([]GetConnectionResponse, 0)
-	var err error
-	for _, conn := range conns {
-		var w3creds []*verifiable.W3CCredential
-		var connCreds domain.Credentials
-		if conn.Credentials != nil {
-			connCreds = *conn.Credentials
-			w3creds, err = schema.FromClaimsModelToW3CCredential(connCreds)
-			if err != nil {
-				return nil, err
-			}
-		}
-		resp = append(resp, connectionResponse(&conn, w3creds, connCreds))
-	}
 
+	for _, conn := range conns {
+		var credentials []*domain.Claim
+		if conn.Credentials != nil {
+			credentials = *conn.Credentials
+		}
+		connResp, err := connectionResponse(&conn, credentials)
+		if err != nil {
+			return GetConnectionsResponse{}, err
+		}
+		resp = append(resp, connResp)
+	}
 	return resp, nil
 }
 

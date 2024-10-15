@@ -44,7 +44,7 @@ type Configuration struct {
 	ServerUrl                   string        `env:"ISSUER_SERVER_URL" envDefault:"http://localhost"`
 	ServerPort                  int           `env:"ISSUER_SERVER_PORT" envDefault:"3001"`
 	PublishingKeyPath           string        `env:"ISSUER_PUBLISH_KEY_PATH" envDefault:"pbkey"`
-	SchemaCache                 *bool         `env:"ISSUER_SCHEMA_CACHE" envDefault:"false"`
+	SchemaCache                 bool          `env:"ISSUER_SCHEMA_CACHE" envDefault:"false"`
 	OnChainCheckStatusFrequency time.Duration `env:"ISSUER_ONCHAIN_CHECK_STATUS_FREQUENCY"`
 	NetworkResolverPath         string        `env:"ISSUER_RESOLVER_PATH"`
 	NetworkResolverFile         *string       `env:"ISSUER_RESOLVER_FILE"`
@@ -61,6 +61,7 @@ type Configuration struct {
 	CustomDIDMethods            []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager            MediaTypeManager
 	UniversalLinks              UniversalLinks
+	UniversalDIDResolver        UniversalDIDResolver
 }
 
 // Database has the database configuration
@@ -142,6 +143,11 @@ type KeyStore struct {
 	VaultUserPassAuthPassword    string `env:"ISSUER_VAULT_USERPASS_AUTH_PASSWORD"`
 	TLSEnabled                   bool   `env:"ISSUER_VAULT_TLS_ENABLED"`
 	CertPath                     string `env:"ISSUER_VAULT_TLS_CERT_PATH"`
+}
+
+// UniversalDIDResolver defines the universal DID resolver
+type UniversalDIDResolver struct {
+	UniversalResolverURL *string `env:"ISSUER_UNIVERSAL_DID_RESOLVER_URL"`
 }
 
 // Log holds runtime configurations
@@ -302,11 +308,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 	if cfg.Cache.Url == "" {
 		log.Error(ctx, "ISSUER_CACHE_URL value is missing")
 		return errors.New("ISSUER_CACHE_URL value is missing")
-	}
-
-	if cfg.SchemaCache == nil {
-		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
-		cfg.SchemaCache = common.ToPointer(false)
 	}
 
 	if cfg.MediaTypeManager.Enabled == nil {

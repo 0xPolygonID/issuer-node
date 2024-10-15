@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/jackc/pgconn"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -15,6 +16,9 @@ import (
 
 // ErrIdentityNotFound - identity not found error
 var ErrIdentityNotFound = errors.New("identity not found")
+
+// ErrDisplayNameDuplicated - display name already exists error
+var ErrDisplayNameDuplicated = errors.New("display name already exists")
 
 type identity struct{}
 
@@ -26,6 +30,13 @@ func NewIdentity() ports.IndentityRepository {
 // Save - Create new identity
 func (i *identity) Save(ctx context.Context, conn db.Querier, identity *domain.Identity) error {
 	_, err := conn.Exec(ctx, `INSERT INTO identities (identifier, address, keyType, display_name) VALUES ($1, $2, $3, $4)`, identity.Identifier, identity.Address, identity.KeyType, identity.DisplayName)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == duplicateViolationErrorCode {
+			return ErrDisplayNameDuplicated
+		}
+		return err
+	}
 	return err
 }
 

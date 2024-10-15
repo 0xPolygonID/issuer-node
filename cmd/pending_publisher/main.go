@@ -71,7 +71,7 @@ func main() {
 	}(storage)
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
-	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL, cfg.SchemaCache)
 
 	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,

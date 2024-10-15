@@ -229,7 +229,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 			log.Error(ctx, "creating credentials response", "err", err, "req", request)
 			return GetCredentials500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
 		}
-		response[i] = credentialResponse(w3c, credential)
+		response[i] = toGetCredential200Response(w3c, credential)
 	}
 
 	resp := GetCredentials200JSONResponse{
@@ -352,48 +352,13 @@ func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
 	}
 }
 
-func toGetCredential200Response(w3cCredential *verifiable.W3CCredential, cred *domain.Claim) GetCredentialResponse {
-	var claimExpiration, claimIssuanceDate *TimeUTC
-	if w3cCredential.Expiration != nil {
-		claimExpiration = common.ToPointer(TimeUTC(*w3cCredential.Expiration))
-	}
-	if w3cCredential.IssuanceDate != nil {
-		claimIssuanceDate = common.ToPointer(TimeUTC(*w3cCredential.IssuanceDate))
-	}
-
-	var refreshService *RefreshService
-	if w3cCredential.RefreshService != nil {
-		refreshService = &RefreshService{
-			Id:   w3cCredential.RefreshService.ID,
-			Type: RefreshServiceType(w3cCredential.RefreshService.Type),
-		}
-	}
-
-	var displayMethod *DisplayMethod
-	if w3cCredential.DisplayMethod != nil {
-		displayMethod = &DisplayMethod{
-			Id:   w3cCredential.DisplayMethod.ID,
-			Type: DisplayMethodType(w3cCredential.DisplayMethod.Type),
-		}
-	}
-
-	return GetCredentialResponse{
-		Context: w3cCredential.Context,
-		CredentialSchema: CredentialSchema{
-			w3cCredential.CredentialSchema.ID,
-			w3cCredential.CredentialSchema.Type,
-		},
-		CredentialStatus:  w3cCredential.CredentialStatus,
-		CredentialSubject: w3cCredential.CredentialSubject,
-		ExpirationDate:    claimExpiration,
-		Id:                w3cCredential.ID,
-		IssuanceDate:      claimIssuanceDate,
-		Issuer:            w3cCredential.Issuer,
-		Proof:             w3cCredential.Proof,
-		ProofTypes:        getProofs(cred),
-		Type:              w3cCredential.Type,
-		RefreshService:    refreshService,
-		DisplayMethod:     displayMethod,
+func toGetCredential200Response(w3cCredential *verifiable.W3CCredential, cred *domain.Claim) Credential {
+	return Credential{
+		Vc:         *w3cCredential,
+		Id:         cred.ID.String(),
+		Revoked:    cred.Revoked,
+		SchemaHash: cred.SchemaHash,
+		ProofTypes: getProofs(cred),
 	}
 }
 
