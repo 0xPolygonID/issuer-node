@@ -529,3 +529,189 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_GetConnectionsDefaultSort(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+	ctx := context.Background()
+	server := newTestServer(t, nil)
+
+	handler := getHandler(ctx, server)
+
+	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	issuerDID, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+	fixture := repositories.NewFixture(storage)
+	type expected struct {
+		httpCode int
+		response GetConnectionsResponseObject
+	}
+
+	type testConfig struct {
+		name       string
+		issuerDID  string
+		auth       func() (string, string)
+		page       int
+		maxResults int
+		expected   expected
+	}
+
+	expectedConnections := createConnections(t, issuerDID, fixture)
+
+	for _, tc := range []testConfig{
+		{
+			name:      "No auth header",
+			auth:      authWrong,
+			issuerDID: issuerDID.String(),
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:       "Wrong issuer did",
+			auth:       authOk,
+			page:       1,
+			maxResults: 10,
+			issuerDID:  "wrong did",
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: GetConnections400JSONResponse{
+					N400JSONResponse: N400JSONResponse{
+						Message: "invalid issuer did",
+					},
+				},
+			},
+		},
+		{
+			name:       "Wrong page",
+			auth:       authOk,
+			page:       0,
+			maxResults: 10,
+			issuerDID:  issuerDID.String(),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: GetConnections400JSONResponse{
+					N400JSONResponse: N400JSONResponse{
+						Message: "page must be greater than 0",
+					},
+				},
+			},
+		},
+		{
+			name:       "should return 10 connection",
+			auth:       authOk,
+			page:       1,
+			maxResults: 10,
+			issuerDID:  issuerDID.String(),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Meta: PaginatedMetadata{
+						MaxResults: 10,
+						Total:      12,
+						Page:       1,
+					},
+					Items: expectedConnections[:10],
+				},
+			},
+		},
+		{
+			name:       "should return 2 connection",
+			auth:       authOk,
+			page:       2,
+			maxResults: 10,
+			issuerDID:  issuerDID.String(),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Meta: PaginatedMetadata{
+						MaxResults: 10,
+						Total:      12,
+						Page:       2,
+					},
+					Items: expectedConnections[10:12],
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			urlTest := fmt.Sprintf("/v2/identities/%s/connections?max_results=%d&page=%d", tc.issuerDID, tc.maxResults, tc.page)
+			parsedURL, err := url.Parse(urlTest)
+			require.NoError(t, err)
+
+			require.NoError(t, err)
+			req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusBadRequest:
+				var response GetConnections400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.response, response)
+			case http.StatusOK:
+				var response GetConnections200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				expectedResponse, ok := tc.expected.response.(GetConnections200JSONResponse)
+				require.True(t, ok)
+				assert.Equal(t, len(expectedResponse.Items), len(response.Items))
+				for i := range response.Items {
+					assert.Equal(t, expectedResponse.Items[i].Id, response.Items[i].Id)
+					assert.Equal(t, expectedResponse.Items[i].IssuerID, response.Items[i].IssuerID)
+					assert.Equal(t, expectedResponse.Items[i].UserID, response.Items[i].UserID)
+				}
+				assert.Equal(t, int(expectedResponse.Meta.MaxResults), int(response.Meta.MaxResults))
+				assert.Equal(t, int(expectedResponse.Meta.Total), int(response.Meta.Total))
+				assert.Equal(t, expectedResponse.Meta.Page, response.Meta.Page)
+			}
+		})
+	}
+}
+
+func createConnections(t *testing.T, issuerDID *w3c.DID, fixture *repositories.Fixture) []GetConnectionResponse {
+	t.Helper()
+	usersDIDs := []string{
+		"did:polygonid:polygon:amoy:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R64",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R65",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R66",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R67",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R68",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R69",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R70",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R71",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R72",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R73",
+		"did:polygonid:polygon:amoy:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R74",
+	}
+	connections := make([]GetConnectionResponse, len(usersDIDs))
+	for i, userDID := range usersDIDs {
+		user, err := w3c.ParseDID(userDID)
+		require.NoError(t, err)
+		conn := fixture.CreateConnection(t, &domain.Connection{
+			ID:         uuid.New(),
+			IssuerDID:  *issuerDID,
+			UserDID:    *user,
+			IssuerDoc:  nil,
+			UserDoc:    nil,
+			CreatedAt:  time.Now(),
+			ModifiedAt: time.Now(),
+		})
+		connections[len(usersDIDs)-i-1] = GetConnectionResponse{
+			Id:        conn.String(),
+			IssuerID:  issuerDID.String(),
+			UserID:    user.String(),
+			CreatedAt: TimeUTC(time.Now()),
+		}
+	}
+	return connections
+}
