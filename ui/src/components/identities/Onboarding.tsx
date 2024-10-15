@@ -36,7 +36,7 @@ const cards = [
 
 export function Onboarding() {
   const env = useEnvContext();
-  const { handleChange } = useIdentityContext();
+  const { selectIdentity } = useIdentityContext();
   const navigate = useNavigate();
   const [messageAPI, messageContext] = message.useMessage();
 
@@ -52,7 +52,7 @@ export function Onboarding() {
           data: { identifier },
         } = response;
         void messageAPI.success("Identity added successfully");
-        handleChange(identifier);
+        selectIdentity(identifier);
         navigate(ROUTES.schemas.path);
       } else {
         void messageAPI.error(response.error.message);

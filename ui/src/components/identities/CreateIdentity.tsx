@@ -12,7 +12,7 @@ import { IDENTITY_ADD, IDENTITY_ADD_NEW, IDENTITY_DETAILS } from "src/utils/cons
 
 export function CreateIdentity() {
   const env = useEnvContext();
-  const { handleChange, identityList } = useIdentityContext();
+  const { identityList, selectIdentity } = useIdentityContext();
   const [messageAPI, messageContext] = message.useMessage();
   const navigate = useNavigate();
 
@@ -35,7 +35,7 @@ export function CreateIdentity() {
         } = response;
 
         void messageAPI.success("Identity added successfully");
-        handleChange(identifier);
+        selectIdentity(identifier);
         navigate(ROUTES.identities.path);
       } else {
         void messageAPI.error(response.error.message);

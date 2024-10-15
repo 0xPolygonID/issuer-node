@@ -12,9 +12,11 @@ import { IDENTITY_ADD } from "src/utils/constants";
 
 export function UserDisplay() {
   const { issuer } = useEnvContext();
-  const { handleChange, identifier, identityDisplayName, identityList } = useIdentityContext();
+  const { getSelectedIdentity, identifier, identityList, selectIdentity } = useIdentityContext();
   const navigate = useNavigate();
   const { token } = theme.useToken();
+  const selectedIdentity = getSelectedIdentity();
+  const selectedIdentityDisplayName = selectedIdentity ? selectedIdentity.displayName : "";
 
   const identityItems = isAsyncTaskDataAvailable(identityList)
     ? identityList.data.map((identity, index) => {
@@ -44,7 +46,7 @@ export function UserDisplay() {
               {currentIdentity && <IconCheck />}
             </Flex>
           ),
-          onClick: () => handleChange(identity.identifier),
+          onClick: () => selectIdentity(identity.identifier),
         };
       })
     : [];
@@ -78,11 +80,11 @@ export function UserDisplay() {
           </Flex>
           <Flex gap={4} vertical>
             <Typography.Text
-              ellipsis={{ tooltip: identityDisplayName }}
+              ellipsis={{ tooltip: selectedIdentityDisplayName }}
               style={{ fontWeight: 600 }}
               type="secondary"
             >
-              {identityDisplayName}
+              {selectedIdentityDisplayName}
             </Typography.Text>
 
             <Flex align="center" gap={4}>

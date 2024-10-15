@@ -30,18 +30,20 @@ import { buildAppError } from "src/utils/error";
 
 type IdentityState = {
   fetchIdentities: (signal: AbortSignal) => void;
-  handleChange: (identifier: string) => void;
+  getSelectedIdentity: () => Identity | undefined;
   identifier: string;
   identityDisplayName: string;
   identityList: AsyncTask<Identity[], AppError>;
+  selectIdentity: (identifier: string) => void;
 };
 
 const defaultIdentityState: IdentityState = {
   fetchIdentities: () => void {},
-  handleChange: () => void {},
+  getSelectedIdentity: () => void {},
   identifier: "",
   identityDisplayName: "",
   identityList: { status: "pending" },
+  selectIdentity: () => void {},
 };
 
 const IdentityContext = createContext(defaultIdentityState);
@@ -113,13 +115,19 @@ export function IdentityProvider(props: PropsWithChildren) {
     [env, messageAPI, identifierParam]
   );
 
-  const handleChange = useCallback(
+  const selectIdentity = useCallback(
     (identifier: string) => {
       setIdentifier(identifier);
       navigate(ROUTES.schemas.path);
     },
     [navigate]
   );
+
+  const getSelectedIdentity = useCallback(() => {
+    return isAsyncTaskDataAvailable(identityList)
+      ? identityList.data.find((identity) => identity.identifier === identifier)
+      : undefined;
+  }, [identifier, identityList]);
 
   useEffect(() => {
     if (
@@ -153,12 +161,20 @@ export function IdentityProvider(props: PropsWithChildren) {
   const value = useMemo(() => {
     return {
       fetchIdentities,
-      handleChange,
+      getSelectedIdentity,
       identifier,
       identityDisplayName,
       identityList,
+      selectIdentity,
     };
-  }, [identifier, identityDisplayName, identityList, handleChange, fetchIdentities]);
+  }, [
+    identifier,
+    identityDisplayName,
+    identityList,
+    selectIdentity,
+    fetchIdentities,
+    getSelectedIdentity,
+  ]);
 
   return (
     <>
