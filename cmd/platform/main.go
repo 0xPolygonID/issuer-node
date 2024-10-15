@@ -104,8 +104,8 @@ func main() {
 	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
-	claimsRepository := repositories.NewClaims()
-	connectionsRepository := repositories.NewConnections()
+	claimsRepository := repositories.NewClaim()
+	connectionsRepository := repositories.NewConnection()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()

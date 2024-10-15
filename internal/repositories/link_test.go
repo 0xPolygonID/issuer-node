@@ -392,7 +392,7 @@ func TestDeleteLink(t *testing.T) {
 	err = linkStore.Delete(ctx, *linkID, *did)
 	assert.NoError(t, err)
 
-	claimStorage := NewClaims()
+	claimStorage := NewClaim()
 	claim, err := claimStorage.GetByIdAndIssuer(ctx, storage.Pgx, did, idClaim)
 	assert.NoError(t, err)
 	assert.NotNil(t, claim)

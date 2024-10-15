@@ -63,7 +63,7 @@ type claim struct {
 	host string
 	cfg  config.UniversalLinks
 
-	icRepo                   ports.ClaimsRepository
+	icRepo                   ports.ClaimRepository
 	identitySrv              ports.IdentityService
 	mtService                ports.MtService
 	qrService                ports.QrStoreService
@@ -77,7 +77,7 @@ type claim struct {
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver, mediatypeManager ports.MediatypeManager, cfg config.UniversalLinks) ports.ClaimsService {
+func NewClaim(repo ports.ClaimRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver, mediatypeManager ports.MediatypeManager, cfg config.UniversalLinks) ports.ClaimService {
 	s := &claim{
 		host:                     host,
 		icRepo:                   repo,

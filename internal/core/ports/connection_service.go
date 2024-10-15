@@ -70,8 +70,8 @@ func NewDeleteRequest(connID uuid.UUID, deleteCredentials *bool, revokeCredentia
 	}
 }
 
-// ConnectionsService  is the interface implemented by the Connections service
-type ConnectionsService interface {
+// ConnectionService  is the interface implemented by the Connections service
+type ConnectionService interface {
 	Create(ctx context.Context, conn *domain.Connection) error
 	Delete(ctx context.Context, id uuid.UUID, deleteCredentials bool, issuerDID w3c.DID) error
 	DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID w3c.DID) error

@@ -100,14 +100,14 @@ func main() {
 	}
 
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	qrService := services.NewQrStoreService(cachex)
 
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
 	rhsFactory := reverse_hash2.NewFactory(*networkResolver, reverse_hash2.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)

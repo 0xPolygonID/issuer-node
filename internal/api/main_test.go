@@ -209,7 +209,7 @@ func NewPublisherMock() ports.Publisher {
 
 func NewIdentityMock() ports.IdentityService { return nil }
 
-func NewClaimsMock() ports.ClaimsService {
+func NewClaimsMock() ports.ClaimService {
 	return nil
 }
 
@@ -217,7 +217,7 @@ func NewSchemaMock() ports.SchemaService {
 	return nil
 }
 
-func NewConnectionsMock() ports.ConnectionsService {
+func NewConnectionsMock() ports.ConnectionService {
 	return nil
 }
 
@@ -226,8 +226,8 @@ func NewLinkMock() ports.LinkService {
 }
 
 type repos struct {
-	claims         ports.ClaimsRepository
-	connection     ports.ConnectionsRepository
+	claims         ports.ClaimRepository
+	connection     ports.ConnectionRepository
 	identity       ports.IndentityRepository
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
@@ -238,7 +238,7 @@ type repos struct {
 }
 
 type servicex struct {
-	credentials ports.ClaimsService
+	credentials ports.ClaimService
 	identity    ports.IdentityService
 	schema      ports.SchemaService
 	links       ports.LinkService
@@ -263,8 +263,8 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		st = storage
 	}
 	repos := repos{
-		claims:         repositories.NewClaims(),
-		connection:     repositories.NewConnections(),
+		claims:         repositories.NewClaim(),
+		connection:     repositories.NewConnection(),
 		identity:       repositories.NewIdentity(),
 		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
 		identityState:  repositories.NewIdentityState(),

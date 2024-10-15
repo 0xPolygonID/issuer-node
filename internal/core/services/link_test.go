@@ -28,13 +28,13 @@ import (
 func Test_link_issueClaim(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	schemaRepository := repositories.NewSchema(*storage)
 	mtService := NewIdentityMerkleTrees(mtRepo)
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
 	reader := common.CreateFile(t)
 	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)

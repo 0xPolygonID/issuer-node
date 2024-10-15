@@ -38,12 +38,12 @@ const (
 func Test_identity_CreateIdentity(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -107,12 +107,12 @@ func Test_identity_CreateIdentity(t *testing.T) {
 func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -241,12 +241,12 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
 	reader := common.CreateFileWithRHSOffChain(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -375,12 +375,12 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 func Test_identity_UpdateState(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -568,12 +568,12 @@ func Test_identity_UpdateState(t *testing.T) {
 func Test_identity_GetByDID(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -625,12 +625,12 @@ func Test_identity_GetByDID(t *testing.T) {
 func Test_identity_GetLatestStateByID(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)

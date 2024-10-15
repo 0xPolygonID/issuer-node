@@ -64,8 +64,8 @@ func main() {
 		return
 	}
 
-	connectionsRepository := repositories.NewConnections()
-	claimsRepository := repositories.NewClaims()
+	connectionsRepository := repositories.NewConnection()
+	claimsRepository := repositories.NewClaim()
 
 	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
@@ -124,9 +124,9 @@ func main() {
 	<-gracefulShutdown
 }
 
-func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, keyStore *kms.KMS) (ports.ClaimsService, error) {
+func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, keyStore *kms.KMS) (ports.ClaimService, error) {
 	identityRepository := repositories.NewIdentity()
-	claimsRepository := repositories.NewClaims()
+	claimsRepository := repositories.NewClaim()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()

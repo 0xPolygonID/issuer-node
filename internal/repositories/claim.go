@@ -31,7 +31,7 @@ var (
 	ErrClaimDoesNotExist = errors.New("claim does not exist")
 )
 
-type claims struct{}
+type claim struct{}
 
 type dbClaim struct {
 	ID               *uuid.UUID
@@ -59,13 +59,13 @@ type dbClaim struct {
 	MtProof sql.NullBool
 }
 
-// NewClaims returns a new claim repository
-func NewClaims() ports.ClaimsRepository {
-	return &claims{}
+// NewClaim returns a new claim repository
+func NewClaim() ports.ClaimRepository {
+	return &claim{}
 }
 
 // GetRevoked returns all the revoked claims from the given state
-func (c *claims) GetRevoked(ctx context.Context, conn db.Querier, currentState string) ([]*domain.Claim, error) {
+func (c *claim) GetRevoked(ctx context.Context, conn db.Querier, currentState string) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		issuer,
 		schema_hash,
@@ -104,7 +104,7 @@ func (c *claims) GetRevoked(ctx context.Context, conn db.Querier, currentState s
 	return claims, nil
 }
 
-func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error) {
+func (c *claim) Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error) {
 	var err error
 	id := claim.ID
 
@@ -244,7 +244,7 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 	return uuid.Nil, fmt.Errorf("error saving the claim: %w", err)
 }
 
-func (c *claims) Revoke(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error {
+func (c *claim) Revoke(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error {
 	_, err := conn.Exec(ctx, `INSERT INTO revocation (identifier, nonce, version, status, description) VALUES($1, $2, $3, $4, $5)`,
 		revocation.Identifier,
 		revocation.Nonce,
@@ -258,7 +258,7 @@ func (c *claims) Revoke(ctx context.Context, conn db.Querier, revocation *domain
 	return nil
 }
 
-func (c *claims) Delete(ctx context.Context, conn db.Querier, id uuid.UUID) error {
+func (c *claim) Delete(ctx context.Context, conn db.Querier, id uuid.UUID) error {
 	sql := `DELETE FROM claims WHERE id = $1`
 	cmd, err := conn.Exec(ctx, sql, id.String())
 	if err != nil {
@@ -272,7 +272,7 @@ func (c *claims) Delete(ctx context.Context, conn db.Querier, id uuid.UUID) erro
 	return nil
 }
 
-func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *w3c.DID, revocationNonce domain.RevNonceUint64) ([]*domain.Claim, error) {
+func (c *claim) GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *w3c.DID, revocationNonce domain.RevNonceUint64) ([]*domain.Claim, error) {
 	rows, err := conn.Query(
 		ctx,
 		`SELECT id,
@@ -345,7 +345,7 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 	return claims, nil
 }
 
-func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *w3c.DID, schemaHash string) (*domain.Claim, error) {
+func (c *claim) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *w3c.DID, schemaHash string) (*domain.Claim, error) {
 	var claim domain.Claim
 
 	row := conn.QueryRow(ctx,
@@ -399,7 +399,7 @@ func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, 
 	return &claim, err
 }
 
-func (c *claims) RevokeNonce(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error {
+func (c *claim) RevokeNonce(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error {
 	_, err := conn.Exec(ctx,
 		`	INSERT INTO revocation (identifier, nonce, version, status, description) 
 				VALUES($1, $2, $3, $4, $5)`,
@@ -412,7 +412,7 @@ func (c *claims) RevokeNonce(ctx context.Context, conn db.Querier, revocation *d
 }
 
 // GetByIdAndIssuer get claim by id
-func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *w3c.DID, claimID uuid.UUID) (*domain.Claim, error) {
+func (c *claim) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *w3c.DID, claimID uuid.UUID) (*domain.Claim, error) {
 	claim := domain.Claim{}
 	err := conn.QueryRow(ctx,
 		`SELECT id,
@@ -466,7 +466,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 }
 
 // GetAllByIssuerID returns all the claims of the given issuer
-func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID w3c.DID, filter *ports.ClaimsFilter) (claims []*domain.Claim, count uint, err error) {
+func (c *claim) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID w3c.DID, filter *ports.ClaimsFilter) (claims []*domain.Claim, count uint, err error) {
 	query, countQuery, args := buildGetAllQueryAndFilters(issuerID, filter)
 
 	// Let's count all results, only if we are paginating
@@ -495,7 +495,7 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID
 	return claims, count, err
 }
 
-func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID w3c.DID) ([]*domain.Claim, error) {
+func (c *claim) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID w3c.DID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 				   issuer,
 				   schema_hash,
@@ -534,7 +534,7 @@ func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn 
 	return processClaims(rows)
 }
 
-func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
+func (c *claim) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
 	claims = make([]domain.Claim, 0)
 	var rows pgx.Rows
 	if state == nil {
@@ -624,7 +624,7 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DI
 	return claims, err
 }
 
-func (c *claims) GetAllByStateWithMTProof(ctx context.Context, conn db.Querier, did *w3c.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
+func (c *claim) GetAllByStateWithMTProof(ctx context.Context, conn db.Querier, did *w3c.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
 	claims = make([]domain.Claim, 0)
 	var rows pgx.Rows
 	if state == nil {
@@ -713,7 +713,7 @@ func (c *claims) GetAllByStateWithMTProof(ctx context.Context, conn db.Querier, 
 	return claims, err
 }
 
-func (c *claims) UpdateState(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {
+func (c *claim) UpdateState(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {
 	query := "UPDATE claims SET identity_state = $1 WHERE id = $2 AND identifier = $3"
 	res, err := conn.Exec(ctx, query, *claim.IdentityState, claim.ID, claim.Identifier)
 	if err != nil {
@@ -863,7 +863,7 @@ func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (q
 	return query, countQuery, filters
 }
 
-func (c *claims) UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {
+func (c *claim) UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {
 	query := "UPDATE claims SET mtp_proof = $1 WHERE id = $2 AND identifier = $3"
 	res, err := conn.Exec(ctx, query, claim.MTPProof, claim.ID, claim.Identifier)
 	if err != nil {
@@ -873,7 +873,7 @@ func (c *claims) UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *dom
 }
 
 // GetAuthClaimsForPublishing of all claims for identity
-func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier, identifier *w3c.DID, publishingState string, schemaHash string) ([]*domain.Claim, error) {
+func (c *claim) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier, identifier *w3c.DID, publishingState string, schemaHash string) ([]*domain.Claim, error) {
 	var err error
 	query := `SELECT claims.id,
 		issuer,
@@ -918,7 +918,7 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 	return claims, nil
 }
 
-func (c *claims) GetClaimsOfAConnection(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID) ([]*domain.Claim, error) {
+func (c *claim) GetClaimsOfAConnection(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,
@@ -978,7 +978,7 @@ func (c *claims) GetClaimsOfAConnection(ctx context.Context, conn db.Querier, id
 	return claims, nil
 }
 
-func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+func (c *claim) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,
@@ -1038,7 +1038,7 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 	return claims, nil
 }
 
-func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, did *w3c.DID, state string) ([]*domain.Claim, error) {
+func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, did *w3c.DID, state string) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,

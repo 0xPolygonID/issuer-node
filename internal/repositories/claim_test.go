@@ -23,7 +23,7 @@ import (
 
 func TestSaveClaim(t *testing.T) {
 	ctx := context.Background()
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 	idStr := "did:polygonid:polygon:amoy:2qWcgX6ts9RnL9gP7bQP7BjVCuY92Xpwj9wzBzQGdc"
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -47,7 +47,7 @@ func TestSaveClaim(t *testing.T) {
 		RevNonce:        100,
 	}
 
-	defer func(claimsRepo ports.ClaimsRepository, ctx context.Context, conn db.Querier, id uuid.UUID) {
+	defer func(claimsRepo ports.ClaimRepository, ctx context.Context, conn db.Querier, id uuid.UUID) {
 		err := claimsRepo.Delete(ctx, conn, id)
 		if err != nil {
 			t.Failed()
@@ -101,7 +101,7 @@ func TestSaveClaim(t *testing.T) {
 
 func TestRevoke(t *testing.T) {
 	// given
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 	idStr := "did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -190,7 +190,7 @@ func TestGetByRevocationNonce(t *testing.T) {
 		HIndex:          "789",
 	})
 
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 	t.Run("should get revocation", func(t *testing.T) {
 		did, err := w3c.ParseDID(idStr)
 		assert.NoError(t, err)
@@ -241,7 +241,7 @@ func TestGetByRevocationNonce(t *testing.T) {
 
 func TestRevokeNonce(t *testing.T) {
 	// given
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 	idStr := "did:polygonid:polygon:mumbai:2qNWrZ4Z7iZPvDusp32sWXGMHvAL9RoTqgPEEXvS9q"
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -320,7 +320,7 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 		ModifiedAt: time.Now(),
 	})
 
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 	t.Run("should get one claim", func(t *testing.T) {
 		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, *issuerDID)
 		assert.NoError(t, err)
@@ -373,7 +373,7 @@ func TestGetAllByIssuerID(t *testing.T) {
 
 	_ = fixture.CreateClaim(t, c)
 
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 
 	type testConfig struct {
 		name     string
@@ -463,7 +463,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 		createdAt = createdAt.Add(time.Second)
 	}
 
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 
 	type expected struct {
 		total     uint
@@ -605,7 +605,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 		createdAt = createdAt.Add(time.Second)
 	}
 
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 
 	t.Run("should order by created_at desc by default", func(t *testing.T) {
 		claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.ClaimsFilter{
@@ -720,7 +720,7 @@ func TestGetClaimsIssuedForUserID(t *testing.T) {
 		expected int
 	}
 
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 
 	for _, tc := range []testConfig{
 		{
@@ -803,7 +803,7 @@ func TestGeRevoked(t *testing.T) {
 		IdentityState:   common.ToPointer("current-state"),
 	})
 
-	claimsRepo := NewClaims()
+	claimsRepo := NewClaim()
 	t.Run("should get no credentials", func(t *testing.T) {
 		claims, err := claimsRepo.GetRevoked(context.Background(), storage.Pgx, "current-state")
 		assert.NoError(t, err)

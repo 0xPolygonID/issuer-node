@@ -47,9 +47,9 @@ var (
 type Link struct {
 	cfg              config.UniversalLinks
 	storage          *db.Storage
-	claimsService    ports.ClaimsService
+	claimsService    ports.ClaimService
 	qrService        ports.QrStoreService
-	claimRepository  ports.ClaimsRepository
+	claimRepository  ports.ClaimRepository
 	linkRepository   ports.LinkRepository
 	schemaRepository ports.SchemaRepository
 	loader           loader.DocumentLoader
@@ -60,7 +60,7 @@ type Link struct {
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, identityService ports.IdentityService, networkResolver network.Resolver, cfg config.UniversalLinks) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimService, qrService ports.QrStoreService, claimRepository ports.ClaimRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, identityService ports.IdentityService, networkResolver network.Resolver, cfg config.UniversalLinks) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,

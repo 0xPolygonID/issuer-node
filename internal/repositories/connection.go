@@ -35,15 +35,15 @@ type dbConnectionWithCredentials struct {
 	dbClaim
 }
 
-type connections struct{}
+type connection struct{}
 
-// NewConnections returns a new connections repository
-func NewConnections() ports.ConnectionsRepository {
-	return &connections{}
+// NewConnection returns a new connections repository
+func NewConnection() ports.ConnectionRepository {
+	return &connection{}
 }
 
 // Save stores in the database the given connection and updates the modified at in case already exists
-func (c *connections) Save(ctx context.Context, conn db.Querier, connection *domain.Connection) (uuid.UUID, error) {
+func (c *connection) Save(ctx context.Context, conn db.Querier, connection *domain.Connection) (uuid.UUID, error) {
 	var id uuid.UUID
 	sql := `INSERT INTO connections (id,issuer_id, user_id, issuer_doc, user_doc,created_at,modified_at)
 			VALUES($1, $2, $3, $4,$5,$6,$7) ON CONFLICT ON CONSTRAINT connections_issuer_user_key DO
@@ -55,14 +55,14 @@ func (c *connections) Save(ctx context.Context, conn db.Querier, connection *dom
 }
 
 // SaveUserAuthentication creates a new entry in the user_authentications table
-func (c *connections) SaveUserAuthentication(ctx context.Context, conn db.Querier, connID uuid.UUID, sessID uuid.UUID, mTime time.Time) error {
+func (c *connection) SaveUserAuthentication(ctx context.Context, conn db.Querier, connID uuid.UUID, sessID uuid.UUID, mTime time.Time) error {
 	sql := `INSERT INTO user_authentications (connection_id,session_id,created_at) VALUES($1, $2, $3) ON CONFLICT ON CONSTRAINT user_authentications_session_connection_key DO
 			UPDATE SET connection_id=$1, session_id=$2, updated_at=$3`
 	_, err := conn.Exec(ctx, sql, connID.String(), sessID.String(), mTime)
 	return err
 }
 
-func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID w3c.DID) error {
+func (c *connection) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID w3c.DID) error {
 	sqlAuthentications := `DELETE FROM user_authentications WHERE connection_id = $1`
 	_, err := conn.Exec(ctx, sqlAuthentications, id.String())
 	if err != nil {
@@ -82,14 +82,14 @@ func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID,
 	return nil
 }
 
-func (c *connections) DeleteCredentials(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID w3c.DID) error {
+func (c *connection) DeleteCredentials(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID w3c.DID) error {
 	sql := `DELETE FROM claims USING connections WHERE claims.issuer = connections.issuer_id AND claims.other_identifier = connections.user_id AND connections.id = $1 AND connections.issuer_id = $2`
 	_, err := conn.Exec(ctx, sql, id.String(), issuerID.String())
 
 	return err
 }
 
-func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID w3c.DID) (*domain.Connection, error) {
+func (c *connection) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID w3c.DID) (*domain.Connection, error) {
 	connection := dbConnection{}
 	err := conn.QueryRow(ctx,
 		`SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
@@ -113,7 +113,7 @@ func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, i
 	return toConnectionDomain(&connection)
 }
 
-func (c *connections) GetByUserSessionID(ctx context.Context, conn db.Querier, sessionID uuid.UUID) (*domain.Connection, error) {
+func (c *connection) GetByUserSessionID(ctx context.Context, conn db.Querier, sessionID uuid.UUID) (*domain.Connection, error) {
 	connection := dbConnection{}
 	err := conn.QueryRow(ctx,
 		`SELECT connections.id, connections.issuer_id,connections.user_id,connections.issuer_doc,connections.user_doc,connections.created_at,connections.modified_at 
@@ -138,7 +138,7 @@ func (c *connections) GetByUserSessionID(ctx context.Context, conn db.Querier, s
 	return toConnectionDomain(&connection)
 }
 
-func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, userDID w3c.DID) (*domain.Connection, error) {
+func (c *connection) GetByUserID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, userDID w3c.DID) (*domain.Connection, error) {
 	connection := dbConnection{}
 	err := conn.QueryRow(ctx,
 		`SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
@@ -162,7 +162,7 @@ func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDI
 	return toConnectionDomain(&connection)
 }
 
-func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *ports.NewGetAllConnectionsRequest) ([]domain.Connection, uint, error) {
+func (c *connection) GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *ports.NewGetAllConnectionsRequest) ([]domain.Connection, uint, error) {
 	var count uint
 	sqlQuery, countQuery, filters := buildGetAllWithCredentialsQueryAndFilters(issuerDID, filter)
 

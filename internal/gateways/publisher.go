@@ -54,7 +54,7 @@ type PublisherGateway interface {
 type publisher struct {
 	storage               *db.Storage
 	identityService       ports.IdentityService
-	claimService          ports.ClaimsService
+	claimService          ports.ClaimService
 	mtService             ports.MtService
 	kms                   kms.KMSType
 	transactionService    ports.TransactionService
@@ -66,7 +66,7 @@ type publisher struct {
 }
 
 // NewPublisher - Constructor
-func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, networkResolver *network.Resolver, notificationPublisher pubsub.Publisher) *publisher {
+func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, networkResolver *network.Resolver, notificationPublisher pubsub.Publisher) *publisher {
 	pendingTransactions := sync_ttl_map.New(ttl)
 	pendingTransactions.CleaningBackground(transactionCleanup)
 

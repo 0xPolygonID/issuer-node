@@ -210,8 +210,8 @@ type GetCredentialQrCodeResponse struct {
 	QrID          uuid.UUID
 }
 
-// ClaimsService is the interface implemented by the claim service
-type ClaimsService interface {
+// ClaimService is the interface implemented by the claim service
+type ClaimService interface {
 	Save(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
 	GetRevoked(ctx context.Context, currentState string) ([]*domain.Claim, error)
 	CreateCredential(ctx context.Context, req *CreateClaimRequest) (*domain.Claim, error)

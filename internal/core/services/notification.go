@@ -20,12 +20,12 @@ import (
 
 type notification struct {
 	notificationGateway ports.NotificationGateway
-	connService         ports.ConnectionsService
-	credService         ports.ClaimsService
+	connService         ports.ConnectionService
+	credService         ports.ClaimService
 }
 
 // NewNotification returns a Notification Service
-func NewNotification(notificationGateway ports.NotificationGateway, connService ports.ConnectionsService, credService ports.ClaimsService) ports.NotificationService {
+func NewNotification(notificationGateway ports.NotificationGateway, connService ports.ConnectionService, credService ports.ClaimService) ports.NotificationService {
 	return &notification{
 		notificationGateway: notificationGateway,
 		connService:         connService,

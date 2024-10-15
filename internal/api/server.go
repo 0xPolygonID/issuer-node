@@ -19,8 +19,8 @@ import (
 type Server struct {
 	cfg                *config.Configuration
 	accountService     ports.AccountService
-	claimService       ports.ClaimsService
-	connectionsService ports.ConnectionsService
+	claimService       ports.ClaimService
+	connectionsService ports.ConnectionService
 	health             *health.Status
 	identityService    ports.IdentityService
 	linkService        ports.LinkService
@@ -32,7 +32,7 @@ type Server struct {
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, connectionsService ports.ConnectionsService, claimsService ports.ClaimsService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status, schemaService ports.SchemaService, linkService ports.LinkService) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, connectionsService ports.ConnectionService, claimsService ports.ClaimService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status, schemaService ports.SchemaService, linkService ports.LinkService) *Server {
 	return &Server{
 		cfg:                cfg,
 		accountService:     accountService,

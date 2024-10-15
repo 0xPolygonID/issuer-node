@@ -14,8 +14,8 @@ import (
 type Fixture struct {
 	storage                 *db.Storage
 	identityRepository      ports.IndentityRepository
-	claimRepository         ports.ClaimsRepository
-	connectionsRepository   ports.ConnectionsRepository
+	claimRepository         ports.ClaimRepository
+	connectionsRepository   ports.ConnectionRepository
 	schemaRepository        ports.SchemaRepository
 	identityStateRepository ports.IdentityStateRepository
 }
@@ -25,8 +25,8 @@ func NewFixture(storage *db.Storage) *Fixture {
 	return &Fixture{
 		storage:                 storage,
 		identityRepository:      NewIdentity(),
-		claimRepository:         NewClaims(),
-		connectionsRepository:   NewConnections(),
+		claimRepository:         NewClaim(),
+		connectionsRepository:   NewConnection(),
 		schemaRepository:        NewSchema(*storage),
 		identityStateRepository: NewIdentityState(),
 	}
