@@ -1,4 +1,4 @@
-import { Space, message } from "antd";
+import { App, Space } from "antd";
 import {
   PropsWithChildren,
   createContext,
@@ -50,7 +50,7 @@ const IdentityContext = createContext(defaultIdentityState);
 
 export function IdentityProvider(props: PropsWithChildren) {
   const env = useEnvContext();
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [identityList, setIdentityList] = useState<AsyncTask<Identity[], AppError>>({
@@ -78,7 +78,7 @@ export function IdentityProvider(props: PropsWithChildren) {
         const identities = response.data.successful;
 
         if (response.data.failed.length) {
-          void messageAPI.error(
+          void message.error(
             response.data.failed.map((error) => buildAppError(error).message).join("\n")
           );
         }
@@ -106,7 +106,7 @@ export function IdentityProvider(props: PropsWithChildren) {
         }
       }
     },
-    [env, messageAPI, identifierParam]
+    [env, message, identifierParam]
   );
 
   const selectIdentity = useCallback(
@@ -162,39 +162,31 @@ export function IdentityProvider(props: PropsWithChildren) {
     };
   }, [identifier, identityList, selectIdentity, fetchIdentities, getSelectedIdentity]);
 
-  return (
-    <>
-      {messageContext}
-
-      {(() => {
-        switch (identityList.status) {
-          case "successful":
-          case "reloading": {
-            return <IdentityContext.Provider value={value} {...props} />;
-          }
-          case "failed": {
-            return <ErrorResult error={identityList.error.message} />;
-          }
-          case "pending":
-          case "loading": {
-            return (
-              <Space
-                style={{
-                  alignItems: "center",
-                  display: "flex",
-                  height: "100vh",
-                  justifyContent: "center",
-                  width: "100vw",
-                }}
-              >
-                <LoadingResult />
-              </Space>
-            );
-          }
-        }
-      })()}
-    </>
-  );
+  switch (identityList.status) {
+    case "successful":
+    case "reloading": {
+      return <IdentityContext.Provider value={value} {...props} />;
+    }
+    case "failed": {
+      return <ErrorResult error={identityList.error.message} />;
+    }
+    case "pending":
+    case "loading": {
+      return (
+        <Space
+          style={{
+            alignItems: "center",
+            display: "flex",
+            height: "100vh",
+            justifyContent: "center",
+            width: "100vw",
+          }}
+        >
+          <LoadingResult />
+        </Space>
+      );
+    }
+  }
 }
 
 export function useIdentityContext() {

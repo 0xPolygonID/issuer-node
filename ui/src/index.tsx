@@ -1,4 +1,4 @@
-import { ConfigProvider, message } from "antd";
+import { App, ConfigProvider } from "antd";
 import { extend as extendDayJsWith } from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { StrictMode } from "react";
@@ -24,19 +24,19 @@ if (!rootElement) {
 
 const root = createRoot(rootElement);
 
-message.config({ duration: TOAST_NOTIFICATION_TIMEOUT });
-
 root.render(
   <StrictMode>
     <BrowserRouter>
       <ConfigProvider theme={theme}>
-        <EnvProvider>
-          <IdentityProvider>
-            <IssuerStateProvider>
-              <Router />
-            </IssuerStateProvider>
-          </IdentityProvider>
-        </EnvProvider>
+        <App message={{ duration: TOAST_NOTIFICATION_TIMEOUT }}>
+          <EnvProvider>
+            <IdentityProvider>
+              <IssuerStateProvider>
+                <Router />
+              </IssuerStateProvider>
+            </IdentityProvider>
+          </EnvProvider>
+        </App>
       </ConfigProvider>
     </BrowserRouter>
   </StrictMode>

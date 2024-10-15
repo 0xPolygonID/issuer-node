@@ -1,4 +1,5 @@
 import { Button, Space, Typography } from "antd";
+import { processUrl } from "src/adapters/api/schemas";
 
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
@@ -31,6 +32,7 @@ export function ImportSchemaPreview({
   const schemaHashResult = getSchemaHash(jsonLdType);
   const schemaHash = schemaHashResult.success ? schemaHashResult.data : null;
   const version = jsonSchema.jsonSchemaProps.$metadata.version;
+  const processedSchemaUrl = processUrl(url, env);
 
   return (
     <SchemaViewer
@@ -65,7 +67,12 @@ export function ImportSchemaPreview({
             text={schemaHash || "An error occurred while calculating Hash."}
           />
 
-          <Detail copyable href={url} label="URL" text={url} />
+          <Detail
+            copyable
+            href={processedSchemaUrl.success ? processedSchemaUrl.data : url}
+            label="URL"
+            text={url}
+          />
 
           <DownloadSchema env={env} fileName={jsonSchema.name} url={url} />
         </Space>

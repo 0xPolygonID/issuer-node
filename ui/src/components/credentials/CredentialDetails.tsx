@@ -275,7 +275,7 @@ export function CredentialDetails() {
 
                     <Detail
                       copyable
-                      donwloadLink
+                      downloadLink
                       href={universalLinkResponse.universalLink}
                       label="Universal link"
                       text={universalLinkResponse.universalLink}
@@ -283,7 +283,7 @@ export function CredentialDetails() {
 
                     <Detail
                       copyable
-                      donwloadLink
+                      downloadLink
                       href={deepLinkResponse.universalLink}
                       label="Deep link"
                       text={deepLinkResponse.universalLink}

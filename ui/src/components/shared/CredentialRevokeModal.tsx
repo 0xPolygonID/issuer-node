@@ -1,4 +1,4 @@
-import { Modal, Space, Typography, message } from "antd";
+import { App, Modal, Space, Typography } from "antd";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -23,7 +23,7 @@ export function CredentialRevokeModal({
   const { identifier } = useIdentityContext();
   const { notifyChange } = useIssuerStateContext();
 
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [, setSearchParams] = useSearchParams();
@@ -42,39 +42,35 @@ export function CredentialRevokeModal({
           return params;
         });
         void notifyChange("revoke");
-        void messageAPI.success(response.data.message);
+        void message.success(response.data.message);
       } else {
         setIsLoading(false);
 
-        void messageAPI.error(response.error.message);
+        void message.error(response.error.message);
       }
     });
   };
 
   return (
-    <>
-      {messageContext}
-
-      <Modal
-        cancelText={CLOSE}
-        centered
-        closable
-        closeIcon={<IconClose />}
-        maskClosable
-        okButtonProps={{ danger: true, loading: isLoading }}
-        okText={REVOKE}
-        onCancel={onClose}
-        onOk={handleRevokeCredential}
-        open
-        title="Are you sure you want to revoke this credential?"
-      >
-        <Space direction="vertical">
-          <Typography.Text type="secondary">
-            Revoking of a credential must be accompanied by publishing of issuer state in order for
-            the action to be effective. This action cannot be undone.
-          </Typography.Text>
-        </Space>
-      </Modal>
-    </>
+    <Modal
+      cancelText={CLOSE}
+      centered
+      closable
+      closeIcon={<IconClose />}
+      maskClosable
+      okButtonProps={{ danger: true, loading: isLoading }}
+      okText={REVOKE}
+      onCancel={onClose}
+      onOk={handleRevokeCredential}
+      open
+      title="Are you sure you want to revoke this credential?"
+    >
+      <Space direction="vertical">
+        <Typography.Text type="secondary">
+          Revoking of a credential must be accompanied by publishing of issuer state in order for
+          the action to be effective. This action cannot be undone.
+        </Typography.Text>
+      </Space>
+    </Modal>
   );
 }
