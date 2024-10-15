@@ -137,11 +137,20 @@ const schemaFormValuesParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStri
   z
     .lazy(() => z.record(z.union([formLiteralParser, schemaFormValuesParser])))
     .transform((data, context) => {
-      const parsedJson = jsonParser.safeParse(data);
-      if (parsedJson.success) {
-        return parsedJson.data;
-      } else {
-        parsedJson.error.issues.map(context.addIssue);
+      try {
+        const valueWithoutUndefined: unknown = JSON.parse(JSON.stringify(data));
+        const parsedJson = jsonParser.safeParse(valueWithoutUndefined);
+        if (parsedJson.success) {
+          return parsedJson.data;
+        } else {
+          parsedJson.error.issues.map(context.addIssue);
+          return z.NEVER;
+        }
+      } catch (error) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "The provided input is not a valid JSON object",
+        });
         return z.NEVER;
       }
     })

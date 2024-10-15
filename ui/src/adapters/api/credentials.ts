@@ -467,19 +467,12 @@ export async function createLink({
 
 export type AuthRequestMessage = {
   deepLink: string;
-  linkDetail: { proofTypes: ProofType[]; schemaType: string };
-  message: string;
   universalLink: string;
 };
 
 const authRequestMessageParser = getStrictParser<AuthRequestMessage>()(
   z.object({
     deepLink: z.string(),
-    linkDetail: z.object({
-      proofTypes: z.array(z.nativeEnum(ProofType)),
-      schemaType: z.string(),
-    }),
-    message: z.string(),
     universalLink: z.string(),
   })
 );

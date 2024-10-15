@@ -160,7 +160,8 @@ export function IssueCredentialForm({
             required,
             type,
           });
-          const valid = validate(serializedSchemaForm.data);
+
+          const valid = validate(serializedSchemaForm.data || {});
 
           if (valid) {
             setInputErrors(undefined);
@@ -356,15 +357,17 @@ export function IssueCredentialForm({
             apiSchema
           ) {
             onSubmit({ apiSchema, jsonSchema: jsonSchemaData, values });
+          } else {
+            void messageAPI.error("Error validating the data against the schema");
           }
         }}
-        onValuesChange={(changedValue: Partial<IssueCredentialFormData>) => {
+        onValuesChange={(_, values: IssueCredentialFormData) => {
           const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
           const credentialSubjectAttributeWithoutId =
             jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
-          changedValue.credentialSubject &&
+          values.credentialSubject &&
             credentialSubjectAttributeWithoutId &&
-            isFormValid(changedValue.credentialSubject, credentialSubjectAttributeWithoutId);
+            isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
         }}
       >
         <Form.Item
