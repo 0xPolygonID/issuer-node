@@ -908,7 +908,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	}
 }
 
-func TestServer_CreateLinkQRCode(t *testing.T) {
+func TestServer_CreateLinkOffer(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
@@ -949,14 +949,14 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	type testConfig struct {
 		name     string
-		request  CreateLinkQrCodeRequestObject
+		request  CreateLinkOfferRequestObject
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
 			name:    "Wrong link id",
-			request: CreateLinkQrCodeRequestObject{Id: uuid.New()},
+			request: CreateLinkOfferRequestObject{Id: uuid.New()},
 			expected: expected{
 				httpCode: http.StatusNotFound,
 				message:  "error: link not found",
@@ -964,7 +964,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		},
 		{
 			name: "Expired link",
-			request: CreateLinkQrCodeRequestObject{
+			request: CreateLinkOfferRequestObject{
 				Id: linkExpired.ID,
 			},
 			expected: expected{
@@ -974,7 +974,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		},
 		{
 			name: "Happy path",
-			request: CreateLinkQrCodeRequestObject{
+			request: CreateLinkOfferRequestObject{
 				Id: link.ID,
 			},
 			expected: expected{
@@ -985,7 +985,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := fmt.Sprintf("/v2/identities/%s/credentials/links/%s/qrcode", did, tc.request.Id.String())
+			apiURL := fmt.Sprintf("/v2/identities/%s/credentials/links/%s/offer", did, tc.request.Id.String())
 
 			req, err := http.NewRequest(http.MethodPost, apiURL, tests.JSONBody(t, nil))
 			require.NoError(t, err)
@@ -997,7 +997,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			switch tc.expected.httpCode {
 			case http.StatusOK:
 				callBack := cfg.ServerUrl + fmt.Sprintf("/v2/identities/%s/credentials/links/callback?", iden.Identifier)
-				var response CreateLinkQrCode200JSONResponse
+				var response CreateLinkOffer200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 
 				realQR := protocol.AuthorizationRequestMessage{}
@@ -1030,7 +1030,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 
 			case http.StatusNotFound:
-				var response CreateLinkQrCode404JSONResponse
+				var response CreateLinkOffer404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.message, response.Message)
 			}

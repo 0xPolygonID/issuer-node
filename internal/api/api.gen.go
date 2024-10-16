@@ -278,7 +278,7 @@ type CredentialLinkQrCodeResponse struct {
 	DeepLink      string            `json:"deepLink"`
 	Issuer        IssuerDescription `json:"issuer"`
 	LinkDetail    LinkSimple        `json:"linkDetail"`
-	QrCodeRaw     string            `json:"qrCodeRaw"`
+	Message       string            `json:"message"`
 	UniversalLink string            `json:"universalLink"`
 }
 
@@ -851,9 +851,9 @@ type ServerInterface interface {
 	// Activate | Deactivate Link
 	// (PATCH /v2/identities/{identifier}/credentials/links/{id})
 	ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Create Link QR Code
-	// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
-	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Create a credential offer for a link
+	// (POST /v2/identities/{identifier}/credentials/links/{id}/offer)
+	CreateLinkOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Get Revocation Status
 	// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
@@ -1046,9 +1046,9 @@ func (_ Unimplemented) ActivateLink(w http.ResponseWriter, r *http.Request, iden
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create Link QR Code
-// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
-func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+// Create a credential offer for a link
+// (POST /v2/identities/{identifier}/credentials/links/{id}/offer)
+func (_ Unimplemented) CreateLinkOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1959,8 +1959,8 @@ func (siw *ServerInterfaceWrapper) ActivateLink(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
-// CreateLinkQrCode operation middleware
-func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *http.Request) {
+// CreateLinkOffer operation middleware
+func (siw *ServerInterfaceWrapper) CreateLinkOffer(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -1983,7 +1983,7 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *ht
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateLinkQrCode(w, r, identifier, id)
+		siw.Handler.CreateLinkOffer(w, r, identifier, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2826,7 +2826,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/v2/identities/{identifier}/credentials/links/{id}", wrapper.ActivateLink)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials/links/{id}/offer", wrapper.CreateLinkOffer)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatusV2)
@@ -3822,45 +3822,45 @@ func (response ActivateLink500JSONResponse) VisitActivateLinkResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateLinkQrCodeRequestObject struct {
+type CreateLinkOfferRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Id         Id             `json:"id"`
 }
 
-type CreateLinkQrCodeResponseObject interface {
-	VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error
+type CreateLinkOfferResponseObject interface {
+	VisitCreateLinkOfferResponse(w http.ResponseWriter) error
 }
 
-type CreateLinkQrCode200JSONResponse CredentialLinkQrCodeResponse
+type CreateLinkOffer200JSONResponse CredentialLinkQrCodeResponse
 
-func (response CreateLinkQrCode200JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+func (response CreateLinkOffer200JSONResponse) VisitCreateLinkOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateLinkQrCode400JSONResponse struct{ N400JSONResponse }
+type CreateLinkOffer400JSONResponse struct{ N400JSONResponse }
 
-func (response CreateLinkQrCode400JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+func (response CreateLinkOffer400JSONResponse) VisitCreateLinkOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateLinkQrCode404JSONResponse struct{ N404JSONResponse }
+type CreateLinkOffer404JSONResponse struct{ N404JSONResponse }
 
-func (response CreateLinkQrCode404JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+func (response CreateLinkOffer404JSONResponse) VisitCreateLinkOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateLinkQrCode500JSONResponse struct{ N500JSONResponse }
+type CreateLinkOffer500JSONResponse struct{ N500JSONResponse }
 
-func (response CreateLinkQrCode500JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+func (response CreateLinkOffer500JSONResponse) VisitCreateLinkOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -4644,9 +4644,9 @@ type StrictServerInterface interface {
 	// Activate | Deactivate Link
 	// (PATCH /v2/identities/{identifier}/credentials/links/{id})
 	ActivateLink(ctx context.Context, request ActivateLinkRequestObject) (ActivateLinkResponseObject, error)
-	// Create Link QR Code
-	// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
-	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
+	// Create a credential offer for a link
+	// (POST /v2/identities/{identifier}/credentials/links/{id}/offer)
+	CreateLinkOffer(ctx context.Context, request CreateLinkOfferRequestObject) (CreateLinkOfferResponseObject, error)
 	// Get Revocation Status
 	// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatusV2(ctx context.Context, request GetRevocationStatusV2RequestObject) (GetRevocationStatusV2ResponseObject, error)
@@ -5400,26 +5400,26 @@ func (sh *strictHandler) ActivateLink(w http.ResponseWriter, r *http.Request, id
 	}
 }
 
-// CreateLinkQrCode operation middleware
-func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	var request CreateLinkQrCodeRequestObject
+// CreateLinkOffer operation middleware
+func (sh *strictHandler) CreateLinkOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request CreateLinkOfferRequestObject
 
 	request.Identifier = identifier
 	request.Id = id
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateLinkQrCode(ctx, request.(CreateLinkQrCodeRequestObject))
+		return sh.ssi.CreateLinkOffer(ctx, request.(CreateLinkOfferRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateLinkQrCode")
+		handler = middleware(handler, "CreateLinkOffer")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CreateLinkQrCodeResponseObject); ok {
-		if err := validResponse.VisitCreateLinkQrCodeResponse(w); err != nil {
+	} else if validResponse, ok := response.(CreateLinkOfferResponseObject); ok {
+		if err := validResponse.VisitCreateLinkOfferResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -1160,7 +1160,7 @@ paths:
       description: |
         Get a specific link for the provided identity.
         `deepLink` and `universalLink` fields are returned if the credential has an associated qr code. <br/>
-        To create a QR code for the link, use the endpoint `/v2/identities/{identifier}/credentials/links/{id}/qrcode`.
+        To create an offer for the link, use the endpoint `/v2/identities/{identifier}/credentials/links/{id}/offer`.
       security:
         - basicAuth: [ ]
       tags:
@@ -1240,11 +1240,11 @@ paths:
           $ref: '#/components/responses/500'
 
 
-  /v2/identities/{identifier}/credentials/links/{id}/qrcode:
+  /v2/identities/{identifier}/credentials/links/{id}/offer:
     post:
-      summary: Create Link QR Code
-      operationId: CreateLinkQrCode
-      description: Create a QR code for the provided link
+      summary: Create a credential offer for a link
+      operationId: CreateLinkOffer
+      description: Create a credential offer suitable to be used as qrCode for the provided link
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/id'
@@ -2120,14 +2120,14 @@ components:
         - issuer
         - deepLink
         - universalLink
-        - qrCodeRaw
+        - message
         - sessionID
         - linkID
         - linkDetail
       properties:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
-        qrCodeRaw:
+        message:
           type: string
         deepLink:
           type: string

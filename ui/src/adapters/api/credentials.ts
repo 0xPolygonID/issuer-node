@@ -493,7 +493,7 @@ export async function createAuthRequestMessage({
       baseURL: env.api.url,
       method: "POST",
       signal,
-      url: `${API_VERSION}/identities/${identifier}/credentials/links/${linkID}/qrcode`,
+      url: `${API_VERSION}/identities/${identifier}/credentials/links/${linkID}/offer`,
     });
     return buildSuccessResponse(authRequestMessageParser.parse(response.data));
   } catch (error) {
