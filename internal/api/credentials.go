@@ -282,51 +282,51 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 	return GetCredential200JSONResponse(toGetCredential200Response(w3c, claim)), nil
 }
 
-// GetCredentialQrCode returns a GetCredentialQrCodeResponseObject universalLink, raw or deeplink type based on query parameter `type`
+// GetCredentialOffer returns a GetCredentialQrCodeResponseObject universalLink, raw or deeplink type based on query parameter `type`
 // scan it with privado.id wallet to accept the claim
-func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
+func (s *Server) GetCredentialOffer(ctx context.Context, request GetCredentialOfferRequestObject) (GetCredentialOfferResponseObject, error) {
 	if request.Identifier == "" {
-		return GetCredentialQrCode400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
+		return GetCredentialOffer400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
-		return GetCredentialQrCode400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+		return GetCredentialOffer400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
 	if request.Id == "" {
-		return GetCredentialQrCode400JSONResponse{N400JSONResponse{"cannot proceed with an empty claim id"}}, nil
+		return GetCredentialOffer400JSONResponse{N400JSONResponse{"cannot proceed with an empty claim id"}}, nil
 	}
 
 	claimID, err := uuid.Parse(request.Id)
 	if err != nil {
-		return GetCredentialQrCode400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
+		return GetCredentialOffer400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
 	}
 
 	resp, err := s.claimService.GetCredentialQrCode(ctx, did, claimID, s.cfg.ServerUrl)
 	if err != nil {
 		if errors.Is(err, services.ErrCredentialNotFound) {
-			return GetCredentialQrCode404JSONResponse{N404JSONResponse{"QrCode not found"}}, nil
+			return GetCredentialOffer404JSONResponse{N404JSONResponse{"QrCode not found"}}, nil
 		}
 		if errors.Is(err, services.ErrEmptyMTPProof) {
-			return GetCredentialQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credentials"}}, nil
+			return GetCredentialOffer409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credentials"}}, nil
 		}
-		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
+		return GetCredentialOffer500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
-	qrContent, qrType := resp.UniversalLink, GetCredentialQrCodeParamsTypeUniversalLink
+	qrContent, qrType := resp.UniversalLink, GetCredentialOfferParamsTypeUniversalLink
 	if request.Params.Type != nil {
 		qrType = *request.Params.Type
 	}
 	switch qrType {
-	case GetCredentialQrCodeParamsTypeDeepLink:
+	case GetCredentialOfferParamsTypeDeepLink:
 		qrContent = resp.DeepLink
-	case GetCredentialQrCodeParamsTypeUniversalLink:
+	case GetCredentialOfferParamsTypeUniversalLink:
 		qrContent = resp.UniversalLink
-	case GetCredentialQrCodeParamsTypeRaw:
+	case GetCredentialOfferParamsTypeRaw:
 		qrContent = resp.QrRaw
 	}
 
-	return GetCredentialQrCode200JSONResponse{
+	return GetCredentialOffer200JSONResponse{
 		UniversalLink: qrContent,
 		SchemaType:    resp.SchemaType,
 	}, nil

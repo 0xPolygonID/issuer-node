@@ -185,7 +185,7 @@ export async function getCredentials({
         ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
-      url: `${API_VERSION}/identities/${identifier}/credentials/search`,
+      url: `${API_VERSION}/identities/${identifier}/credentials`,
     });
     return buildSuccessResponse(getResourceParser(credentialParser).parse(response.data));
   } catch (error) {
@@ -493,7 +493,7 @@ export async function createAuthRequestMessage({
       baseURL: env.api.url,
       method: "POST",
       signal,
-      url: `${API_VERSION}/identities/${identifier}/credentials/links/${linkID}/qrcode`,
+      url: `${API_VERSION}/identities/${identifier}/credentials/links/${linkID}/offer`,
     });
     return buildSuccessResponse(authRequestMessageParser.parse(response.data));
   } catch (error) {
@@ -528,7 +528,7 @@ export async function getIssuedMessages({
         },
         method: "GET",
         signal,
-        url: `${API_VERSION}/identities/${identifier}/credentials/${credentialID}/qrcode`,
+        url: `${API_VERSION}/identities/${identifier}/credentials/${credentialID}/offer`,
       }),
       axios({
         baseURL: env.api.url,
@@ -538,7 +538,7 @@ export async function getIssuedMessages({
         method: "GET",
         params: { type: "deepLink" },
         signal,
-        url: `${API_VERSION}/identities/${identifier}/credentials/${credentialID}/qrcode`,
+        url: `${API_VERSION}/identities/${identifier}/credentials/${credentialID}/offer`,
       }),
     ]);
 

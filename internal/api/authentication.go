@@ -26,31 +26,31 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 	return AuthCallback200Response{}, nil
 }
 
-// AuthQRCode returns the qr code for authenticating a user
-func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
+// Authentication returns the qr code for authenticating a user
+func (s *Server) Authentication(ctx context.Context, req AuthenticationRequestObject) (AuthenticationResponseObject, error) {
 	did, err := w3c.ParseDID(req.Identifier)
 	if err != nil {
 		log.Error(ctx, "parsing issuer did", "err", err)
-		return AuthQRCode400JSONResponse{N400JSONResponse{"Invalid issuer did"}}, nil
+		return Authentication400JSONResponse{N400JSONResponse{"Invalid issuer did"}}, nil
 	}
 	resp, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.ServerUrl, *did)
 	if err != nil {
-		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
+		return Authentication500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
-	if req.Params.Type != nil && *req.Params.Type == AuthQRCodeParamsTypeRaw {
+	if req.Params.Type != nil && *req.Params.Type == AuthenticationParamsTypeRaw {
 		body, err := s.qrService.Find(ctx, resp.QrID)
 		if err != nil {
 			log.Error(ctx, "qr store. Finding qr", "err", err, "QrID", resp.QrID)
-			return AuthQRCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+			return Authentication500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
 		}
-		return AuthQRCode200JSONResponse{
-			QrCodeLink: string(body),
-			SessionID:  resp.SessionID.String(),
+		return Authentication200JSONResponse{
+			Message:   string(body),
+			SessionID: resp.SessionID.String(),
 		}, nil
 	}
-	return AuthQRCode200JSONResponse{
-		QrCodeLink: resp.QRCodeURL,
-		SessionID:  resp.SessionID.String(),
+	return Authentication200JSONResponse{
+		Message:   resp.QRCodeURL,
+		SessionID: resp.SessionID.String(),
 	}, nil
 }
 

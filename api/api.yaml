@@ -101,11 +101,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/{identifier}/authentication/qrcode:
+  /v2/{identifier}/authentication:
     post:
-      summary: Get Authentication QRCode
-      operationId: authQRCode
-      description: This endpoint returns a QR code to authenticate, when scanned it a callback is made to the callback endpoint.
+      summary: Get Authentication Message
+      operationId: Authentication
+      description: This endpoint returns an authentication message
       tags:
         - Auth
       parameters:
@@ -115,7 +115,7 @@ paths:
           required: false
           description: >
             Type:
-              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `link` - (default value) Return a link redirection to the raw content. Easier to scan.   
               * `raw` - Return the raw QR code.
           schema:
             type: string
@@ -127,7 +127,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QrCodeLinkShortResponse'
+                $ref: '#/components/schemas/AuthenticationResponse'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -658,8 +658,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-
-  /v2/identities/{identifier}/credentials/search:
     get:
       summary: Get Credentials
       operationId: GetCredentials
@@ -861,11 +859,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/identities/{identifier}/credentials/{id}/qrcode:
+  /v2/identities/{identifier}/credentials/{id}/offer:
     get:
-      summary: Get Credentials QR code
-      operationId: GetCredentialQrCode
-      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. |
+      summary: Get Credentials Offer
+      operationId: GetCredentialOffer
+      description: Returns a universal/deep link to an offer or raw offer message that can be used for accepting a claim. |
         Response can be in 3 formats `universalLink`, `deepLink` or `raw`. Default is `universalLink`. Raw is the raw QR code and link is a QR code with a link to the raw content.
         Regardless of the type, the field will always be called universalLink.
       tags:
@@ -883,16 +881,16 @@ paths:
             enum: [ universalLink, deepLink, raw ]
           description: >
             Type:
-              * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the QR  
-              * `deepLink` -  Returns a QR code with a link redirection to the raw content.   
-              * `raw` - Returns the raw QR code.
+              * `universalLink` - (default value) Returns a universal link. The preferred and more standard way to access the offer message  
+              * `deepLink` -  Returns a deeplink with a link redirection to the original message.   
+              * `raw` - Returns the raw offer message.
       responses:
         '200':
           description: ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QrCodeLinkWithSchemaTypeShortResponse'
+                $ref: '#/components/schemas/CredentialOfferResponse'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -1159,8 +1157,8 @@ paths:
       operationId: GetLink
       description: |
         Get a specific link for the provided identity.
-        `deepLink` and `universalLink` fields are returned if the credential has an associated qr code. <br/>
-        To create a QR code for the link, use the endpoint `/v2/identities/{identifier}/credentials/links/{id}/qrcode`.
+        `deepLink` and `universalLink` fields are returned if the credential has an associated protocol message. <br/>
+        To create an offer for the link, use the endpoint `/v2/identities/{identifier}/credentials/links/{id}/offer`.
       security:
         - basicAuth: [ ]
       tags:
@@ -1240,11 +1238,11 @@ paths:
           $ref: '#/components/responses/500'
 
 
-  /v2/identities/{identifier}/credentials/links/{id}/qrcode:
+  /v2/identities/{identifier}/credentials/links/{id}/offer:
     post:
-      summary: Create Link QR Code
-      operationId: CreateLinkQrCode
-      description: Create a QR code for the provided link
+      summary: Create a credential offer for a link
+      operationId: CreateLinkOffer
+      description: Create a credential offer for the provided link
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/id'
@@ -1252,7 +1250,7 @@ paths:
         - Links
       responses:
         '200':
-          description: Link qrcode generated
+          description: Link offer generated
           content:
             application/json:
               schema:
@@ -1863,13 +1861,13 @@ components:
               name: verifiable
               path: "github.com/iden3/go-schema-processor/v2/verifiable"
 
-    QrCodeLinkShortResponse:
+    AuthenticationResponse:
       type: object
       required:
-        - qrCodeLink
+        - message
         - sessionID
       properties:
-        qrCodeLink:
+        message:
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:
@@ -1888,7 +1886,7 @@ components:
           type: string
           x-omitempty: false
 
-    QrCodeLinkWithSchemaTypeShortResponse:
+    CredentialOfferResponse:
       type: object
       required:
         - universalLink
@@ -2120,14 +2118,14 @@ components:
         - issuer
         - deepLink
         - universalLink
-        - qrCodeRaw
+        - message
         - sessionID
         - linkID
         - linkDetail
       properties:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
-        qrCodeRaw:
+        message:
           type: string
         deepLink:
           type: string

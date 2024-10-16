@@ -186,14 +186,14 @@ func TestServer_AuthQRCode(t *testing.T) {
 	}
 	type testConfig struct {
 		name     string
-		request  AuthQRCodeRequestObject
+		request  AuthenticationRequestObject
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name:    "should get a qr code with a link by default",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: nil}},
+			name:    "should get a link to authorization message by default",
+			request: AuthenticationRequestObject{Params: AuthenticationParams{Type: nil}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
@@ -210,8 +210,8 @@ func TestServer_AuthQRCode(t *testing.T) {
 			},
 		},
 		{
-			name:    "should get a qr code with a link as requested",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeLink)}},
+			name:    "should get a link as requested",
+			request: AuthenticationRequestObject{Params: AuthenticationParams{Type: common.ToPointer(AuthenticationParamsTypeLink)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
@@ -228,8 +228,8 @@ func TestServer_AuthQRCode(t *testing.T) {
 			},
 		},
 		{
-			name:    "should get a RAW qr code as requested",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeRaw)}},
+			name:    "should get an authorization message as requested",
+			request: AuthenticationRequestObject{Params: AuthenticationParams{Type: common.ToPointer(AuthenticationParamsTypeRaw)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: false,
@@ -248,7 +248,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := fmt.Sprintf("/v2/%s/authentication/qrcode", did.String())
+			apiURL := fmt.Sprintf("/v2/%s/authentication", did.String())
 			if tc.request.Params.Type != nil {
 				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
 			}
@@ -260,14 +260,14 @@ func TestServer_AuthQRCode(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				var resp AuthQRCode200JSONResponse
+				var resp Authentication200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-				require.NotEmpty(t, resp.QrCodeLink)
+				require.NotEmpty(t, resp.Message)
 				require.NotEmpty(t, resp.SessionID)
 
 				realQR := protocol.AuthorizationRequestMessage{}
 				if tc.expected.qrWithLink {
-					qrLink := checkQRfetchURL(t, resp.QrCodeLink)
+					qrLink := checkQRfetchURL(t, resp.Message)
 
 					// Now let's fetch the original QR using the url
 					rr := httptest.NewRecorder()
@@ -277,7 +277,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 					require.Equal(t, http.StatusOK, rr.Code)
 					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
 				} else {
-					require.NoError(t, json.Unmarshal([]byte(resp.QrCodeLink), &realQR))
+					require.NoError(t, json.Unmarshal([]byte(resp.Message), &realQR))
 				}
 
 				// Let's verify the QR body

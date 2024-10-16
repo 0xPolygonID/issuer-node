@@ -572,7 +572,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		response GetCredentialQrCodeResponseObject
+		response GetCredentialOfferResponseObject
 		httpCode int
 		qrType   string
 	}
@@ -601,7 +601,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			did:   idStr,
 			claim: uuid.New(),
 			expected: expected{
-				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
+				response: GetCredentialOffer404JSONResponse{N404JSONResponse{
 					Message: "QrCode not found",
 				}},
 				httpCode: http.StatusNotFound,
@@ -613,7 +613,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			did:   idNoClaims,
 			claim: claim.ID,
 			expected: expected{
-				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
+				response: GetCredentialOffer404JSONResponse{N404JSONResponse{
 					Message: "QrCode not found",
 				}},
 				httpCode: http.StatusNotFound,
@@ -625,7 +625,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			did:   ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
 			claim: claim.ID,
 			expected: expected{
-				response: GetCredentialQrCode400JSONResponse{N400JSONResponse{
+				response: GetCredentialOffer400JSONResponse{N400JSONResponse{
 					Message: "invalid did",
 				}},
 				httpCode: http.StatusBadRequest,
@@ -638,7 +638,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim:  claim.ID,
 			qrType: nil,
 			expected: expected{
-				response: GetCredentialQrCode200JSONResponse{},
+				response: GetCredentialOffer200JSONResponse{},
 				httpCode: http.StatusOK,
 				qrType:   "universalLink",
 			},
@@ -650,7 +650,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim:  claim.ID,
 			qrType: common.ToPointer("universalLink"),
 			expected: expected{
-				response: GetCredentialQrCode200JSONResponse{},
+				response: GetCredentialOffer200JSONResponse{},
 				httpCode: http.StatusOK,
 				qrType:   "universalLink",
 			},
@@ -662,7 +662,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim:  claim.ID,
 			qrType: common.ToPointer("deepLink"),
 			expected: expected{
-				response: GetCredentialQrCode200JSONResponse{},
+				response: GetCredentialOffer200JSONResponse{},
 				httpCode: http.StatusOK,
 				qrType:   "deepLink",
 			},
@@ -674,7 +674,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim:  claim.ID,
 			qrType: common.ToPointer("raw"),
 			expected: expected{
-				response: GetCredentialQrCode200JSONResponse{},
+				response: GetCredentialOffer200JSONResponse{},
 				httpCode: http.StatusOK,
 				qrType:   "raw",
 			},
@@ -682,7 +682,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			uri := fmt.Sprintf("/v2/identities/%s/credentials/%s/qrcode", tc.did, tc.claim)
+			uri := fmt.Sprintf("/v2/identities/%s/credentials/%s/offer", tc.did, tc.claim)
 			if tc.qrType != nil {
 				uri = fmt.Sprintf("%s?type=%s", uri, *tc.qrType)
 			}
@@ -695,12 +695,12 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
-			case GetCredentialQrCode200JSONResponse:
-				var response GetCredentialQrCode200JSONResponse
+			case GetCredentialOffer200JSONResponse:
+				var response GetCredentialOffer200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				switch tc.expected.qrType {
 				case "raw":
-					var rawResponse QrCodeLinkWithSchemaTypeShortResponse
+					var rawResponse CredentialOfferResponse
 					assert.NoError(t, json.Unmarshal([]byte(response.UniversalLink), &rawResponse))
 				case "universalLink":
 					parsedURL, err := url.Parse(response.UniversalLink)
@@ -719,16 +719,16 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 					_, err = url.Parse(requestURI)
 					assert.NoError(t, err)
 				}
-			case GetCredentialQrCode400JSONResponse:
-				var response GetCredentialQrCode400JSONResponse
+			case GetCredentialOffer400JSONResponse:
+				var response GetCredentialOffer400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case GetCredentialQrCode404JSONResponse:
-				var response GetCredentialQrCode400JSONResponse
+			case GetCredentialOffer404JSONResponse:
+				var response GetCredentialOffer400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case GetCredentialQrCode500JSONResponse:
-				var response GetCredentialQrCode400JSONResponse
+			case GetCredentialOffer500JSONResponse:
+				var response GetCredentialOffer400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			}
@@ -1325,7 +1325,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			endpoint := url.URL{Path: fmt.Sprintf("/v2/identities/%s/credentials/search", identityMultipleClaims.Identifier)}
+			endpoint := url.URL{Path: fmt.Sprintf("/v2/identities/%s/credentials", identityMultipleClaims.Identifier)}
 			queryParams := make([]string, 0)
 			if tc.query != nil {
 				queryParams = append(queryParams, "query="+*tc.query)

@@ -182,33 +182,33 @@ func (s *Server) ActivateLink(ctx context.Context, request ActivateLinkRequestOb
 	return ActivateLink200JSONResponse{Message: "Link updated"}, nil
 }
 
-// CreateLinkQrCode - Creates a link QrCode
-func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
+// CreateLinkOffer - Creates a link offer (qr code)
+func (s *Server) CreateLinkOffer(ctx context.Context, req CreateLinkOfferRequestObject) (CreateLinkOfferResponseObject, error) {
 	issuerDID, err := w3c.ParseDID(req.Identifier)
 	if err != nil {
 		log.Error(ctx, "parsing issuer did", "err", err, "did", req.Identifier)
-		return CreateLinkQrCode400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+		return CreateLinkOffer400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
 	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, *issuerDID, req.Id, s.cfg.ServerUrl)
 	if err != nil {
 		if errors.Is(err, services.ErrLinkNotFound) {
-			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: link not found"}}, nil
+			return CreateLinkOffer404JSONResponse{N404JSONResponse{Message: "error: link not found"}}, nil
 		}
 		if errors.Is(err, services.ErrLinkAlreadyExpired) || errors.Is(err, services.ErrLinkMaxExceeded) || errors.Is(err, services.ErrLinkInactive) {
-			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: " + err.Error()}}, nil
+			return CreateLinkOffer404JSONResponse{N404JSONResponse{Message: "error: " + err.Error()}}, nil
 		}
 		log.Error(ctx, "Unexpected error while creating qr code", "err", err)
-		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
+		return CreateLinkOffer500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 
-	return CreateLinkQrCode200JSONResponse{
+	return CreateLinkOffer200JSONResponse{
 		Issuer: IssuerDescription{
 			DisplayName: s.cfg.IssuerName,
 			Logo:        s.cfg.IssuerLogo,
 		},
 		DeepLink:      createLinkQrCodeResponse.DeepLink,
 		UniversalLink: createLinkQrCodeResponse.UniversalLink,
-		QrCodeRaw:     createLinkQrCodeResponse.QrCodeRaw,
+		Message:       createLinkQrCodeResponse.QrCodeRaw,
 		LinkDetail:    getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
 }
