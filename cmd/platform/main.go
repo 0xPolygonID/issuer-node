@@ -28,8 +28,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	network2 "github.com/polygonid/sh-id-platform/internal/network"
-	protocol2 "github.com/polygonid/sh-id-platform/internal/packagemanager"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/packagemanager"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -90,12 +90,12 @@ func main() {
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 
-	reader, err := network2.GetReaderFromConfig(cfg, ctx)
+	reader, err := network.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
 		log.Error(ctx, "cannot read network resolver file", "err", err)
 		return
 	}
-	networkResolver, err := network2.NewResolver(ctx, *cfg, keyStore, reader)
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
 	if err != nil {
 		log.Error(ctx, "failed initialize network resolver", "err", err)
 		return
@@ -130,9 +130,9 @@ func main() {
 	if cfg.UniversalDIDResolver.UniversalResolverURL != nil && *cfg.UniversalDIDResolver.UniversalResolverURL != "" {
 		universalDIDResolverUrl = *cfg.UniversalDIDResolver.UniversalResolverURL
 	}
-	universalDIDResolverHandler := protocol2.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
+	universalDIDResolverHandler := packagemanager.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
 
-	packageManager, err := protocol2.New(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
+	packageManager, err := packagemanager.New(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
 	if err != nil {
 		log.Error(ctx, "failed init package packagemanager", "err", err)
 		return

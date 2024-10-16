@@ -20,7 +20,7 @@ func MultiProtocol(httpFactory Factory, ipfsFactory Factory, _url string) Loader
 	if schemaURL.Scheme == "ipfs" {
 		return ipfsFactory(_url)
 	}
-	log.Error(context.Background(), "unknown packagemanager", "url", _url)
+	log.Error(context.Background(), "unknown protocol", "url", _url)
 	return nil
 }
 
