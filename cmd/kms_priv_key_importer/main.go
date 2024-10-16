@@ -55,6 +55,7 @@ type localStorageBJJKeyProviderFileContent struct {
 
 // This is a tool to import ethereum private key to different kms.
 func main() {
+
 	fPrivateKey := flag.String("privateKey", "", "metamask private key")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
