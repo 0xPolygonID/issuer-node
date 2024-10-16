@@ -1,4 +1,4 @@
-issuernode_repository_image: privadoid/issuernode
+issuernode_repository_image: privadoid/issuernode-api
 issuernode_repository_tag: latest
 issuernode_ui_repository_image: privadoid/issuernode-ui
 issuernode_ui_repository_tag: latest
