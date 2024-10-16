@@ -697,7 +697,7 @@ type ActivateLinkJSONBody struct {
 // GetCredentialOfferParams defines parameters for GetCredentialOffer.
 type GetCredentialOfferParams struct {
 	// Type Type:
-	//   * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the offer message
+	//   * `universalLink` - (default value) Returns a universal link. The preferred and more standard way to access the offer message
 	//   * `deepLink` -  Returns a deeplink with a link redirection to the original message.
 	//   * `raw` - Returns the raw offer message.
 	Type *GetCredentialOfferParamsType `form:"type,omitempty" json:"type,omitempty"`

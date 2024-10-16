@@ -105,7 +105,7 @@ paths:
     post:
       summary: Get Authentication Message
       operationId: Authentication
-      description: This endpoint returns an authentication messag
+      description: This endpoint returns an authentication message
       tags:
         - Auth
       parameters:
@@ -863,7 +863,7 @@ paths:
     get:
       summary: Get Credentials Offer
       operationId: GetCredentialOffer
-      description: Returns universal/deep link to offer or raw offer message can be used for accepting a claim. |
+      description: Returns a universal/deep link to an offer or raw offer message that can be used for accepting a claim. |
         Response can be in 3 formats `universalLink`, `deepLink` or `raw`. Default is `universalLink`. Raw is the raw QR code and link is a QR code with a link to the raw content.
         Regardless of the type, the field will always be called universalLink.
       tags:
@@ -881,7 +881,7 @@ paths:
             enum: [ universalLink, deepLink, raw ]
           description: >
             Type:
-              * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the offer message  
+              * `universalLink` - (default value) Returns a universal link. The preferred and more standard way to access the offer message  
               * `deepLink` -  Returns a deeplink with a link redirection to the original message.   
               * `raw` - Returns the raw offer message.
       responses:
@@ -1242,7 +1242,7 @@ paths:
     post:
       summary: Create a credential offer for a link
       operationId: CreateLinkOffer
-      description: Create a credential offer suitable to be used as qrCode for the provided link
+      description: Create a credential offer for the provided link
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/id'
