@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/vault/api"
 
+	cache2 "github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
@@ -14,7 +15,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 var (
@@ -22,7 +22,7 @@ var (
 	vaultCli       *api.Client
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
-	cachex         cache.Cache
+	cachex         cache2.Cache
 	docLoader      loader.DocumentLoader
 	cfg            config.Configuration
 )
@@ -101,7 +101,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	cachex = cache.NewMemoryCache()
+	cachex = cache2.NewMemoryCache()
 
 	docLoader = loader.NewDocumentLoader(ipfsGatewayURL, false)
 	cfg.Ethereum = cfgForTesting.Ethereum

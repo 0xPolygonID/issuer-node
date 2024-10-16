@@ -33,17 +33,17 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/primitive"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	"github.com/polygonid/sh-id-platform/internal/urn"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/primitive"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 const (
@@ -71,9 +71,9 @@ type identity struct {
 	identityRepository      ports.IndentityRepository
 	imtRepository           ports.IdentityMerkleTreeRepository
 	identityStateRepository ports.IdentityStateRepository
-	claimsRepository        ports.ClaimsRepository
+	claimsRepository        ports.ClaimRepository
 	revocationRepository    ports.RevocationRepository
-	connectionsRepository   ports.ConnectionsRepository
+	connectionsRepository   ports.ConnectionRepository
 	sessionManager          ports.SessionRepository
 	storage                 *db.Storage
 	mtService               ports.MtService
@@ -83,14 +83,14 @@ type identity struct {
 
 	ignoreRHSErrors          bool
 	pubsub                   pubsub.Publisher
-	revocationStatusResolver *revocation_status.RevocationStatusResolver
+	revocationStatusResolver *revocationstatus.Resolver
 	networkResolver          network.Resolver
-	rhsFactory               reverse_hash.Factory
+	rhsFactory               reversehash.Factory
 }
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, networkResolver network.Resolver, rhsFactory reverse_hash.Factory, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, networkResolver network.Resolver, rhsFactory reversehash.Factory, revocationStatusResolver *revocationstatus.Resolver) ports.IdentityService {
 	return &identity{
 		identityRepository:       identityRepository,
 		imtRepository:            imtRepository,

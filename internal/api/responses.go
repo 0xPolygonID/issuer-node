@@ -7,9 +7,9 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/pagination"
+	"github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
-	"github.com/polygonid/sh-id-platform/pkg/pagination"
-	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 // CustomQrContentResponse is a wrapper to return any content as an api response.

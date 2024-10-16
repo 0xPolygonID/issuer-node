@@ -12,23 +12,23 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
+	httpPkg "github.com/polygonid/sh-id-platform/internal/http"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	httpPkg "github.com/polygonid/sh-id-platform/pkg/http"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	"github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 )
 
 var build = buildinfo.Revision()
@@ -64,8 +64,8 @@ func main() {
 		return
 	}
 
-	connectionsRepository := repositories.NewConnections()
-	claimsRepository := repositories.NewClaims()
+	connectionsRepository := repositories.NewConnection()
+	claimsRepository := repositories.NewClaim()
 
 	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
@@ -124,9 +124,9 @@ func main() {
 	<-gracefulShutdown
 }
 
-func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, keyStore *kms.KMS) (ports.ClaimsService, error) {
+func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, keyStore *kms.KMS) (ports.ClaimService, error) {
 	identityRepository := repositories.NewIdentity()
-	claimsRepository := repositories.NewClaims()
+	claimsRepository := repositories.NewClaim()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
@@ -142,8 +142,8 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 		return nil, err
 	}
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL, cfg.SchemaCache)
 
 	mtService := services.NewIdentityMerkleTrees(mtRepository)

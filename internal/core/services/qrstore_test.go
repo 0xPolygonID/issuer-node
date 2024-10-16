@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/redis"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 func TestQRStore(t *testing.T) {

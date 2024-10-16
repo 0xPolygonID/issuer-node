@@ -18,31 +18,30 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	networkPkg "github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	"github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 )
 
 func Test_link_issueClaim(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	schemaRepository := repositories.NewSchema(*storage)
 	mtService := NewIdentityMerkleTrees(mtRepo)
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
-	reader := helpers.CreateFile(t)
+	reader := common.CreateFile(t)
 	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	schemaService := NewSchema(schemaRepository, docLoader)

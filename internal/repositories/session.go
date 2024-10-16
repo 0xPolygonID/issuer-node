@@ -7,8 +7,8 @@ import (
 
 	"github.com/iden3/iden3comm/v2/protocol"
 
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 const (

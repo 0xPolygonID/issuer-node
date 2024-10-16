@@ -19,6 +19,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -27,15 +28,14 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/packagemanager"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/protocol"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 var build = buildinfo.Revision()
@@ -101,11 +101,11 @@ func main() {
 		return
 	}
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
-	claimsRepository := repositories.NewClaims()
-	connectionsRepository := repositories.NewConnections()
+	claimsRepository := repositories.NewClaim()
+	connectionsRepository := repositories.NewConnection()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
@@ -130,11 +130,11 @@ func main() {
 	if cfg.UniversalDIDResolver.UniversalResolverURL != nil && *cfg.UniversalDIDResolver.UniversalResolverURL != "" {
 		universalDIDResolverUrl = *cfg.UniversalDIDResolver.UniversalResolverURL
 	}
-	universalDIDResolverHandler := protocol.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
+	universalDIDResolverHandler := packagemanager.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
 
-	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
+	packageManager, err := packagemanager.New(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
 	if err != nil {
-		log.Error(ctx, "failed init package protocol", "err", err)
+		log.Error(ctx, "failed init package packagemanager", "err", err)
 		return
 	}
 
@@ -145,7 +145,7 @@ func main() {
 		return
 	}
 
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	proofService := services.NewProver(circuitsLoaderService)

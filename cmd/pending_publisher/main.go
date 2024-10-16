@@ -13,6 +13,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -20,14 +21,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 var build = buildinfo.Revision()
@@ -100,17 +100,17 @@ func main() {
 	}
 
 	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
+	claimsRepo := repositories.NewClaim()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	qrService := services.NewQrStoreService(cachex)
 
-	connectionsRepository := repositories.NewConnections()
+	connectionsRepository := repositories.NewConnection()
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{

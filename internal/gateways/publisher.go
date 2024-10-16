@@ -24,9 +24,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/sync_ttl_map"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
+	"github.com/polygonid/sh-id-platform/internal/syncttlmap"
 )
 
 type jobIDType string
@@ -54,20 +54,20 @@ type PublisherGateway interface {
 type publisher struct {
 	storage               *db.Storage
 	identityService       ports.IdentityService
-	claimService          ports.ClaimsService
+	claimService          ports.ClaimService
 	mtService             ports.MtService
 	kms                   kms.KMSType
 	transactionService    ports.TransactionService
 	networkResolver       *network.Resolver
 	zkService             ports.ZKGenerator
 	publisherGateway      PublisherGateway
-	pendingTransactions   *sync_ttl_map.TTLMap
+	pendingTransactions   *syncttlmap.TTLMap
 	notificationPublisher pubsub.Publisher
 }
 
 // NewPublisher - Constructor
-func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, networkResolver *network.Resolver, notificationPublisher pubsub.Publisher) *publisher {
-	pendingTransactions := sync_ttl_map.New(ttl)
+func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, networkResolver *network.Resolver, notificationPublisher pubsub.Publisher) *publisher {
+	pendingTransactions := syncttlmap.New(ttl)
 	pendingTransactions.CleaningBackground(transactionCleanup)
 
 	return &publisher{

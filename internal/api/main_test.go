@@ -15,6 +15,8 @@ import (
 	"github.com/piprate/json-gold/ld"
 	"github.com/stretchr/testify/require"
 
+	cache2 "github.com/polygonid/sh-id-platform/internal/cache"
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -24,14 +26,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	"github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 )
 
 var (
@@ -40,7 +40,7 @@ var (
 	cfg            config.Configuration
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
-	cachex         cache.Cache
+	cachex         cache2.Cache
 	schemaLoader   ld.DocumentLoader
 )
 
@@ -82,7 +82,7 @@ func TestMain(m *testing.M) {
 	}
 	storage = s
 
-	cachex = cache.NewMemoryCache()
+	cachex = cache2.NewMemoryCache()
 
 	vaultCli, err = providers.VaultClient(ctx, providers.Config{
 		Address:             cfgForTesting.KeyStore.Address,
@@ -209,7 +209,7 @@ func NewPublisherMock() ports.Publisher {
 
 func NewIdentityMock() ports.IdentityService { return nil }
 
-func NewClaimsMock() ports.ClaimsService {
+func NewClaimsMock() ports.ClaimService {
 	return nil
 }
 
@@ -217,7 +217,7 @@ func NewSchemaMock() ports.SchemaService {
 	return nil
 }
 
-func NewConnectionsMock() ports.ConnectionsService {
+func NewConnectionsMock() ports.ConnectionService {
 	return nil
 }
 
@@ -226,8 +226,8 @@ func NewLinkMock() ports.LinkService {
 }
 
 type repos struct {
-	claims         ports.ClaimsRepository
-	connection     ports.ConnectionsRepository
+	claims         ports.ClaimRepository
+	connection     ports.ConnectionRepository
 	identity       ports.IndentityRepository
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
@@ -238,7 +238,7 @@ type repos struct {
 }
 
 type servicex struct {
-	credentials ports.ClaimsService
+	credentials ports.ClaimService
 	identity    ports.IdentityService
 	schema      ports.SchemaService
 	links       ports.LinkService
@@ -263,8 +263,8 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		st = storage
 	}
 	repos := repos{
-		claims:         repositories.NewClaims(),
-		connection:     repositories.NewConnections(),
+		claims:         repositories.NewClaim(),
+		connection:     repositories.NewConnection(),
 		identity:       repositories.NewIdentity(),
 		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
 		identityState:  repositories.NewIdentityState(),
@@ -276,13 +276,13 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 
 	pubSub := pubsub.NewMock()
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore, helpers.CreateFile(t))
+	networkResolver, err := network.NewResolver(context.Background(), cfg, keyStore, common.CreateFile(t))
 	require.NoError(t, err)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 
 	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
 	qrService := services.NewQrStoreService(cachex)
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader)

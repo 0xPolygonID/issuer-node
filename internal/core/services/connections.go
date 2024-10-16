@@ -19,13 +19,13 @@ import (
 var ErrConnectionDoesNotExist = errors.New("connection does not exist")
 
 type connection struct {
-	connRepo   ports.ConnectionsRepository
-	claimsRepo ports.ClaimsRepository
+	connRepo   ports.ConnectionRepository
+	claimsRepo ports.ClaimRepository
 	storage    *db.Storage
 }
 
 // NewConnection returns a new connection service
-func NewConnection(connRepo ports.ConnectionsRepository, claimsRepo ports.ClaimsRepository, storage *db.Storage) ports.ConnectionsService {
+func NewConnection(connRepo ports.ConnectionRepository, claimsRepo ports.ClaimRepository, storage *db.Storage) ports.ConnectionService {
 	return &connection{
 		connRepo:   connRepo,
 		claimsRepo: claimsRepo,

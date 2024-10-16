@@ -23,11 +23,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/notifications"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/notifications"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
 var (
@@ -47,9 +47,9 @@ var (
 type Link struct {
 	cfg              config.UniversalLinks
 	storage          *db.Storage
-	claimsService    ports.ClaimsService
+	claimsService    ports.ClaimService
 	qrService        ports.QrStoreService
-	claimRepository  ports.ClaimsRepository
+	claimRepository  ports.ClaimRepository
 	linkRepository   ports.LinkRepository
 	schemaRepository ports.SchemaRepository
 	loader           loader.DocumentLoader
@@ -60,7 +60,7 @@ type Link struct {
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, identityService ports.IdentityService, networkResolver network.Resolver, cfg config.UniversalLinks) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimService, qrService ports.QrStoreService, claimRepository ports.ClaimRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, identityService ports.IdentityService, networkResolver network.Resolver, cfg config.UniversalLinks) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
