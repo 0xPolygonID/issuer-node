@@ -13,7 +13,7 @@ polygon:
     waitBlockCycleTime: 30s
     gasLess: true
     rhsSettings:
-      mode: OffChain
+      mode: None
       contractAddress: 0x16A1ae4c460C0a42f0a87e69c526c61599B28BC9
       rhsUrl: https://rhs-staging.polygonid.me
       chainID: 80002
@@ -33,7 +33,7 @@ polygon:
     waitBlockCycleTime: 30s
     gasLess: false
     rhsSettings:
-      mode: OnChain
+      mode: None
       contractAddress: 0xbEeB6bB53504E8C872023451fd0D23BeF01d320B
       rhsUrl: https://rhs-staging.polygonid.me
       chainID: 137
@@ -56,7 +56,6 @@ polygon:
 #    waitReceiptCycleTime: 30s
 #    waitBlockCycleTime: 30s
 #    gasLess: false
-#    transferAmountWei: 1000000000000000000
 #    rhsSettings:
 #      mode: { None | OffChain | OnChain | All}
 #      contractAddress: 0xbEeB6bB53504E8C872023451fd0D23BeF01d320B

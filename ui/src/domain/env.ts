@@ -4,11 +4,9 @@ export type Env = {
     url: string;
     username: string;
   };
-  blockExplorerUrl: string;
   buildTag?: string;
   ipfsGatewayUrl: string;
   issuer: {
-    did: string;
     logo: string;
     name: string;
   };

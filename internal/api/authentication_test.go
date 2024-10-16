@@ -20,7 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_AuthCallback(t *testing.T) {
@@ -49,7 +49,7 @@ func TestServer_AuthCallback(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := "/v1/authentication/callback"
+			url := "/v2/authentication/callback"
 			if tc.sessionID != nil {
 				url += "?sessionID=" + tc.sessionID.String()
 			}
@@ -78,11 +78,9 @@ func TestServer_GetAuthenticationConnection(t *testing.T) {
 	require.NoError(t, err)
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qKDJmySKNi4GD4vYdqfLb37MSTSijg77NoRZaKfDX")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = *issuerDID
-	server.cfg.APIUI.ServerURL = "https://testing.env"
 	handler := getHandler(context.Background(), server)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	conn := &domain.Connection{
 		ID:         uuid.New(),
 		IssuerDID:  *issuerDID,
@@ -146,7 +144,7 @@ func TestServer_GetAuthenticationConnection(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/authentication/sessions/%s", tc.id.String())
+			url := fmt.Sprintf("/v2/authentication/sessions/%s", tc.id.String())
 			req, err := http.NewRequest("GET", url, nil)
 			require.NoError(t, err)
 			req.SetBasicAuth(tc.auth())
@@ -176,8 +174,6 @@ func TestServer_AuthQRCode(t *testing.T) {
 	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = *issuerDID
-	server.cfg.APIUI.ServerURL = "https://testing.env"
 	handler := getHandler(context.Background(), server)
 
 	did, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
@@ -190,20 +186,20 @@ func TestServer_AuthQRCode(t *testing.T) {
 	}
 	type testConfig struct {
 		name     string
-		request  AuthQRCodeRequestObject
+		request  AuthenticationRequestObject
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name:    "should get a qr code with a link by default",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: nil}},
+			name:    "should get a link to authorization message by default",
+			request: AuthenticationRequestObject{Params: AuthenticationParams{Type: nil}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
@@ -214,14 +210,14 @@ func TestServer_AuthQRCode(t *testing.T) {
 			},
 		},
 		{
-			name:    "should get a qr code with a link as requested",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeLink)}},
+			name:    "should get a link as requested",
+			request: AuthenticationRequestObject{Params: AuthenticationParams{Type: common.ToPointer(AuthenticationParamsTypeLink)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
@@ -232,14 +228,14 @@ func TestServer_AuthQRCode(t *testing.T) {
 			},
 		},
 		{
-			name:    "should get a RAW qr code as requested",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeRaw)}},
+			name:    "should get an authorization message as requested",
+			request: AuthenticationRequestObject{Params: AuthenticationParams{Type: common.ToPointer(AuthenticationParamsTypeRaw)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: false,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
@@ -252,7 +248,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := fmt.Sprintf("/v1/%s/authentication/qrcode", did.String())
+			apiURL := fmt.Sprintf("/v2/%s/authentication", did.String())
 			if tc.request.Params.Type != nil {
 				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
 			}
@@ -264,14 +260,14 @@ func TestServer_AuthQRCode(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				var resp AuthQRCode200JSONResponse
+				var resp Authentication200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-				require.NotEmpty(t, resp.QrCodeLink)
+				require.NotEmpty(t, resp.Message)
 				require.NotEmpty(t, resp.SessionID)
 
 				realQR := protocol.AuthorizationRequestMessage{}
 				if tc.expected.qrWithLink {
-					qrLink := checkQRfetchURL(t, resp.QrCodeLink)
+					qrLink := checkQRfetchURL(t, resp.Message)
 
 					// Now let's fetch the original QR using the url
 					rr := httptest.NewRecorder()
@@ -281,7 +277,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 					require.Equal(t, http.StatusOK, rr.Code)
 					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
 				} else {
-					require.NoError(t, json.Unmarshal([]byte(resp.QrCodeLink), &realQR))
+					require.NoError(t, json.Unmarshal([]byte(resp.Message), &realQR))
 				}
 
 				// Let's verify the QR body

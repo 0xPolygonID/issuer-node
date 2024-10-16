@@ -13,6 +13,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Link, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
@@ -32,6 +33,7 @@ export function LinkDetails() {
   const { linkID } = useParams();
 
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
 
   const [credentialSubjectValue, setCredentialSubjectValue] = useState<
     AsyncTask<ObjectAttributeValue, AppError>
@@ -106,6 +108,7 @@ export function LinkDetails() {
 
         const response = await getLink({
           env,
+          identifier,
           linkID,
           signal,
         });
@@ -120,7 +123,7 @@ export function LinkDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, linkID]
+    [env, fetchJsonSchemaFromUrl, linkID, identifier]
   );
 
   useEffect(() => {
@@ -167,12 +170,16 @@ export function LinkDetails() {
             </Card>
           );
         } else {
-          const { createdAt, credentialExpiration, proofTypes, schemaHash, schemaType, status } =
-            link.data;
-
-          const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
-            linkID,
-          })}`;
+          const {
+            createdAt,
+            credentialExpiration,
+            deepLink,
+            proofTypes,
+            schemaHash,
+            schemaType,
+            status,
+            universalLink,
+          } = link.data;
 
           const [tag, text]: [TagProps, string] = (() => {
             switch (status) {
@@ -216,7 +223,21 @@ export function LinkDetails() {
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
 
-                    <Detail copyable href={linkURL} label="Link" text={linkURL} />
+                    <Detail
+                      copyable
+                      downloadLink
+                      href={universalLink}
+                      label="Universal link"
+                      text={universalLink}
+                    />
+
+                    <Detail
+                      copyable
+                      downloadLink
+                      href={deepLink}
+                      label="Deep link"
+                      text={deepLink}
+                    />
                   </Space>
                 </Card>
                 <Card className="background-grey">

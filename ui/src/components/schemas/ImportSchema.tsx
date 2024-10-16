@@ -1,4 +1,4 @@
-import { message } from "antd";
+import { App } from "antd";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -7,6 +7,7 @@ import { FormData, ImportSchemaForm } from "src/components/schemas/ImportSchemaF
 import { ImportSchemaPreview } from "src/components/schemas/ImportSchemaPreview";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ROUTES } from "src/routes";
 import { IMPORT_SCHEMA } from "src/utils/constants";
 
@@ -22,9 +23,10 @@ type Step =
 
 export function ImportSchema() {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
   const navigate = useNavigate();
 
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
 
   const [step, setStep] = useState<Step>({ type: "form" });
 
@@ -38,54 +40,56 @@ export function ImportSchema() {
     },
     schemaUrl,
   }: FormData) =>
-    void importSchema({ description, env, jsonLdType, schemaUrl, title, version }).then(
-      (response) => {
-        if (response.success) {
-          navigate(ROUTES.schemas.path);
+    void importSchema({
+      description,
+      env,
+      identifier,
+      jsonLdType,
+      schemaUrl,
+      title,
+      version,
+    }).then((response) => {
+      if (response.success) {
+        navigate(ROUTES.schemas.path);
 
-          void messageAPI.success("Schema successfully imported");
-        } else {
-          void messageAPI.error(response.error.message);
-        }
+        void message.success("Schema successfully imported");
+      } else {
+        void message.error(response.error.message);
       }
-    );
+    });
 
   return (
-    <>
-      {messageContext}
-
-      <SiderLayoutContent
-        description="Preview, import and use verifiable credential schemas."
-        showBackButton
-        showDivider
-        title={IMPORT_SCHEMA}
-      >
-        {step.type === "form" ? (
-          <ImportSchemaForm
-            initialFormData={step.formData}
-            onFinish={(formData) => {
-              setStep({
-                formData,
-                type: "preview",
-              });
-            }}
-          />
-        ) : (
-          <ImportSchemaPreview
-            jsonLdContextObject={step.formData.jsonLdContextObject}
-            jsonLdType={step.formData.jsonLdType}
-            jsonSchema={step.formData.jsonSchema}
-            jsonSchemaObject={step.formData.jsonSchemaObject}
-            onBack={() => {
-              setStep({ formData: step.formData, type: "form" });
-            }}
-            onImport={() => {
-              onSchemaImport(step.formData);
-            }}
-            url={step.formData.schemaUrl}
-          />
-        )}
-      </SiderLayoutContent>
-    </>
+    <SiderLayoutContent
+      description="Preview, import and use verifiable credential schemas."
+      showBackButton
+      showDivider
+      title={IMPORT_SCHEMA}
+    >
+      {step.type === "form" ? (
+        <ImportSchemaForm
+          initialFormData={step.formData}
+          onFinish={(formData) => {
+            setStep({
+              formData,
+              type: "preview",
+            });
+          }}
+        />
+      ) : (
+        <ImportSchemaPreview
+          jsonLdContextObject={step.formData.jsonLdContextObject}
+          jsonLdType={step.formData.jsonLdType}
+          jsonSchema={step.formData.jsonSchema}
+          jsonSchemaObject={step.formData.jsonSchemaObject}
+          onBack={() => {
+            setStep({ formData: step.formData, type: "form" });
+          }}
+          onImport={() => {
+            onSchemaImport(step.formData);
+          }}
+          url={step.formData.schemaUrl}
+        />
+      )}
+    </SiderLayoutContent>
   );
 }

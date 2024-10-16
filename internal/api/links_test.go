@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -23,7 +22,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 )
 
 func TestServer_CreateLink(t *testing.T) {
@@ -181,7 +179,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:       true,
 			},
 			expected: expected{
-				response: CreateLink400JSONResponse{N400JSONResponse{Message: "cannot parse claim"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "credential subject does not match the provided schema"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -205,7 +203,7 @@ func TestServer_CreateLink(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/links", did)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links", did)
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
 			req.SetBasicAuth(tc.auth())
@@ -328,7 +326,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/links/%s", did, tc.id)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links/%s", did, tc.id)
 
 			req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, tc.body))
 			req.SetBasicAuth(tc.auth())
@@ -466,7 +464,7 @@ func TestServer_GetLink(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/links/%s", did, tc.id)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links/%s", did, tc.id)
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			req.SetBasicAuth(tc.auth())
@@ -502,6 +500,7 @@ func TestServer_GetLink(t *testing.T) {
 					tt00 := common.ToPointer(TimeUTC(time.Date(tt.Year(), tt.Month(), tt.Day(), 0, 0, 0, 0, time.UTC)))
 					assert.Equal(t, tt00.String(), response.CredentialExpiration.String())
 				}
+
 			case http.StatusNotFound:
 				var response GetLink404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -546,7 +545,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	linkActive := getLinkResponse(*link1)
+	linkActive := getLinkResponse(link1)
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -561,7 +560,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	linkExpired := getLinkResponse(*link2)
+	linkExpired := getLinkResponse(link2)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
@@ -569,7 +568,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	link3.Active = false
 	require.NoError(t, err)
 	require.NoError(t, server.Services.links.Activate(ctx, *did, link3.ID, false))
-	linkInactive := getLinkResponse(*link3)
+	linkInactive := getLinkResponse(link3)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
@@ -679,7 +678,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			endpoint := url.URL{Path: fmt.Sprintf("/v1/%s/credentials/links", did)}
+			endpoint := url.URL{Path: fmt.Sprintf("/v2/identities/%s/credentials/links", did)}
 			if tc.status != nil {
 				endpoint.RawQuery = endpoint.RawQuery + "status=" + string(*tc.status)
 			}
@@ -793,7 +792,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/links/%s", did, tc.id)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links/%s", did, tc.id)
 
 			req, err := http.NewRequest(http.MethodDelete, url, tests.JSONBody(t, nil))
 			req.SetBasicAuth(tc.auth())
@@ -882,7 +881,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/links/%s", did2, tc.id)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links/%s", did2, tc.id)
 
 			req, err := http.NewRequest(http.MethodDelete, url, tests.JSONBody(t, nil))
 			req.SetBasicAuth(tc.auth())
@@ -909,13 +908,13 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	}
 }
 
-func TestServer_CreateLinkQRCode(t *testing.T) {
+func TestServer_CreateLinkOffer(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
 		network    = "amoy"
 		BJJ        = "BJJ"
-		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		uri        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
 	ctx := context.Background()
@@ -925,7 +924,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(uri, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
 	assert.NoError(t, err)
 
 	validUntil := common.ToPointer(time.Now().Add(365 * 24 * time.Hour))
@@ -940,7 +939,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	handler := getHandler(ctx, server)
 
-	linkDetail := getLinkResponse(*link)
+	linkDetail := getLinkResponse(link)
 
 	type expected struct {
 		linkDetail Link
@@ -950,14 +949,14 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	type testConfig struct {
 		name     string
-		request  CreateLinkQrCodeRequestObject
+		request  CreateLinkOfferRequestObject
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
 			name:    "Wrong link id",
-			request: CreateLinkQrCodeRequestObject{Id: uuid.New()},
+			request: CreateLinkOfferRequestObject{Id: uuid.New()},
 			expected: expected{
 				httpCode: http.StatusNotFound,
 				message:  "error: link not found",
@@ -965,7 +964,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		},
 		{
 			name: "Expired link",
-			request: CreateLinkQrCodeRequestObject{
+			request: CreateLinkOfferRequestObject{
 				Id: linkExpired.ID,
 			},
 			expected: expected{
@@ -975,7 +974,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		},
 		{
 			name: "Happy path",
-			request: CreateLinkQrCodeRequestObject{
+			request: CreateLinkOfferRequestObject{
 				Id: link.ID,
 			},
 			expected: expected{
@@ -986,7 +985,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := fmt.Sprintf("/v1/%s/credentials/links/%s/qrcode", did, tc.request.Id.String())
+			apiURL := fmt.Sprintf("/v2/identities/%s/credentials/links/%s/offer", did, tc.request.Id.String())
 
 			req, err := http.NewRequest(http.MethodPost, apiURL, tests.JSONBody(t, nil))
 			require.NoError(t, err)
@@ -997,13 +996,16 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				callBack := cfg.ServerUrl + "/v1/credentials/links/callback?"
-				var response CreateLinkQrCode200JSONResponse
+				callBack := cfg.ServerUrl + fmt.Sprintf("/v2/identities/%s/credentials/links/callback?", iden.Identifier)
+				var response CreateLinkOffer200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 
 				realQR := protocol.AuthorizationRequestMessage{}
 
-				qrLink := checkQRfetchURL(t, response.QrCodeLink)
+				qrLink := checkQRfetchURL(t, response.DeepLink)
+
+				// Let's see that universal link is correct
+				assert.Equal(t, server.cfg.UniversalLinks.BaseUrl+"#request_uri="+url.QueryEscape(qrLink), response.UniversalLink)
 
 				// Now let's fetch the original QR using the url
 				rr := httptest.NewRecorder()
@@ -1016,187 +1018,21 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 				assert.NotNil(t, realQR.Body)
 				assert.Equal(t, "authentication", realQR.Body.Reason)
-				callbackArr := strings.Split(realQR.Body.CallbackURL, "sessionID")
+				callbackArr := strings.Split(realQR.Body.CallbackURL, "linkID")
 				assert.True(t, len(callbackArr) == 2)
 				assert.Equal(t, callBack, callbackArr[0])
-				params := strings.Split(callbackArr[1], "linkID")
-				assert.True(t, len(params) == 2)
-				assert.NotNil(t, realQR.ID)
 				assert.Equal(t, "https://iden3-communication.io/authorization/1.0/request", string(realQR.Type))
 				assert.Equal(t, "application/iden3comm-plain-json", string(realQR.Typ))
 				assert.Equal(t, did.String(), realQR.From)
 				assert.NotNil(t, realQR.ThreadID)
-				assert.NotNil(t, response.SessionID)
 				assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
+				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 
 			case http.StatusNotFound:
-				var response CreateLinkQrCode404JSONResponse
+				var response CreateLinkOffer404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.message, response.Message)
-			}
-		})
-	}
-}
-
-func TestServer_GetLinkQRCode(t *testing.T) {
-	const (
-		method     = "polygonid"
-		blockchain = "polygon"
-		network    = "amoy"
-		BJJ        = "BJJ"
-		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-		schemaType = "KYCCountryOfResidenceCredential"
-	)
-	ctx := context.Background()
-	server := newTestServer(t, nil)
-
-	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
-	require.NoError(t, err)
-	did, err := w3c.ParseDID(iden.Identifier)
-	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
-	assert.NoError(t, err)
-
-	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
-	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
-	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
-	assert.NoError(t, err)
-	handler := getHandler(ctx, server)
-
-	sessionID := uuid.New()
-	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qP8KN3KRwBi37jB2ENXrWxhTo3pefaU5u5BFPbjYo")
-	assert.NoError(t, err)
-	qrcode := &linkState.QRCodeMessage{
-		ID:       uuid.New().String(),
-		Typ:      "application/iden3comm-plain-json",
-		Type:     "https://iden3-communication.io/credentials/1.0/offer",
-		ThreadID: uuid.New().String(),
-		Body: linkState.CredentialsLinkMessageBody{
-			URL: "https://domain/issuer/v1/agent",
-			Credentials: []linkState.CredentialLink{
-				{
-					ID:          uuid.NewString(),
-					Description: "KYCAgeCredential",
-				},
-			},
-		},
-		From: did.String(),
-		To:   userDID.String(),
-	}
-
-	qrCodeBytes, err := json.Marshal(qrcode)
-	require.NoError(t, err)
-
-	linkDetail := getLinkResponse(*link)
-	id, err := server.Services.qrs.Store(ctx, qrCodeBytes, 100*time.Second)
-	require.NoError(t, err)
-	qrCodeLink := server.Services.qrs.ToURL("http://localhost:3002", id)
-
-	type expected struct {
-		qrCode     *string
-		linkDetail Link
-		status     string
-		httpCode   int
-	}
-
-	type testConfig struct {
-		name      string
-		id        uuid.UUID
-		sessionID uuid.UUID
-		state     *linkState.State
-		expected  expected
-	}
-
-	for _, tc := range []testConfig{
-		{
-			name:      "Wrong sessionID",
-			sessionID: uuid.New(),
-			id:        link.ID,
-			state:     nil,
-			expected: expected{
-				httpCode: http.StatusBadRequest,
-			},
-		},
-		{
-			name:      "Wrong linkID",
-			sessionID: sessionID,
-			id:        uuid.New(),
-			state:     nil,
-			expected: expected{
-				httpCode: http.StatusNotFound,
-			},
-		},
-		{
-			name:      "Error state",
-			sessionID: sessionID,
-			id:        link.ID,
-			state:     linkState.NewStateError(errors.New("something wrong")),
-			expected: expected{
-				httpCode: http.StatusBadRequest,
-			},
-		},
-		{
-			name:      "Pending state",
-			sessionID: sessionID,
-			id:        link.ID,
-			state:     linkState.NewStatePending(),
-			expected: expected{
-				httpCode: http.StatusOK,
-				status:   "pending",
-			},
-		},
-		{
-			name:      "Happy path",
-			id:        link.ID,
-			sessionID: sessionID,
-			state:     linkState.NewStateDone(qrCodeLink),
-			expected: expected{
-				linkDetail: linkDetail,
-				qrCode:     common.ToPointer(qrCodeLink),
-				status:     "done",
-				httpCode:   http.StatusOK,
-			},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			if tc.state != nil {
-				err := server.Repos.sessions.SetLink(ctx, linkState.CredentialStateCacheKey(tc.id.String(), tc.sessionID.String()), *tc.state)
-				assert.NoError(t, err)
-			}
-
-			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/links/%s/qrcode?sessionID=%s", did, tc.id, tc.sessionID)
-			req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
-			require.NoError(t, err)
-			handler.ServeHTTP(rr, req)
-
-			require.Equal(t, tc.expected.httpCode, rr.Code)
-			switch tc.expected.httpCode {
-			case http.StatusOK:
-				var response GetLinkQRCode200JSONResponse
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				if tc.expected.status == "pending" {
-					assert.Equal(t, tc.expected.status, *response.Status)
-				} else {
-					assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
-					assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
-					assert.Equal(t, tc.expected.status, *response.Status)
-					require.NotNil(t, response.QrCode)
-					assert.Equal(t, *tc.expected.qrCode, *response.QrCode)
-					qrLink := checkQRfetchURL(t, *response.QrCode)
-
-					// Now let's fetch the original QR using the url
-					rr := httptest.NewRecorder()
-					req, err := http.NewRequest(http.MethodGet, qrLink, nil)
-					require.NoError(t, err)
-					handler.ServeHTTP(rr, req)
-					require.Equal(t, http.StatusOK, rr.Code)
-
-					// Let's verify the QR body
-					realQR := protocol.CredentialsOfferMessage{}
-					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
-				}
 			}
 		})
 	}

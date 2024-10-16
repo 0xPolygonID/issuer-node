@@ -1,0 +1,135 @@
+services:
+  postgres:
+    image: postgres:14-alpine
+    hostname: postgres
+    environment:
+      - PGPORT=5432
+      - PGUSER=postgres
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=postgres
+    volumes:
+      - ./scripts/sql:/docker-entrypoint-initdb.d:ro
+      - postgres-data-full:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:6-alpine
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  vault:
+    image: vault:1.13.2
+    volumes:
+      - ./.vault/config:/vault/config
+      - ./.vault/scripts:/vault/scripts
+      - vault-plugins-full:/vault/plugins
+      - vault-data-full:/vault/data
+      - vault-file-full:/vault/file:rw
+    environment:
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://0.0.0.0:8200
+      - VAULT_ADDRESS=http://0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "--proxy",
+          "off",
+          "http://vault:8200/v1/sys/health?standbyok=true",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    command: ./vault/scripts/init.sh
+
+  ui:
+    image: privadoid/issuernode-ui
+    pull_policy: always
+    ports:
+      - "8088:80"
+    env_file:
+      - ../../.env-ui
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "ui/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - api
+
+  api:
+    image: privadoid/issuernode-api
+    pull_policy: always
+    ports:
+      - "3001:3001"
+    env_file:
+      - ../../.env-issuer
+    volumes:
+      - ../../localstoragekeys:/localstoragekeys:rw
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "api:3001/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: sh -c "./migrate && ./platform"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+
+  notifications:
+    image: privadoid/issuernode-api
+    pull_policy: always
+    env_file:
+      - ../../.env-issuer
+    volumes:
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
+    command: sh -c "./notifications"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "notifications:3004/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  pending_publisher:
+    image: privadoid/issuernode-api
+    pull_policy: always
+    env_file:
+      - ../../.env-issuer
+    volumes:
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
+    command: sh -c "./pending_publisher"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "pending_publisher:3005/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    depends_on:
+      - api
+
+networks:
+  default:
+    name: issuer-network-full
+
+volumes:
+  postgres-data-full:
+  vault-plugins-full:
+  vault-data-full:
+  vault-file-full:

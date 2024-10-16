@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
@@ -14,17 +13,8 @@ import (
 )
 
 const (
-	didMountPath = "kv"
-	secretPath   = "did"
-	increment    = 1440
-	user         = "issuernode"
-)
-
-var (
-	// DidNotFound error
-	DidNotFound = errors.New("did not found in vault")
-	// VaultConnErr error
-	VaultConnErr = errors.New("vault connection error")
+	increment = 1440
+	user      = "issuernode"
 )
 
 // HTTPClientTimeout http client timeout TODO: move to config
@@ -61,7 +51,7 @@ func VaultClient(ctx context.Context, cfg Config) (*vault.Client, error) {
 		log.Info(ctx, "Vault userpass auth not enabled")
 		if cfg.Token == "" {
 			log.Error(ctx, "Vault userpass auth not enabled but token not provided")
-			return nil, errors.New("Vault userpass auth not enabled but token not provided")
+			return nil, errors.New("vault userpass auth not enabled but token not provided")
 		}
 		vaultCli, err = newVaultClientWithToken(cfg)
 		if err != nil {
@@ -203,43 +193,4 @@ func manageTokenLifecycle(ctx context.Context, client *vault.Client, token *vaul
 			log.Info(ctx, "Vault token successfully renewed", "renewal", renewal.RenewedAt)
 		}
 	}
-}
-
-// GetDID gets did from vault
-func GetDID(ctx context.Context, vaultCli *vault.Client) (string, error) {
-	did, err := vaultCli.KVv2(didMountPath).Get(ctx, secretPath)
-	if err != nil {
-		if strings.Contains(err.Error(), "403") {
-			log.Error(ctx, "error getting did from vault, access denied", "error", err)
-			return "", errors.Join(err, VaultConnErr)
-		}
-		log.Error(ctx, "error getting did from vault", "error", err)
-		return "", DidNotFound
-	}
-
-	if did.Data["did"] == nil {
-		log.Info(ctx, "did not found in vault")
-		return "", DidNotFound
-	}
-
-	didToReturn, ok := did.Data["did"].(string)
-	if !ok {
-		log.Error(ctx, "error casting did to string")
-		return "", DidNotFound
-	}
-	return didToReturn, nil
-}
-
-// SaveDID saves did to vault
-func SaveDID(ctx context.Context, vaultCli *vault.Client, did string) error {
-	_, err := vaultCli.KVv2(didMountPath).Put(ctx, secretPath, map[string]interface{}{
-		"did": did,
-	})
-	if err != nil {
-		log.Error(ctx, "error saving did to vault", "error", err)
-		return err
-	}
-
-	log.Info(ctx, "did saved to vault")
-	return nil
 }

@@ -1,4 +1,4 @@
-import { Space, Typography, message } from "antd";
+import { App, Space, Typography } from "antd";
 import {
   PropsWithChildren,
   createContext,
@@ -11,6 +11,7 @@ import {
 
 import { getStatus } from "src/adapters/api/issuer-state";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError } from "src/domain";
 import { AsyncTask } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -33,24 +34,27 @@ const IssuerStateContext = createContext<IssuerState>({
 
 export function IssuerStateProvider(props: PropsWithChildren) {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
 
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
 
   const [status, setStatus] = useState<AsyncTask<boolean, AppError>>({ status: "pending" });
 
   const refreshStatus = useCallback(
     async (signal?: AbortSignal) => {
-      const response = await getStatus({ env, signal });
+      if (identifier) {
+        const response = await getStatus({ env, identifier, signal });
 
-      if (response.success) {
-        setStatus({ data: response.data.pendingActions, status: "successful" });
-      } else {
-        if (!isAbortedError(response.error)) {
-          void messageAPI.error(response.error.message);
+        if (response.success) {
+          setStatus({ data: response.data.pendingActions, status: "successful" });
+        } else {
+          if (!isAbortedError(response.error)) {
+            void message.error(response.error.message);
+          }
         }
       }
     },
-    [env, messageAPI]
+    [env, message, identifier]
   );
 
   const notifyChange = useCallback(
@@ -60,7 +64,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
         revoke: "Revocation",
       };
 
-      void messageAPI.info({
+      void message.info({
         content: (
           <Space align="start" direction="vertical" style={{ width: "auto" }}>
             <Typography.Text strong>
@@ -75,7 +79,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
 
       return refreshStatus();
     },
-    [messageAPI, refreshStatus]
+    [message, refreshStatus]
   );
 
   useEffect(() => {
@@ -88,13 +92,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
     return { notifyChange, refreshStatus, status };
   }, [notifyChange, refreshStatus, status]);
 
-  return (
-    <>
-      {messageContext}
-
-      <IssuerStateContext.Provider value={value} {...props} />
-    </>
-  );
+  return <IssuerStateContext.Provider value={value} {...props} />;
 }
 
 export function useIssuerStateContext() {

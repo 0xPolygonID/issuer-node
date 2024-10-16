@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/jackc/pgx/v4"
@@ -78,7 +79,7 @@ WHERE identifier=$1 AND status = 'confirmed' ORDER BY state_id DESC LIMIT 1`, id
 	return &state, nil
 }
 
-// GetStatesByStatus returns states which are not transated
+// GetStatesByStatus returns states which are not transacted
 func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier, status domain.IdentityStatus) ([]domain.IdentityState, error) {
 	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
        tx_id, previous_state, status, modified_at, created_at 
@@ -92,20 +93,26 @@ func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier
 }
 
 // GetStates returns all the states
-func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID, page uint, maxResults uint) ([]ports.IdentityStatePaginationDto, error) {
-	offset := (page - 1) * maxResults
+func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *ports.GetStateTransactionsRequest) ([]domain.IdentityState, uint, error) {
+	var count int
 
-	query := `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
-       tx_id, previous_state, status, modified_at, created_at, COUNT(*) OVER() AS total
-	FROM identity_states WHERE identifier = $1 and previous_state IS NOT NULL ORDER BY state_id ASC LIMIT $2 OFFSET $3 `
+	sqlQuery, countQuery := buildGetStatesQuery(filter)
 
-	rows, err := conn.Query(ctx, query, issuerDID.String(), maxResults, offset)
+	if err := conn.QueryRow(ctx, countQuery, issuerDID.String()).Scan(&count); err != nil {
+		return nil, 0, err
+	}
+
+	rows, err := conn.Query(ctx, sqlQuery, issuerDID.String(), filter.Pagination.GetOffset(), filter.Pagination.GetLimit())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
-	return toIdentityStatesDomainDto(rows)
+	states, err := toIdentityStatesDomain(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+	return states, uint(count), nil
 }
 
 func (isr *identityState) UpdateState(ctx context.Context, conn db.Querier, state *domain.IdentityState) (int64, error) {
@@ -119,68 +126,7 @@ func (isr *identityState) UpdateState(ctx context.Context, conn db.Querier, stat
 	return tag.RowsAffected(), nil
 }
 
-func toIdentityStatesDomainDto(rows pgx.Rows) ([]ports.IdentityStatePaginationDto, error) {
-	states := []ports.IdentityStatePaginationDto{}
-	stateDto := ports.IdentityStatePaginationDto{}
-	for rows.Next() {
-		var state domain.IdentityState
-		if err := rows.Scan(&state.StateID,
-			&state.Identifier,
-			&state.State,
-			&state.RootOfRoots,
-			&state.ClaimsTreeRoot,
-			&state.RevocationTreeRoot,
-			&state.BlockTimestamp,
-			&state.BlockNumber,
-			&state.TxID,
-			&state.PreviousState,
-			&state.Status,
-			&state.ModifiedAt,
-			&state.CreatedAt,
-			&stateDto.Total); err != nil {
-			return nil, err
-		}
-		stateDto.IdentityState = state
-		states = append(states, stateDto)
-	}
-
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	return states, nil
-}
-
-func toIdentityStatesDomain(rows pgx.Rows) ([]domain.IdentityState, error) {
-	states := []domain.IdentityState{}
-	for rows.Next() {
-		var state domain.IdentityState
-		if err := rows.Scan(&state.StateID,
-			&state.Identifier,
-			&state.State,
-			&state.RootOfRoots,
-			&state.ClaimsTreeRoot,
-			&state.RevocationTreeRoot,
-			&state.BlockTimestamp,
-			&state.BlockNumber,
-			&state.TxID,
-			&state.PreviousState,
-			&state.Status,
-			&state.ModifiedAt,
-			&state.CreatedAt); err != nil {
-			return nil, err
-		}
-		states = append(states, state)
-	}
-
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	return states, nil
-}
-
-// GetStatesByStatus returns states which are not transated
+// GetStatesByStatusAndIssuerID returns states which are not transacted
 func (isr *identityState) GetStatesByStatusAndIssuerID(ctx context.Context, conn db.Querier, status domain.IdentityStatus, issuerID w3c.DID) ([]domain.IdentityState, error) {
 	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
        tx_id, previous_state, status, modified_at, created_at 
@@ -240,4 +186,66 @@ func (isr *identityState) GetGenesisState(ctx context.Context, conn db.Querier, 
 	}
 
 	return &state, nil
+}
+
+func buildGetStatesQuery(filter *ports.GetStateTransactionsRequest) (string, string) {
+	fields := []string{
+		"state_id",
+		"identifier",
+		"state",
+		"root_of_roots",
+		"claims_tree_root",
+		"revocation_tree_root",
+		"block_timestamp",
+		"block_number",
+		"tx_id",
+		"previous_state",
+		"status",
+		"modified_at",
+		"created_at",
+	}
+
+	q := `
+SELECT ##QUERYFIELDS##
+FROM identity_states 
+WHERE identifier = $1 
+AND previous_state IS NOT NULL`
+
+	countQuery := strings.Replace(q, "##QUERYFIELDS##", "COUNT(*)", 1)
+	sqlQuery := strings.Replace(q, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
+
+	_ = filter.OrderBy.Add(ports.StateTransitionsPublishDate, false)
+	sqlQuery += " ORDER BY " + filter.OrderBy.String()
+	sqlQuery += " OFFSET $2 LIMIT $3;"
+
+	return sqlQuery, countQuery
+}
+
+func toIdentityStatesDomain(rows pgx.Rows) ([]domain.IdentityState, error) {
+	var states []domain.IdentityState
+	for rows.Next() {
+		var state domain.IdentityState
+		if err := rows.Scan(&state.StateID,
+			&state.Identifier,
+			&state.State,
+			&state.RootOfRoots,
+			&state.ClaimsTreeRoot,
+			&state.RevocationTreeRoot,
+			&state.BlockTimestamp,
+			&state.BlockNumber,
+			&state.TxID,
+			&state.PreviousState,
+			&state.Status,
+			&state.ModifiedAt,
+			&state.CreatedAt); err != nil {
+			return nil, err
+		}
+		states = append(states, state)
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return states, nil
 }

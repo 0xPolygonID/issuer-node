@@ -11,7 +11,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/health"
-	"github.com/polygonid/sh-id-platform/pkg/network"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -19,8 +19,8 @@ import (
 type Server struct {
 	cfg                *config.Configuration
 	accountService     ports.AccountService
-	claimService       ports.ClaimsService
-	connectionsService ports.ConnectionsService
+	claimService       ports.ClaimService
+	connectionsService ports.ConnectionService
 	health             *health.Status
 	identityService    ports.IdentityService
 	linkService        ports.LinkService
@@ -32,7 +32,7 @@ type Server struct {
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, connectionsService ports.ConnectionsService, claimsService ports.ClaimsService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status, schemaService ports.SchemaService, linkService ports.LinkService) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, connectionsService ports.ConnectionService, claimsService ports.ClaimService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status, schemaService ports.SchemaService, linkService ports.LinkService) *Server {
 	return &Server{
 		cfg:                cfg,
 		accountService:     accountService,
@@ -54,21 +54,6 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 	var resp Health200JSONResponse = s.health.Status()
 
 	return resp, nil
-}
-
-// GetDocumentation this method will be overridden in the main function
-func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestObject) (GetDocumentationResponseObject, error) {
-	return nil, nil
-}
-
-// GetFavicon this method will be overridden in the main function
-func (s *Server) GetFavicon(_ context.Context, _ GetFaviconRequestObject) (GetFaviconResponseObject, error) {
-	return nil, nil
-}
-
-// GetYaml this method will be overridden in the main function
-func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
-	return nil, nil
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.

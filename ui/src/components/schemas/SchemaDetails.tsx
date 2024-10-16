@@ -2,7 +2,7 @@ import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
-import { getApiSchema } from "src/adapters/api/schemas";
+import { getApiSchema, processUrl } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import CreditCardIcon from "src/assets/icons/credit-card-plus.svg?react";
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
@@ -12,6 +12,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { ApiSchema, AppError, Json, JsonLdType, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
@@ -25,6 +26,7 @@ import {
 import { formatDate } from "src/utils/forms";
 
 export function SchemaDetails() {
+  const { identifier } = useIdentityContext();
   const navigate = useNavigate();
   const { schemaID } = useParams();
 
@@ -95,6 +97,7 @@ export function SchemaDetails() {
 
         const response = await getApiSchema({
           env,
+          identifier,
           schemaID,
           signal,
         });
@@ -109,7 +112,7 @@ export function SchemaDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, schemaID]
+    [env, fetchJsonSchemaFromUrl, schemaID, identifier]
   );
 
   useEffect(() => {
@@ -168,6 +171,7 @@ export function SchemaDetails() {
           );
         } else {
           const { bigInt, createdAt, hash, url, version } = schema.data;
+          const processedSchemaUrl = processUrl(url, env);
           const [jsonSchema, jsonSchemaObject] = jsonSchemaTuple.data;
           const [jsonLdType, jsonLdContextObject] = contextTuple.data;
 
@@ -201,7 +205,12 @@ export function SchemaDetails() {
 
                   <Detail copyable label="Hash" text={hash} />
 
-                  <Detail copyable href={url} label="URL" text={url} />
+                  <Detail
+                    copyable
+                    href={processedSchemaUrl.success ? processedSchemaUrl.data : url}
+                    label="URL"
+                    text={url}
+                  />
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
 

@@ -17,11 +17,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-const duplicatedEntryPGCode = "23505"
-
 var (
 	ErrSchemaDoesNotExist = errors.New("schema does not exist")   // ErrSchemaDoesNotExist schema does not exist
-	ErrSchemaDuplicated   = errors.New("schema already imported") // ErrSchemaDuplicated schema duplicated
+	ErrDuplicated         = errors.New("schema already imported") // ErrDuplicated schema duplicated
 )
 
 type dbSchema struct {
@@ -68,8 +66,8 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 		s.Description)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == duplicatedEntryPGCode {
-			return ErrSchemaDuplicated
+		if errors.As(err, &pgErr) && pgErr.Code == duplicateViolationErrorCode {
+			return ErrDuplicated
 		}
 
 		return err

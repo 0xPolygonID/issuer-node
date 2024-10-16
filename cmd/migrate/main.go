@@ -34,6 +34,5 @@ func main() {
 		log.Error(ctx, "error migrating database", "err", err)
 		return
 	}
-
 	log.Info(ctx, "migration done!")
 }

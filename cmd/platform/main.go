@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	redis2 "github.com/go-redis/redis/v8"
 	auth "github.com/iden3/go-iden3-auth/v2"
 	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
 	"github.com/iden3/iden3comm/v2"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -28,16 +28,14 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/packagemanager"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/redis"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/internal/reversehash"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
-	"github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/protocol"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 var build = buildinfo.Revision()
@@ -48,17 +46,12 @@ func main() {
 
 	log.Info(ctx, "starting issuer node...", "revision", build)
 
-	cfg, err := config.Load("")
+	cfg, err := config.Load()
 	if err != nil {
 		log.Error(ctx, "cannot load config", "err", err)
 		return
 	}
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
-
-	if err := cfg.Sanitize(ctx); err != nil {
-		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
-		return
-	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -66,18 +59,19 @@ func main() {
 		return
 	}
 
-	// Redis cache
-	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	cachex, err := cache.NewCacheClient(ctx, *cfg)
 	if err != nil {
-		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
+		log.Error(ctx, "cannot initialize cache", "err", err)
 		return
 	}
-	ps := pubsub.NewRedis(rdb)
-	ps.WithLogger(log.Error)
-	cachex := cache.NewRedisCache(rdb)
+	ps, err := pubsub.NewPubSub(ctx, *cfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize pubsub", "err", err)
+		return
+	}
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
-	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL, cfg.SchemaCache)
 
 	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
@@ -95,7 +89,6 @@ func main() {
 	}
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
-	cfg.CredentialStatus.SingleIssuer = false
 
 	reader, err := network.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
@@ -108,11 +101,11 @@ func main() {
 		return
 	}
 
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
-	claimsRepository := repositories.NewClaims()
-	connectionsRepository := repositories.NewConnections()
+	claimsRepository := repositories.NewClaim()
+	connectionsRepository := repositories.NewConnection()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
@@ -133,19 +126,31 @@ func main() {
 		*cfg.MediaTypeManager.Enabled,
 	)
 
+	universalDIDResolverUrl := auth.UniversalResolverURL
+	if cfg.UniversalDIDResolver.UniversalResolverURL != nil && *cfg.UniversalDIDResolver.UniversalResolverURL != "" {
+		universalDIDResolverUrl = *cfg.UniversalDIDResolver.UniversalResolverURL
+	}
+	universalDIDResolverHandler := packagemanager.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
+
+	packageManager, err := packagemanager.New(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path, universalDIDResolverHandler)
+	if err != nil {
+		log.Error(ctx, "failed init package packagemanager", "err", err)
+		return
+	}
+
 	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
-	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers())
+	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
 	if err != nil {
 		log.Error(ctx, "failed init verifier", "err", err)
 		return
 	}
 
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
-	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
+	proofService := services.NewProver(circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
-	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
@@ -161,17 +166,12 @@ func main() {
 	}
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, networkResolver, ps)
-	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path)
-	if err != nil {
-		log.Error(ctx, "failed init package protocol", "err", err)
-		return
-	}
 
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
-		"redis": func(rdb *redis2.Client) health.Pinger {
-			return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
-		}(rdb),
+		//"redis": func(rdb *redis2.Client) health.Pinger {
+		//	return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
+		//}(rdb),
 	})
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 

@@ -7,7 +7,7 @@ import (
 )
 
 func TestW3CDocumentLoader_LoadDocument(t *testing.T) {
-	w3cLoader := NewW3CDocumentLoader(nil, "https://ipfs.io")
+	w3cLoader := NewW3CDocumentLoader(nil, "https://ipfs.io", false)
 	doc, err := w3cLoader.LoadDocument(W3CCredential2018ContextURL)
 	require.NoError(t, err)
 
