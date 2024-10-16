@@ -700,7 +700,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				switch tc.expected.qrType {
 				case "raw":
-					var rawResponse QrCodeLinkWithSchemaTypeShortResponse
+					var rawResponse CredentialOfferResponse
 					assert.NoError(t, json.Unmarshal([]byte(response.UniversalLink), &rawResponse))
 				case "universalLink":
 					parsedURL, err := url.Parse(response.UniversalLink)
@@ -1325,7 +1325,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			endpoint := url.URL{Path: fmt.Sprintf("/v2/identities/%s/credentials/search", identityMultipleClaims.Identifier)}
+			endpoint := url.URL{Path: fmt.Sprintf("/v2/identities/%s/credentials", identityMultipleClaims.Identifier)}
 			queryParams := make([]string, 0)
 			if tc.query != nil {
 				queryParams = append(queryParams, "query="+*tc.query)

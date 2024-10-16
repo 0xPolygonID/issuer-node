@@ -658,8 +658,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-
-  /v2/identities/{identifier}/credentials/search:
     get:
       summary: Get Credentials
       operationId: GetCredentials
@@ -892,7 +890,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QrCodeLinkWithSchemaTypeShortResponse'
+                $ref: '#/components/schemas/CredentialOfferResponse'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -1888,7 +1886,7 @@ components:
           type: string
           x-omitempty: false
 
-    QrCodeLinkWithSchemaTypeShortResponse:
+    CredentialOfferResponse:
       type: object
       required:
         - universalLink
