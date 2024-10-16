@@ -861,11 +861,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/identities/{identifier}/credentials/{id}/qrcode:
+  /v2/identities/{identifier}/credentials/{id}/offer:
     get:
-      summary: Get Credentials QR code
+      summary: Get Credentials Offer
       operationId: GetCredentialQrCode
-      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. |
+      description: Returns universal/deep link to offer or raw offer message can be used for accepting a claim. |
         Response can be in 3 formats `universalLink`, `deepLink` or `raw`. Default is `universalLink`. Raw is the raw QR code and link is a QR code with a link to the raw content.
         Regardless of the type, the field will always be called universalLink.
       tags:
@@ -883,9 +883,9 @@ paths:
             enum: [ universalLink, deepLink, raw ]
           description: >
             Type:
-              * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the QR  
-              * `deepLink` -  Returns a QR code with a link redirection to the raw content.   
-              * `raw` - Returns the raw QR code.
+              * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the offer message  
+              * `deepLink` -  Returns a deeplink with a link redirection to the original message.   
+              * `raw` - Returns the raw offer message.
       responses:
         '200':
           description: ok
@@ -1252,7 +1252,7 @@ paths:
         - Links
       responses:
         '200':
-          description: Link qrcode generated
+          description: Link offer generated
           content:
             application/json:
               schema:

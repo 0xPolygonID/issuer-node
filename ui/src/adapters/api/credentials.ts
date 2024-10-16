@@ -528,7 +528,7 @@ export async function getIssuedMessages({
         },
         method: "GET",
         signal,
-        url: `${API_VERSION}/identities/${identifier}/credentials/${credentialID}/qrcode`,
+        url: `${API_VERSION}/identities/${identifier}/credentials/${credentialID}/offer`,
       }),
       axios({
         baseURL: env.api.url,
@@ -538,7 +538,7 @@ export async function getIssuedMessages({
         method: "GET",
         params: { type: "deepLink" },
         signal,
-        url: `${API_VERSION}/identities/${identifier}/credentials/${credentialID}/qrcode`,
+        url: `${API_VERSION}/identities/${identifier}/credentials/${credentialID}/offer`,
       }),
     ]);
 

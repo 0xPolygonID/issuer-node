@@ -697,9 +697,9 @@ type GetCredentialsParamsSort string
 // GetCredentialQrCodeParams defines parameters for GetCredentialQrCode.
 type GetCredentialQrCodeParams struct {
 	// Type Type:
-	//   * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the QR
-	//   * `deepLink` -  Returns a QR code with a link redirection to the raw content.
-	//   * `raw` - Returns the raw QR code.
+	//   * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the offer message
+	//   * `deepLink` -  Returns a deeplink with a link redirection to the original message.
+	//   * `raw` - Returns the raw offer message.
 	Type *GetCredentialQrCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
 }
 
@@ -869,8 +869,8 @@ type ServerInterface interface {
 	// Get Credential
 	// (GET /v2/identities/{identifier}/credentials/{id})
 	GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
-	// Get Credentials QR code
-	// (GET /v2/identities/{identifier}/credentials/{id}/qrcode)
+	// Get Credentials Offer
+	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
@@ -1082,8 +1082,8 @@ func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, ide
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Credentials QR code
-// (GET /v2/identities/{identifier}/credentials/{id}/qrcode)
+// Get Credentials Offer
+// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -2844,7 +2844,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}", wrapper.GetCredential)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}/qrcode", wrapper.GetCredentialQrCode)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}/offer", wrapper.GetCredentialQrCode)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
@@ -4662,8 +4662,8 @@ type StrictServerInterface interface {
 	// Get Credential
 	// (GET /v2/identities/{identifier}/credentials/{id})
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
-	// Get Credentials QR code
-	// (GET /v2/identities/{identifier}/credentials/{id}/qrcode)
+	// Get Credentials Offer
+	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 	GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)

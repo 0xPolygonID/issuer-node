@@ -682,7 +682,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			uri := fmt.Sprintf("/v2/identities/%s/credentials/%s/qrcode", tc.did, tc.claim)
+			uri := fmt.Sprintf("/v2/identities/%s/credentials/%s/offer", tc.did, tc.claim)
 			if tc.qrType != nil {
 				uri = fmt.Sprintf("%s?type=%s", uri, *tc.qrType)
 			}
