@@ -152,10 +152,10 @@ const (
 	Status           GetStateTransactionsParamsSort = "status"
 )
 
-// Defines values for AuthQRCodeParamsType.
+// Defines values for AuthenticationParamsType.
 const (
-	AuthQRCodeParamsTypeLink AuthQRCodeParamsType = "link"
-	AuthQRCodeParamsTypeRaw  AuthQRCodeParamsType = "raw"
+	AuthenticationParamsTypeLink AuthenticationParamsType = "link"
+	AuthenticationParamsTypeRaw  AuthenticationParamsType = "raw"
 )
 
 // AgentResponse defines model for AgentResponse.
@@ -176,6 +176,12 @@ type AuthenticationConnection struct {
 	IssuerID   UUIDString `json:"issuerID"`
 	ModifiedAt TimeUTC    `json:"modifiedAt"`
 	UserID     UUIDString `json:"userID"`
+}
+
+// AuthenticationResponse defines model for AuthenticationResponse.
+type AuthenticationResponse struct {
+	Message   string     `json:"message"`
+	SessionID UUIDString `json:"sessionID"`
 }
 
 // ConnectionsPaginated defines model for ConnectionsPaginated.
@@ -439,12 +445,6 @@ type PublishIdentityStateResponse struct {
 	RootOfRoots        *string `json:"rootOfRoots,omitempty"`
 	State              *string `json:"state,omitempty"`
 	TxID               *string `json:"txID,omitempty"`
-}
-
-// QrCodeLinkShortResponse defines model for QrCodeLinkShortResponse.
-type QrCodeLinkShortResponse struct {
-	QrCodeLink string     `json:"qrCodeLink"`
-	SessionID  UUIDString `json:"sessionID"`
 }
 
 // QrCodeLinkWithSchemaTypeShortResponse defines model for QrCodeLinkWithSchemaTypeShortResponse.
@@ -736,16 +736,16 @@ type GetQrFromStoreParams struct {
 	Issuer *string    `form:"issuer,omitempty" json:"issuer,omitempty"`
 }
 
-// AuthQRCodeParams defines parameters for AuthQRCode.
-type AuthQRCodeParams struct {
+// AuthenticationParams defines parameters for Authentication.
+type AuthenticationParams struct {
 	// Type Type:
-	//   * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.
+	//   * `link` - (default value) Return a link redirection to the raw content. Easier to scan.
 	//   * `raw` - Return the raw QR code.
-	Type *AuthQRCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
+	Type *AuthenticationParamsType `form:"type,omitempty" json:"type,omitempty"`
 }
 
-// AuthQRCodeParamsType defines parameters for AuthQRCode.
-type AuthQRCodeParamsType string
+// AuthenticationParamsType defines parameters for Authentication.
+type AuthenticationParamsType string
 
 // AgentV1TextRequestBody defines body for AgentV1 for text/plain ContentType.
 type AgentV1TextRequestBody = AgentV1TextBody
@@ -899,9 +899,9 @@ type ServerInterface interface {
 	// Get Supported Networks
 	// (GET /v2/supported-networks)
 	GetSupportedNetworks(w http.ResponseWriter, r *http.Request)
-	// Get Authentication QRCode
-	// (POST /v2/{identifier}/authentication/qrcode)
-	AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams)
+	// Get Authentication Message
+	// (POST /v2/{identifier}/authentication)
+	Authentication(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthenticationParams)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -1142,9 +1142,9 @@ func (_ Unimplemented) GetSupportedNetworks(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Authentication QRCode
-// (POST /v2/{identifier}/authentication/qrcode)
-func (_ Unimplemented) AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams) {
+// Get Authentication Message
+// (POST /v2/{identifier}/authentication)
+func (_ Unimplemented) Authentication(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthenticationParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2607,8 +2607,8 @@ func (siw *ServerInterfaceWrapper) GetSupportedNetworks(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
-// AuthQRCode operation middleware
-func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+// Authentication operation middleware
+func (siw *ServerInterfaceWrapper) Authentication(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -2622,7 +2622,7 @@ func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Req
 	}
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params AuthQRCodeParams
+	var params AuthenticationParams
 
 	// ------------- Optional query parameter "type" -------------
 
@@ -2633,7 +2633,7 @@ func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Req
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AuthQRCode(w, r, identifier, params)
+		siw.Handler.Authentication(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2874,7 +2874,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/supported-networks", wrapper.GetSupportedNetworks)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v2/{identifier}/authentication/qrcode", wrapper.AuthQRCode)
+		r.Post(options.BaseURL+"/v2/{identifier}/authentication", wrapper.Authentication)
 	})
 
 	return r
@@ -4537,36 +4537,36 @@ func (response GetSupportedNetworks500JSONResponse) VisitGetSupportedNetworksRes
 	return json.NewEncoder(w).Encode(response)
 }
 
-type AuthQRCodeRequestObject struct {
+type AuthenticationRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
-	Params     AuthQRCodeParams
+	Params     AuthenticationParams
 }
 
-type AuthQRCodeResponseObject interface {
-	VisitAuthQRCodeResponse(w http.ResponseWriter) error
+type AuthenticationResponseObject interface {
+	VisitAuthenticationResponse(w http.ResponseWriter) error
 }
 
-type AuthQRCode200JSONResponse QrCodeLinkShortResponse
+type Authentication200JSONResponse AuthenticationResponse
 
-func (response AuthQRCode200JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+func (response Authentication200JSONResponse) VisitAuthenticationResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type AuthQRCode400JSONResponse struct{ N400JSONResponse }
+type Authentication400JSONResponse struct{ N400JSONResponse }
 
-func (response AuthQRCode400JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+func (response Authentication400JSONResponse) VisitAuthenticationResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type AuthQRCode500JSONResponse struct{ N500JSONResponse }
+type Authentication500JSONResponse struct{ N500JSONResponse }
 
-func (response AuthQRCode500JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+func (response Authentication500JSONResponse) VisitAuthenticationResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -4692,9 +4692,9 @@ type StrictServerInterface interface {
 	// Get Supported Networks
 	// (GET /v2/supported-networks)
 	GetSupportedNetworks(ctx context.Context, request GetSupportedNetworksRequestObject) (GetSupportedNetworksResponseObject, error)
-	// Get Authentication QRCode
-	// (POST /v2/{identifier}/authentication/qrcode)
-	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
+	// Get Authentication Message
+	// (POST /v2/{identifier}/authentication)
+	Authentication(ctx context.Context, request AuthenticationRequestObject) (AuthenticationResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -5832,26 +5832,26 @@ func (sh *strictHandler) GetSupportedNetworks(w http.ResponseWriter, r *http.Req
 	}
 }
 
-// AuthQRCode operation middleware
-func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams) {
-	var request AuthQRCodeRequestObject
+// Authentication operation middleware
+func (sh *strictHandler) Authentication(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthenticationParams) {
+	var request AuthenticationRequestObject
 
 	request.Identifier = identifier
 	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.AuthQRCode(ctx, request.(AuthQRCodeRequestObject))
+		return sh.ssi.Authentication(ctx, request.(AuthenticationRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "AuthQRCode")
+		handler = middleware(handler, "Authentication")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(AuthQRCodeResponseObject); ok {
-		if err := validResponse.VisitAuthQRCodeResponse(w); err != nil {
+	} else if validResponse, ok := response.(AuthenticationResponseObject); ok {
+		if err := validResponse.VisitAuthenticationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -101,11 +101,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/{identifier}/authentication/qrcode:
+  /v2/{identifier}/authentication:
     post:
-      summary: Get Authentication QRCode
-      operationId: authQRCode
-      description: This endpoint returns a QR code to authenticate, when scanned it a callback is made to the callback endpoint.
+      summary: Get Authentication Message
+      operationId: Authentication
+      description: This endpoint returns an authentication messag
       tags:
         - Auth
       parameters:
@@ -115,7 +115,7 @@ paths:
           required: false
           description: >
             Type:
-              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `link` - (default value) Return a link redirection to the raw content. Easier to scan.   
               * `raw` - Return the raw QR code.
           schema:
             type: string
@@ -127,7 +127,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QrCodeLinkShortResponse'
+                $ref: '#/components/schemas/AuthenticationResponse'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -1863,13 +1863,13 @@ components:
               name: verifiable
               path: "github.com/iden3/go-schema-processor/v2/verifiable"
 
-    QrCodeLinkShortResponse:
+    AuthenticationResponse:
       type: object
       required:
-        - qrCodeLink
+        - message
         - sessionID
       properties:
-        qrCodeLink:
+        message:
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:
