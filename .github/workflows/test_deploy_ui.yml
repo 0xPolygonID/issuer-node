@@ -3,7 +3,7 @@ name: Deploy Issuer Node UI to Testing AWS Environment
 on:
   push:
     branches:
-      - feature/PID-2297-migrate-ui-on-core-api
+      - develop-v2
 
 env:
   AWS_ACCOUNT_ID: ${{ secrets.TEST_AWS_ACCOUNT_ID }}
