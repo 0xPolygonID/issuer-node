@@ -862,7 +862,7 @@ paths:
   /v2/identities/{identifier}/credentials/{id}/offer:
     get:
       summary: Get Credentials Offer
-      operationId: GetCredentialQrCode
+      operationId: GetCredentialOffer
       description: Returns universal/deep link to offer or raw offer message can be used for accepting a claim. |
         Response can be in 3 formats `universalLink`, `deepLink` or `raw`. Default is `universalLink`. Raw is the raw QR code and link is a QR code with a link to the raw content.
         Regardless of the type, the field will always be called universalLink.
@@ -1157,7 +1157,7 @@ paths:
       operationId: GetLink
       description: |
         Get a specific link for the provided identity.
-        `deepLink` and `universalLink` fields are returned if the credential has an associated qr code. <br/>
+        `deepLink` and `universalLink` fields are returned if the credential has an associated protocol message. <br/>
         To create an offer for the link, use the endpoint `/v2/identities/{identifier}/credentials/links/{id}/offer`.
       security:
         - basicAuth: [ ]

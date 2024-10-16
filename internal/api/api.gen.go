@@ -131,11 +131,11 @@ const (
 	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
 )
 
-// Defines values for GetCredentialQrCodeParamsType.
+// Defines values for GetCredentialOfferParamsType.
 const (
-	GetCredentialQrCodeParamsTypeDeepLink      GetCredentialQrCodeParamsType = "deepLink"
-	GetCredentialQrCodeParamsTypeRaw           GetCredentialQrCodeParamsType = "raw"
-	GetCredentialQrCodeParamsTypeUniversalLink GetCredentialQrCodeParamsType = "universalLink"
+	GetCredentialOfferParamsTypeDeepLink      GetCredentialOfferParamsType = "deepLink"
+	GetCredentialOfferParamsTypeRaw           GetCredentialOfferParamsType = "raw"
+	GetCredentialOfferParamsTypeUniversalLink GetCredentialOfferParamsType = "universalLink"
 )
 
 // Defines values for GetStateTransactionsParamsFilter.
@@ -694,17 +694,17 @@ type ActivateLinkJSONBody struct {
 	Active bool `json:"active"`
 }
 
-// GetCredentialQrCodeParams defines parameters for GetCredentialQrCode.
-type GetCredentialQrCodeParams struct {
+// GetCredentialOfferParams defines parameters for GetCredentialOffer.
+type GetCredentialOfferParams struct {
 	// Type Type:
 	//   * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the offer message
 	//   * `deepLink` -  Returns a deeplink with a link redirection to the original message.
 	//   * `raw` - Returns the raw offer message.
-	Type *GetCredentialQrCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
+	Type *GetCredentialOfferParamsType `form:"type,omitempty" json:"type,omitempty"`
 }
 
-// GetCredentialQrCodeParamsType defines parameters for GetCredentialQrCode.
-type GetCredentialQrCodeParamsType string
+// GetCredentialOfferParamsType defines parameters for GetCredentialOffer.
+type GetCredentialOfferParamsType string
 
 // GetSchemasParams defines parameters for GetSchemas.
 type GetSchemasParams struct {
@@ -871,7 +871,7 @@ type ServerInterface interface {
 	GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
 	// Get Credentials Offer
 	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
-	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams)
+	GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -1084,7 +1084,7 @@ func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, ide
 
 // Get Credentials Offer
 // (GET /v2/identities/{identifier}/credentials/{id}/offer)
-func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams) {
+func (_ Unimplemented) GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2229,8 +2229,8 @@ func (siw *ServerInterfaceWrapper) GetCredential(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// GetCredentialQrCode operation middleware
-func (siw *ServerInterfaceWrapper) GetCredentialQrCode(w http.ResponseWriter, r *http.Request) {
+// GetCredentialOffer operation middleware
+func (siw *ServerInterfaceWrapper) GetCredentialOffer(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -2259,7 +2259,7 @@ func (siw *ServerInterfaceWrapper) GetCredentialQrCode(w http.ResponseWriter, r 
 	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetCredentialQrCodeParams
+	var params GetCredentialOfferParams
 
 	// ------------- Optional query parameter "type" -------------
 
@@ -2270,7 +2270,7 @@ func (siw *ServerInterfaceWrapper) GetCredentialQrCode(w http.ResponseWriter, r 
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetCredentialQrCode(w, r, identifier, id, params)
+		siw.Handler.GetCredentialOffer(w, r, identifier, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2844,7 +2844,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}", wrapper.GetCredential)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}/offer", wrapper.GetCredentialQrCode)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}/offer", wrapper.GetCredentialOffer)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
@@ -4101,55 +4101,55 @@ func (response GetCredential500JSONResponse) VisitGetCredentialResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialQrCodeRequestObject struct {
+type GetCredentialOfferRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Id         PathClaim      `json:"id"`
-	Params     GetCredentialQrCodeParams
+	Params     GetCredentialOfferParams
 }
 
-type GetCredentialQrCodeResponseObject interface {
-	VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error
+type GetCredentialOfferResponseObject interface {
+	VisitGetCredentialOfferResponse(w http.ResponseWriter) error
 }
 
-type GetCredentialQrCode200JSONResponse CredentialOfferResponse
+type GetCredentialOffer200JSONResponse CredentialOfferResponse
 
-func (response GetCredentialQrCode200JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+func (response GetCredentialOffer200JSONResponse) VisitGetCredentialOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialQrCode400JSONResponse struct{ N400JSONResponse }
+type GetCredentialOffer400JSONResponse struct{ N400JSONResponse }
 
-func (response GetCredentialQrCode400JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+func (response GetCredentialOffer400JSONResponse) VisitGetCredentialOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialQrCode404JSONResponse struct{ N404JSONResponse }
+type GetCredentialOffer404JSONResponse struct{ N404JSONResponse }
 
-func (response GetCredentialQrCode404JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+func (response GetCredentialOffer404JSONResponse) VisitGetCredentialOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialQrCode409JSONResponse struct{ N409JSONResponse }
+type GetCredentialOffer409JSONResponse struct{ N409JSONResponse }
 
-func (response GetCredentialQrCode409JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+func (response GetCredentialOffer409JSONResponse) VisitGetCredentialOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialQrCode500JSONResponse struct{ N500JSONResponse }
+type GetCredentialOffer500JSONResponse struct{ N500JSONResponse }
 
-func (response GetCredentialQrCode500JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+func (response GetCredentialOffer500JSONResponse) VisitGetCredentialOfferResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -4664,7 +4664,7 @@ type StrictServerInterface interface {
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
 	// Get Credentials Offer
 	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
-	GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error)
+	GetCredentialOffer(ctx context.Context, request GetCredentialOfferRequestObject) (GetCredentialOfferResponseObject, error)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
@@ -5562,27 +5562,27 @@ func (sh *strictHandler) GetCredential(w http.ResponseWriter, r *http.Request, i
 	}
 }
 
-// GetCredentialQrCode operation middleware
-func (sh *strictHandler) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams) {
-	var request GetCredentialQrCodeRequestObject
+// GetCredentialOffer operation middleware
+func (sh *strictHandler) GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams) {
+	var request GetCredentialOfferRequestObject
 
 	request.Identifier = identifier
 	request.Id = id
 	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetCredentialQrCode(ctx, request.(GetCredentialQrCodeRequestObject))
+		return sh.ssi.GetCredentialOffer(ctx, request.(GetCredentialOfferRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetCredentialQrCode")
+		handler = middleware(handler, "GetCredentialOffer")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetCredentialQrCodeResponseObject); ok {
-		if err := validResponse.VisitGetCredentialQrCodeResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetCredentialOfferResponseObject); ok {
+		if err := validResponse.VisitGetCredentialOfferResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
