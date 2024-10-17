@@ -1,6 +1,6 @@
-issuernode_repository_image: 0xpolygon/issuernode
+issuernode_repository_image: privadoid/issuernode-api
 issuernode_repository_tag: latest
-issuernode_ui_repository_image: 0xpolygon/issuernode-ui
+issuernode_ui_repository_image: privadoid/issuernode-ui
 issuernode_ui_repository_tag: latest
 
 apiIssuerNode:
@@ -41,29 +41,15 @@ apiIssuerNode:
       app: issuer-node
 
   configMap:
-    issuerApiAuthPassword: password
-    issuerApiAuthUser: user
+    issuerApiAuthPassword: password-issuer
+    issuerApiAuthUser: user-issuer
     issuerCircuitPath: ./pkg/credentials/circuits
     issuerDbName: platformid
     issuerDbPassword: strongpasswordapp
     issuerDbPort: "5432"
     issuerDbUser: polygonid
-    issuerEthereumConfirmationBlockCount: "10"
-    issuerEthereumConfirmationTimeOut: 10s
-    issuerEthereumContractAddressMumbai: "0x134B1BE34911E39A8397ec6289782989729807a4"
-    issuerEthereumContractAddressAmoy: "0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124"
-    issuerEthereumContractAddressMain: "0x624ce98D2d27b20b8f8d521723Df8fC4db71D79D"
-    issuerEthereumDefaultGasLimit: "600000"
-    issuerEthereumMaxGasPrice: "2500000"
-    issuerEthereumMinGasPrice: "0"
-    issuerEthereumGasLess: "false"
-    issuerEthereumReceiptTimeout: 600s
-    issuerEthereumResolverPrefixMumbai: polygon:mumbai
-    issuerEthereumResolverPrefixAmoy: polygon:amoy
-    issuerEthereumResolverPrefixMain: polygon:main
-    issuerEthereumRpcResponseTimeout: 5s
-    issuerEthereumWaitBlockCycleTime: 30s
-    issuerEthereumWaitReceiptCycleTime: 30s
+    issuerKMSBJJProvider: vault
+    issuerKMSETHProvider: vault
     issuerKeyStorePluginIden3MountPath: iden3
     issuerKeyStorePort: "8200"
     issuerLogLevel: "-4"
@@ -71,7 +57,6 @@ apiIssuerNode:
     issuerNativeProofGenerationEnabled: "true"
     issuerOnchainCheckStatusFrequency: 1m
     issuerOnchainPublishStateFrequency: 1m
-    issuerProverServerUrl: http://localhost:8002
     issuerProverTimeout: 600s
     issuerPublishKeyPath: pbkey
     issuerRedisUrl: redis://@redis-issuer-node-svc:6379/1
@@ -82,71 +67,7 @@ apiIssuerNode:
     issuerVaultUserpassAuthEnabled: "true"
     issuerCredentialStatusPublishingKeyPath: pbkey
     issuerIpfsGatewayUrl: https://gateway.pinata.cloud
-    issuerRshContractAmoy: 0x3d3763eC0a50CE1AdF83d0b5D99FBE0e3fEB43fb
-    issuerRshContractMain: 0xbEeB6bB53504E8C872023451fd0D23BeF01d320B
-    issuerRshChainIDMain: 137
-    issuerRshChainIDAmoy: 80002
   
-apiUiIssuerNode:
-  deployment:
-    replicaCount: 1
-    name: api-ui-issuer-node
-    apiUi:
-      containerName: api-ui
-      env:
-        issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
-        issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-      imagePullPolicy: Always
-      args: 
-        - '"./migrate; ./platform_ui"'
-      command:  
-        - '"sh", "-c"'
-      livenessProbe:
-        name: Custom-Header
-        value: Awesome
-        path: /status
-        port: 3002
-        initialDelaySeconds: 3
-        periodSeconds: 60
-      containerPort: 3002
-      apiconfigMapRef: issuer-node-api-configmap
-    init:
-      containerName: create-did
-      env:
-        issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
-        issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-      imagePullPolicy: Always
-      args: 
-        - '"sleep 30; ./migrate; ./issuer_initializer;"'
-      command:  
-        - '"sh", "-c"'
-      apiuiconfigMapRef: issuer-node-api-ui-configmap
-    labels:
-      app: api-ui-issuer-node-deployment
-    volume: issuer-node
-  service:
-    name: api-ui-issuer-node-svc
-    ports:
-    - port: 3002
-      protocol: TCP
-      targetPort: 3002
-    type: ClusterIP
-    nodePort: 30002
-    selector: api-ui-issuer-node
-  configMap:
-    issuerApiEnvironment: local
-    issuerApiIdentityBlockchain: polygon
-    issuerApiIdentityMethod: polygonid
-    issuerApiIdentityNetworkMumbai: mumbai
-    issuerApiIdentityNetworkAmoy: amoy
-    issuerApiIdentityNetworkMain: main
-    issuerApiUiAuthPassword: password-api
-    issuerApiUiAuthUser: user-api
-    issuerApiUiSchemaCache: "false"
-    issuerApiUiServerPort: "3002"
-    issuerApiName: issuer-node-api-ui-configmap
-  
-
 notificationsIssuerNode:
   deployment:
     replicaCount: 1
@@ -199,13 +120,10 @@ uiIssuerNode:
     nodePort: 30003
     selector: ui-issuer-node
   configMap:
-    issuerApiUiAuthPassword: password-api
-    issuerApiUiAuthUser: user-api
+    issuerApiAuthUser: user-issuer
+    issuerApiAuthPassword: password-issuer
     issuerApiUiIssuerName: my issuer k8s
     issuerUiAuthUsername: user-ui
-    issuerUiBlockExplorerUrlMumbai: https://mumbai.polygonscan.com
-    issuerUiBlockExplorerUrlAmoy: https://www.oklink.com/amoy
-    issuerUiBlockExplorerUrlMain: https://polygonscan.com/
     issuerUiIpfsGatewayUrl: https://ipfs.io
     issuerApiUiName: issuer-node-ui-configmap
     issuerUiSchemaExplorerAndBuilderUrl: https://tools.privado.id
@@ -396,7 +314,7 @@ vaultIssuerNode:
       vault auth enable userpass
       vault write auth/userpass/users/issuernode \
           password={{ .Values.vaultpwd }} \
-          policies="admins,issuernode"
+          policies="issuernode"
 
       echo "===== TEST LOGIN ====="
       vault login -method=userpass username=issuernode password={{ .Values.vaultpwd }}
@@ -438,11 +356,6 @@ ingress:
   enabled: true
   name: issuer-node-ingress
   annotations:
-  apphost:
-    paths:
-      - path: /
-        serviceName: api-ui-issuer-node-svc
-        servicePort: 3002
   uihost: 
     paths:
       - path: /
@@ -457,11 +370,8 @@ ingress:
 
 
 uidomain: ui.issuernode.polygonid.me
-appdomain: app.issuernode.polygonid.me
 apidomain: api.issuernode.polygonid.me
 
-issuerEthereumUrl: https://polygon-amoy.g.alchemy.com/v2/
-mainnet: false
 publicIP: nil
 uiPassword: password
 issuerUiInsecure: false
@@ -470,10 +380,4 @@ ingressEnabled: false
 privateKey: metamask private key
 vaultpwd: pepe
 namespace: default
-issuerKeyType: BJJ
-
-# RHS Params
-rhsMode: None
-rhsUrl: nil
-
-issuerCustomDidMethods: ""
+issuerResolverFile: ""
