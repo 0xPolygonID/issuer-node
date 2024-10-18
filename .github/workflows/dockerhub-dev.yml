@@ -41,7 +41,7 @@ jobs:
           context: ./ui
           platforms: linux/arm64, linux/amd64
           push: true
-          tags: 0xpolygon/issuernode-ui:${{ env.IMAGE_TAG }}
+          tags: privadoid/issuernode-ui:${{ env.IMAGE_TAG }}
 
       - name: Build and push amd64 and arm64 image
         uses: docker/build-push-action@v4
@@ -51,6 +51,6 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: 0xpolygon/issuernode:${{ env.IMAGE_TAG }}
+          tags: privadoid/issuernode:${{ env.IMAGE_TAG }}
 
 
