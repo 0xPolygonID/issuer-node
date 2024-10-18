@@ -24,10 +24,10 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
   - [Table of Contents](#table-of-contents)
   - [Quick Start Installation](#quick-start-installation)
     - [Prerequisites](#prerequisites)
-    - [Issuer Node API](#issuer-node-api)
-      - [Deploy Issuer Node Infrastructure](#deploy-issuer-node-infrastructure)
-      - [Run Issuer Node API](#run-issuer-node-api)
-    - [Issuer Node UI](#issuer-node-ui)
+    - [Run Issuer Node API and UI (docker compose with images from privadoid dockerhub registry)](#run-issuer-node-api-and-ui-docker-compose-with-images-from-privadoid-registry)
+    - [Install and run Issuer Node API and UI (docker compose and build from source)](#install-and-run-issuer-node-api-and-ui---docker-compose-and-build-from-source)
+    - [Running only Issuer Node API (docker compose and build from source)](#running-only-issuer-node-api-docker-compose-and-build-from-source)
+  - [KMS Providers Configuration](#kms-providers-configuration)
   - [Quick Start Demo](#quick-start-demo)
   - [Documentation](#documentation)
   - [Tools](#tools)
@@ -38,6 +38,8 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 > The provided installation guide is **non-production** ready. For production deployments please refer to  [Standalone Mode Guide](https://devs.polygonid.com/docs/issuer/setup-issuer-core/).
 >
 > There is no compatibility with Windows environments at this time. While using WSL should be ok, it's not officially supported.
+> 
+> **After changing the configuration, you must restart the issuer node docker containers.**
 
 ### Prerequisites
 
@@ -52,164 +54,200 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
     - [Alchemy](https://www.alchemy.com/)
     - [Infura](https://www.infura.io/)
 
-### Issuer Node API
+### Run Issuer Node API and UI (docker compose with images from privadoid registry)
+To run the issuer node (API and UI) quickly and without too many customizations follow the following steps:
 
-In this section we will cover the installation of the Issuer Node API.
+1. Copy the config sample file:
+```shell
+cp .env-issuer.sample .env-issuer
+```
+2. Fill the .env-issuer config file with the proper variables:
 
+*.env-issuer*
+```bash
+ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
+```
+
+3. Create a file with the networks' configuration. You can copy and modify the provided sample file:
+
+```bash
+cp resolvers_settings_sample.yaml resolvers_settings.yaml
+```
+then modify the file with the proper values. The most important fields to run the issuer node are RPC (`networkURL`) fields.
+In this file you can define customizations for each type of blockchain and network. For this example, we only need to
+define the RPCs that we will use.
+
+4. Run
+```shell
+make run-all-registry
+```
+
+after a few seconds, the issuer node will be running and you can check the docker containers with `docker ps` and you 
+should see something like this:
+```shell
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS                    PORTS                                        NAMES
+6e923fa11228   privadoid/issuernode-ui         "/bin/sh /app/script…"   37 seconds ago   Up 32 seconds (healthy)   0.0.0.0:8088->80/tcp                         issuer-ui-1
+16afc9d66591   privadoid/issuernode-api        "sh -c ./pending_pub…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-pending_publisher-1
+ceb41877c041   privadoid/issuernode-api        "sh -c ./notificatio…"   37 seconds ago   Up 32 seconds (healthy)                                                issuer-notifications-1
+bd7b69984f1c   privadoid/issuernode-api        "sh -c './migrate &&…"   38 seconds ago   Up 34 seconds (healthy)   0.0.0.0:3001->3001/tcp                       issuer-api-1
+25ae0fcac183   postgres:14-alpine              "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   5432/tcp                                     issuer-postgres-1
+a4a1d3ec9159   redis:6-alpine                  "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   6379/tcp                                     issuer-redis-1
+```
+
+
+5. Import your Ethereum private key
+
+```shell
+make private_key=<private-key> import-private-key-to-kms 
+```
+
+then visit:
+* https://localhost:8088/ to access the UI (default username / password are: user-ui, password-ui). You can set them using env [vars](.env-ui.sample).
+* <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API. (default username / password are: user-issuer, password-issuer)
+  You can set them using env [vars](.env-issuer.sample).
+
+**Different installation alternatives can be seen later.**
+
+### Install and run Issuer Node API and UI - docker compose and build from source.
 > [!NOTE]
-> This Quick Installation Guide is prepared for Polygon Amoy (Testnet) both for the state contract and issuer dids. If you want to deploy the node with Polygon Main configuration, please visit our [advanced Issuer Node configuration guide](https://devs.polygonid.com/docs/issuer/issuer-configuration/)).
+> This Quick Installation Guide is prepared for Polygon Amoy (Testnet) both for the state contract and issuer dids.
 
+In this section we will see how to install the issuer node api and the UI along with the necessary infrastructure in 
+the most basic way, without too much customization.
 
-#### Deploy Issuer Node Infrastructure
-
-1. Copy the config sample files:
-
-    ```shell
-    cp .env-issuer.sample .env-issuer
-    cp .env-api.sample .env-api
-    ```
+1. Copy the config sample file:
+```shell
+cp .env-issuer.sample .env-issuer
+```
 
 2. Fill the .env-issuer config file with the proper variables:
 
-   *.env-issuer*
-    ```bash
-    ISSUER_ETHEREUM_URL=<YOUR_RPC_PROVIDER_URI_ENDPOINT>
-    ```
-3. Start the infrastructure:
+*.env-issuer*
+```bash
+ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
+# API Auth credentials - You can change these values
+ISSUER_API_AUTH_USER=user-issuer
+ISSUER_API_AUTH_PASSWORD=password-issuer
+```
+3. Create a file with the networks' configuration. You can copy and modify the provided sample file:
 
-    ```bash
-    make up
-    ```
+```bash
+cp resolvers_settings_sample.yaml resolvers_settings.yaml
+```
+then modify the file with the proper values. The most important fields to run the issuer node are RPC (`networkURL`) fields.
+In this file you can define customizations for each type of blockchain and network. For this example, we only need to 
+define the RPCs. that will use.
 
-4. Enable vault authentication:
+4. Copy .env-ui sample file and fill the needed env variables:
 
-    ```bash
-    make add-vault-token
-    ```
+```bash 
+cp .env-ui.sample .env-ui
+```
+If you want to disable UI authentication just change `ISSUER_UI_INSECURE=true`, or if you want to change ui authentication:
 
-5. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy).
+*.env-ui*
+```bash
+ISSUER_UI_AUTH_USERNAME=<your-username>
+ISSUER_UI_AUTH_PASSWORD=<your-password>
+```
 
-    ```bash
-    make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key
-    ```
+5. Run API, UI and infrastructure (Postgres, localstorage and Redis)
 
+To do a build and start both the API and the UI in a single step, you can use the following command:
+```bash
+make run-all
+```
+then visit 
+* http://localhost:8088/ to access the UI
+* <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API.
+
+6. Import your Ethereum private Key:
+Configure the private key. This step is needed in order to be able to transit the issuer's state. To perform that
+action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
+```bash
+make private_key=<private-key> import-private-key-to-kms
+```
+
+
+### Running only Issuer Node API (docker compose and build from source)
+
+If you want to run only the API, you can follow the steps below. You have to have the .env-issuer file filled with 
+the proper values and the `resolvers_settings.yaml` file with the proper RPCs.
+Make sure the infrastructure is running (Postgres, localstorage and Redis). If not, you can run it with the following command:
+
+```shell
+make up
+```
+
+Then run: 
+
+```shell
+make build-api && make run-api
+```
 ----
 **Troubleshooting:**
 
-In order to **stop** and **delete** all the containers.
+In order to **stop all** the containers, run the following command:
 
-> [!WARNING]
-> This will permanently delete all data, making it necessary to create an Issuer DID again.
-
-``` bash
-make down
-```
-
-If you experience **problems** with the **vault**, follow these commands:
+> [!NOTE] This will not delete the data in the vault and the database.
 
 ``` bash
-docker stop issuer-vault-1    // Stops the container issuer-vault-1 
-docker rm issuer-vault-1      // Removes container issuer-vault-1
-make clean-vault              // Removes all the data in the vault, including the token
-make up                       // Starts the database, cache and vault storage (i.e, postgres, redis and vault)
+make stop-all
 ```
-Wait 20 secs so the vault can boot and generate a token.
+
+To stop only the API and UI container, run:
 
 ``` bash
-make add-vault-token                                          // Adds the generated token to the ISSUER_KEY_STORE_TOKEN var in .env-issuer
-make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key    // Stores the private key in the vault
+make stop
 ```
 
-----
-#### Run Issuer Node API
+If you want to **delete** all the data in the vault and the database, run:
 
-The issuer node is extensively configurable, for a detailed list of the configuration, please visit our [detailed configuration guide](https://devs.polygonid.com/docs/issuer/issuer-configuration/).
+``` bash
+make clean-volumes
+```
 
-1. Fill the .env-issuer config file with the proper variables:
+If for some reason you only need to restart the UI, run:
 
-   *.env-issuer*
-    ```bash
-    ISSUER_API_AUTH_USER=user-issuer
-    ISSUER_API_AUTH_PASSWORD=password-issuer
-    ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
-    ```
+``` bash
+make run-ui
+```
 
-2. Run api:
-
-    ```bash
-    make run
-    ```
-
-> Core API specification - http://localhost:3001/
-
----
-
-**Troubleshooting:**
-
-Restart the api.
+To restart the api after changes (pull code with changes):
 
 ```bash 
-make restart-api
+make build && make run
 ```
 
----
+### KMS Providers Configuration
+Consider that if you have the issuer node running, after changing the configuration you must restart all the containers.
+In all options the **.env-issuer** file is necessary.
 
-### Issuer Node UI
+#### Running issuer node with vault instead of local storage file
+The issuer node can be configured to use a [HashiCorp Vault](https://www.vaultproject.io), as kms provider.
+However, Vault needs a [plugin](https://github.com/iden3/vault-plugin-secrets-iden3) 
+for key generation and message signing. This is because the issuer node does not generate private keys, but rather 
+delegates that action and the signing of messages to the vault.
 
-In this section we will cover the installation of the Issuer Node UI, before continuing with these steps, make sure that you have followed the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section before continuing.
+Setup environment variables in `.env-issuer` file:
 
-In order to make the UI work, we will need configure some env variables in the `.env-api` file
-
-1. Copy .env-ui sample file and fill the needed env variables:
-
-
-    ```bash 
-    cp .env-ui.sample .env-ui
-    ```
-
-    *.env-ui*
-    ```bash
-    ISSUER_UI_AUTH_USERNAME=user-ui
-    ISSUER_UI_AUTH_PASSWORD=password-ui
-    ```
-    
-    *.env-api*
-    ```bash
-    ISSUER_API_UI_SERVER_URL={PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_API_UI_SERVER_PORT}
-    ```
-
-    > **_NOTE:_**  It is possible to register custom did methods. This field accepts an array of objects in JSON format.</br>
-    > Example:
-        ```
-        ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
-        ```
-
-2. Generate Issuer DID:
-
-    ```bash
-    make generate-issuer-did
-    ```
-
-3. Run UI:
-
-    ```bash
-    make run-ui
-    ```
-
-
->**API UI specification** - http://localhost:3002/
-> 
->**UI** - http://localhost:8088/
-
----
-**Troubleshooting:**
-
-Restart the ui:
-
-```bash 
-make restart-ui
+```bash
+ISSUER_KMS_BJJ_PROVIDER=vault
+ISSUER_KMS_ETH_PROVIDER=vault
 ```
----
+After configuring the variables, run the following commands:
+
+```bash
+make up
+``` 
+In this case, the docker container for vault will be created.
+
+To import the private key (if you have changed the kms provider you have to import the private key again) necessary to 
+transition issuer node states onchain, the command is the same as explained before:
+
+```shell
+make private_key <private-key> import-private-key-to-kms
+```
 
 ## Quick Start Demo
 
@@ -235,3 +273,4 @@ This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will 
 ## License
 
 See [LICENSE](LICENSE.md).
+

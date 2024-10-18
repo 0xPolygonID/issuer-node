@@ -17,6 +17,6 @@ type Loader interface {
 type Factory func(url string) Loader
 
 // NewDocumentLoader returns a new ld.DocumentLoader that will use http ipfs gateway to download documents
-func NewDocumentLoader(ipfsGateway string) ld.DocumentLoader {
-	return NewW3CDocumentLoader(nil, ipfsGateway)
+func NewDocumentLoader(ipfsGateway string, withCache bool) ld.DocumentLoader {
+	return NewW3CDocumentLoader(nil, ipfsGateway, withCache)
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
 )
 
 // NotificationService represents the notification service interface

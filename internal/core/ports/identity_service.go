@@ -13,13 +13,19 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
+const (
+	// AuthorizationRequestQRCallbackURL is the URL to call back after the user has authenticated
+	AuthorizationRequestQRCallbackURL = "%s/v2/authentication/callback?sessionID=%s"
+)
+
 // DIDCreationOptions represents options for DID creation
 type DIDCreationOptions struct {
-	Method                  core.DIDMethod                  `json:"method"`
-	Blockchain              core.Blockchain                 `json:"blockchain"`
-	Network                 core.NetworkID                  `json:"network"`
-	KeyType                 kms.KeyType                     `json:"keyType"`
-	AuthBJJCredentialStatus verifiable.CredentialStatusType `json:"authBJJCredentialStatus,omitempty"`
+	Method               core.DIDMethod                  `json:"method"`
+	Blockchain           core.Blockchain                 `json:"blockchain"`
+	Network              core.NetworkID                  `json:"network"`
+	KeyType              kms.KeyType                     `json:"keyType"`
+	AuthCredentialStatus verifiable.CredentialStatusType `json:"authCredentialStatus,omitempty"`
+	DisplayName          *string                         `json:"displayName,omitempty"`
 }
 
 // CreateAuthenticationQRCodeResponse represents the response of the CreateAuthenticationQRCode method
@@ -34,7 +40,7 @@ type IdentityService interface {
 	GetByDID(ctx context.Context, identifier w3c.DID) (*domain.Identity, error)
 	Create(ctx context.Context, hostURL string, didOptions *DIDCreationOptions) (*domain.Identity, error)
 	SignClaimEntry(ctx context.Context, authClaim *domain.Claim, claimEntry *core.Claim) (*verifiable.BJJSignatureProof2021, error)
-	Get(ctx context.Context) (identities []string, err error)
+	Get(ctx context.Context) (identities []domain.IdentityDisplayName, err error)
 	UpdateState(ctx context.Context, did w3c.DID) (*domain.IdentityState, error)
 	Exists(ctx context.Context, identifier w3c.DID) (bool, error)
 	GetLatestStateByID(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error)
@@ -45,9 +51,11 @@ type IdentityService interface {
 	GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 	UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error
 	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
-	GetStates(ctx context.Context, issuerDID w3c.DID) ([]domain.IdentityState, error)
+	GetStates(ctx context.Context, issuerDID w3c.DID, filter *GetStateTransactionsRequest) ([]domain.IdentityState, uint, error)
 	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (*CreateAuthenticationQRCodeResponse, error)
-	Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error)
+	Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error)
+	AuthenticateWithRequest(ctx context.Context, sessionID *uuid.UUID, authReq protocol.AuthorizationRequestMessage, message string, serverURL string) (*protocol.AuthorizationResponseMessage, error)
 	GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error)
 	PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error
+	UpdateIdentityDisplayName(ctx context.Context, did w3c.DID, displayName string) error
 }

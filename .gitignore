@@ -10,6 +10,7 @@ bin/
 .env-api
 .env-issuer
 .env-ui
+resolvers_settings.yaml
 
 infrastructure/local/.vault/data
 infrastructure/local/.vault/plugins
@@ -18,6 +19,8 @@ infrastructure/local/.vault/file
 
 tools/changelog/input.md
 tools/changelog/changelog.md
+
+kms_localstorage_keys.json
 
 .fleet
 .vscode/

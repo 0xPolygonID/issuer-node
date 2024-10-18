@@ -38,10 +38,12 @@ const connectionParser = getStrictParser<ConnectionInput, Connection>()(
 export async function getConnection({
   env,
   id,
+  identifier,
   signal,
 }: {
   env: Env;
   id: string;
+  identifier: string;
   signal: AbortSignal;
 }): Promise<Response<Connection>> {
   try {
@@ -52,7 +54,7 @@ export async function getConnection({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/connections/${id}`,
+      url: `${API_VERSION}/identities/${identifier}/connections/${id}`,
     });
     return buildSuccessResponse(connectionParser.parse(response.data));
   } catch (error) {
@@ -63,11 +65,13 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
+  identifier,
   params: { maxResults, page, query, sorters },
   signal,
 }: {
   credentials: boolean;
   env: Env;
+  identifier: string;
   params: {
     maxResults?: number;
     page?: number;
@@ -91,7 +95,7 @@ export async function getConnections({
         ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
-      url: `${API_VERSION}/connections`,
+      url: `${API_VERSION}/identities/${identifier}/connections`,
     });
     return buildSuccessResponse(getResourceParser(connectionParser).parse(response.data));
   } catch (error) {
@@ -103,11 +107,13 @@ export async function deleteConnection({
   deleteCredentials,
   env,
   id,
+  identifier,
   revokeCredentials,
 }: {
   deleteCredentials: boolean;
   env: Env;
   id: string;
+  identifier: string;
   revokeCredentials: boolean;
 }): Promise<Response<Message>> {
   try {
@@ -121,7 +127,7 @@ export async function deleteConnection({
         ...(revokeCredentials ? { revokeCredentials: "true" } : {}),
         ...(deleteCredentials ? { deleteCredentials: "true" } : {}),
       }),
-      url: `${API_VERSION}/connections/${id}`,
+      url: `${API_VERSION}/identities/${identifier}/connections/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {

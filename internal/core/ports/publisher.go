@@ -12,5 +12,5 @@ import (
 type Publisher interface {
 	PublishState(ctx context.Context, identity *w3c.DID) (*domain.PublishedState, error)
 	RetryPublishState(ctx context.Context, identifier *w3c.DID) (*domain.PublishedState, error)
-	CheckTransactionStatus(ctx context.Context)
+	CheckTransactionStatus(ctx context.Context, identity *domain.Identity)
 }

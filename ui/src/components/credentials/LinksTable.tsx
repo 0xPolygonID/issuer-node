@@ -1,4 +1,5 @@
 import {
+  App,
   Avatar,
   Button,
   Card,
@@ -14,7 +15,6 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
 } from "antd";
 
 import dayjs from "dayjs";
@@ -32,6 +32,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Link } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -50,9 +51,10 @@ import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
 
   const { md, sm } = Grid.useBreakpoint();
-  const [messageAPI, messageContext] = message.useMessage();
+  const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -219,6 +221,7 @@ export function LinksTable() {
 
       const response = await getLinks({
         env,
+        identifier,
         params: {
           query: queryParam || undefined,
           status: status,
@@ -235,7 +238,7 @@ export function LinksTable() {
         }
       }
     },
-    [env, queryParam, status]
+    [env, queryParam, status, identifier]
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
@@ -286,14 +289,15 @@ export function LinksTable() {
     void updateLink({
       env,
       id,
+      identifier,
       payload: { active },
     }).then((response) => {
       if (response.success) {
         updateCredentialInState(active, id);
 
-        void messageAPI.success(response.data.message);
+        void message.success(response.data.message);
       } else {
-        void messageAPI.error(response.error.message);
+        void message.error(response.error.message);
       }
 
       setLinkUpdating((currentLinksUpdating) => {
@@ -329,8 +333,6 @@ export function LinksTable() {
 
   return (
     <>
-      {messageContext}
-
       <TableCard
         defaultContents={
           <>

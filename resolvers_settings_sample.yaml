@@ -1,0 +1,64 @@
+polygon:
+  amoy:
+    contractAddress: 0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124
+    networkURL: https://polygon-mumbai.g.alchemy.com/v2/x
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: true
+    rhsSettings:
+      mode: None
+      contractAddress: 0x16A1ae4c460C0a42f0a87e69c526c61599B28BC9
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 80002
+      publishingKey: pbkey
+
+  main:
+    contractAddress: 0x624ce98D2d27b20b8f8d521723Df8fC4db71D79D
+    networkURL: https://polygon-mainnet.g.alchemy.com/v2/X2
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0xbEeB6bB53504E8C872023451fd0D23BeF01d320B
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 137
+      publishingKey: pbkey
+
+#customBlockchain:
+#  customNetwork:
+#    contractAddress: { replace with state contract }
+#    networkURL: { replace with custom RPC }
+#    chainID: { replace with chain ID }
+#    networkFlag: { replace with network flag, e.g 0b0011_0001 }
+#    method: iden3
+#    defaultGasLimit: 600000
+#    confirmationTimeout: 10s
+#    confirmationBlockCount: 5
+#    receiptTimeout: 600s
+#    minGasPrice: 0
+#    maxGasPrice: 1000000
+#    rpcResponseTimeout: 5s
+#    waitReceiptCycleTime: 30s
+#    waitBlockCycleTime: 30s
+#    gasLess: false
+#    rhsSettings:
+#      mode: { None | OffChain | OnChain | All}
+#      contractAddress: 0xbEeB6bB53504E8C872023451fd0D23BeF01d320B
+#      rhsUrl: https://rhs-staging.polygonid.me
+#      chainID: 137
+#      publishingKey: pbkey

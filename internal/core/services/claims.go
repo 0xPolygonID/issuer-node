@@ -24,6 +24,7 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -31,35 +32,38 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/pubsub"
+	"github.com/polygonid/sh-id-platform/internal/qrlink"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
+	schemaPkg "github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/urn"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/rand"
-	schemaPkg "github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 var (
-	ErrClaimNotFound                     = errors.New("claim not found")                                               // ErrClaimNotFound Cannot retrieve the given claim
-	ErrSchemaNotFound                    = errors.New("schema not found")                                              // ErrSchemaNotFound Cannot retrieve the given schema from DB
-	ErrLinkNotFound                      = errors.New("link not found")                                                // ErrLinkNotFound Cannot get the given link from the DB
+	ErrCredentialNotFound                = errors.New("credential not found")                                          // ErrCredentialNotFound Cannot retrieve the given claim
+	ErrDisplayMethodLacksURL             = errors.New("credential request with display method lacks url")              // ErrDisplayMethodLacksURL means the credential request includes a display method, but the url is not set
+	ErrEmptyMTPProof                     = errors.New("mtp credentials must have a mtp proof to be fetched")           // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
 	ErrJSONLdContext                     = errors.New("jsonLdContext must be a string")                                // ErrJSONLdContext Field jsonLdContext must be a string
+	ErrInvalidCredentialSubject          = errors.New("credential subject does not match the provided schema")         // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
+	ErrLinkNotFound                      = errors.New("link not found")                                                // ErrLinkNotFound Cannot get the given link from the DB
 	ErrLoadingSchema                     = errors.New("cannot load schema")                                            // ErrLoadingSchema means the system cannot load the schema file
 	ErrMalformedURL                      = errors.New("malformed url")                                                 // ErrMalformedURL The schema url is wrong
-	ErrProcessSchema                     = errors.New("cannot process schema")                                         // ErrProcessSchema Cannot process schema
 	ErrParseClaim                        = errors.New("cannot parse claim")                                            // ErrParseClaim Cannot parse claim
-	ErrInvalidCredentialSubject          = errors.New("credential subject does not match the provided schema")         // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
-	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
+	ErrProcessSchema                     = errors.New("cannot process schema")                                         // ErrProcessSchema Cannot process schema
 	ErrRefreshServiceLacksExpirationTime = errors.New("credential request with refresh service lacks expiration time") // ErrRefreshServiceLacksExpirationTime means the credential request includes a refresh service, but the expiration time is not set
 	ErrRefreshServiceLacksURL            = errors.New("credential request with refresh service lacks url")             // ErrRefreshServiceLacksURL means the credential request includes a refresh service, but the url is not set
-	ErrDisplayMethodLacksURL             = errors.New("credential request with display method lacks url")              // ErrDisplayMethodLacksURL means the credential request includes a display method, but the url is not set
+	ErrSchemaNotFound                    = errors.New("schema not found")                                              // ErrSchemaNotFound Cannot retrieve the given schema from DB
 	ErrUnsupportedDisplayMethodType      = errors.New("unsupported display method type")                               // ErrUnsupportedDisplayMethodType means the display method type is not supported
-	ErrEmptyMTPProof                     = errors.New("mtp credentials must have a mtp proof to be fetched")           // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
+	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
+	ErrWrongCredentialSubjectID          = errors.New("wrong format for credential subject ID")                        // ErrWrongCredentialSubjectID means the credential subject ID is wrong
 )
 
 type claim struct {
-	host                     string
-	icRepo                   ports.ClaimsRepository
+	host string
+	cfg  config.UniversalLinks
+
+	icRepo                   ports.ClaimRepository
 	identitySrv              ports.IdentityService
 	mtService                ports.MtService
 	qrService                ports.QrStoreService
@@ -68,12 +72,12 @@ type claim struct {
 	loader                   loader.DocumentLoader
 	publisher                pubsub.Publisher
 	ipfsClient               *shell.Shell
-	revocationStatusResolver *revocation_status.RevocationStatusResolver
+	revocationStatusResolver *revocationstatus.Resolver
 	mediatypeManager         ports.MediatypeManager
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver, mediatypeManager ports.MediatypeManager) ports.ClaimsService {
+func NewClaim(repo ports.ClaimRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocationstatus.Resolver, mediatypeManager ports.MediatypeManager, cfg config.UniversalLinks) ports.ClaimService {
 	s := &claim{
 		host:                     host,
 		icRepo:                   repo,
@@ -86,6 +90,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrServ
 		publisher:                ps,
 		revocationStatusResolver: revocationStatusResolver,
 		mediatypeManager:         mediatypeManager,
+		cfg:                      cfg,
 	}
 	if ipfsGatewayURL != "" {
 		s.ipfsClient = shell.NewShell(ipfsGatewayURL)
@@ -124,7 +129,7 @@ func (c *claim) GetRevoked(ctx context.Context, currentState string) ([]*domain.
 // CreateCredential - Create a new Credential, but this method doesn't save it in the repository.
 func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
 	if err := c.guardCreateClaimRequest(req); err != nil {
-		log.Warn(ctx, "validating create claim request", "req", req)
+		log.Error(ctx, "create claim request validation", "req", req, "err", err)
 		return nil, err
 	}
 
@@ -133,7 +138,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	if req.RevNonce != nil {
 		nonce = *req.RevNonce
 	} else {
-		nonce, err = rand.Int64()
+		nonce, err = common.Int64()
 	}
 	if err != nil {
 		log.Error(ctx, "create a nonce", "err", err)
@@ -157,9 +162,14 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, ErrJSONLdContext
 	}
 
-	vcID, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
+	var vcID uuid.UUID
+	if req.ClaimID != nil {
+		vcID = *req.ClaimID
+	} else {
+		vcID, err = uuid.NewUUID()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	vc, err := c.createVC(ctx, req, vcID, jsonLdContext, nonce)
@@ -295,7 +305,7 @@ func (c *claim) Delete(ctx context.Context, id uuid.UUID) error {
 	err := c.icRepo.Delete(ctx, c.storage.Pgx, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return ErrClaimNotFound
+			return ErrCredentialNotFound
 		}
 		return err
 	}
@@ -307,7 +317,7 @@ func (c *claim) GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*dom
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issID, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return nil, ErrClaimNotFound
+			return nil, ErrCredentialNotFound
 		}
 		return nil, err
 	}
@@ -329,10 +339,12 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 
 	claim, err := c.GetByID(ctx, issID, id)
 	if err != nil {
+		log.Error(ctx, "getCredentialQrQrCode: get credential by id", "err", err, "id", id)
 		return nil, err
 	}
 
 	if !claim.ValidProof() {
+		log.Error(ctx, "getCredentialQrQrCode: invalid proof", "id", id)
 		return nil, ErrEmptyMTPProof
 	}
 	credID := uuid.New()
@@ -344,7 +356,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 					ID:          claim.ID.String(),
 				},
 			},
-			URL: fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/")),
+			URL: fmt.Sprintf(ports.AgentUrl, strings.TrimSuffix(hostURL, "/")),
 		},
 		From:     claim.Issuer,
 		ID:       credID.String(),
@@ -356,16 +368,20 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 
 	raw, err := json.Marshal(qrCode)
 	if err != nil {
+		log.Error(ctx, "getCredentialQrQrCode: marshal qr code", "err", err)
 		return nil, err
 	}
 	qrID, err := c.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
+		log.Error(ctx, "getCredentialQrQrCode: store qr code", "err", err)
 		return nil, err
 	}
 	return &ports.GetCredentialQrCodeResponse{
-		QrCodeURL:  c.qrService.ToURL(hostURL, qrID),
-		SchemaType: getCredentialType(*claim),
-		QrID:       qrID,
+		DeepLink:      qrlink.NewDeepLink(hostURL, qrID, nil),
+		UniversalLink: qrlink.NewUniversal(c.cfg.BaseUrl, hostURL, qrID, nil),
+		QrRaw:         string(raw),
+		SchemaType:    getCredentialType(*claim),
+		QrID:          qrID,
 	}, nil
 }
 
@@ -409,7 +425,7 @@ func (c *claim) GetAll(ctx context.Context, did w3c.DID, filter *ports.ClaimsFil
 	claims, total, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return nil, 0, ErrClaimNotFound
+			return nil, 0, ErrCredentialNotFound
 		}
 		return nil, 0, err
 	}
@@ -753,6 +769,20 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 			default:
 				return ErrUnsupportedDisplayMethodType
 			}
+		},
+		// check identity
+		func() error {
+			if _, found := req.CredentialSubject["id"]; found {
+				did, ok := req.CredentialSubject["id"].(string)
+				if !ok {
+					return ErrWrongCredentialSubjectID
+				}
+				_, err := w3c.ParseDID(did)
+				if err != nil {
+					return ErrWrongCredentialSubjectID
+				}
+			}
+			return nil
 		},
 	}
 	if req.RefreshService != nil {
