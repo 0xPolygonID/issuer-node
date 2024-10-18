@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awskms "github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/ethereum/go-ethereum/crypto"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/joho/godotenv"
@@ -43,6 +45,7 @@ const (
 	jsonKeyType      = "key_type"
 	jsonPrivateKey   = "private_key"
 	ethereum         = "ethereum"
+	eth              = "ETH"
 	pluginFolderPath = "./localstoragekeys"
 	envFile          = ".env-issuer"
 )
@@ -76,11 +79,11 @@ func main() {
 		log.Error(ctx, "Error loading .env-issuer file")
 	}
 
-	issuerKMSEthPluginVar := os.Getenv(issuerKMSETHProvider)
+	issuerKMSETHProviderToUse := os.Getenv(issuerKMSETHProvider)
 	issuerKmsPluginLocalStorageFilePath := os.Getenv(issuerKmsPluginLocalStorageFilePath)
 
-	if issuerKMSEthPluginVar != config.LocalStorage && issuerKMSEthPluginVar != config.Vault && issuerKMSEthPluginVar != config.AWS {
-		log.Error(ctx, "issuer kms eth provider is not set or is not localstorage or vault or aws", "plugin: ", issuerKMSEthPluginVar)
+	if issuerKMSETHProviderToUse != config.LocalStorage && issuerKMSETHProviderToUse != config.Vault && issuerKMSETHProviderToUse != config.AWS {
+		log.Error(ctx, "issuer kms eth provider is not set or is not localstorage or vault or aws", "plugin: ", issuerKMSETHProviderToUse)
 		return
 	}
 
@@ -99,7 +102,8 @@ func main() {
 	material[jsonKeyType] = ethereum
 	material[jsonPrivateKey] = *fPrivateKey
 
-	if issuerKMSEthPluginVar == config.LocalStorage {
+	if issuerKMSETHProviderToUse == config.LocalStorage {
+		material[jsonKeyType] = eth
 		if err := saveKeyMaterialToFile(ctx, issuerKmsPluginLocalStorageFilePath, kms.LocalStorageFileName, material); err != nil {
 			log.Error(ctx, "cannot save key material to file", "err", err)
 			return
@@ -109,7 +113,7 @@ func main() {
 		return
 	}
 
-	if issuerKMSEthPluginVar == config.Vault {
+	if issuerKMSETHProviderToUse == config.Vault {
 		var vaultCli *vault.Client
 		var vaultErr error
 		vaultTokenVar := os.Getenv(issuerKeyStoreToken)
@@ -161,7 +165,7 @@ func main() {
 		return
 	}
 
-	if issuerKMSEthPluginVar == config.AWS {
+	if issuerKMSETHProviderToUse == config.AWS {
 		awsAccessKey := os.Getenv(aWSAccessKey)
 		awsSecretKey := os.Getenv(aWSSecretKey)
 		awsRegion := os.Getenv(aWSRegion)
@@ -171,16 +175,42 @@ func main() {
 			return
 		}
 
-		keyId, err := createEmptyKey(ctx, awsAccessKey, awsSecretKey, awsRegion, issuerPublishKeyPathVar)
+		cfg, err := awsconfig.LoadDefaultConfig(ctx,
+			awsconfig.WithRegion(awsRegion),
+			awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")),
+		)
 		if err != nil {
-			log.Error(ctx, "cannot create empty key", "err", err)
+			log.Error(ctx, "error loading AWS config", "err", err)
 			return
 		}
-		log.Info(ctx, "key created", "keyId", *keyId)
+		secretManager := secretsmanager.NewFromConfig(cfg)
+		material[jsonKeyType] = eth
+		id := fmt.Sprintf("%s/%s", eth, issuerPublishKeyPathVar)
+		secretName := base64.StdEncoding.EncodeToString([]byte(id))
+
+		secretValue, err := json.Marshal(material)
+		if err != nil {
+			log.Error(ctx, "cannot marshal secret value", "err", err)
+			return
+		}
+
+		input := &secretsmanager.CreateSecretInput{
+			Name:         aws.String(secretName),
+			SecretString: aws.String(string(secretValue)),
+		}
+		_, err = secretManager.CreateSecret(ctx, input)
+		if err != nil {
+			log.Error(ctx, "cannot save key material to aws", "err", err)
+			return
+		}
+		log.Info(ctx, "private key saved to aws:", "path:", issuerPublishKeyPathVar)
 		return
 	}
 }
 
+// deprecated
+//
+//nolint:unused
 func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion string, privateKeyAlias string) (*string, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(
 		ctx,
