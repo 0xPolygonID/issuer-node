@@ -24,8 +24,8 @@ require (
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20231006071010-f511d08ca36f
 	github.com/iden3/go-circuits/v2 v2.3.0
 	github.com/iden3/go-iden3-auth/v2 v2.4.1
-	github.com/iden3/go-iden3-core/v2 v2.2.0
-	github.com/iden3/go-iden3-crypto v0.0.16
+	github.com/iden3/go-iden3-core/v2 v2.3.1
+	github.com/iden3/go-iden3-crypto v0.0.17
 	github.com/iden3/go-jwz/v2 v2.1.1
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
 	github.com/iden3/go-merkletree-sql/v2 v2.0.6

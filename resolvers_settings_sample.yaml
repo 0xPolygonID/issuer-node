@@ -14,10 +14,50 @@ polygon:
     gasLess: true
     rhsSettings:
       mode: None
-      contractAddress: 0x16A1ae4c460C0a42f0a87e69c526c61599B28BC9
+      contractAddress: 0x3d3763eC0a50CE1AdF83d0b5D99FBE0e3fEB43fb
       rhsUrl: https://rhs-staging.polygonid.me
       chainID: 80002
       publishingKey: pbkey
+
+  zkevm:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: <your-rpc-url>
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 1101
+      publishingKey: pbke
+
+  cardona:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: <your-rpc-url>
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 2442
+      publishingKey: pbke
 
   main:
     contractAddress: 0x624ce98D2d27b20b8f8d521723Df8fC4db71D79D
@@ -31,13 +71,118 @@ polygon:
     rpcResponseTimeout: 5s
     waitReceiptCycleTime: 30s
     waitBlockCycleTime: 30s
-    gasLess: false
+    gasLess: true
     rhsSettings:
       mode: None
       contractAddress: 0xbEeB6bB53504E8C872023451fd0D23BeF01d320B
       rhsUrl: https://rhs-staging.polygonid.me
       chainID: 137
       publishingKey: pbkey
+
+privado:
+  main:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: https://rpc-mainnet.privado.id
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: true
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 21000
+      publishingKey: pbke
+
+ethereum:
+  sepolia:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: <your-rpc-url>
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 11155111
+      publishingKey: pbke
+
+  main:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: <your-rpc-url>
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: true
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 1
+      publishingKey: pbke
+
+linea:
+  sepolia:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: <your-rpc-url>
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 59141
+      publishingKey: pbke
+
+  main:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: <your-rpc-url>
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: true
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 59144
+      publishingKey: pbke
+
+
 
 #customBlockchain:
 #  customNetwork:
