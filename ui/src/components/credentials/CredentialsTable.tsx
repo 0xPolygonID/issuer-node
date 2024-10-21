@@ -118,20 +118,20 @@ export function CredentialsTable() {
       title: "Credential",
     },
     {
-      dataIndex: "issuanceDate",
-      key: "issuanceDate",
+      dataIndex: "createdAt",
+      key: "createdAt",
       render: (issuanceDate: Credential["issuanceDate"]) => (
         <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
       sorter: {
         multiple: 2,
       },
-      sortOrder: sorters.find(({ field }) => field === "issuanceDate")?.order,
+      sortOrder: sorters.find(({ field }) => field === "createdAt")?.order,
       title: ISSUE_DATE,
     },
     {
-      dataIndex: "expirationDate",
-      key: "expirationDate",
+      dataIndex: "expiresAt",
+      key: "expiresAt",
       render: (expirationDate: Credential["expirationDate"], credential: Credential) =>
         expirationDate ? (
           <Tooltip placement="topLeft" title={formatDate(expirationDate)}>
@@ -146,7 +146,7 @@ export function CredentialsTable() {
       sorter: {
         multiple: 3,
       },
-      sortOrder: sorters.find(({ field }) => field === "expirationDate")?.order,
+      sortOrder: sorters.find(({ field }) => field === "expiresAt")?.order,
       title: EXPIRATION,
     },
     {
