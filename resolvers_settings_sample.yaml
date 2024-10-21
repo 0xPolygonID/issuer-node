@@ -14,7 +14,7 @@ polygon:
     gasLess: true
     rhsSettings:
       mode: None
-      contractAddress: 0x3d3763eC0a50CE1AdF83d0b5D99FBE0e3fEB43fb
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
       rhsUrl: https://rhs-staging.polygonid.me
       chainID: 80002
       publishingKey: pbkey
@@ -74,7 +74,7 @@ polygon:
     gasLess: false
     rhsSettings:
       mode: None
-      contractAddress: 0xbEeB6bB53504E8C872023451fd0D23BeF01d320B
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
       rhsUrl: https://rhs-staging.polygonid.me
       chainID: 137
       publishingKey: pbkey
