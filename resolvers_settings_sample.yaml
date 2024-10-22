@@ -92,7 +92,7 @@ privado:
     rpcResponseTimeout: 5s
     waitReceiptCycleTime: 30s
     waitBlockCycleTime: 30s
-    gasLess: true
+    gasLess: false
     rhsSettings:
       mode: None
       contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
@@ -133,7 +133,7 @@ ethereum:
     rpcResponseTimeout: 5s
     waitReceiptCycleTime: 30s
     waitBlockCycleTime: 30s
-    gasLess: true
+    gasLess: false
     rhsSettings:
       mode: None
       contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
@@ -174,7 +174,7 @@ linea:
     rpcResponseTimeout: 5s
     waitReceiptCycleTime: 30s
     waitBlockCycleTime: 30s
-    gasLess: true
+    gasLess: false
     rhsSettings:
       mode: None
       contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
