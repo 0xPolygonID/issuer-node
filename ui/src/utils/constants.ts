@@ -84,6 +84,8 @@ export const TOAST_NOTIFICATION_TIMEOUT = 6;
 
 export const DOCS_URL = "https://docs.privado.id";
 
+export const SCHEMAS_DOCS_URL = "https://docs.privado.id/docs/category/schemas";
+
 export const WALLET_APP_STORE_URL = "https://apps.apple.com/us/app/polygon-id/id1629870183";
 
 export const WALLET_PLAY_STORE_URL =

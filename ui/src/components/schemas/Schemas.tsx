@@ -8,7 +8,7 @@ import { Explainer } from "src/components/shared/Explainer";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { ROUTES } from "src/routes";
-import { DOCS_URL, IMPORT_SCHEMA, ISSUE_CREDENTIAL, SCHEMAS } from "src/utils/constants";
+import { IMPORT_SCHEMA, ISSUE_CREDENTIAL, SCHEMAS, SCHEMAS_DOCS_URL } from "src/utils/constants";
 
 export function Schemas() {
   const navigate = useNavigate();
@@ -63,7 +63,7 @@ export function Schemas() {
 
       <Space direction="vertical" size="large">
         <Explainer
-          CTA={{ label: "Learn more", url: DOCS_URL }}
+          CTA={{ label: "Learn more", url: SCHEMAS_DOCS_URL }}
           description="Learn about schema types, attributes, naming conventions, data types and more."
           image="/images/illustration-explainer.svg"
           localStorageKey="explainerSchemas"
