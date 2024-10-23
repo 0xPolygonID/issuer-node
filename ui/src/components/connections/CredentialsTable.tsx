@@ -33,6 +33,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -53,6 +54,7 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
@@ -83,29 +85,29 @@ export function CredentialsTable({ userID }: { userID: string }) {
       title: "Credential",
     },
     {
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+      dataIndex: "issuanceDate",
+      key: "issuanceDate",
+      render: (issuanceDate: Credential["issuanceDate"]) => (
+        <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
-      sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
+      sorter: ({ issuanceDate: a }, { issuanceDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: ISSUE_DATE,
     },
     {
-      dataIndex: "expiresAt",
-      key: "expiresAt",
-      render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
-        expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
+      dataIndex: "expirationDate",
+      key: "expirationDate",
+      render: (expirationDate: Credential["expirationDate"], credential: Credential) =>
+        expirationDate ? (
+          <Tooltip placement="topLeft" title={formatDate(expirationDate)}>
             <Typography.Text>
-              {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
+              {credential.expired ? "Expired" : dayjs(expirationDate).fromNow(true)}
             </Typography.Text>
           </Tooltip>
         ) : (
           "-"
         ),
       responsive: ["sm"],
-      sorter: ({ expiresAt: a }, { expiresAt: b }) => {
+      sorter: ({ expirationDate: a }, { expirationDate: b }) => {
         if (a && b) {
           return dayjs(a).unix() - dayjs(b).unix();
         } else if (a) {
@@ -184,8 +186,9 @@ export function CredentialsTable({ userID }: { userID: string }) {
         );
         const response = await getCredentials({
           env,
+          identifier,
           params: {
-            did: userID,
+            credentialSubject: userID,
             query: query || undefined,
             status: credentialStatus,
           },
@@ -204,7 +207,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         }
       }
     },
-    [userID, env, query, credentialStatus]
+    [userID, env, query, credentialStatus, identifier]
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {

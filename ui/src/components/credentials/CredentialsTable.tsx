@@ -33,6 +33,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -61,6 +62,7 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable() {
   const env = useEnvContext();
+  const { identifier } = useIdentityContext();
 
   const navigate = useNavigate();
 
@@ -95,6 +97,7 @@ export function CredentialsTable() {
     : DEFAULT_PAGINATION_MAX_RESULTS;
 
   const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
+
   const showDefaultContent =
     credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
 
@@ -117,8 +120,8 @@ export function CredentialsTable() {
     {
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+      render: (issuanceDate: Credential["issuanceDate"]) => (
+        <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
       sorter: {
         multiple: 2,
@@ -129,11 +132,11 @@ export function CredentialsTable() {
     {
       dataIndex: "expiresAt",
       key: "expiresAt",
-      render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
-        expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
+      render: (expirationDate: Credential["expirationDate"], credential: Credential) =>
+        expirationDate ? (
+          <Tooltip placement="topLeft" title={formatDate(expirationDate)}>
             <Typography.Text>
-              {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
+              {credential.expired ? "Expired" : dayjs(expirationDate).fromNow(true)}
             </Typography.Text>
           </Tooltip>
         ) : (
@@ -171,7 +174,11 @@ export function CredentialsTable() {
                 key: "details",
                 label: DETAILS,
                 onClick: () =>
-                  navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                  navigate(
+                    generatePath(ROUTES.credentialDetails.path, {
+                      credentialID: id,
+                    })
+                  ),
               },
               {
                 key: "divider1",
@@ -243,6 +250,7 @@ export function CredentialsTable() {
 
       const response = await getCredentials({
         env,
+        identifier,
         params: {
           maxResults: paginationMaxResults,
           page: paginationPage,
@@ -276,6 +284,7 @@ export function CredentialsTable() {
       paginationPage,
       queryParam,
       sortParam,
+      identifier,
       updateUrlParams,
     ]
   );

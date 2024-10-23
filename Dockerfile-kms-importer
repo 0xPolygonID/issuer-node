@@ -1,0 +1,58 @@
+FROM golang:1.22 AS base
+ARG VERSION
+
+ARG ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY
+ARG ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY
+ARG ISSUER_KMS_ETH_PROVIDER_AWS_REGION
+
+WORKDIR /service
+ENV GOBIN /service/bin
+
+COPY go.mod .
+COPY go.sum .
+COPY ./cmd/kms_priv_key_importer/ ./cmd/kms_priv_key_importer/
+COPY ./internal ./internal
+
+
+
+
+RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
+
+FROM alpine:latest
+ARG ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY
+ARG ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY
+ARG ISSUER_KMS_ETH_PROVIDER_AWS_REGION
+
+RUN apk add --no-cache libstdc++ gcompat libgomp
+RUN apk add --update busybox>1.3.1-r0
+RUN apk add --update openssl>3.1.4-r1
+RUN ln -sfv ld-linux-x86-64.so.2 /lib/libresolv.so.2
+RUN apk add --no-cache aws-cli
+
+
+RUN apk add doas; \
+    adduser -S issuer -D -G wheel; \
+    echo 'permit nopass :wheel as root' >> /etc/doas.d/doas.conf;
+RUN chmod g+rx,o+rx /
+
+COPY --from=base ./service/bin/* ./
+COPY --from=base ./service/cmd/kms_priv_key_importer/aws_kms_material_key_importer.sh ./aws_kms_material_key_importer.sh
+RUN chmod +x ./aws_kms_material_key_importer.sh
+
+RUN if [ -n "$ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY" ]; then \
+      aws configure set aws_access_key_id ${ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY} --profile privadoid; \
+    else \
+      echo "ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY is not set"; \
+    fi
+RUN if [ -n "$ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY" ]; then \
+      aws configure set aws_secret_access_key ${ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY} --profile privadoid; \
+    else \
+      echo "ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY is not set"; \
+    fi
+RUN if [ -n "$ISSUER_KMS_ETH_PROVIDER_AWS_REGION" ]; then \
+      aws configure set region ${ISSUER_KMS_ETH_PROVIDER_AWS_REGION} --profile privadoid; \
+    else \
+      echo "ISSUER_KMS_ETH_PROVIDER_AWS_REGION is not set"; \
+    fi
+
+

@@ -65,59 +65,12 @@ app: {{ .Values.apiIssuerNode.service.labels.app }}
 {{- end }}
 
 
-{{/*
-Define contract address
-*/}}
-{{- define "helpers.issuer-contract-address" -}}
-{{- if eq .Values.mainnet true }}
-{{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMain }}
-{{- else }}
-{{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressAmoy }}
-{{- end }}
-{{- end }}
-
-{{/*
-Define ethereum resolver prefix
-*/}}
-{{- define "helpers.issuer-ethereum-resolver-prefix" -}}
-{{- if eq .Values.mainnet true }}
-{{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMain }}
-{{- else }}
-{{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixAmoy }}
-{{- end }}
-{{- end }}
-
-{{/*
-Define network
-*/}}
-{{- define "helpers.issuer-network" -}}
-{{- if eq .Values.mainnet true }}
-{{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkMain }}
-{{- else }}
-{{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkAmoy }}
-{{- end }}
-{{- end }}
-
-{{/*
-Define api ui server url
-*/}}
-{{- define "helpers.api-ui-server-url" -}}
-{{- if eq .Values.ingressEnabled true }}
-http://{{ .Values.appdomain }}
-{{- else }}
-http://{{ .Values.publicIP }}:{{ .Values.apiUiIssuerNode.service.nodePort }}
-{{- end }}
-{{- end }}
 
 {{/*
 Define api server url
 */}}
 {{- define "helpers.api-server-url" -}}
-{{- if eq .Values.ingressEnabled true }}
-http://{{ .Values.apidomain }}
-{{- else }}
-http://{{ .Values.publicIP }}:{{ .Values.apiIssuerNode.service.nodePort }}
-{{- end }}
+https://{{ .Values.apidomain }}
 {{- end }}
 
 {{/*
@@ -130,29 +83,6 @@ Define block explorer
 {{ .Values.uiIssuerNode.configMap.issuerUiBlockExplorerUrlAmoy }}
 {{- end }}
 {{- end }}
-
-{{/*
-Define RHS_CHAIN_ID
-*/}}
-{{- define "helpers.api-rsh-chain-id" -}}
-{{- if eq .Values.mainnet true }}
-{{ .Values.apiIssuerNode.configMap.issuerRshChainIDMain  | quote }}
-{{- else }}
-{{ .Values.apiIssuerNode.configMap.issuerRshChainIDAmoy  | quote }}
-{{- end }}
-{{- end }}
-
-{{/*
-Define Rhs contract
-*/}}
-{{- define "helpers.api-rsh-contract" -}}
-{{- if eq .Values.mainnet true }}
-{{ .Values.apiIssuerNode.configMap.issuerRshContractMain | quote }}
-{{- else }}
-{{ .Values.apiIssuerNode.configMap.issuerRshContractAmoy | quote }}
-{{- end }}
-{{- end }}
-
 
 {{/*
 Define an env var

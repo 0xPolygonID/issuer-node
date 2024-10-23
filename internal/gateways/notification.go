@@ -9,8 +9,8 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/pkg/http"
-	"github.com/polygonid/sh-id-platform/pkg/notifications"
+	"github.com/polygonid/sh-id-platform/internal/http"
+	"github.com/polygonid/sh-id-platform/internal/notifications"
 )
 
 // ErrNoDeviceInfoInPushService is an error when push service in did document doesn't contain device metadata

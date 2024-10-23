@@ -3,7 +3,6 @@ package gateways
 import (
 	"context"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethCommon "github.com/ethereum/go-ethereum/common"
@@ -11,21 +10,20 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
-// OnChainCredStatusResolverService - on chain credential status resolver service
+// OnChainCredStatusResolverService - on chain credential status networkResolver service
 type OnChainCredStatusResolverService struct {
-	ethClient       *eth.Client
-	responseTimeout time.Duration
+	networkResolver *network.Resolver
 }
 
 // NewOnChainCredStatusResolverService - create new instance of OnChainCredStatusResolverService
-func NewOnChainCredStatusResolverService(ethClient *eth.Client, rpcTimeout time.Duration) *OnChainCredStatusResolverService {
+func NewOnChainCredStatusResolverService(networkResolver *network.Resolver) *OnChainCredStatusResolverService {
 	return &OnChainCredStatusResolverService{
-		ethClient:       ethClient,
-		responseTimeout: rpcTimeout,
+		networkResolver: networkResolver,
 	}
 }
 
@@ -36,9 +34,22 @@ func (s *OnChainCredStatusResolverService) GetRevocationStatus(ctx context.Conte
 		log.Error(ctx, "cannot get id from DID", "err", err)
 		return abi.IOnchainCredentialStatusResolverCredentialStatus{}, err
 	}
-	resolver, err := abi.NewOnchainCredentialStatusResolver(address, s.ethClient.GetEthereumClient())
+
+	resolverPrefix, err := common.ResolverPrefix(did)
 	if err != nil {
-		log.Error(ctx, "cannot get resolver", "err", err)
+		log.Error(ctx, "cannot get networkResolver prefix", "err", err)
+		return abi.IOnchainCredentialStatusResolverCredentialStatus{}, err
+	}
+
+	client, err := s.networkResolver.GetEthClient(resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "cannot get eth client", "err", err)
+		return abi.IOnchainCredentialStatusResolverCredentialStatus{}, err
+	}
+
+	resolver, err := abi.NewOnchainCredentialStatusResolver(address, client.GetEthereumClient())
+	if err != nil {
+		log.Error(ctx, "cannot get networkResolver", "err", err)
 		return abi.IOnchainCredentialStatusResolverCredentialStatus{}, err
 	}
 

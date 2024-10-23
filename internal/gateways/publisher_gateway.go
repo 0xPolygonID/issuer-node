@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	ethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/iden3/contracts-abi/state/go/abi"
 	core "github.com/iden3/go-iden3-core/v2"
@@ -17,43 +16,36 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/eth"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
 // PublisherEthGateway interact with blockchain
 type PublisherEthGateway struct {
 	rw                    *sync.RWMutex
-	client                *eth.Client
 	kms                   *kms.KMS
 	publishingKeyID       kms.KeyID
 	ethRPCResponseTimeout time.Duration
-	contractBinding       *abi.State
+	networkResolver       network.Resolver
 }
 
 const rpcTimeout = 10 * time.Second
 
 // NewPublisherEthGateway creates new instance of publishing service
-func NewPublisherEthGateway(_client *eth.Client, contract ethCommon.Address, keyStore *kms.KMS, publishingKeyPath string) (*PublisherEthGateway, error) {
+func NewPublisherEthGateway(resolver network.Resolver, keyStore *kms.KMS, publishingKeyPath string) (*PublisherEthGateway, error) {
 	// TODO: make timeout configurable
-	return newStateService(_client, contract, rpcTimeout, keyStore, kms.KeyID{
+
+	return newStateService(resolver, rpcTimeout, keyStore, kms.KeyID{
 		Type: kms.KeyTypeEthereum,
 		ID:   publishingKeyPath,
 	})
 }
 
-func newStateService(client *eth.Client, addr ethCommon.Address, to time.Duration, kServ *kms.KMS, kPath kms.KeyID) (*PublisherEthGateway, error) {
-	c := client.GetEthereumClient()
-
-	binding, err := abi.NewState(addr, c)
-	if err != nil {
-		return nil, err
-	}
-
+func newStateService(resolver network.Resolver, to time.Duration, kServ *kms.KMS, kPath kms.KeyID) (*PublisherEthGateway, error) {
 	return &PublisherEthGateway{
-		client:                client,
-		contractBinding:       binding,
+		networkResolver:       resolver,
 		rw:                    &sync.RWMutex{},
 		kms:                   kServ,
 		publishingKeyID:       kPath,
@@ -94,13 +86,33 @@ func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c
 
 		ctxWT, cancel := context.WithTimeout(ctx, pb.ethRPCResponseTimeout)
 		defer cancel()
-		opts, err := pb.client.CreateTxOpts(ctxWT, sigKeyID)
+
+		client, err := getEthClient(ctx, identity, pb.networkResolver)
+		if err != nil {
+			log.Error(ctx, "failed to get client", "err", err)
+			return nil, err
+		}
+
+		opts, err := client.CreateTxOpts(ctxWT, sigKeyID)
 		if err != nil {
 			log.Error(ctx, "failed to create tx opts", "err", err)
 			return nil, err
 		}
+		log.Info(ctx, "Transaction metadata", "opts.GasPrice:", opts.GasPrice, "opts.GasLimit:", opts.GasLimit, "opts.GasTipCap:", opts.GasTipCap)
 
-		tx, err = pb.contractBinding.TransitStateGeneric(opts, id.BigInt(), latestState.BigInt(), newState.BigInt(), isOldStateGenesis, big.NewInt(1), []byte{})
+		resolverPrefix, err := identity.GetResolverPrefix()
+		if err != nil {
+			log.Error(ctx, "failed to get networkResolver prefix", "err", err)
+			return nil, err
+		}
+
+		contractBinding, err := getContractBinding(client, resolverPrefix, pb.networkResolver)
+		if err != nil {
+			log.Error(ctx, "failed to get contract binding", "err", err)
+			return nil, err
+		}
+
+		tx, err = contractBinding.TransitStateGeneric(opts, id.BigInt(), latestState.BigInt(), newState.BigInt(), isOldStateGenesis, big.NewInt(1), []byte{})
 		if err != nil {
 			return nil, err
 		}
@@ -108,18 +120,37 @@ func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c
 	case string(kms.KeyTypeBabyJubJub):
 		ctxWT, cancel := context.WithTimeout(ctx, pb.ethRPCResponseTimeout)
 		defer cancel()
-		opts, err := pb.client.CreateTxOpts(ctxWT, pb.publishingKeyID)
+
+		client, err := getEthClient(ctx, identity, pb.networkResolver)
+		if err != nil {
+			log.Error(ctx, "failed to get client", "err", err)
+			return nil, err
+		}
+
+		opts, err := client.CreateTxOpts(ctxWT, pb.publishingKeyID)
 		if err != nil {
 			log.Error(ctx, "failed to create tx opts", "err", err)
 			return nil, err
 		}
+		log.Info(ctx, "Transaction metadata", "opts.GasPrice:", opts.GasPrice, "opts.GasLimit:", opts.GasLimit, "opts.GasTipCap:", opts.GasTipCap)
 
 		a, b, c, err := pb.adaptProofToAbi(proof)
 		if err != nil {
 			return nil, err
 		}
 
-		tx, err = pb.contractBinding.TransitState(opts, id.BigInt(), latestState.BigInt(), newState.BigInt(), isOldStateGenesis, a, b, c)
+		resolverPrefix, err := identity.GetResolverPrefix()
+		if err != nil {
+			log.Error(ctx, "failed to get networkResolver prefix", "err", err)
+			return nil, err
+		}
+
+		contractBinding, err := getContractBinding(client, resolverPrefix, pb.networkResolver)
+		if err != nil {
+			log.Error(ctx, "failed to get contract binding", "err", err)
+			return nil, err
+		}
+		tx, err = contractBinding.TransitState(opts, id.BigInt(), latestState.BigInt(), newState.BigInt(), isOldStateGenesis, a, b, c)
 		if err != nil {
 			return nil, err
 		}
@@ -153,4 +184,18 @@ func (pb *PublisherEthGateway) adaptProofToAbi(proof *rstypes.ProofData) (proofA
 	proofC = [2]*big.Int{c[0], c[1]}
 
 	return
+}
+
+func getContractBinding(ethClient *eth.Client, resolverPrefix string, resolver network.Resolver) (*abi.State, error) {
+	c := ethClient.GetEthereumClient()
+	addr, err := resolver.GetContractAddress(resolverPrefix)
+	if err != nil {
+		return nil, err
+	}
+	binding, err := abi.NewState(*addr, c)
+	if err != nil {
+		return nil, err
+	}
+
+	return binding, nil
 }

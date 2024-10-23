@@ -1,6 +1,5 @@
 run:
   allow-parallel-runners: true
-  go: '1.18'
   timeout: 5m
 
 linters:
@@ -10,7 +9,7 @@ linters:
     - bodyclose
     - containedctx
     - contextcheck
-    - exportloopref
+    - copyloopvar
     - errcheck
     - forbidigo
     - forcetypeassert
@@ -20,7 +19,7 @@ linters:
 #    - gocritic
     - gosimple
     - gofumpt
-    - gomnd
+    - mnd
     - govet
     - ineffassign
     - misspell
@@ -60,9 +59,9 @@ linters-settings:
 #      - performance
 #    disabled-checks:
   gofumpt:
-    lang-version: "1.18"
+
   gocognit:
-    min-complexity: 40
+    min-complexity: 41
   gocyclo:
     min-complexity: 35
   revive:

@@ -19,18 +19,25 @@ import (
 var ErrConnectionDoesNotExist = errors.New("connection does not exist")
 
 type connection struct {
-	connRepo   ports.ConnectionsRepository
-	claimsRepo ports.ClaimsRepository
+	connRepo   ports.ConnectionRepository
+	claimsRepo ports.ClaimRepository
 	storage    *db.Storage
 }
 
 // NewConnection returns a new connection service
-func NewConnection(connRepo ports.ConnectionsRepository, claimsRepo ports.ClaimsRepository, storage *db.Storage) ports.ConnectionsService {
+func NewConnection(connRepo ports.ConnectionRepository, claimsRepo ports.ClaimRepository, storage *db.Storage) ports.ConnectionService {
 	return &connection{
 		connRepo:   connRepo,
 		claimsRepo: claimsRepo,
 		storage:    storage,
 	}
+}
+
+func (c *connection) Create(ctx context.Context, connection *domain.Connection) error {
+	return c.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
+		_, err := c.connRepo.Save(ctx, c.storage.Pgx, connection)
+		return err
+	})
 }
 
 func (c *connection) Delete(ctx context.Context, id uuid.UUID, deleteCredentials bool, issuerDID w3c.DID) error {

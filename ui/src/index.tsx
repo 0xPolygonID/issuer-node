@@ -1,4 +1,4 @@
-import { ConfigProvider, message } from "antd";
+import { App, ConfigProvider } from "antd";
 import { extend as extendDayJsWith } from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { StrictMode } from "react";
@@ -7,6 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { Router } from "src/components/shared/Router";
 import { EnvProvider } from "src/contexts/Env";
+import { IdentityProvider } from "src/contexts/Identity";
 import { IssuerStateProvider } from "src/contexts/IssuerState";
 import { theme } from "src/styles/theme";
 import { TOAST_NOTIFICATION_TIMEOUT } from "src/utils/constants";
@@ -23,17 +24,19 @@ if (!rootElement) {
 
 const root = createRoot(rootElement);
 
-message.config({ duration: TOAST_NOTIFICATION_TIMEOUT });
-
 root.render(
   <StrictMode>
     <BrowserRouter>
       <ConfigProvider theme={theme}>
-        <EnvProvider>
-          <IssuerStateProvider>
-            <Router />
-          </IssuerStateProvider>
-        </EnvProvider>
+        <App message={{ duration: TOAST_NOTIFICATION_TIMEOUT }}>
+          <EnvProvider>
+            <IdentityProvider>
+              <IssuerStateProvider>
+                <Router />
+              </IssuerStateProvider>
+            </IdentityProvider>
+          </EnvProvider>
+        </App>
       </ConfigProvider>
     </BrowserRouter>
   </StrictMode>

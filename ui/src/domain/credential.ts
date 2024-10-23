@@ -1,6 +1,9 @@
 export type CredentialsTabIDs = "issued" | "links";
 
-export type ProofType = "MTP" | "SIG";
+export enum ProofType {
+  BJJSignature2021 = "BJJSignature2021",
+  Iden3SparseMerkleTreeProof = "Iden3SparseMerkleTreeProof",
+}
 
 export type RefreshService = {
   id: string;
@@ -8,11 +11,11 @@ export type RefreshService = {
 };
 
 export type Credential = {
-  createdAt: Date;
   credentialSubject: Record<string, unknown>;
+  expirationDate: Date | null;
   expired: boolean;
-  expiresAt: Date | null;
   id: string;
+  issuanceDate: Date;
   proofTypes: ProofType[];
   refreshService: RefreshService | null;
   revNonce: number;
@@ -23,9 +26,9 @@ export type Credential = {
   userID: string;
 };
 
-export type IssuedQRCode = {
-  qrCode: string;
+export type IssuedMessage = {
   schemaType: string;
+  universalLink: string;
 };
 
 export type LinkStatus = "active" | "inactive" | "exceeded";
@@ -35,6 +38,7 @@ export type Link = {
   createdAt: Date;
   credentialExpiration: Date | null;
   credentialSubject: Record<string, unknown>;
+  deepLink: string;
   expiration: Date | null;
   id: string;
   issuedClaims: number;
@@ -44,4 +48,5 @@ export type Link = {
   schemaType: string;
   schemaUrl: string;
   status: LinkStatus;
+  universalLink: string;
 };

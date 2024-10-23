@@ -5,6 +5,10 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/core/types"
+
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
 // ETHClient defines interface for ethereum client
@@ -19,25 +23,30 @@ type ETHClient interface {
 
 // TransactionService blockchain tx service
 type transaction struct {
-	client                 ETHClient
-	confirmationBlockCount int64
+	networkResolver network.Resolver
 }
 
 // NewTransaction new transaction gateway
-func NewTransaction(_client ETHClient, confirmationBlockCount int64) (*transaction, error) {
-	return &transaction{client: _client, confirmationBlockCount: confirmationBlockCount}, nil
+func NewTransaction(networkResolver network.Resolver) (*transaction, error) {
+	return &transaction{networkResolver: networkResolver}, nil
 }
 
 // CheckConfirmation check tx confirmation status
-func (tr *transaction) CheckConfirmation(ctx context.Context, receipt *types.Receipt) (bool, error) {
-	currentBlock, err := tr.client.CurrentBlock(ctx)
+func (tr *transaction) CheckConfirmation(ctx context.Context, identity *domain.Identity, receipt *types.Receipt, confirmationBlockCount int64) (bool, error) {
+	client, err := getEthClient(ctx, identity, tr.networkResolver)
+	if err != nil {
+		log.Error(ctx, "failed to get client", "err", err)
+		return false, err
+	}
+
+	currentBlock, err := client.CurrentBlock(ctx)
 	if err != nil {
 		return false, err
 	}
 
 	blocks := currentBlock.Sub(currentBlock, receipt.BlockNumber)
 
-	if blocks.Int64() < tr.confirmationBlockCount {
+	if blocks.Int64() < confirmationBlockCount {
 		return false, nil
 	}
 
@@ -45,8 +54,13 @@ func (tr *transaction) CheckConfirmation(ctx context.Context, receipt *types.Rec
 }
 
 // WaitForTransactionReceipt wait for ETH tx receipt
-func (tr *transaction) WaitForTransactionReceipt(ctx context.Context, txID string) (*types.Receipt, error) {
-	receipt, err := tr.client.WaitTransactionReceiptByID(ctx, txID)
+func (tr *transaction) WaitForTransactionReceipt(ctx context.Context, identity *domain.Identity, txID string) (*types.Receipt, error) {
+	client, err := getEthClient(ctx, identity, tr.networkResolver)
+	if err != nil {
+		log.Error(ctx, "failed to get client", "err", err)
+		return nil, err
+	}
+	receipt, err := client.WaitTransactionReceiptByID(ctx, txID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +69,13 @@ func (tr *transaction) WaitForTransactionReceipt(ctx context.Context, txID strin
 }
 
 // GetHeaderByNumber get Eth block header by block number
-func (tr *transaction) GetHeaderByNumber(ctx context.Context, blockNumber *big.Int) (*types.Header, error) {
-	header, err := tr.client.HeaderByNumber(ctx, blockNumber)
+func (tr *transaction) GetHeaderByNumber(ctx context.Context, identity *domain.Identity, blockNumber *big.Int) (*types.Header, error) {
+	client, err := getEthClient(ctx, identity, tr.networkResolver)
+	if err != nil {
+		log.Error(ctx, "failed to get client", "err", err)
+		return nil, err
+	}
+	header, err := client.HeaderByNumber(ctx, blockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +83,13 @@ func (tr *transaction) GetHeaderByNumber(ctx context.Context, blockNumber *big.I
 }
 
 // GetTransactionReceiptByID  returns tx receipt
-func (tr *transaction) GetTransactionReceiptByID(ctx context.Context, txID string) (*types.Receipt, error) {
-	receipt, err := tr.client.GetTransactionReceiptByID(ctx, txID)
+func (tr *transaction) GetTransactionReceiptByID(ctx context.Context, identity *domain.Identity, txID string) (*types.Receipt, error) {
+	client, err := getEthClient(ctx, identity, tr.networkResolver)
+	if err != nil {
+		log.Error(ctx, "failed to get client", "err", err)
+		return nil, err
+	}
+	receipt, err := client.GetTransactionReceiptByID(ctx, txID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,12 +98,40 @@ func (tr *transaction) GetTransactionReceiptByID(ctx context.Context, txID strin
 }
 
 // WaitForConfirmation wait until transaction will be confirmed
-func (tr *transaction) WaitForConfirmation(ctx context.Context, receipt *types.Receipt) (bool, error) {
-	confirmationBlock := big.NewInt(tr.confirmationBlockCount)
+func (tr *transaction) WaitForConfirmation(ctx context.Context, identity *domain.Identity, receipt *types.Receipt) (bool, error) {
+	client, err := getEthClient(ctx, identity, tr.networkResolver)
+	if err != nil {
+		log.Error(ctx, "failed to get client", "err", err)
+		return false, err
+	}
+
+	confirmationBlockCount, err := tr.getConfirmationBlockCount(ctx, identity)
+	if err != nil {
+		log.Error(ctx, "failed to get confirmation block count", "err", err)
+		return false, err
+	}
+
+	confirmationBlock := big.NewInt(confirmationBlockCount)
 	confirmationBlock = confirmationBlock.Add(confirmationBlock, receipt.BlockNumber)
-	err := tr.client.WaitForBlock(ctx, confirmationBlock)
+	err = client.WaitForBlock(ctx, confirmationBlock)
 	if err != nil {
 		return false, err
 	}
 	return true, err
+}
+
+func (tr *transaction) getConfirmationBlockCount(ctx context.Context, identity *domain.Identity) (int64, error) {
+	resolverPrefix, err := identity.GetResolverPrefix()
+	if err != nil {
+		log.Error(ctx, "failed to get networkResolver prefix", "err", err)
+		return 0, err
+	}
+
+	confirmationBlockCount, err := tr.networkResolver.GetConfirmationBlockCount(resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "failed to get confirmation block count", "err", err)
+		return 0, err
+	}
+
+	return confirmationBlockCount, nil
 }

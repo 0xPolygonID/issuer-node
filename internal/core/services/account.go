@@ -5,46 +5,23 @@ import (
 	"math/big"
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
 // AccountService is a service for account operations
 type AccountService struct {
-	rpcURL    string
-	kms       *kms.KMS
-	ethClient *eth.Client
+	networkResolver network.Resolver
 }
 
-// NewAccountService returns new account service
-func NewAccountService(ethConfig config.Ethereum, keyStore *kms.KMS) *AccountService {
-	commonClient, err := ethclient.Dial(ethConfig.URL)
-	if err != nil {
-		log.Warn(context.Background(), "cannot init eth client", "err", err)
-	}
-	ethClient := eth.NewClient(commonClient, &eth.ClientConfig{
-		DefaultGasLimit:        ethConfig.DefaultGasLimit,
-		ConfirmationTimeout:    ethConfig.ConfirmationTimeout,
-		ConfirmationBlockCount: ethConfig.ConfirmationBlockCount,
-		ReceiptTimeout:         ethConfig.ReceiptTimeout,
-		MinGasPrice:            big.NewInt(int64(ethConfig.MinGasPrice)),
-		MaxGasPrice:            big.NewInt(int64(ethConfig.MaxGasPrice)),
-		GasLess:                ethConfig.GasLess,
-		RPCResponseTimeout:     ethConfig.RPCResponseTimeout,
-		WaitReceiptCycleTime:   ethConfig.WaitReceiptCycleTime,
-		WaitBlockCycleTime:     ethConfig.WaitBlockCycleTime,
-	}, keyStore)
-
+// NewAccountService creates a new instance of AccountService
+func NewAccountService(networkResolver network.Resolver) *AccountService {
 	return &AccountService{
-		rpcURL:    ethConfig.URL,
-		kms:       keyStore,
-		ethClient: ethClient,
+		networkResolver: networkResolver,
 	}
 }
 
@@ -55,11 +32,23 @@ func (as *AccountService) GetBalanceByDID(ctx context.Context, did *w3c.DID) (*b
 		log.Error(ctx, "cannot get id from DID", "err", err)
 		return nil, err
 	}
+
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		log.Error(ctx, "cannot get networkResolver prefix", "err", err)
+		return nil, err
+	}
+
+	ethClient, err := as.networkResolver.GetEthClient(resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "cannot get eth client", "err", err)
+		return nil, err
+	}
 	ethAddress, err := core.EthAddressFromID(id)
 	if err != nil {
 		log.Error(ctx, "cannot get eth address from id", "err", err)
 		return nil, err
 	}
 	commonAddress := ethCommon.BytesToAddress(ethAddress[:])
-	return as.ethClient.BalanceAt(ctx, commonAddress)
+	return ethClient.BalanceAt(ctx, commonAddress)
 }

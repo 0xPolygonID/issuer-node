@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   postgres:
     image: postgres:14-alpine
@@ -12,6 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - ./scripts/sql:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready" ]
       interval: 10s
@@ -55,11 +55,10 @@ services:
     image: vault:1.13.2
     volumes:
       - ./.vault/config:/vault/config
-      - ./.vault/policies:/vault/policies
       - ./.vault/scripts:/vault/scripts
-      - ./.vault/plugins:/vault/plugins
-      - ./.vault/data:/vault/data
-      - ./.vault/file:/vault/file:rw
+      - vault-plugins:/vault/plugins
+      - vault-data:/vault/data
+      - vault-file:/vault/file:rw
     ports:
       - 8200:8200
     environment:
@@ -87,3 +86,9 @@ services:
 networks:
   default:
       name: issuer-network
+
+volumes:
+  postgres-data:
+  vault-plugins:
+  vault-data:
+  vault-file:
