@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - develop
 
 env:
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
