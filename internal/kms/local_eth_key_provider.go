@@ -14,27 +14,26 @@ import (
 )
 
 type localEthKeyProvider struct {
-	keyType                 KeyType
-	reIdenKeyPathHex        *regexp.Regexp // RE of key path bounded to identity
-	localStorageFileManager StorageManager
-	temporaryKeys           map[string]map[string]string
+	keyType          KeyType
+	reIdenKeyPathHex *regexp.Regexp // RE of key path bounded to identity
+	storageManager   StorageManager
+	temporaryKeys    map[string]map[string]string
 }
 
 // NewLocalEthKeyProvider - creates new key provider for Ethereum keys stored in local storage
-func NewLocalEthKeyProvider(keyType KeyType, localStorageFileManager StorageManager) KeyProvider {
+func NewLocalEthKeyProvider(keyType KeyType, storageManager StorageManager) KeyProvider {
 	keyTypeRE := regexp.QuoteMeta(string(keyType))
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" + keyTypeRE + ":([a-f0-9]{64})$")
 	return &localEthKeyProvider{
-		keyType:                 keyType,
-		localStorageFileManager: localStorageFileManager,
-		reIdenKeyPathHex:        reIdenKeyPathHex,
-		temporaryKeys:           make(map[string]map[string]string),
+		keyType:          keyType,
+		storageManager:   storageManager,
+		reIdenKeyPathHex: reIdenKeyPathHex,
+		temporaryKeys:    make(map[string]map[string]string),
 	}
 }
 
 func (ls *localEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	keyID := KeyID{Type: ls.keyType}
-
 	ethPrivKey, err := crypto.GenerateKey()
 	if err != nil {
 		return keyID, err
@@ -55,10 +54,6 @@ func (ls *localEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	keyID.ID = getKeyID(identity, ls.keyType, pubKeyHex)
 
 	ls.temporaryKeys[keyID.ID] = keyMaterial
-
-	//if err := ls.localStorageFileProvider.SaveKeyMaterial(ctx, keyMaterial, keyID.ID); err != nil {
-	//	return KeyID{}, err
-	//}
 	return keyID, nil
 }
 
@@ -70,7 +65,6 @@ func (ls *localEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 
 	ss := ls.reIdenKeyPathHex.FindStringSubmatch(keyID.ID)
 	if len(ss) != partsNumber {
-		// if not found. try get public key from private key.
 		pkBytes, err := ls.privateKey(ctx, keyID)
 		if err != nil {
 			return nil, errors.New("unable to get private key for build public key")
@@ -88,7 +82,6 @@ func (ls *localEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 	}
 
 	val, err := hex.DecodeString(ss[1])
-
 	return val, err
 }
 
@@ -119,7 +112,7 @@ func (ls *localEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, 
 	}
 
 	newKey := getKeyID(&identity, ls.keyType, keyID.ID)
-	if err := ls.localStorageFileManager.SaveKeyMaterial(ctx, keyMaterial, newKey); err != nil {
+	if err := ls.storageManager.SaveKeyMaterial(ctx, keyMaterial, newKey); err != nil {
 		return KeyID{}, err
 	}
 
@@ -129,7 +122,7 @@ func (ls *localEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, 
 
 // ListByIdentity lists keys by identity
 func (ls *localEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
-	return ls.localStorageFileManager.searchByIdentity(ctx, identity, KeyTypeEthereum)
+	return ls.storageManager.searchByIdentity(ctx, identity, ls.keyType)
 }
 
 // nolint
@@ -150,7 +143,7 @@ func (ls *localEthKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]b
 	}
 
 	if privateKey == "" {
-		privateKey, err = ls.localStorageFileManager.searchPrivateKey(context.Background(), keyID)
+		privateKey, err = ls.storageManager.searchPrivateKey(context.Background(), keyID)
 		if err != nil {
 			log.Error(ctx, "cannot get private key", "err", err, "keyID", keyID)
 			return nil, err

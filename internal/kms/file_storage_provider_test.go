@@ -34,14 +34,14 @@ func TestSaveKeyMaterialToFile_Success(t *testing.T) {
 
 	assert.Equal(t, 1, len(fileContent))
 	assert.Equal(t, id, fileContent[0].KeyPath)
-	assert.Equal(t, string(KeyTypeEthereum), fileContent[0].KeyType)
+	assert.Equal(t, ethereum, fileContent[0].KeyType)
 	assert.Equal(t, keyMaterial[jsonKeyData], fileContent[0].PrivateKey)
 }
 
 func TestSaveKeyMaterialToFile_FailOnFileWrite(t *testing.T) {
 	ls := NewLocalStorageFileProvider("/path/to/non/existent/file")
 	ctx := context.Background()
-	keyMaterial := map[string]string{"type": "Ethereum", "data": "0xABC123"}
+	keyMaterial := map[string]string{"type": "ethereum", "data": "0xABC123"}
 	id := "key1"
 	err := ls.SaveKeyMaterial(ctx, keyMaterial, id)
 	assert.Error(t, err)
@@ -55,8 +55,8 @@ func TestSearchByIdentityInFile_ReturnsKeyIDsOnMatch(t *testing.T) {
 
 	identity := "did:polygonid:polygon:amoy:2qQ68JkRcf3ybQNvgRV9BP6qLgBrXmUezqBi4wsEuV"
 	fileContent := []localStorageProviderFileContent{
-		{KeyPath: identity + "/ETH:0347fe70a2a9b752e8012d72851c35a13a1423bcdac4bde6ec036e1ea9317b36ac", KeyType: string(KeyTypeEthereum), PrivateKey: "0xABC123"},
-		{KeyPath: identity + "/BJJ:cecf34ed27074e121f1e8a8cc75954ab2b28506258b87b3c9a20e33461f4b12a", KeyType: string(KeyTypeBabyJubJub), PrivateKey: "0xDEF456"},
+		{KeyPath: identity + "/ETH:0347fe70a2a9b752e8012d72851c35a13a1423bcdac4bde6ec036e1ea9317b36ac", KeyType: string(ethereum), PrivateKey: "0xABC123"},
+		{KeyPath: "keys/" + identity + "/BJJ:cecf34ed27074e121f1e8a8cc75954ab2b28506258b87b3c9a20e33461f4b12a", KeyType: string(babyjubjub), PrivateKey: "0xDEF456"},
 	}
 
 	content, err := json.Marshal(fileContent)
@@ -78,7 +78,7 @@ func TestSearchByIdentityInFile_ReturnsKeyIDsOnMatch(t *testing.T) {
 	keyIDs, err = ls.searchByIdentity(ctx, *did, KeyTypeBabyJubJub)
 	require.NoError(t, err)
 	require.Len(t, keyIDs, 1)
-	assert.Equal(t, KeyID{Type: KeyTypeBabyJubJub, ID: identity + "/BJJ:cecf34ed27074e121f1e8a8cc75954ab2b28506258b87b3c9a20e33461f4b12a"}, keyIDs[0])
+	assert.Equal(t, KeyID{Type: KeyTypeBabyJubJub, ID: "keys/" + identity + "/BJJ:cecf34ed27074e121f1e8a8cc75954ab2b28506258b87b3c9a20e33461f4b12a"}, keyIDs[0])
 }
 
 //nolint:lll

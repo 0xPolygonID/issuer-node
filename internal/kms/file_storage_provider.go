@@ -40,7 +40,7 @@ func (ls *localStorageFileProvider) SaveKeyMaterial(ctx context.Context, keyMate
 	}
 	localStorageFileContent = append(localStorageFileContent, localStorageProviderFileContent{
 		KeyPath:    id,
-		KeyType:    keyMaterial[jsonKeyType],
+		KeyType:    convertFromKeyType(KeyType(keyMaterial[jsonKeyType])),
 		PrivateKey: keyMaterial[jsonKeyData],
 	})
 
@@ -58,12 +58,12 @@ func (ls *localStorageFileProvider) SaveKeyMaterial(ctx context.Context, keyMate
 }
 
 func (ls *localStorageFileProvider) searchByIdentity(ctx context.Context, identity w3c.DID, keyType KeyType) ([]KeyID, error) {
+	keyTypeToRead := convertFromKeyType(keyType)
 	localStorageFileContent, err := readContentFile(ctx, ls.file)
 	if err != nil {
 		return nil, err
 	}
 	keyIDs := make([]KeyID, 0)
-	keyTypeToRead := string(keyType)
 	for _, keyMaterial := range localStorageFileContent {
 		keyParts := strings.Split(keyMaterial.KeyPath, "/")
 		if len(keyParts) != partsNumber && len(keyParts) != partsNumber3 {
@@ -72,7 +72,7 @@ func (ls *localStorageFileProvider) searchByIdentity(ctx context.Context, identi
 		if keyParts[0] == identity.String() || keyParts[1] == identity.String() {
 			if keyMaterial.KeyType == keyTypeToRead {
 				keyIDs = append(keyIDs, KeyID{
-					Type: KeyType(keyMaterial.KeyType),
+					Type: convertToKeyType(keyTypeToRead),
 					ID:   keyMaterial.KeyPath,
 				})
 			}

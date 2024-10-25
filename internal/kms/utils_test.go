@@ -1,0 +1,37 @@
+package kms
+
+import (
+	"testing"
+
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/stretchr/testify/assert"
+)
+
+func Test_getKeyID(t *testing.T) {
+	identity, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qQ68JkRcf3ySMcjPtGKJhGgu7jh4zzhrz6UxpXwPw")
+	assert.NoError(t, err)
+
+	t.Run("should get did/BJJ:PrivateKey id", func(t *testing.T) {
+		keyType := KeyTypeBabyJubJub
+		id := getKeyID(identity, keyType, "PrivateKey")
+		assert.Equal(t, "did:polygonid:polygon:amoy:2qQ68JkRcf3ySMcjPtGKJhGgu7jh4zzhrz6UxpXwPw/BJJ:PrivateKey", id)
+	})
+
+	t.Run("should get did/ETH:PrivateKey id", func(t *testing.T) {
+		keyType := KeyTypeEthereum
+		id := getKeyID(identity, keyType, "PrivateKey")
+		assert.Equal(t, "did:polygonid:polygon:amoy:2qQ68JkRcf3ySMcjPtGKJhGgu7jh4zzhrz6UxpXwPw/ETH:PrivateKey", id)
+	})
+
+	t.Run("should get ETH:PrivateKey id", func(t *testing.T) {
+		keyType := KeyTypeEthereum
+		id := getKeyID(nil, keyType, "PrivateKey")
+		assert.Equal(t, "ETH:PrivateKey", id)
+	})
+
+	t.Run("should get BJJ:PrivateKey id", func(t *testing.T) {
+		keyType := KeyTypeBabyJubJub
+		id := getKeyID(nil, keyType, "PrivateKey")
+		assert.Equal(t, "BJJ:PrivateKey", id)
+	})
+}

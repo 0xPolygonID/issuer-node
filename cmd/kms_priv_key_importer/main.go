@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -103,7 +104,6 @@ func main() {
 	material[jsonPrivateKey] = *fPrivateKey
 
 	if issuerKMSETHProviderToUse == config.LocalStorage {
-		material[jsonKeyType] = eth
 		if err := saveKeyMaterialToFile(ctx, issuerKmsPluginLocalStorageFilePath, kms.LocalStorageFileName, material); err != nil {
 			log.Error(ctx, "cannot save key material to file", "err", err)
 			return
@@ -183,8 +183,15 @@ func main() {
 			log.Error(ctx, "error loading AWS config", "err", err)
 			return
 		}
-		secretManager := secretsmanager.NewFromConfig(cfg)
-		material[jsonKeyType] = eth
+
+		var options []func(*secretsmanager.Options)
+		if strings.ToLower(awsRegion) == "local" {
+			options = make([]func(*secretsmanager.Options), 1)
+			options[0] = func(o *secretsmanager.Options) {
+				o.BaseEndpoint = aws.String("http://localhost:4566")
+			}
+		}
+		secretManager := secretsmanager.NewFromConfig(cfg, options...)
 		id := fmt.Sprintf("%s/%s", eth, issuerPublishKeyPathVar)
 		secretName := base64.StdEncoding.EncodeToString([]byte(id))
 

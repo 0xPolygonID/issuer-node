@@ -83,6 +83,14 @@ services:
       start_period: 5s
     command: ./vault/scripts/init.sh
 
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=secretsmanager
+      - DEBUG=1
+
 networks:
   default:
       name: issuer-network

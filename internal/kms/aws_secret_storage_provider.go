@@ -45,8 +45,17 @@ func NewAwsSecretStorageProvider(ctx context.Context, conf AwsSecretStorageProvi
 		log.Error(ctx, "error loading AWS config", "err", err)
 		return nil, err
 	}
+
+	var options []func(*secretsmanager.Options)
+	if strings.ToLower(conf.Region) == "local" {
+		options = make([]func(*secretsmanager.Options), 1)
+		options[0] = func(o *secretsmanager.Options) {
+			o.BaseEndpoint = aws.String("http://localhost:4566")
+		}
+	}
+
 	return &awsSecretStorageProvider{
-		secretManager: secretsmanager.NewFromConfig(cfg),
+		secretManager: secretsmanager.NewFromConfig(cfg, options...),
 	}, nil
 }
 
@@ -58,7 +67,7 @@ func (a *awsSecretStorageProvider) SaveKeyMaterial(ctx context.Context, keyMater
 	log.Info(ctx, "SaveKeyMaterial", "secretName", secretName)
 	awsSecretStorageKeyMaterial := secretStorageProviderKeyMaterial{
 		KeyPath:    id,
-		KeyType:    keyMaterial[jsonKeyType],
+		KeyType:    convertFromKeyType(KeyType(keyMaterial[jsonKeyType])),
 		PrivateKey: keyMaterial[jsonKeyData],
 	}
 	secretValue, err := json.Marshal(awsSecretStorageKeyMaterial)
@@ -74,7 +83,8 @@ func (a *awsSecretStorageProvider) SaveKeyMaterial(ctx context.Context, keyMater
 }
 
 func (a *awsSecretStorageProvider) searchByIdentity(ctx context.Context, identity w3c.DID, keyType KeyType) ([]KeyID, error) {
-	secretName := getSecretNameForKeyTypeAndIdentity(keyType, identity)
+	keyTypeToRead := convertFromKeyType(keyType)
+	secretName := getSecretNameForKeyTypeAndIdentity(KeyType(keyTypeToRead), identity)
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId: aws.String(secretName),
 	}
@@ -92,7 +102,7 @@ func (a *awsSecretStorageProvider) searchByIdentity(ctx context.Context, identit
 	}
 
 	keyID := KeyID{
-		Type: KeyType(secret.KeyType),
+		Type: convertToKeyType(secret.KeyType),
 		ID:   secret.KeyPath,
 	}
 	return []KeyID{keyID}, nil
@@ -120,17 +130,24 @@ func (a *awsSecretStorageProvider) searchPrivateKey(ctx context.Context, keyID K
 }
 
 // newtSecretName returns the secret name for the given key id
-// for a given id did/ETH:PRIVATE_KEY, the secret name will be ETH/did:PRIVATE_KEY
-// for a given id did/BJJ:PRIVATE_KEY, the secret name will be BJJ/did:PRIVATE_KEY
+// for a given id did/ETH:PRIVATE_KEY, the secret name will be ETH/did
+// for a given id did/BJJ:PRIVATE_KEY, the secret name will be BJJ/did
+// for a given id /keys/did/BJJ:PRIVATE_KEY, the secret name will be BJJ/did
 // the secret name is base64 encoded
 func newtSecretName(id string) (string, error) {
+	const (
+		two = 2
+		one = 1
+	)
 	idParts := strings.Split(id, "/")
 	newId := ""
-	if len(idParts) != partsNumber {
+	if len(idParts) != partsNumber && len(idParts) != partsNumber3 {
 		return "", errors.New("invalid key id")
 	}
-	did := idParts[0]
-	idParts = strings.Split(idParts[1], ":")
+	indexDID := len(idParts) - two
+	indexKeyType := len(idParts) - one
+	did := idParts[indexDID]
+	idParts = strings.Split(idParts[indexKeyType], ":")
 	if len(idParts) != partsNumber {
 		return "", errors.New("invalid key id")
 	}
@@ -145,7 +162,8 @@ func newtSecretName(id string) (string, error) {
 // for a given keyType and identity, the secret name will be keyType/identity
 // for instance ETH/did:example:1234 will be returned as base64 encoded string
 func getSecretNameForKeyTypeAndIdentity(keyType KeyType, identity w3c.DID) string {
-	id := fmt.Sprintf("%s/%s", keyType, identity.String())
+	keyTypeForSecret := convertToKeyType(string(keyType))
+	id := fmt.Sprintf("%s/%s", keyTypeForSecret, identity.String())
 	secretName := base64.StdEncoding.EncodeToString([]byte(id))
 	return secretName
 }
@@ -153,13 +171,18 @@ func getSecretNameForKeyTypeAndIdentity(keyType KeyType, identity w3c.DID) strin
 // getSecretNameForKeyID returns the secret name for the given key id
 // the secret name is base64 encoded
 func getSecretNameForKeyID(keyID KeyID) (string, error) {
-	const partsNumber1 = 1
+	const (
+		partsNumber1 = 1
+		two          = 2
+	)
 	secretName := ""
 	keyIDParts := strings.Split(keyID.ID, "/")
-	if len(keyIDParts) == partsNumber1 || len(keyIDParts) != partsNumber {
-		return "", errors.New("invalid key id. expected format: did:example:1234/ETH:PRIVATE or pbkey")
+	if len(keyIDParts) == partsNumber1 || (len(keyIDParts) != partsNumber && len(keyIDParts) != partsNumber3) {
+		return "", errors.New("invalid key id. expected format: did:example:1234/ETH:PRIVATE or pbkey or keys/did:example:1234/BJJ:PRIVATE")
 	}
-	secretName = fmt.Sprintf("%s/%s", keyID.Type, keyIDParts[0])
+
+	indexDID := len(keyIDParts) - two
+	secretName = fmt.Sprintf("%s/%s", keyID.Type, keyIDParts[indexDID])
 	encodedSecretName := base64.StdEncoding.EncodeToString([]byte(secretName))
 	return encodedSecretName, nil
 }

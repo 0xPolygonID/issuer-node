@@ -68,10 +68,21 @@ api: $(BIN)/oapi-codegen
 # Starts the infrastructure services
 .PHONY: up
 up:
-ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
-else
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER), vault)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+endif
+ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+endif
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER), vault)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+endif
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_ETH_PLUGIN_AWS_REGION), awslocal)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
+endif
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER)$(ISSUER_KMS_ETH_PLUGIN_AWS_REGION), awslocal)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
 
 # If you want to use localstorage as a KMS provider, you need to run this command
@@ -154,7 +165,7 @@ stop-all:
 
 .PHONY: up-test
 up-test:
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache localstack
 
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate
