@@ -1,4 +1,4 @@
-name: Deploy Issuer Node UI to Demo AWS Environment
+name: Deploy Issuer Node UI to AWS Environment
 
 on:
   push:
@@ -6,12 +6,14 @@ on:
       - main
 
 env:
-  AWS_ACCOUNT_ID: ${{ secrets.TEST_AWS_ACCOUNT_ID }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: issuer_node_ui_demo
+  ECR_REPOSITORY: ${{vars.ECR_REPOSITORY_UI}}
 
 jobs:
   deploy:
+    environment:
+      name: ${{ github.ref_name }}
     name: Build and Deploy UI to Demo AWS Environment
     runs-on: ubuntu-latest
     permissions:
