@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -35,7 +37,7 @@ jobs:
           context: ./ui
           platforms: linux/arm64, linux/amd64
           push: true
-          tags: 0xpolygon/issuernode-ui:${{ env.IMAGE_TAG }}
+          tags: privadoid/issuernode-ui:${{ env.IMAGE_TAG }}
 
       - name: Build and push amd64 and arm64 image
         uses: docker/build-push-action@v4
@@ -45,4 +47,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: 0xpolygon/issuernode:${{ env.IMAGE_TAG }}
+          tags: privadoid/issuernode-api:${{ env.IMAGE_TAG }}

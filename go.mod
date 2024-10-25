@@ -21,23 +21,23 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/vault/api v1.14.0
 	github.com/hashicorp/vault/api/auth/userpass v0.7.0
-	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20231116131043-966af42c9b58
-	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20231006071010-f511d08ca36f
-	github.com/iden3/go-circuits/v2 v2.3.0
-	github.com/iden3/go-iden3-auth/v2 v2.4.1
-	github.com/iden3/go-iden3-core/v2 v2.2.0
-	github.com/iden3/go-iden3-crypto v0.0.16
-	github.com/iden3/go-jwz/v2 v2.1.1
+	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
+	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20230911112726-4533c5701af1
+	github.com/iden3/go-circuits/v2 v2.4.0
+	github.com/iden3/go-iden3-auth/v2 v2.5.0
+	github.com/iden3/go-iden3-core/v2 v2.3.1
+	github.com/iden3/go-iden3-crypto v0.0.17
+	github.com/iden3/go-jwz/v2 v2.2.0
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
 	github.com/iden3/go-merkletree-sql/v2 v2.0.6
-	github.com/iden3/go-rapidsnark/prover v0.0.11
+	github.com/iden3/go-rapidsnark/prover v0.0.12
 	github.com/iden3/go-rapidsnark/types v0.0.3
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0
-	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e
+	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b
 	github.com/iden3/go-schema-processor v1.3.1
-	github.com/iden3/go-schema-processor/v2 v2.4.2
-	github.com/iden3/iden3comm/v2 v2.5.1
-	github.com/iden3/merkletree-proof v0.2.0
+	github.com/iden3/go-schema-processor/v2 v2.5.0
+	github.com/iden3/iden3comm/v2 v2.6.0
+	github.com/iden3/merkletree-proof v0.3.0
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.3
 	github.com/jackc/pgtype v1.14.3
@@ -312,7 +312,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tdakkota/asciicheck v0.2.0 // indirect
 	github.com/tetafro/godot v1.4.16 // indirect
-	github.com/tetratelabs/wazero v1.7.0 // indirect
+	github.com/tetratelabs/wazero v1.8.0 // indirect
 	github.com/timakin/bodyclose v0.0.0-20230421092635-574207250966 // indirect
 	github.com/timonwong/loggercheck v0.9.4 // indirect
 	github.com/tklauser/go-sysconf v0.3.13 // indirect

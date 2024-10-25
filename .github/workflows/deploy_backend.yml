@@ -1,20 +1,22 @@
-name: Deploy Issuer Node Backend to Testing AWS Environment
+name: Deploy Issuer Node Backend to Demo AWS Environment
 
 on:
   workflow_run:
     workflows: ["Checks"]
-    branches:  ["develop"]
+    branches:  ["main", "develop"]
     types:
       - completed
 
 env:
-  AWS_ACCOUNT_ID: ${{ secrets.TEST_AWS_ACCOUNT_ID }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: issuer_node_backend_testing
+  ECR_REPOSITORY: ${{vars.ECR_REPOSITORY}}
 
 jobs:
   build-backend:
-    name: Build and push latest image to AWS Testing Environment
+    environment:
+      name: ${{ github.event.workflow_run.head_branch }}
+    name: build and push latest image to AWS Environment
     permissions:
       id-token: write
       contents: write
@@ -29,13 +31,21 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Print branch
         run: git branch --show-current
-
-      - name: Create .env-api
+        
+      - name: Create .env-issuer
         run: |
-          touch .env-api
+          touch .env-issuer
 
       - run: make build/docker
 

@@ -35,6 +35,7 @@ func (s *Server) Authentication(ctx context.Context, req AuthenticationRequestOb
 	}
 	resp, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.ServerUrl, *did)
 	if err != nil {
+		log.Error(ctx, "creating qr code", "err", err)
 		return Authentication500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 	if req.Params.Type != nil && *req.Params.Type == AuthenticationParamsTypeRaw {
