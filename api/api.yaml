@@ -2222,7 +2222,7 @@ components:
           type: array
           items:
             type: string
-            example: [ "Iden3commRevocationStatusV1.0", "Iden3ReverseSparseMerkleTreeProof", "Iden3OnchainSparseMerkleTreeProof2023", ]
+            example: "Iden3commRevocationStatusV1.0"
 
     Offer:
       type: object
