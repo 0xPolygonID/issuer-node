@@ -2207,8 +2207,22 @@ components:
         networks:
           type: array
           items:
+            $ref: '#/components/schemas/NetworkData'
+
+    NetworkData:
+      type: object
+      required:
+        - name
+        - rhsMode
+      properties:
+        name:
+          type: string
+          example: "amoy"
+        rhsMode:
+          type: array
+          items:
             type: string
-          example: [ "amoy", "mumbai" ]
+            example: [ "Iden3commRevocationStatusV1.0", "Iden3ReverseSparseMerkleTreeProof", "Iden3OnchainSparseMerkleTreeProof2023", ]
 
     Offer:
       type: object

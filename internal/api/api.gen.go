@@ -434,6 +434,12 @@ type LinkSimple struct {
 	SchemaUrl  string    `json:"schemaUrl"`
 }
 
+// NetworkData defines model for NetworkData.
+type NetworkData struct {
+	Name    string   `json:"name"`
+	RhsMode []string `json:"rhsMode"`
+}
+
 // Offer defines model for Offer.
 type Offer = protocol.CredentialsOfferMessage
 
@@ -526,8 +532,8 @@ type StateTransactionsPaginated struct {
 
 // SupportedNetworks defines model for SupportedNetworks.
 type SupportedNetworks struct {
-	Blockchain string   `json:"blockchain"`
-	Networks   []string `json:"networks"`
+	Blockchain string        `json:"blockchain"`
+	Networks   []NetworkData `json:"networks"`
 }
 
 // TimeUTC defines model for TimeUTC.
