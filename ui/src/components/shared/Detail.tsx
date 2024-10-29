@@ -42,25 +42,49 @@ export function Detail({
     }
   };
   const value = ellipsisPosition ? text.slice(0, text.length - ellipsisPosition) : text;
-  const element = (
-    <Typography.Text
-      copyable={
-        copyable && {
-          icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
-          text: copyableText || text,
+  const Component: React.ElementType = href ? Typography.Link : Typography.Text;
+
+  const componentProps =
+    Component === Typography.Link
+      ? {
+          ellipsis: true,
+          href,
+          target: "_blank",
         }
-      }
-      ellipsis={ellipsisPosition ? { suffix: text.slice(-ellipsisPosition) } : true}
-      style={{ textAlign: sm ? "right" : "left", width: "100%" }}
+      : {
+          ellipsis: ellipsisPosition ? { suffix: text.slice(-ellipsisPosition) } : true,
+        };
+
+  const element = (
+    <Flex
+      justify={sm ? "flex-end" : "flex-start"}
+      style={{ display: "inline-flex", width: "100%" }}
     >
-      {tag ? (
-        <Tag {...tag} style={{ marginInlineEnd: "initial" }}>
-          {value}
-        </Tag>
-      ) : (
-        value
+      <Component
+        {...componentProps}
+        style={{
+          textAlign: sm ? "right" : "left",
+        }}
+      >
+        {tag ? (
+          <Tag {...tag} style={{ marginInlineEnd: "initial" }}>
+            {value}
+          </Tag>
+        ) : (
+          value
+        )}
+      </Component>
+      {copyable && (
+        <Typography.Text
+          copyable={
+            copyable && {
+              icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
+              text: copyableText || text,
+            }
+          }
+        />
       )}
-    </Typography.Text>
+    </Flex>
   );
 
   return (
@@ -101,12 +125,6 @@ export function Detail({
                   </Button>
                 )}
               </Flex>
-            );
-          } else if (href) {
-            return (
-              <Typography.Link ellipsis href={href} target="_blank">
-                {element}
-              </Typography.Link>
             );
           } else {
             return element;
