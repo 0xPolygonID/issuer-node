@@ -260,7 +260,7 @@ This [Quick Start Demo](https://docs.privado.id/docs/quick-start-demo) will walk
 
 ## Tools
 > [!WARNING]
-> **Demo Issuer** and **Verifier Demo** are for **testing** purposes **only**.
+> **Privado ID Demo Issuer** and **Privado ID Verifier Backend Demo** are for **testing** purposes **only**.
 
 * [Privado ID Schema Explorer](https://tools.privado.id): Browse and reuse community-maintained VC schemas.
 * [Privado ID Schema Builder](https://tools.privado.id/builder): A tool for easy VC schema creation.
