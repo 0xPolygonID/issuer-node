@@ -4,15 +4,7 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
-import {
-  CredentialStatusType,
-  Env,
-  Identity,
-  IdentityDetails,
-  IdentityType,
-  Method,
-  SupportedNetwork,
-} from "src/domain";
+import { Env, Identity, IdentityDetails, IdentityType, Method, SupportedNetwork } from "src/domain";
 
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -20,7 +12,7 @@ import { List } from "src/utils/types";
 const identityParser = getStrictParser<Identity>()(
   z.object({
     blockchain: z.string(),
-    credentialStatusType: z.nativeEnum(CredentialStatusType),
+    credentialStatusType: z.string(),
     displayName: z.string().nullable(),
     identifier: z.string(),
     method: z.nativeEnum(Method),
@@ -56,7 +48,7 @@ export async function getIdentities({
 
 export type CreateIdentity = {
   blockchain: string;
-  credentialStatusType: CredentialStatusType;
+  credentialStatusType: string;
   displayName: string;
   method: string;
   network: string;
@@ -100,7 +92,7 @@ export async function createIdentity({
 
 export const identityDetailsParser = getStrictParser<IdentityDetails>()(
   z.object({
-    credentialStatusType: z.nativeEnum(CredentialStatusType),
+    credentialStatusType: z.string(),
     displayName: z.string().nullable(),
     identifier: z.string(),
     keyType: z.nativeEnum(IdentityType),
@@ -160,10 +152,15 @@ export async function updateIdentityDisplayName({
   }
 }
 
+export const networkSchema = z.object({
+  name: z.string(),
+  rhsMode: z.tuple([z.string()]).rest(z.string()),
+});
+
 export const supportedNetworkParser = getStrictParser<SupportedNetwork>()(
   z.object({
     blockchain: z.string(),
-    networks: z.tuple([z.string()]).rest(z.string()),
+    networks: z.tuple([networkSchema]).rest(networkSchema),
   })
 );
 

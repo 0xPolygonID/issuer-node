@@ -1,11 +1,12 @@
 import { App, Button, Card, Col, Divider, Form, Input, Row, Select, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
+
 import { getSupportedNetwork } from "src/adapters/api/identities";
 import { IdentityFormData, identityFormDataParser } from "src/adapters/parsers/view";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, CredentialStatusType, IdentityType, Method, SupportedNetwork } from "src/domain";
+import { AppError, IdentityType, Method, SupportedNetwork } from "src/domain";
 import {
   AsyncTask,
   hasAsyncTaskFailed,
@@ -14,15 +15,39 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { VALUE_REQUIRED } from "src/utils/constants";
+import { buildAppError } from "src/utils/error";
 
 const initialValues: IdentityFormData = {
   blockchain: "",
-  credentialStatusType: CredentialStatusType["Iden3commRevocationStatusV1.0"],
+  credentialStatusType: "",
   displayName: "",
   method: Method.iden3,
   network: "",
   type: IdentityType.BJJ,
 };
+
+function getNetworkFormValues(
+  supportedNetworks: SupportedNetwork[],
+  blockchainName?: string,
+  networkName?: string
+): Partial<IdentityFormData> | null {
+  const foundNetwork = supportedNetworks.find(({ blockchain }) => blockchain === blockchainName);
+  const selectedNetwork = foundNetwork ?? supportedNetworks[0];
+
+  if (!selectedNetwork) {
+    return null;
+  }
+
+  const { blockchain, networks } = selectedNetwork;
+  const network = networks.find(({ name }) => name === networkName) || networks[0];
+  const credentialStatusType = network.rhsMode[0];
+
+  return {
+    blockchain,
+    credentialStatusType,
+    network: network.name,
+  };
+}
 
 export function IdentityForm({
   onSubmit,
@@ -57,12 +82,19 @@ export function IdentityForm({
       });
 
       if (response.success) {
+        if (response.data.failed.length) {
+          void message.error(
+            response.data.failed.map((error) => buildAppError(error).message).join("\n")
+          );
+        }
+
         setSupportedNetworks({ data: response.data.successful, status: "successful" });
         setFormData((prevFormData) => {
-          const [firstSupportedNetwork] = response.data.successful;
-          if (firstSupportedNetwork) {
-            const { blockchain, networks } = firstSupportedNetwork;
-            return { ...prevFormData, blockchain, network: networks[0] };
+          if (response.data.successful.length) {
+            return {
+              ...prevFormData,
+              ...getNetworkFormValues(response.data.successful),
+            };
           }
 
           return prevFormData;
@@ -82,13 +114,20 @@ export function IdentityForm({
     return aborter;
   }, [fetchNetworks]);
 
-  if (hasAsyncTaskFailed(supportedNetworks)) {
+  if (
+    hasAsyncTaskFailed(supportedNetworks) ||
+    (isAsyncTaskDataAvailable(supportedNetworks) && !supportedNetworks.data.length)
+  ) {
+    const errorMessage = hasAsyncTaskFailed(supportedNetworks)
+      ? supportedNetworks.error.message
+      : "";
+
     return (
       <Card className="centered">
         <ErrorResult
           error={[
             "An error occurred while downloading the supported networks from the API:",
-            supportedNetworks.error.message,
+            errorMessage,
           ].join("\n")}
         />
       </Card>
@@ -101,26 +140,36 @@ export function IdentityForm({
     );
   } else {
     const blockchainOptions = supportedNetworks.data.map(({ blockchain }) => blockchain);
-    const networkOptions = supportedNetworks.data.find(
-      ({ blockchain }) => blockchain === formData.blockchain
-    )?.networks;
+
+    const networkOptions = supportedNetworks.data
+      .find(({ blockchain }) => blockchain === formData.blockchain)
+      ?.networks.map(({ name }) => name);
+
+    const credentialStatusOptions = supportedNetworks.data
+      .find(({ blockchain }) => blockchain === formData.blockchain)
+      ?.networks.find(({ name }) => name === formData.network)?.rhsMode;
 
     return (
       blockchainOptions.length &&
-      networkOptions?.length && (
+      networkOptions?.length &&
+      credentialStatusOptions?.length && (
         <Form
           form={form}
           initialValues={formData}
           layout="vertical"
           onFinish={onSubmit}
           onValuesChange={(changedValue: Partial<IdentityFormData>, allValues) => {
-            const updatedFormData = { ...allValues };
+            let updatedFormData = { ...allValues };
 
-            if (changedValue.blockchain) {
-              const networks = supportedNetworks.data.find(
-                ({ blockchain }) => blockchain === changedValue.blockchain
-              )?.networks;
-              updatedFormData.network = networks?.[0] || "";
+            if (changedValue.blockchain || changedValue.network) {
+              updatedFormData = {
+                ...allValues,
+                ...getNetworkFormValues(
+                  supportedNetworks.data,
+                  allValues.blockchain,
+                  allValues.network
+                ),
+              };
             }
 
             const parsedIdentityFormData = identityFormDataParser.safeParse(updatedFormData);
@@ -213,7 +262,7 @@ export function IdentityForm({
               rules={[{ message: VALUE_REQUIRED, required: true }]}
             >
               <Select className="full-width" placeholder="Credential Status">
-                {Object.values(CredentialStatusType).map((credentialStatus) => (
+                {Object.values(credentialStatusOptions).map((credentialStatus) => (
                   <Select.Option key={credentialStatus} value={credentialStatus}>
                     {credentialStatus}
                   </Select.Option>

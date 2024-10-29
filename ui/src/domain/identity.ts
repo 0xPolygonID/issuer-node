@@ -3,25 +3,24 @@ export enum IdentityType {
   ETH = "ETH",
 }
 
-export enum CredentialStatusType {
-  "Iden3OnchainSparseMerkleTreeProof2023" = "Iden3OnchainSparseMerkleTreeProof2023",
-  "Iden3ReverseSparseMerkleTreeProof" = "Iden3ReverseSparseMerkleTreeProof",
-  "Iden3commRevocationStatusV1.0" = "Iden3commRevocationStatusV1.0",
-}
-
 export enum Method {
   iden3 = "iden3",
   polygonid = "polygonid",
 }
 
+export type Network = {
+  name: string;
+  rhsMode: [string, ...string[]];
+};
+
 export type SupportedNetwork = {
   blockchain: string;
-  networks: [string, ...string[]];
+  networks: [Network, ...Network[]];
 };
 
 export type Identity = {
   blockchain: string;
-  credentialStatusType: CredentialStatusType;
+  credentialStatusType: string;
   displayName: string | null;
   identifier: string;
   method: Method;
@@ -29,7 +28,7 @@ export type Identity = {
 };
 
 export type IdentityDetails = {
-  credentialStatusType: CredentialStatusType;
+  credentialStatusType: string;
   displayName: string | null;
   identifier: string;
   keyType: IdentityType;
