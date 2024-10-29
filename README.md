@@ -274,5 +274,4 @@ This [Quick Start Demo](https://docs.privado.id/docs/quick-start-demo) will walk
 
 ## License
 
-See [LICENSE](LICENSE.md).
-
+By contributing to this project, you agree to the terms of licenses [Apache](LICENSE-APACHE) and [Mit](LICENSE-MIT).
