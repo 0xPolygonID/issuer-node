@@ -264,7 +264,7 @@ This [Quick Start Demo](https://docs.privado.id/docs/quick-start-demo) will walk
 
 * [Privado ID Schema Explorer](https://tools.privado.id): Browse and reuse community-maintained VC schemas.
 * [Privado ID Schema Builder](https://tools.privado.id/builder): A tool for easy VC schema creation.
-* [Privado ID Demo Issuer](https://user-ui:password-ui@https://issuer-node-testing.privado.id): A demo version of the Issuer Node in action.
+* [Privado ID Demo Issuer](https://user-ui:password-ui@issuer-node-testing.privado.id): A demo version of the Issuer Node in action.
 * [Privado ID Query Builder](https://tools.privado.id/query-builder): Build and customize queries to verify VCs.
 * [Privado ID Verifier Backend Demo](https://verifier-backend.privado.id): Demo of our [reference implementation](https://github.com/0xPolygonID/verifier-backend) of a verifier backend.
 * [Privado ID Web Wallet](https://wallet.privado.id): Identity and credential wallet for web clients.
