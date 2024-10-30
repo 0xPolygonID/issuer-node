@@ -192,8 +192,7 @@ func main() {
 			}
 		}
 		secretManager := secretsmanager.NewFromConfig(cfg, options...)
-		id := fmt.Sprintf("%s/%s", eth, issuerPublishKeyPathVar)
-		secretName := base64.StdEncoding.EncodeToString([]byte(id))
+		secretName := base64.StdEncoding.EncodeToString([]byte(issuerPublishKeyPathVar))
 
 		secretValue, err := json.Marshal(material)
 		if err != nil {

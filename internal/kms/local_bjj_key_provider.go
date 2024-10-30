@@ -41,7 +41,7 @@ func (ls *localBJJKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	bjjPrivateKey := babyjub.NewRandPrivKey()
 	keyID := KeyID{
 		Type: ls.keyType,
-		ID:   keyPath(identity, ls.keyType, bjjPrivateKey.Public().String()),
+		ID:   keyPathForLocalProvider(identity, ls.keyType, bjjPrivateKey.Public().String()),
 	}
 	keyMaterial := map[string]string{
 		jsonKeyType: string(ls.keyType),

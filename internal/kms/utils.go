@@ -47,3 +47,11 @@ func convertFromKeyType(keyType KeyType) string {
 		return ""
 	}
 }
+
+func keyPathForLocalProvider(identity *w3c.DID, keyType KeyType, keyID string) string {
+	basePath := ""
+	if identity != nil {
+		basePath = identity.String() + "/"
+	}
+	return basePath + string(keyType) + ":" + keyID
+}

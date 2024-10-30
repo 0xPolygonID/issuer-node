@@ -97,7 +97,7 @@ func Test_searchByIdentity(t *testing.T) {
 
 	t.Run("should get identity for BJJ from ETH", func(t *testing.T) {
 		did := randomDID(t)
-		id := "keys/" + did.String() + "/BJJ:key_data"
+		id := did.String() + "/BJJ:key_data"
 		err := awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
 			jsonKeyType:    string(KeyTypeBabyJubJub),
 			jsonKeyData:    "key_data",
@@ -109,7 +109,7 @@ func Test_searchByIdentity(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, keyIDs, 1)
 		keyID := keyIDs[0]
-		assert.Equal(t, KeyID{Type: KeyTypeBabyJubJub, ID: "keys/" + did.String() + "/BJJ:key_data"}, keyID)
+		assert.Equal(t, KeyID{Type: KeyTypeBabyJubJub, ID: did.String() + "/BJJ:key_data"}, keyID)
 	})
 
 	t.Run("should get identity for ETH", func(t *testing.T) {
@@ -183,7 +183,7 @@ func Test_searchPrivateKey(t *testing.T) {
 	t.Run("should get private key for BJJ | from eth identity", func(t *testing.T) {
 		did := randomDID(t)
 		privateKey := "9d7abdd5a43573ab9b623c50b9fc8f4357329d3009fe0fc22c8931161d98a03d"
-		id := "keys/" + did.String() + "/BJJ:f6eb5b16318de6054ccc30047d9ba395c954e78b6f1ba0a8f52a6e46b7f2500f"
+		id := did.String() + "/BJJ:f6eb5b16318de6054ccc30047d9ba395c954e78b6f1ba0a8f52a6e46b7f2500f"
 		err := awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
 			jsonKeyType: string(KeyTypeBabyJubJub),
 			jsonKeyData: privateKey,
@@ -194,7 +194,7 @@ func Test_searchPrivateKey(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, keyIDs, 1)
 		keyID := keyIDs[0]
-		assert.Equal(t, KeyID{Type: KeyTypeBabyJubJub, ID: "keys/" + did.String() + "/BJJ:f6eb5b16318de6054ccc30047d9ba395c954e78b6f1ba0a8f52a6e46b7f2500f"}, keyID)
+		assert.Equal(t, KeyID{Type: KeyTypeBabyJubJub, ID: did.String() + "/BJJ:f6eb5b16318de6054ccc30047d9ba395c954e78b6f1ba0a8f52a6e46b7f2500f"}, keyID)
 
 		privateKeyFromStore, err := awsStorageProvider.searchPrivateKey(ctx, keyID)
 		require.NoError(t, err)
