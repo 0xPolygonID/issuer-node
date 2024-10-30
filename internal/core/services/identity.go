@@ -719,7 +719,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthCredentialStatus, false)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, didOptions.AuthCredentialStatus, false)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -781,7 +781,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthCredentialStatus, true)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, didOptions.AuthCredentialStatus, true)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -849,6 +849,82 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 	}
 
 	return did, identity.State.TreeState().State.BigInt(), nil
+}
+
+// AddKey adds a new key to the identity
+func (i *identity) AddKey(ctx context.Context, did *w3c.DID) error {
+	return i.storage.Pgx.BeginFunc(ctx,
+		func(tx pgx.Tx) error {
+			identity, err := i.identityRepository.GetByID(ctx, tx, *did)
+			if err != nil {
+				return err
+			}
+
+			// get current auth core claim
+			authHash, err := core.AuthSchemaHash.MarshalText()
+			if err != nil {
+				log.Error(ctx, "marshaling auth schema hash", "err", err)
+				return err
+			}
+			currentAuthClaim, err := i.claimsRepository.FindOneClaimBySchemaHash(ctx, tx, did, string(authHash))
+			if err != nil {
+				log.Error(ctx, "finding auth claim by schema hash", "err", err)
+				return err
+			}
+
+			var authCoreClaimRevocationStatus domain.AuthCoreClaimRevocationStatus
+			if err := json.Unmarshal(currentAuthClaim.CredentialStatus.Bytes, &authCoreClaimRevocationStatus); err != nil {
+				log.Error(ctx, "unmarshalling auth core claim revocation status", "err", err)
+				return err
+			}
+
+			// add bjj auth claim
+			bjjKey, err := i.kms.CreateKey(kms.KeyTypeBabyJubJub, did)
+			if err != nil {
+				return err
+			}
+
+			bjjPubKey, err := bjjPubKey(i.kms, bjjKey)
+			if err != nil {
+				return err
+			}
+
+			authClaim, err := newAuthClaim(bjjPubKey)
+			if err != nil {
+				return errors.Join(err, errors.New("can't create auth claim"))
+			}
+
+			revNonce, err := common.RandInt64()
+			if err != nil {
+				log.Error(ctx, "generating revocation nonce", "err", err)
+				return fmt.Errorf("can't generate revocation nonce: %w", err)
+			}
+
+			authClaim.SetRevocationNonce(revNonce)
+
+			// get identity merkle trees
+			mts, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, did)
+			if err != nil {
+				return fmt.Errorf("can't create identity markle tree: %w", err)
+			}
+
+			claimsTree, err := mts.ClaimsTree()
+			if err != nil {
+				return err
+			}
+
+			authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, verifiable.CredentialStatusType(authCoreClaimRevocationStatus.Type), false)
+			if err != nil {
+				log.Error(ctx, "auth claim to model", "err", err)
+				return err
+			}
+
+			_, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
+			if err != nil {
+				return errors.Join(err, errors.New("can't save auth claim"))
+			}
+			return nil
+		})
 }
 
 func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.IdentityMerkleTrees, key *kms.KeyID, didOptions *ports.DIDCreationOptions, tx db.Querier) (*domain.Identity, *w3c.DID, error) {
@@ -995,6 +1071,7 @@ func (i *identity) GetFailedState(ctx context.Context, identifier w3c.DID) (*dom
 	return nil, nil
 }
 
+// TODO: remove this method. is not used
 func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error {
 	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, *did)
 	if err != nil {
@@ -1125,7 +1202,7 @@ func (i *identity) addGenesisClaimsToTree(ctx context.Context,
 	return identity, did, nil
 }
 
-func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity *domain.Identity, authClaim *core.Claim, claimsTree *merkletree.MerkleTree, pubKey *babyjub.PublicKey, hostURL string, status verifiable.CredentialStatusType, isAuthInGenesis bool) (*domain.Claim, error) {
+func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity *domain.Identity, authClaim *core.Claim, claimsTree *merkletree.MerkleTree, pubKey *babyjub.PublicKey, status verifiable.CredentialStatusType, isAuthInGenesis bool) (*domain.Claim, error) {
 	authClaimData := make(map[string]interface{})
 	authClaimData["x"] = pubKey.X.String()
 	authClaimData["y"] = pubKey.Y.String()

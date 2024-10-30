@@ -812,6 +812,9 @@ type ServerInterface interface {
 	// Update Identity
 	// (PATCH /v2/identities/{identifier})
 	UpdateIdentity(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Add a new key to the identity
+	// (POST /v2/identities/{identifier}/add-key)
+	AddKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Connections
 	// (GET /v2/identities/{identifier}/connections)
 	GetConnections(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetConnectionsParams)
@@ -965,6 +968,12 @@ func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request
 // Update Identity
 // (PATCH /v2/identities/{identifier})
 func (_ Unimplemented) UpdateIdentity(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Add a new key to the identity
+// (POST /v2/identities/{identifier}/add-key)
+func (_ Unimplemented) AddKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1391,6 +1400,37 @@ func (siw *ServerInterfaceWrapper) UpdateIdentity(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateIdentity(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddKey operation middleware
+func (siw *ServerInterfaceWrapper) AddKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddKey(w, r, identifier)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2787,6 +2827,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/v2/identities/{identifier}", wrapper.UpdateIdentity)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/add-key", wrapper.AddKey)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/connections", wrapper.GetConnections)
 	})
 	r.Group(func(r chi.Router) {
@@ -3309,6 +3352,41 @@ func (response UpdateIdentity403JSONResponse) VisitUpdateIdentityResponse(w http
 type UpdateIdentity500JSONResponse struct{ N500CreateIdentityJSONResponse }
 
 func (response UpdateIdentity500JSONResponse) VisitUpdateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddKeyRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type AddKeyResponseObject interface {
+	VisitAddKeyResponse(w http.ResponseWriter) error
+}
+
+type AddKey200JSONResponse GenericMessage
+
+func (response AddKey200JSONResponse) VisitAddKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddKey400JSONResponse struct{ N400JSONResponse }
+
+func (response AddKey400JSONResponse) VisitAddKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AddKey500JSONResponse struct{ N500JSONResponse }
+
+func (response AddKey500JSONResponse) VisitAddKeyResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -4605,6 +4683,9 @@ type StrictServerInterface interface {
 	// Update Identity
 	// (PATCH /v2/identities/{identifier})
 	UpdateIdentity(ctx context.Context, request UpdateIdentityRequestObject) (UpdateIdentityResponseObject, error)
+	// Add a new key to the identity
+	// (POST /v2/identities/{identifier}/add-key)
+	AddKey(ctx context.Context, request AddKeyRequestObject) (AddKeyResponseObject, error)
 	// Get Connections
 	// (GET /v2/identities/{identifier}/connections)
 	GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error)
@@ -5008,6 +5089,32 @@ func (sh *strictHandler) UpdateIdentity(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateIdentityResponseObject); ok {
 		if err := validResponse.VisitUpdateIdentityResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AddKey operation middleware
+func (sh *strictHandler) AddKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request AddKeyRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AddKey(ctx, request.(AddKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddKeyResponseObject); ok {
+		if err := validResponse.VisitAddKeyResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

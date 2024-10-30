@@ -371,13 +371,14 @@ func (c *claim) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, s
 		WHERE claims.identifier=$1  
 				AND ( claims.other_identifier = $1 or claims.other_identifier = '') 
 				AND claims.schema_hash = $2 
-				AND claims.revoked = false`, subject.String(), schemaHash)
+				AND claims.revoked = false 
+				AND claims.mtp_proof IS NOT NULL `, subject.String(), schemaHash)
 
 	err := row.Scan(&claim.ID,
 		&claim.Issuer,
 		&claim.SchemaHash,
 		&claim.SchemaType,
-		&claim.SchemaHash,
+		&claim.SchemaURL,
 		&claim.OtherIdentifier,
 		&claim.Expiration,
 		&claim.Updatable,

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
@@ -684,6 +685,80 @@ func Test_identity_GetLatestStateByID(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.did.String(), identityState.Identifier)
+			}
+		})
+	}
+}
+
+func Test_identity_RotateKey(t *testing.T) {
+	ctx := context.Background()
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaim()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
+	mtService := NewIdentityMerkleTrees(mtRepo)
+	connectionsRepository := repositories.NewConnection()
+
+	reader := common.CreateFile(t)
+	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
+	require.NoError(t, err)
+
+	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+
+	type testConfig struct {
+		name            string
+		options         *ports.DIDCreationOptions
+		shouldReturnErr bool
+	}
+
+	genesisStr := "0000000000000000000000000000000000000000000000000000000000000000"
+
+	for _, tc := range []testConfig{
+		{
+			name:            "should rotate BJJ identity",
+			options:         &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ},
+			shouldReturnErr: false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			identity, err := identityService.Create(ctx, cfg.ServerUrl, tc.options)
+			assert.NoError(t, err)
+			did, err := w3c.ParseDID(identity.Identifier)
+			assert.NoError(t, err)
+			authHash, err := core.AuthSchemaHash.MarshalText()
+			assert.NoError(t, err)
+
+			authCoreClaim, err := claimsRepo.FindOneClaimBySchemaHash(ctx, storage.Pgx, did, string(authHash))
+			assert.NoError(t, err)
+			if tc.shouldReturnErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, identity.Identifier)
+				assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+				assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+				assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+				assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+				assert.NotNil(t, identity.State.State)
+				assert.Equal(t, "confirmed", string(identity.State.Status))
+				if tc.options.KeyType == ETH {
+					assert.NotNil(t, identity.Address)
+					assert.Equal(t, genesisStr, *identity.State.State)
+				} else if tc.options.KeyType == BJJ {
+					assert.NotNil(t, identity.State.ClaimsTreeRoot)
+				} else {
+					t.Errorf("invalid key type")
+				}
+				assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+				assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+				assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+
+				authCoreClaimNew, err := claimsRepo.FindOneClaimBySchemaHash(ctx, storage.Pgx, did, string(authHash))
+				assert.NoError(t, err)
+				assert.Equal(t, authCoreClaim.ID, authCoreClaimNew.ID)
 			}
 		})
 	}

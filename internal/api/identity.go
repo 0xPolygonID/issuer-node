@@ -310,3 +310,28 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 
 	return response, nil
 }
+
+// AddKey is the controller to add key
+func (s *Server) AddKey(ctx context.Context, request AddKeyRequestObject) (AddKeyResponseObject, error) {
+	did, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "add key. Parsing did", "err", err)
+		return AddKey400JSONResponse{
+			N400JSONResponse{
+				Message: "invalid did",
+			},
+		}, err
+	}
+
+	err = s.identityService.AddKey(ctx, did)
+	if err != nil {
+		log.Error(ctx, "add key. Adding key", "err", err)
+		return AddKey400JSONResponse{
+			N400JSONResponse{
+				Message: err.Error(),
+			},
+		}, err
+	}
+
+	return AddKey200JSONResponse{Message: "Key added"}, nil
+}

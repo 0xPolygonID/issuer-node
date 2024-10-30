@@ -425,6 +425,29 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v2/identities/{identifier}/add-key:
+    post:
+      summary: Add a new key to the identity
+      operationId: AddKey
+      description: Endpoint to add a new key to the identity
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      tags:
+        - Identity
+      responses:
+        '200':
+          description: Key added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   #connections:
   /v2/identities/{identifier}/connections/{id}:
     get:
