@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
-import { Env, Identity, IdentityDetails, IdentityType, Method, SupportedNetwork } from "src/domain";
+import { Blockchain, Env, Identity, IdentityDetails, IdentityType, Method } from "src/domain";
 
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -152,25 +152,31 @@ export async function updateIdentityDisplayName({
   }
 }
 
-export const networkSchema = z.object({
+export const networkParser = z.object({
   name: z.string(),
   rhsMode: z.tuple([z.string()]).rest(z.string()),
 });
 
-export const supportedNetworkParser = getStrictParser<SupportedNetwork>()(
-  z.object({
-    blockchain: z.string(),
-    networks: z.tuple([networkSchema]).rest(networkSchema),
-  })
+type BlockchainInput = Omit<Blockchain, "name"> & {
+  blockchain: string;
+};
+
+export const blockchainParser = getStrictParser<BlockchainInput, Blockchain>()(
+  z
+    .object({
+      blockchain: z.string(),
+      networks: z.tuple([networkParser]).rest(networkParser),
+    })
+    .transform(({ blockchain, ...other }) => ({ name: blockchain, ...other }))
 );
 
-export async function getSupportedNetwork({
+export async function getSupportedBlockchains({
   env,
   signal,
 }: {
   env: Env;
   signal: AbortSignal;
-}): Promise<Response<List<SupportedNetwork>>> {
+}): Promise<Response<List<Blockchain>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -182,7 +188,7 @@ export async function getSupportedNetwork({
       url: `${API_VERSION}/supported-networks`,
     });
 
-    return buildSuccessResponse(getListParser(supportedNetworkParser).parse(response.data));
+    return buildSuccessResponse(getListParser(blockchainParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
