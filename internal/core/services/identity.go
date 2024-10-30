@@ -152,7 +152,7 @@ func (i *identity) Create(ctx context.Context, hostURL string, didOptions *ports
 }
 
 func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, claimEntry *core.Claim) (*verifiable.BJJSignatureProof2021, error) {
-	keyID, err := i.getKeyIDFromAuthClaim(ctx, authClaim)
+	keyID, err := i.GetKeyIDFromAuthClaim(ctx, authClaim)
 	if err != nil {
 		return nil, err
 	}
@@ -207,50 +207,6 @@ func (i *identity) Exists(ctx context.Context, identifier w3c.DID) (bool, error)
 	}
 
 	return identity != nil, nil
-}
-
-// getKeyIDFromAuthClaim finds BJJ KeyID of auth claim
-// in registered key providers
-func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
-	var keyID kms.KeyID
-
-	if authClaim.Identifier == nil {
-		return keyID, errors.New("identifier is empty in auth claim")
-	}
-
-	identity, err := w3c.ParseDID(*authClaim.Identifier)
-	if err != nil {
-		return keyID, err
-	}
-
-	entry := authClaim.CoreClaim.Get()
-	bjjClaim := entry.RawSlotsAsInts()
-
-	var publicKey babyjub.PublicKey
-	publicKey.X, publicKey.Y = bjjClaim[2], bjjClaim[3]
-
-	compPubKey := publicKey.Compress()
-
-	keyIDs, err := i.kms.KeysByIdentity(ctx, *identity)
-	if err != nil {
-		return keyID, err
-	}
-
-	for _, keyID = range keyIDs {
-		if keyID.Type != kms.KeyTypeBabyJubJub {
-			continue
-		}
-
-		pubKeyBytes, err := i.kms.PublicKey(keyID)
-		if err != nil {
-			return keyID, err
-		}
-		if bytes.Equal(pubKeyBytes, compPubKey[:]) {
-			return keyID, nil
-		}
-	}
-
-	return keyID, errors.New("private key not found")
 }
 
 // Get - returns all the identities
@@ -313,6 +269,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 			return keyID, err
 		}
 		if bytes.Equal(pubKeyBytes, compPubKey[:]) {
+			log.Info(ctx, "key found", "keyID", keyID)
 			return keyID, nil
 		}
 	}
