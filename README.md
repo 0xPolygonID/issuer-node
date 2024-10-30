@@ -35,7 +35,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 
 ## Quick Start Installation
 > [!NOTE]
-> The provided installation guide is **non-production** ready. For production deployments please refer to  [Standalone Mode Guide](https://devs.polygonid.com/docs/issuer/setup-issuer-core/).
+> The provided installation guide is **non-production** ready. For production deployments please refer to  [Standalone Mode Guide](https://docs.privado.id/docs/issuer/setup-issuer-core).
 >
 > There is no compatibility with Windows environments at this time. While using WSL should be ok, it's not officially supported.
 > 
@@ -251,26 +251,27 @@ make private_key <private-key> import-private-key-to-kms
 
 ## Quick Start Demo
 
-This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will walk you through the process of **issuing** and **verifying** your **first credential**.
+This [Quick Start Demo](https://docs.privado.id/docs/quick-start-demo) will walk you through the process of **issuing** and **verifying** your **first credential**.
 
 ## Documentation
 
-* [Issuer Node resources](https://devs.polygonid.com/docs/category/issuer/)
-* [Privado ID core concepts](https://devs.polygonid.com/docs/introduction/)
+* [Issuer Node resources](https://docs.privado.id/docs/category/issuer)
+* [Privado ID core concepts](https://docs.privado.id/docs/introduction)
 
 ## Tools
 > [!WARNING]
-> **Demo Issuer** and **Verifier Demo** are for **testing** purposes **only**.
+> **Privado ID Demo Issuer** and **Privado ID Verifier Backend Demo** are for **testing** purposes **only**.
 
-
-* [Schema Builder](https://schema-builder.polygonid.me/) - Create your custom schemas to issue VC.
-* [Demo Issuer UI](https://user-ui:password-ui@issuer-ui.polygonid.me/) - Test our Issuer Node UI.
-* [Verifier Demo](https://verifier-demo.polygonid.me/) - Verify your VCs.
-* [Polygon ID Android Mobile App](https://play.google.com/store/apps/details?id=com.polygonid.wallet&hl=en&gl=US)
-* [Polygon ID IOS Mobile App](https://apps.apple.com/us/app/polygon-id/id1629870183)
-* [Marketplace](https://marketplace.polygonid.me/) - Explore credentials submitted by trusted issuers.
+* [Privado ID Schema Explorer](https://tools.privado.id): Browse and reuse community-maintained VC schemas.
+* [Privado ID Schema Builder](https://tools.privado.id/builder): A tool for easy VC schema creation.
+* [Privado ID Demo Issuer](https://user-ui:password-ui@issuer-node-testing.privado.id): A demo version of the Issuer Node in action.
+* [Privado ID Query Builder](https://tools.privado.id/query-builder): Build and customize queries to verify VCs.
+* [Privado ID Verifier Backend Demo](https://verifier-backend.privado.id): Demo of our [reference implementation](https://github.com/0xPolygonID/verifier-backend) of a verifier backend.
+* [Privado ID Web Wallet](https://wallet.privado.id): Identity and credential wallet for web clients.
+* [Privado ID Mobile Wallet for Android](https://play.google.com/store/apps/details?id=id.privado.wallet): Wallet for Android devices.
+* [Privado ID Mobile Wallet for iOS](https://apps.apple.com/us/app/privadoid/id6566184703): Wallet for iOS devices.
+* [Privado ID Marketplace](https://marketplace.privado.id): Explore credentials submitted by trusted issuers.
 
 ## License
 
-See [LICENSE](LICENSE.md).
-
+By contributing to this project, you agree to the terms of licenses [Apache](LICENSE-APACHE) and [Mit](LICENSE-MIT).
