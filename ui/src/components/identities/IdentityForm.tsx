@@ -1,19 +1,16 @@
-import { App, Button, Card, Col, Divider, Form, Input, Row, Select, Typography } from "antd";
+import { App, Button, Col, Divider, Form, Input, Row, Select, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { getSupportedNetwork } from "src/adapters/api/identities";
+
+import { getSupportedBlockchains } from "src/adapters/api/identities";
 import { IdentityFormData, identityFormDataParser } from "src/adapters/parsers/view";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, CredentialStatusType, IdentityType, Method, SupportedNetwork } from "src/domain";
-import {
-  AsyncTask,
-  hasAsyncTaskFailed,
-  isAsyncTaskDataAvailable,
-  isAsyncTaskStarting,
-} from "src/utils/async";
+import { AppError, Blockchain, CredentialStatusType, IdentityType, Method } from "src/domain";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { VALUE_REQUIRED } from "src/utils/constants";
+import { buildAppError } from "src/utils/error";
 
 const initialValues: IdentityFormData = {
   blockchain: "",
@@ -23,6 +20,29 @@ const initialValues: IdentityFormData = {
   network: "",
   type: IdentityType.BJJ,
 };
+
+function getNetworkFormValues(
+  blockchains: Blockchain[],
+  blockchainName?: string,
+  networkName?: string
+): Partial<IdentityFormData> | null {
+  const foundBlockchain = blockchains.find(({ name }) => name === blockchainName);
+  const selectedBlockchain = foundBlockchain ?? blockchains[0];
+
+  if (!selectedBlockchain) {
+    return null;
+  }
+
+  const { name, networks } = selectedBlockchain;
+  const network = networks.find(({ name }) => name === networkName) || networks[0];
+  const credentialStatusType = network.rhsMode[0];
+
+  return {
+    blockchain: name,
+    credentialStatusType,
+    network: network.name,
+  };
+}
 
 export function IdentityForm({
   onSubmit,
@@ -37,39 +57,44 @@ export function IdentityForm({
 
   const [formData, setFormData] = useState<IdentityFormData>(initialValues);
 
-  const [supportedNetworks, setSupportedNetworks] = useState<
-    AsyncTask<SupportedNetwork[], AppError>
-  >({
+  const [blockchains, setBlockchains] = useState<AsyncTask<Blockchain[], AppError>>({
     status: "pending",
   });
 
   const fetchNetworks = useCallback(
     async (signal: AbortSignal) => {
-      setSupportedNetworks((previousState) =>
+      setBlockchains((previousState) =>
         isAsyncTaskDataAvailable(previousState)
           ? { data: previousState.data, status: "reloading" }
           : { status: "loading" }
       );
 
-      const response = await getSupportedNetwork({
+      const response = await getSupportedBlockchains({
         env,
         signal,
       });
 
       if (response.success) {
-        setSupportedNetworks({ data: response.data.successful, status: "successful" });
+        if (response.data.failed.length) {
+          void message.error(
+            response.data.failed.map((error) => buildAppError(error).message).join("\n")
+          );
+        }
+
+        setBlockchains({ data: response.data.successful, status: "successful" });
         setFormData((prevFormData) => {
-          const [firstSupportedNetwork] = response.data.successful;
-          if (firstSupportedNetwork) {
-            const { blockchain, networks } = firstSupportedNetwork;
-            return { ...prevFormData, blockchain, network: networks[0] };
+          if (response.data.successful.length) {
+            return {
+              ...prevFormData,
+              ...getNetworkFormValues(response.data.successful),
+            };
           }
 
           return prevFormData;
         });
       } else {
         if (!isAbortedError(response.error)) {
-          setSupportedNetworks({ error: response.error, status: "failed" });
+          setBlockchains({ error: response.error, status: "failed" });
           void message.error(response.error.message);
         }
       }
@@ -82,162 +107,176 @@ export function IdentityForm({
     return aborter;
   }, [fetchNetworks]);
 
-  if (hasAsyncTaskFailed(supportedNetworks)) {
-    return (
-      <Card className="centered">
+  switch (blockchains.status) {
+    case "pending":
+    case "loading": {
+      return <LoadingResult />;
+    }
+    case "failed": {
+      return (
         <ErrorResult
           error={[
             "An error occurred while downloading the supported networks from the API:",
-            supportedNetworks.error.message,
+            blockchains.error.message,
           ].join("\n")}
         />
-      </Card>
-    );
-  } else if (isAsyncTaskStarting(supportedNetworks)) {
-    return (
-      <Card className="centered">
-        <LoadingResult />
-      </Card>
-    );
-  } else {
-    const blockchainOptions = supportedNetworks.data.map(({ blockchain }) => blockchain);
-    const networkOptions = supportedNetworks.data.find(
-      ({ blockchain }) => blockchain === formData.blockchain
-    )?.networks;
+      );
+    }
+    case "reloading":
+    case "successful": {
+      const blockchainOptions = blockchains.data.map(({ name }) => name);
 
-    return (
-      blockchainOptions.length &&
-      networkOptions?.length && (
-        <Form
-          form={form}
-          initialValues={formData}
-          layout="vertical"
-          onFinish={onSubmit}
-          onValuesChange={(changedValue: Partial<IdentityFormData>, allValues) => {
-            const updatedFormData = { ...allValues };
+      const networkOptions = blockchains.data
+        .find(({ name }) => name === formData.blockchain)
+        ?.networks.map(({ name }) => name);
 
-            if (changedValue.blockchain) {
-              const networks = supportedNetworks.data.find(
-                ({ blockchain }) => blockchain === changedValue.blockchain
-              )?.networks;
-              updatedFormData.network = networks?.[0] || "";
-            }
+      const credentialStatusOptions = blockchains.data
+        .find(({ name }) => name === formData.blockchain)
+        ?.networks.find(({ name }) => name === formData.network)?.rhsMode;
 
-            const parsedIdentityFormData = identityFormDataParser.safeParse(updatedFormData);
+      return (
+        blockchainOptions.length &&
+        networkOptions?.length &&
+        credentialStatusOptions?.length && (
+          <Form
+            form={form}
+            initialValues={formData}
+            layout="vertical"
+            onFinish={onSubmit}
+            onValuesChange={(changedValue: Partial<IdentityFormData>, allValues) => {
+              let updatedFormData = { ...allValues };
 
-            if (parsedIdentityFormData.success) {
-              setFormData(parsedIdentityFormData.data);
-              form.setFieldsValue(parsedIdentityFormData.data);
-            }
-          }}
-        >
-          <Form.Item>
-            <Form.Item
-              label="Identity name"
-              name="displayName"
-              rules={[{ message: VALUE_REQUIRED, required: true }]}
-            >
-              <Input placeholder="Enter name" />
-            </Form.Item>
-            <Typography.Text type="secondary">
-              Give your identity a descriptive name, e.g. “Age credential testing”. This name is
-              only seen locally.
-            </Typography.Text>
-          </Form.Item>
+              if (changedValue.blockchain || changedValue.network) {
+                updatedFormData = {
+                  ...allValues,
+                  ...getNetworkFormValues(
+                    blockchains.data,
+                    allValues.blockchain,
+                    allValues.network
+                  ),
+                };
+              }
 
-          <Form.Item>
-            <Form.Item
-              label="Method"
-              name="method"
-              rules={[{ message: VALUE_REQUIRED, required: true }]}
-            >
-              <Select
-                className="full-width"
-                disabled={Object.values(Method).length < 2}
-                placeholder="Method"
+              const parsedIdentityFormData = identityFormDataParser.safeParse(updatedFormData);
+
+              if (parsedIdentityFormData.success) {
+                setFormData(parsedIdentityFormData.data);
+                form.setFieldsValue(parsedIdentityFormData.data);
+              }
+            }}
+          >
+            <Form.Item>
+              <Form.Item
+                label="Identity name"
+                name="displayName"
+                rules={[{ message: VALUE_REQUIRED, required: true }]}
               >
-                {Object.values(Method).map((method) => (
-                  <Select.Option key={method} value={method}>
-                    {method}
-                  </Select.Option>
-                ))}
-              </Select>
+                <Input placeholder="Enter name" />
+              </Form.Item>
+              <Typography.Text type="secondary">
+                Give your identity a descriptive name, e.g. “Age credential testing”. This name is
+                only seen locally.
+              </Typography.Text>
             </Form.Item>
-            <Typography.Text type="secondary">
-              The protocol or system used to create, resolve, and manage the DID.
-            </Typography.Text>
-          </Form.Item>
 
-          <Form.Item
-            label="Blockchain"
-            name="blockchain"
-            rules={[{ message: VALUE_REQUIRED, required: true }]}
-          >
-            <Select className="full-width" placeholder="Type">
-              {blockchainOptions.map((blockchain) => (
-                <Select.Option key={blockchain} value={blockchain}>
-                  {blockchain}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
+            <Form.Item>
+              <Form.Item
+                label="Method"
+                name="method"
+                rules={[{ message: VALUE_REQUIRED, required: true }]}
+              >
+                <Select
+                  className="full-width"
+                  disabled={Object.values(Method).length < 2}
+                  placeholder="Method"
+                >
+                  {Object.values(Method).map((method) => (
+                    <Select.Option key={method} value={method}>
+                      {method}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Typography.Text type="secondary">
+                The protocol or system used to create, resolve, and manage the DID.
+              </Typography.Text>
+            </Form.Item>
 
-          <Form.Item
-            label="Network"
-            name="network"
-            rules={[{ message: VALUE_REQUIRED, required: true }]}
-          >
-            <Select className="full-width" placeholder="Network">
-              {networkOptions.map((network) => (
-                <Select.Option key={network} value={network}>
-                  {network}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item label="Type" name="type" rules={[{ message: VALUE_REQUIRED, required: true }]}>
-            <Select className="full-width" placeholder="Type">
-              {Object.values(IdentityType).map((type) => (
-                <Select.Option key={type} value={type}>
-                  {type}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item>
             <Form.Item
-              label="Credential Status"
-              name="credentialStatusType"
+              label="Blockchain"
+              name="blockchain"
               rules={[{ message: VALUE_REQUIRED, required: true }]}
             >
-              <Select className="full-width" placeholder="Credential Status">
-                {Object.values(CredentialStatusType).map((credentialStatus) => (
-                  <Select.Option key={credentialStatus} value={credentialStatus}>
-                    {credentialStatus}
+              <Select className="full-width" placeholder="Type">
+                {blockchainOptions.map((blockchain) => (
+                  <Select.Option key={blockchain} value={blockchain}>
+                    {blockchain}
                   </Select.Option>
                 ))}
               </Select>
             </Form.Item>
-            <Typography.Text type="secondary">
-              Identity signing key&apos;s credential status is checked by clients to generate
-              zero-knowledge proofs using signed credentials.
-            </Typography.Text>
-          </Form.Item>
 
-          <>
-            <Divider />
-            <Row gutter={[8, 8]} justify="end">
-              <Col>
-                <Button htmlType="submit" type="primary">
-                  {submitBtnText}
-                </Button>
-              </Col>
-            </Row>
-          </>
-        </Form>
-      )
-    );
+            <Form.Item
+              label="Network"
+              name="network"
+              rules={[{ message: VALUE_REQUIRED, required: true }]}
+            >
+              <Select className="full-width" placeholder="Network">
+                {networkOptions.map((network) => (
+                  <Select.Option key={network} value={network}>
+                    {network}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              label="Type"
+              name="type"
+              rules={[{ message: VALUE_REQUIRED, required: true }]}
+            >
+              <Select className="full-width" placeholder="Type">
+                {Object.values(IdentityType).map((type) => (
+                  <Select.Option key={type} value={type}>
+                    {type}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item>
+              <Form.Item
+                label="Credential Status"
+                name="credentialStatusType"
+                rules={[{ message: VALUE_REQUIRED, required: true }]}
+              >
+                <Select className="full-width" placeholder="Credential Status">
+                  {Object.values(credentialStatusOptions).map((credentialStatus) => (
+                    <Select.Option key={credentialStatus} value={credentialStatus}>
+                      {credentialStatus}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Typography.Text type="secondary">
+                Identity signing key&apos;s credential status is checked by clients to generate
+                zero-knowledge proofs using signed credentials.
+              </Typography.Text>
+            </Form.Item>
+
+            <>
+              <Divider />
+              <Row gutter={[8, 8]} justify="end">
+                <Col>
+                  <Button htmlType="submit" type="primary">
+                    {submitBtnText}
+                  </Button>
+                </Col>
+              </Row>
+            </>
+          </Form>
+        )
+      );
+    }
   }
 }

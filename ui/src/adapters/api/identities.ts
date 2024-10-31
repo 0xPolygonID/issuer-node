@@ -5,13 +5,14 @@ import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters
 import { buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import {
+  Blockchain,
   CredentialStatusType,
   Env,
   Identity,
   IdentityDetails,
   IdentityType,
   Method,
-  SupportedNetwork,
+  Network,
 } from "src/domain";
 
 import { API_VERSION } from "src/utils/constants";
@@ -160,20 +161,33 @@ export async function updateIdentityDisplayName({
   }
 }
 
-export const supportedNetworkParser = getStrictParser<SupportedNetwork>()(
+const networkParser = getStrictParser<Network>()(
   z.object({
-    blockchain: z.string(),
-    networks: z.tuple([z.string()]).rest(z.string()),
+    name: z.string(),
+    rhsMode: z.tuple([z.nativeEnum(CredentialStatusType)]).rest(z.nativeEnum(CredentialStatusType)),
   })
 );
 
-export async function getSupportedNetwork({
+type BlockchainInput = Omit<Blockchain, "name"> & {
+  blockchain: string;
+};
+
+const blockchainParser = getStrictParser<BlockchainInput, Blockchain>()(
+  z
+    .object({
+      blockchain: z.string(),
+      networks: z.tuple([networkParser]).rest(networkParser),
+    })
+    .transform(({ blockchain, ...other }) => ({ name: blockchain, ...other }))
+);
+
+export async function getSupportedBlockchains({
   env,
   signal,
 }: {
   env: Env;
   signal: AbortSignal;
-}): Promise<Response<List<SupportedNetwork>>> {
+}): Promise<Response<List<Blockchain>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -185,7 +199,7 @@ export async function getSupportedNetwork({
       url: `${API_VERSION}/supported-networks`,
     });
 
-    return buildSuccessResponse(getListParser(supportedNetworkParser).parse(response.data));
+    return buildSuccessResponse(getListParser(blockchainParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

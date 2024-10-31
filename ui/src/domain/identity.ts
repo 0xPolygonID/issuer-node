@@ -7,6 +7,7 @@ export enum CredentialStatusType {
   "Iden3OnchainSparseMerkleTreeProof2023" = "Iden3OnchainSparseMerkleTreeProof2023",
   "Iden3ReverseSparseMerkleTreeProof" = "Iden3ReverseSparseMerkleTreeProof",
   "Iden3commRevocationStatusV1.0" = "Iden3commRevocationStatusV1.0",
+  "SparseMerkleTreeProof" = "SparseMerkleTreeProof",
 }
 
 export enum Method {
@@ -14,9 +15,14 @@ export enum Method {
   polygonid = "polygonid",
 }
 
-export type SupportedNetwork = {
-  blockchain: string;
-  networks: [string, ...string[]];
+export type Network = {
+  name: string;
+  rhsMode: [CredentialStatusType, ...CredentialStatusType[]];
+};
+
+export type Blockchain = {
+  name: string;
+  networks: [Network, ...Network[]];
 };
 
 export type Identity = {
