@@ -1,20 +1,21 @@
 import { App, Button, Col, Divider, Form, Input, Row, Select, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
+import { credentialStatusTypeParser } from "src/adapters/api/credentials";
 
 import { getSupportedBlockchains } from "src/adapters/api/identities";
 import { IdentityFormData, identityFormDataParser } from "src/adapters/parsers/view";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Blockchain, IdentityType, Method } from "src/domain";
+import { AppError, Blockchain, CredentialStatusType, IdentityType, Method } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { VALUE_REQUIRED } from "src/utils/constants";
-import { buildAppError } from "src/utils/error";
+import { buildAppError, notifyParseError } from "src/utils/error";
 
 const initialValues: IdentityFormData = {
   blockchain: "",
-  credentialStatusType: "",
+  credentialStatusType: CredentialStatusType["Iden3commRevocationStatusV1.0"],
   displayName: "",
   method: Method.iden3,
   network: "",
@@ -35,13 +36,18 @@ function getNetworkFormValues(
 
   const { name, networks } = selectedNetwork;
   const network = networks.find(({ name }) => name === networkName) || networks[0];
-  const credentialStatusType = network.rhsMode[0];
+  const parsedCredentialStatusType = credentialStatusTypeParser.safeParse(network.rhsMode[0]);
 
-  return {
-    blockchain: name,
-    credentialStatusType,
-    network: network.name,
-  };
+  if (parsedCredentialStatusType.success) {
+    return {
+      blockchain: name,
+      credentialStatusType: parsedCredentialStatusType.data,
+      network: network.name,
+    };
+  } else {
+    notifyParseError(parsedCredentialStatusType.error);
+    return null;
+  }
 }
 
 export function IdentityForm({

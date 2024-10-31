@@ -19,6 +19,7 @@ import {
 } from "src/adapters/parsers";
 import {
   Credential,
+  CredentialStatusType,
   Env,
   IssuedMessage,
   Json,
@@ -122,6 +123,10 @@ export type CredentialStatus = "all" | "revoked" | "expired";
 
 export const credentialStatusParser = getStrictParser<CredentialStatus>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
+);
+
+export const credentialStatusTypeParser = getStrictParser<CredentialStatusType>()(
+  z.nativeEnum(CredentialStatusType)
 );
 
 export async function getCredential({

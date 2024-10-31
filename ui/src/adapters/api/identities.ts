@@ -4,7 +4,16 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
-import { Blockchain, Env, Identity, IdentityDetails, IdentityType, Method } from "src/domain";
+import {
+  Blockchain,
+  CredentialStatusType,
+  Env,
+  Identity,
+  IdentityDetails,
+  IdentityType,
+  Method,
+  Network,
+} from "src/domain";
 
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -12,7 +21,7 @@ import { List } from "src/utils/types";
 const identityParser = getStrictParser<Identity>()(
   z.object({
     blockchain: z.string(),
-    credentialStatusType: z.string(),
+    credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string().nullable(),
     identifier: z.string(),
     method: z.nativeEnum(Method),
@@ -48,7 +57,7 @@ export async function getIdentities({
 
 export type CreateIdentity = {
   blockchain: string;
-  credentialStatusType: string;
+  credentialStatusType: CredentialStatusType;
   displayName: string;
   method: string;
   network: string;
@@ -92,7 +101,7 @@ export async function createIdentity({
 
 export const identityDetailsParser = getStrictParser<IdentityDetails>()(
   z.object({
-    credentialStatusType: z.string(),
+    credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string().nullable(),
     identifier: z.string(),
     keyType: z.nativeEnum(IdentityType),
@@ -152,10 +161,12 @@ export async function updateIdentityDisplayName({
   }
 }
 
-export const networkParser = z.object({
-  name: z.string(),
-  rhsMode: z.tuple([z.string()]).rest(z.string()),
-});
+export const networkParser = getStrictParser<Network>()(
+  z.object({
+    name: z.string(),
+    rhsMode: z.tuple([z.nativeEnum(CredentialStatusType)]).rest(z.nativeEnum(CredentialStatusType)),
+  })
+);
 
 type BlockchainInput = Omit<Blockchain, "name"> & {
   blockchain: string;
