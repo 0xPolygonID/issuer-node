@@ -1,6 +1,5 @@
 import { App, Button, Col, Divider, Form, Input, Row, Select, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { credentialStatusTypeParser } from "src/adapters/api/credentials";
 
 import { getSupportedBlockchains } from "src/adapters/api/identities";
 import { IdentityFormData, identityFormDataParser } from "src/adapters/parsers/view";
@@ -11,7 +10,7 @@ import { AppError, Blockchain, CredentialStatusType, IdentityType, Method } from
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { VALUE_REQUIRED } from "src/utils/constants";
-import { buildAppError, notifyParseError } from "src/utils/error";
+import { buildAppError } from "src/utils/error";
 
 const initialValues: IdentityFormData = {
   blockchain: "",
@@ -36,18 +35,13 @@ function getNetworkFormValues(
 
   const { name, networks } = selectedBlockchain;
   const network = networks.find(({ name }) => name === networkName) || networks[0];
-  const parsedCredentialStatusType = credentialStatusTypeParser.safeParse(network.rhsMode[0]);
+  const credentialStatusType = network.rhsMode[0];
 
-  if (parsedCredentialStatusType.success) {
-    return {
-      blockchain: name,
-      credentialStatusType: parsedCredentialStatusType.data,
-      network: network.name,
-    };
-  } else {
-    notifyParseError(parsedCredentialStatusType.error);
-    return null;
-  }
+  return {
+    blockchain: name,
+    credentialStatusType,
+    network: network.name,
+  };
 }
 
 export function IdentityForm({
