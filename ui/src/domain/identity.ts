@@ -13,8 +13,8 @@ export type Network = {
   rhsMode: [string, ...string[]];
 };
 
-export type SupportedNetwork = {
-  blockchain: string;
+export type Blockchain = {
+  name: string;
   networks: [Network, ...Network[]];
 };
 
