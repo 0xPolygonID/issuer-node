@@ -27,14 +27,14 @@ function getNetworkFormValues(
   blockchainName?: string,
   networkName?: string
 ): Partial<IdentityFormData> | null {
-  const foundNetwork = blockchains.find(({ name }) => name === blockchainName);
-  const selectedNetwork = foundNetwork ?? blockchains[0];
+  const foundBlockchain = blockchains.find(({ name }) => name === blockchainName);
+  const selectedBlockchain = foundBlockchain ?? blockchains[0];
 
-  if (!selectedNetwork) {
+  if (!selectedBlockchain) {
     return null;
   }
 
-  const { name, networks } = selectedNetwork;
+  const { name, networks } = selectedBlockchain;
   const network = networks.find(({ name }) => name === networkName) || networks[0];
   const parsedCredentialStatusType = credentialStatusTypeParser.safeParse(network.rhsMode[0]);
 

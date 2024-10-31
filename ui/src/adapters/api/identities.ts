@@ -161,7 +161,7 @@ export async function updateIdentityDisplayName({
   }
 }
 
-export const networkParser = getStrictParser<Network>()(
+const networkParser = getStrictParser<Network>()(
   z.object({
     name: z.string(),
     rhsMode: z.tuple([z.nativeEnum(CredentialStatusType)]).rest(z.nativeEnum(CredentialStatusType)),
@@ -172,7 +172,7 @@ type BlockchainInput = Omit<Blockchain, "name"> & {
   blockchain: string;
 };
 
-export const blockchainParser = getStrictParser<BlockchainInput, Blockchain>()(
+const blockchainParser = getStrictParser<BlockchainInput, Blockchain>()(
   z
     .object({
       blockchain: z.string(),
