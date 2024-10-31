@@ -3366,7 +3366,10 @@ type AddKeyResponseObject interface {
 	VisitAddKeyResponse(w http.ResponseWriter) error
 }
 
-type AddKey200JSONResponse GenericMessage
+type AddKey200JSONResponse struct {
+	// RevocationNonce added key revocation nonce
+	RevocationNonce int64 `json:"revocationNonce"`
+}
 
 func (response AddKey200JSONResponse) VisitAddKeyResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

@@ -323,15 +323,20 @@ func (s *Server) AddKey(ctx context.Context, request AddKeyRequestObject) (AddKe
 		}, err
 	}
 
-	err = s.identityService.AddKey(ctx, did)
+	revocationNonce, err := s.identityService.AddKey(ctx, did)
 	if err != nil {
 		log.Error(ctx, "add key. Adding key", "err", err)
-		return AddKey400JSONResponse{
-			N400JSONResponse{
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return AddKey500JSONResponse{N500JSONResponse{Message: "If this identity has keyType=ETH you must to publish the state first"}}, nil
+		}
+		return AddKey500JSONResponse{
+			N500JSONResponse{
 				Message: err.Error(),
 			},
 		}, err
 	}
 
-	return AddKey200JSONResponse{Message: "Key added"}, nil
+	return AddKey200JSONResponse{
+		RevocationNonce: int64(*revocationNonce),
+	}, nil
 }

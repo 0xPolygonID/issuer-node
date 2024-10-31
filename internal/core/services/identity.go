@@ -809,8 +809,14 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 }
 
 // AddKey adds a new key to the identity
-func (i *identity) AddKey(ctx context.Context, did *w3c.DID) error {
-	return i.storage.Pgx.BeginFunc(ctx,
+func (i *identity) AddKey(ctx context.Context, did *w3c.DID) (*uint64, error) {
+	revNonce, err := common.RandInt64()
+	if err != nil {
+		log.Error(ctx, "generating revocation nonce", "err", err)
+		return nil, fmt.Errorf("can't generate revocation nonce: %w", err)
+	}
+
+	err = i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
 			identity, err := i.identityRepository.GetByID(ctx, tx, *did)
 			if err != nil {
@@ -851,12 +857,6 @@ func (i *identity) AddKey(ctx context.Context, did *w3c.DID) error {
 				return errors.Join(err, errors.New("can't create auth claim"))
 			}
 
-			revNonce, err := common.RandInt64()
-			if err != nil {
-				log.Error(ctx, "generating revocation nonce", "err", err)
-				return fmt.Errorf("can't generate revocation nonce: %w", err)
-			}
-
 			authClaim.SetRevocationNonce(revNonce)
 
 			// get identity merkle trees
@@ -882,6 +882,11 @@ func (i *identity) AddKey(ctx context.Context, did *w3c.DID) error {
 			}
 			return nil
 		})
+	if err != nil {
+		return nil, err
+	}
+
+	return common.ToPointer(revNonce), nil
 }
 
 func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.IdentityMerkleTrees, key *kms.KeyID, didOptions *ports.DIDCreationOptions, tx db.Querier) (*domain.Identity, *w3c.DID, error) {

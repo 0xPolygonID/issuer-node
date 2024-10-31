@@ -442,7 +442,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericMessage'
+                type: object
+                required:
+                  - revocationNonce
+                properties:
+                  revocationNonce:
+                    type: integer
+                    format: int64
+                    description: added key revocation nonce
+
         '400':
           $ref: '#/components/responses/400'
         '500':
