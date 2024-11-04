@@ -56,8 +56,8 @@ func TestServer_GetSupportedNetworks(t *testing.T) {
 				assert.Equal(t, "polygon", response[0].Blockchain)
 				assert.Equal(t, []NetworkData{
 					{
-						Name:    "amoy",
-						RhsMode: []string{"Iden3commRevocationStatusV1.0"},
+						Name:             "amoy",
+						CredentialStatus: []string{"Iden3commRevocationStatusV1.0"},
 					},
 				}, response[0].Networks)
 			}

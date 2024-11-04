@@ -436,8 +436,8 @@ type LinkSimple struct {
 
 // NetworkData defines model for NetworkData.
 type NetworkData struct {
-	Name    string   `json:"name"`
-	RhsMode []string `json:"rhsMode"`
+	CredentialStatus []string `json:"credentialStatus"`
+	Name             string   `json:"name"`
 }
 
 // Offer defines model for Offer.
