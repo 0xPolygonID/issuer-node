@@ -30,12 +30,39 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 			return GetLinks400JSONResponse{N400JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
 		}
 	}
-	links, err := s.linkService.GetAll(ctx, *issuerDID, status, request.Params.Query, s.cfg.ServerUrl)
+
+	filter := ports.LinksFilter{
+		Status: status,
+		Query:  request.Params.Query,
+		Page:   request.Params.Page,
+	}
+
+	filter.MaxResults = 10
+	if request.Params.MaxResults != nil {
+		if *request.Params.MaxResults <= 0 {
+			filter.MaxResults = 10
+		} else {
+			filter.MaxResults = *request.Params.MaxResults
+		}
+	}
+
+	links, total, err := s.linkService.GetAll(ctx, *issuerDID, filter, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "getting links", "err", err, "req", request)
 	}
 
-	return GetLinks200JSONResponse(getLinkResponses(links)), err
+	resp := GetLinks200JSONResponse{
+		Items: getLinkResponses(links),
+		Meta: PaginatedMetadata{
+			MaxResults: filter.MaxResults,
+			Page:       1, // default
+			Total:      total,
+		},
+	}
+	if filter.Page != nil {
+		resp.Meta.Page = *filter.Page
+	}
+	return resp, err
 }
 
 // CreateLink - creates a link for issuing a credential

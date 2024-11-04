@@ -434,6 +434,12 @@ type LinkSimple struct {
 	SchemaUrl  string    `json:"schemaUrl"`
 }
 
+// LinksPaginated defines model for LinksPaginated.
+type LinksPaginated struct {
+	Items []Link            `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
+}
+
 // NetworkData defines model for NetworkData.
 type NetworkData struct {
 	Name    string   `json:"name"`
@@ -681,6 +687,12 @@ type GetLinksParams struct {
 	//   * `inactive` - Only deactivated links
 	//   * `exceeded` - Expired or maximum issuance exceeded
 	Status *GetLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
 }
 
 // GetLinksParamsStatus defines parameters for GetLinks.
@@ -1839,6 +1851,22 @@ func (siw *ServerInterfaceWrapper) GetLinks(w http.ResponseWriter, r *http.Reque
 	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
 		return
 	}
 
@@ -3646,7 +3674,7 @@ type GetLinksResponseObject interface {
 	VisitGetLinksResponse(w http.ResponseWriter) error
 }
 
-type GetLinks200JSONResponse []Link
+type GetLinks200JSONResponse LinksPaginated
 
 func (response GetLinks200JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

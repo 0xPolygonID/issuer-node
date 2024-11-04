@@ -1107,15 +1107,30 @@ paths:
               * `active` - Only active links. (Not expired, no issuance exceeded and not deactivated
               * `inactive` - Only deactivated links
               * `exceeded` - Expired or maximum issuance exceeded
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, all results will be returned.
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+
       responses:
         '200':
           description: Link collection
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Link'
+                $ref: '#/components/schemas/LinksPaginated'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -2066,6 +2081,17 @@ components:
           type: string
           x-omitempty: false
           example: https://wallet.privado.id#request_uri=url
+
+    LinksPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
 
     CredentialSubject:
       type: object

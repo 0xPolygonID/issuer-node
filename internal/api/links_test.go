@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -574,15 +575,22 @@ func TestServer_GetAllLinks(t *testing.T) {
 
 	handler := getHandler(ctx, server)
 	type expected struct {
-		response []Link
+		response GetLinksResponseObject
 		httpCode int
 	}
+
+	type pagination struct {
+		page       *int
+		maxResults *int
+	}
+
 	type testConfig struct {
-		name     string
-		query    *string
-		status   *GetLinksParamsStatus
-		auth     func() (string, string)
-		expected expected
+		name       string
+		query      *string
+		status     *GetLinksParamsStatus
+		pagination *pagination
+		auth       func() (string, string)
+		expected   expected
 	}
 	for _, tc := range []testConfig{
 		{
@@ -600,13 +608,94 @@ func TestServer_GetAllLinks(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 			},
 		},
-
 		{
 			name: "Happy path. All schemas",
 			auth: authOk,
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{linkInactive, linkExpired, linkActive},
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired, linkActive},
+					Meta: PaginatedMetadata{
+						Total:      3,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
+			},
+		},
+		{
+			name: "Happy path. All schemas with pagination - page 1",
+			auth: authOk,
+			pagination: &pagination{
+				page:       common.ToPointer(1),
+				maxResults: common.ToPointer(2),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired},
+					Meta: PaginatedMetadata{
+						Total:      3,
+						MaxResults: 2,
+						Page:       1,
+					},
+				},
+			},
+		},
+		{
+			name: "Happy path. All schemas with pagination - page 2",
+			auth: authOk,
+			pagination: &pagination{
+				page:       common.ToPointer(2),
+				maxResults: common.ToPointer(2),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkActive},
+					Meta: PaginatedMetadata{
+						Total:      3,
+						MaxResults: 2,
+						Page:       2,
+					},
+				},
+			},
+		},
+		{
+			name: "Happy path. All schemas with pagination - page 1 - default max results",
+			auth: authOk,
+			pagination: &pagination{
+				page: common.ToPointer(1),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired, linkActive},
+					Meta: PaginatedMetadata{
+						Total:      3,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
+			},
+		},
+		{
+			name: "Happy path. All schemas with pagination - page 1 - default page",
+			auth: authOk,
+			pagination: &pagination{
+				//page: common.ToPointer(1),
+				maxResults: common.ToPointer(100),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired, linkActive},
+					Meta: PaginatedMetadata{
+						Total:      3,
+						MaxResults: 100,
+						Page:       1,
+					},
+				},
 			},
 		},
 		{
@@ -615,7 +704,14 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("all")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{linkInactive, linkExpired, linkActive},
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired, linkActive},
+					Meta: PaginatedMetadata{
+						Total:      3,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
 			},
 		},
 		{
@@ -624,7 +720,14 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("active")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{linkActive},
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkActive},
+					Meta: PaginatedMetadata{
+						Total:      1,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
 			},
 		},
 		{
@@ -633,7 +736,14 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{linkInactive, linkExpired},
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired},
+					Meta: PaginatedMetadata{
+						Total:      2,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
 			},
 		},
 		{
@@ -642,7 +752,14 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("inactive")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{linkInactive},
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive},
+					Meta: PaginatedMetadata{
+						Total:      1,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
 			},
 		},
 		{
@@ -652,7 +769,14 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{linkInactive, linkExpired},
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired},
+					Meta: PaginatedMetadata{
+						Total:      2,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
 			},
 		},
 		{
@@ -662,7 +786,14 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{linkInactive, linkExpired},
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired},
+					Meta: PaginatedMetadata{
+						Total:      2,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
 			},
 		},
 		{
@@ -672,7 +803,14 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{linkInactive, linkExpired},
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired},
+					Meta: PaginatedMetadata{
+						Total:      2,
+						MaxResults: 10,
+						Page:       1,
+					},
+				},
 			},
 		},
 	} {
@@ -686,6 +824,15 @@ func TestServer_GetAllLinks(t *testing.T) {
 				endpoint.RawQuery = endpoint.RawQuery + "&query=" + *tc.query
 			}
 
+			if tc.pagination != nil {
+				if tc.pagination.page != nil {
+					endpoint.RawQuery = endpoint.RawQuery + "&page=" + strconv.Itoa(*tc.pagination.page)
+				}
+				if tc.pagination.maxResults != nil {
+					endpoint.RawQuery = endpoint.RawQuery + "&max_results=" + strconv.Itoa(*tc.pagination.maxResults)
+				}
+			}
+
 			req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -697,25 +844,29 @@ func TestServer_GetAllLinks(t *testing.T) {
 			case http.StatusOK:
 				var response GetLinks200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				if assert.Equal(t, len(tc.expected.response), len(response)) {
-					for i, resp := range response {
-						assert.Equal(t, tc.expected.response[i].Id, resp.Id)
-						assert.Equal(t, tc.expected.response[i].Status, resp.Status)
-						assert.Equal(t, tc.expected.response[i].IssuedClaims, resp.IssuedClaims)
-						assert.Equal(t, tc.expected.response[i].Active, resp.Active)
-						assert.Equal(t, tc.expected.response[i].MaxIssuance, resp.MaxIssuance)
-						assert.Equal(t, tc.expected.response[i].SchemaUrl, resp.SchemaUrl)
-						assert.Equal(t, tc.expected.response[i].SchemaType, resp.SchemaType)
-						assert.Equal(t, tc.expected.response[i].RefreshService, resp.RefreshService)
-						tcCred, err := json.Marshal(tc.expected.response[i].CredentialSubject)
+
+				expectedResponse, ok := tc.expected.response.(GetLinks200JSONResponse)
+				require.True(t, ok)
+				if assert.Equal(t, len(expectedResponse.Items), len(response.Items)) {
+					for i, resp := range response.Items {
+						assert.Equal(t, expectedResponse.Items[i].Id, resp.Id)
+						assert.Equal(t, expectedResponse.Items[i].Status, resp.Status)
+						assert.Equal(t, expectedResponse.Items[i].IssuedClaims, resp.IssuedClaims)
+						assert.Equal(t, expectedResponse.Items[i].Active, resp.Active)
+						assert.Equal(t, expectedResponse.Items[i].MaxIssuance, resp.MaxIssuance)
+						assert.Equal(t, expectedResponse.Items[i].SchemaUrl, resp.SchemaUrl)
+						assert.Equal(t, expectedResponse.Items[i].SchemaType, resp.SchemaType)
+						assert.Equal(t, expectedResponse.Items[i].RefreshService, resp.RefreshService)
+						tcCred, err := json.Marshal(expectedResponse.Items[i].CredentialSubject)
 						require.NoError(t, err)
-						respCred, err := json.Marshal(tc.expected.response[i].CredentialSubject)
+						respCred, err := json.Marshal(expectedResponse.Items[i].CredentialSubject)
 						require.NoError(t, err)
 						assert.Equal(t, tcCred, respCred)
-						assert.InDelta(t, time.Time(*tc.expected.response[i].Expiration).UnixMilli(), time.Time(*resp.Expiration).UnixMilli(), 1000)
+						assert.InDelta(t, time.Time(*expectedResponse.Items[i].Expiration).UnixMilli(), time.Time(*resp.Expiration).UnixMilli(), 1000)
 						expectCredExpiration := common.ToPointer(TimeUTC(time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, time.UTC)))
 						assert.Equal(t, expectCredExpiration.String(), resp.CredentialExpiration.String())
 					}
+					assert.Equal(t, expectedResponse.Meta, response.Meta)
 				}
 			case http.StatusBadRequest:
 				var response GetLinks400JSONResponse
