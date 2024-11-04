@@ -683,7 +683,6 @@ func TestServer_GetAllLinks(t *testing.T) {
 			name: "Happy path. All schemas with pagination - page 1 - default page",
 			auth: authOk,
 			pagination: &pagination{
-				//page: common.ToPointer(1),
 				maxResults: common.ToPointer(100),
 			},
 			expected: expected{
