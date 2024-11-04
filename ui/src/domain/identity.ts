@@ -16,8 +16,8 @@ export enum Method {
 }
 
 export type Network = {
+  credentialStatus: [CredentialStatusType, ...CredentialStatusType[]];
   name: string;
-  rhsMode: [CredentialStatusType, ...CredentialStatusType[]];
 };
 
 export type Blockchain = {

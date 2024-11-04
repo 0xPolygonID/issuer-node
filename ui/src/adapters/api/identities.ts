@@ -163,8 +163,10 @@ export async function updateIdentityDisplayName({
 
 const networkParser = getStrictParser<Network>()(
   z.object({
+    credentialStatus: z
+      .tuple([z.nativeEnum(CredentialStatusType)])
+      .rest(z.nativeEnum(CredentialStatusType)),
     name: z.string(),
-    rhsMode: z.tuple([z.nativeEnum(CredentialStatusType)]).rest(z.nativeEnum(CredentialStatusType)),
   })
 );
 

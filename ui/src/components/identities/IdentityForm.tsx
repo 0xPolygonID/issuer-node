@@ -35,7 +35,7 @@ function getNetworkFormValues(
 
   const { name, networks } = selectedBlockchain;
   const network = networks.find(({ name }) => name === networkName) || networks[0];
-  const credentialStatusType = network.rhsMode[0];
+  const credentialStatusType = network.credentialStatus[0];
 
   return {
     blockchain: name,
@@ -132,7 +132,7 @@ export function IdentityForm({
 
       const credentialStatusOptions = blockchains.data
         .find(({ name }) => name === formData.blockchain)
-        ?.networks.find(({ name }) => name === formData.network)?.rhsMode;
+        ?.networks.find(({ name }) => name === formData.network)?.credentialStatus;
 
       return (
         blockchainOptions.length &&

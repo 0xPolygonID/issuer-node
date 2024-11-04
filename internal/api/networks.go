@@ -26,13 +26,13 @@ func (s *Server) supportedNetworksData(ctx context.Context, blockchain string, n
 			continue
 		}
 		types := s.networkResolver.SupportedCredentialStatusTypes(rhsSettings.Mode)
-		rhsMode := make([]string, 0, len(types))
+		credentialStatusTypes := make([]string, 0, len(types))
 		for _, t := range types {
-			rhsMode = append(rhsMode, string(t))
+			credentialStatusTypes = append(credentialStatusTypes, string(t))
 		}
 		nd = append(nd, NetworkData{
-			Name:    network,
-			RhsMode: rhsMode,
+			Name:             network,
+			CredentialStatus: credentialStatusTypes,
 		})
 	}
 	return nd

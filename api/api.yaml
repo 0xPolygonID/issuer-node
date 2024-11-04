@@ -2213,12 +2213,12 @@ components:
       type: object
       required:
         - name
-        - rhsMode
+        - credentialStatus
       properties:
         name:
           type: string
           example: "amoy"
-        rhsMode:
+        credentialStatus:
           type: array
           items:
             type: string
