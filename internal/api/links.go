@@ -17,6 +17,7 @@ import (
 
 // GetLinks - Returns a list of links based on a search criteria.
 func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error) {
+	const defaultMaxResults = 50
 	var err error
 	issuerDID, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
@@ -34,8 +35,8 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 	filter := ports.LinksFilter{
 		Status:     status,
 		Query:      request.Params.Query,
-		Page:       1,  // default page
-		MaxResults: 50, // default max results
+		Page:       1,                 // default page
+		MaxResults: defaultMaxResults, // default max results
 	}
 	if request.Params.Page != nil {
 		filter.Page = *request.Params.Page
