@@ -163,35 +163,6 @@ func (l link) GetAll(ctx context.Context, issuerDID w3c.DID, filter ports.LinksF
 		"schemas.created_at",
 	}
 
-	//sql := `
-	//SELECT links.id,
-	//      links.issuer_id,
-	//      links.created_at,
-	//      links.max_issuance,
-	//      links.valid_until,
-	//      links.schema_id,
-	//      links.credential_expiration,
-	//      links.credential_signature_proof,
-	//      links.credential_mtp_proof,
-	//      links.credential_attributes,
-	//      links.active,
-	//	   links.refresh_service,
-	//	   links.display_method,
-	//	   links.authorization_request_message,
-	//      count(claims.id) as issued_claims,
-	//      schemas.id as schema_id,
-	//      schemas.issuer_id as schema_issuer_id,
-	//      schemas.url,
-	//      schemas.type,
-	//      schemas.hash,
-	//      schemas.words,
-	//      schemas.created_at
-	//FROM links
-	//LEFT JOIN schemas ON schemas.id = links.schema_id
-	//LEFT JOIN claims ON claims.link_id = links.id AND claims.identifier = links.issuer_id
-	//WHERE links.issuer_id = $1
-	//`
-
 	sql := `
 	SELECT  ##QUERYFIELDS##
 	FROM links
