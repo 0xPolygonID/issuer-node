@@ -32,7 +32,7 @@ type LinksFilter struct {
 	Status     LinkStatus
 	Query      *string
 	MaxResults uint // Max number of results to return on each call.
-	Page       *uint
+	Page       uint
 }
 
 const (

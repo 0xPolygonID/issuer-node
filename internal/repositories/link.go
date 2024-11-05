@@ -209,9 +209,7 @@ func (l link) GetAll(ctx context.Context, issuerDID w3c.DID, filter ports.LinksF
 		return nil, 0, err
 	}
 
-	if filter.Page != nil {
-		sql += fmt.Sprintf(" OFFSET %d LIMIT %d;", (*filter.Page-1)*filter.MaxResults, filter.MaxResults)
-	}
+	sql += fmt.Sprintf(" OFFSET %d LIMIT %d;", (filter.Page-1)*filter.MaxResults, filter.MaxResults)
 
 	query := strings.Replace(sql, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
 	rows, err := l.conn.Pgx.Query(ctx, query, sqlArgs...)

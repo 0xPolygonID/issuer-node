@@ -32,12 +32,14 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 	}
 
 	filter := ports.LinksFilter{
-		Status: status,
-		Query:  request.Params.Query,
-		Page:   request.Params.Page,
+		Status:     status,
+		Query:      request.Params.Query,
+		Page:       1,  // default page
+		MaxResults: 50, // default max results
 	}
-
-	filter.MaxResults = 10
+	if request.Params.Page != nil {
+		filter.Page = *request.Params.Page
+	}
 	if request.Params.MaxResults != nil {
 		if *request.Params.MaxResults <= 0 {
 			filter.MaxResults = 10
@@ -55,12 +57,9 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 		Items: getLinkResponses(links),
 		Meta: PaginatedMetadata{
 			MaxResults: filter.MaxResults,
-			Page:       1, // default
+			Page:       filter.Page,
 			Total:      total,
 		},
-	}
-	if filter.Page != nil {
-		resp.Meta.Page = *filter.Page
 	}
 	return resp, err
 }

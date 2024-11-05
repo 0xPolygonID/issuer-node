@@ -617,7 +617,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkInactive, linkExpired, linkActive},
 					Meta: PaginatedMetadata{
 						Total:      3,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},
@@ -673,7 +673,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkInactive, linkExpired, linkActive},
 					Meta: PaginatedMetadata{
 						Total:      3,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},
@@ -707,7 +707,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkInactive, linkExpired, linkActive},
 					Meta: PaginatedMetadata{
 						Total:      3,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},
@@ -723,7 +723,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkActive},
 					Meta: PaginatedMetadata{
 						Total:      1,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},
@@ -739,7 +739,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkInactive, linkExpired},
 					Meta: PaginatedMetadata{
 						Total:      2,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},
@@ -755,7 +755,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkInactive},
 					Meta: PaginatedMetadata{
 						Total:      1,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},
@@ -772,7 +772,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkInactive, linkExpired},
 					Meta: PaginatedMetadata{
 						Total:      2,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},
@@ -789,7 +789,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkInactive, linkExpired},
 					Meta: PaginatedMetadata{
 						Total:      2,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},
@@ -806,7 +806,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 					Items: []Link{linkInactive, linkExpired},
 					Meta: PaginatedMetadata{
 						Total:      2,
-						MaxResults: 10,
+						MaxResults: 50,
 						Page:       1,
 					},
 				},

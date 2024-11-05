@@ -246,7 +246,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkAll,
 				Query:      nil,
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count: 50,
@@ -259,7 +259,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkAll,
 				Query:      nil,
 				MaxResults: 10,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count: 10,
@@ -272,7 +272,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkAll,
 				Query:      nil,
 				MaxResults: 10,
-				Page:       common.ToPointer(uint(5)),
+				Page:       uint(5),
 			},
 			expected: expected{
 				count: 10,
@@ -285,7 +285,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkAll,
 				Query:      nil,
 				MaxResults: 10,
-				Page:       common.ToPointer(uint(6)),
+				Page:       uint(6),
 			},
 			expected: expected{
 				count: 0,
@@ -298,7 +298,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkExceeded,
 				Query:      nil,
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count:  20, // 10 expired + 10 over used
@@ -312,7 +312,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkInactive,
 				Query:      nil,
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count:  10,
@@ -326,7 +326,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkActive,
 				Query:      nil,
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count:  20,
@@ -340,7 +340,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkActive,
 				Query:      common.ToPointer("NOOOOT MATCH"),
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count: 0,
@@ -353,7 +353,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkActive,
 				Query:      common.ToPointer("birthday"),
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count:  20,
@@ -367,7 +367,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkActive,
 				Query:      common.ToPointer("birth"),
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count:  20,
@@ -381,7 +381,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkActive,
 				Query:      common.ToPointer("thday"),
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count:  20,
@@ -395,7 +395,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkInactive,
 				Query:      common.ToPointer("birthday"),
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			expected: expected{
 				count:  10,
@@ -409,7 +409,7 @@ func TestGetAll(t *testing.T) {
 				Status:     ports.LinkInactive,
 				Query:      common.ToPointer("NORRR"),
 				MaxResults: 50,
-				Page:       common.ToPointer(uint(1)),
+				Page:       uint(1),
 			},
 			query: common.ToPointer("NORRR"),
 			expected: expected{
