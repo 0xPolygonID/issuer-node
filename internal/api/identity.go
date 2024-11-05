@@ -55,7 +55,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("error getting reverse hash service settings: %s", err.Error())}}, nil
 	}
 
-	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, *credentialStatusType) {
+	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings.Mode, *credentialStatusType) {
 		log.Warn(ctx, "unsupported credential status type", "req", request)
 		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", *credentialStatusType)}}, nil
 	}
