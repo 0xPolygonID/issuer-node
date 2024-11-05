@@ -10,9 +10,11 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -20,6 +22,7 @@ import (
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/eth"
 	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
@@ -268,220 +271,32 @@ type Iden3PaymentRailsV1 struct {
 	} `json:"paymentData"`
 }
 
-const contractABI = `[
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'tokenAddress',
-            type: 'address',
-          },
-          {
-            internalType: 'address',
-            name: 'recipient',
-            type: 'address',
-          },
-          {
-            internalType: 'uint256',
-            name: 'amount',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'expirationDate',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'nonce',
-            type: 'uint256',
-          },
-          {
-            internalType: 'bytes',
-            name: 'metadata',
-            type: 'bytes',
-          },
-        ],
-        internalType: 'struct MCPayment.Iden3PaymentRailsERC20RequestV1',
-        name: 'paymentData',
-        type: 'tuple',
-      },
-      {
-        internalType: 'bytes',
-        name: 'signature',
-        type: 'bytes',
-      },
-    ],
-    name: 'payERC20',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'bytes',
-        name: 'permitSignature',
-        type: 'bytes',
-      },
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'tokenAddress',
-            type: 'address',
-          },
-          {
-            internalType: 'address',
-            name: 'recipient',
-            type: 'address',
-          },
-          {
-            internalType: 'uint256',
-            name: 'amount',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'expirationDate',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'nonce',
-            type: 'uint256',
-          },
-          {
-            internalType: 'bytes',
-            name: 'metadata',
-            type: 'bytes',
-          },
-        ],
-        internalType: 'struct MCPayment.Iden3PaymentRailsERC20RequestV1',
-        name: 'paymentData',
-        type: 'tuple',
-      },
-      {
-        internalType: 'bytes',
-        name: 'signature',
-        type: 'bytes',
-      },
-    ],
-    name: 'payERC20Permit',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'pendingOwner',
-    outputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: 'recipient',
-        type: 'address',
-      },
-      {
-        internalType: 'uint256',
-        name: 'nonce',
-        type: 'uint256',
-      },
-    ],
-    name: 'isPaymentDone',
-    outputs: [
-      {
-        internalType: 'bool',
-        name: '',
-        type: 'bool',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'recipient',
-            type: 'address',
-          },
-          {
-            internalType: 'uint256',
-            name: 'amount',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'expirationDate',
-            type: 'uint256',
-          },
-          {
-            internalType: 'uint256',
-            name: 'nonce',
-            type: 'uint256',
-          },
-          {
-            internalType: 'bytes',
-            name: 'metadata',
-            type: 'bytes',
-          },
-        ],
-        internalType: 'struct MCPayment.Iden3PaymentRailsRequestV1',
-        name: 'paymentData',
-        type: 'tuple',
-      },
-      {
-        internalType: 'bytes',
-        name: 'signature',
-        type: 'bytes',
-      },
-    ],
-    name: 'pay',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-]`
+type Iden3PaymentRailsV1Body struct {
+	Payments []Iden3PaymentRailsV1 `json:"payments"`
+}
 
 func (p *payment) VerifyPayment(ctx context.Context, message comm.BasicMessage) (bool, error) {
-	var paymentRequest Iden3PaymentRailsV1
+	var paymentRequest Iden3PaymentRailsV1Body
 	err := json.Unmarshal(message.Body, &paymentRequest)
 	if err != nil {
 		return false, err
 	}
 
-	client, err := p.networkResolver.GetEthClient("polygon:amoy")
-	if err != nil {
-		return false, err
-	}
-	address := common.HexToAddress("0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774")
-
+	client, err := ethclient.Dial("")
 	if err != nil {
 		return false, err
 	}
 
-	recipient := "0xE9D7fCDf32dF4772A7EF7C24c76aB40E4A42274a"
-	nonce := paymentRequest.Nonce
-
-	var output bool
-	err = client.GetEthereumClient().Client().Call(output, "isPaymentDone", address, recipient, nonce)
+	contractAddress := common.HexToAddress("0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774")
+	instance, err := eth.NewPaymentContract(contractAddress, client)
 	if err != nil {
 		return false, err
 	}
-	return output, nil
+	recipient := common.HexToAddress("0xE9D7fCDf32dF4772A7EF7C24c76aB40E4A42274a")
+	nonce, _ := new(big.Int).SetString(paymentRequest.Payments[0].Nonce, 10)
+	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: context.Background()}, recipient, nonce)
+	if err != nil {
+		return false, err
+	}
+	return isPaid, nil
 }
