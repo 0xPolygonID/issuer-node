@@ -57,9 +57,10 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 ### Run Issuer Node API and UI (docker compose with images from privadoid registry)
 To run the issuer node (API and UI) quickly and without too many customizations follow the following steps:
 
-1. Copy the config sample file:
+1. Copy the config sample files:
 ```shell
 cp .env-issuer.sample .env-issuer
+cp .env-ui.sample .env-ui
 ```
 2. Fill the .env-issuer config file with the proper variables:
 
