@@ -1292,6 +1292,68 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v2/identities/{identifier}/payment-request:
+    post:
+      summary: Create Payment Request
+      operationId: CreatePaymentRequest
+      description: Create a payment request for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment Request Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '422':
+          $ref: '#/components/responses/422'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/payment/verify:
+    post:
+      summary: Verify Payment
+      operationId: VerifyPayment
+      description: Verify a payment.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BasicMessage'
+      responses:
+        '200':
+          description: Payment verified
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
 components:
   securitySchemes:
     basicAuth:
@@ -1984,6 +2046,50 @@ components:
           type: string
         to:
           type: string
+
+    BasicMessage:
+      type: object
+      required:
+        - body
+        - id
+        - typ
+        - type
+        - threadID
+        - from
+        - to
+      properties:
+        id:
+          type: string
+        typ:
+          type: string
+        type:
+          type: string
+        threadID:
+          type: string
+        body:
+          type: null
+        from:
+          type: string
+        to:
+          type: string
+
+    CreatePaymentRequest:
+      type: object
+      required:
+        - signingKey
+        - credentialType
+        - credentialContext
+        - userDID
+      properties:
+        signingKey:
+          type: string
+        credentialType:
+          type: string
+        credentialContext:
+          type: string
+        userDID:
+          type: string
+
 
     TimeUTC:
       type: string

@@ -54,6 +54,7 @@ type Resolver struct {
 	supportedContracts map[string]*abi.State
 	stateResolvers     map[string]pubsignals.StateResolver
 	supportedNetworks  []SupportedNetworks
+	paymentSettings    map[resolverPrefix]PaymentSettings
 }
 
 // SupportedNetworks holds the chain and networks supoprted
@@ -71,6 +72,22 @@ type RhsSettings struct {
 	ChainID              *string `yaml:"chainID"`
 	PublishingKey        string  `yaml:"publishingKey"`
 	SingleIssuer         bool
+}
+
+// PaymentSettings holds the payment settings
+type PaymentSettings struct {
+	MCPaymentContract string               `yaml:"mcPaymentContract"`
+	Recipient         string               `yaml:"recipient"`
+	Amount            uint                 `yaml:"amount"`
+	erc20Tokens       []ERC20TokenSettings `yaml:"erc20Tokens"`
+}
+
+// ERC20TokenSettings holds the ERC20 payment settings
+type ERC20TokenSettings struct {
+	tokenAddress string `yaml:"tokenAddress"`
+	tokenSymbol  string `yaml:"tokenSymbol"`
+	tokenName    string `yaml:"tokenName"`
+	tokenAmount  uint   `yaml:"tokenAmount"`
 }
 
 // ResolverSettings holds the resolver settings
