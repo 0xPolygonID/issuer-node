@@ -146,16 +146,22 @@ func TestGetAllFullTextSearch(t *testing.T) {
 
 	type expected struct {
 		collection []domain.Schema
+		total      uint
 	}
+
 	type testConfig struct {
 		name     string
-		query    *string
 		expected expected
+		filter   ports.SchemasFilter
 	}
 	for _, tc := range []testConfig{
 		{
-			name:  "Nil query. Expect all entries",
-			query: nil,
+			name: "Nil query. Expect all entries",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      nil,
+			},
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:  "nicePeopleAtWork",
@@ -164,11 +170,46 @@ func TestGetAllFullTextSearch(t *testing.T) {
 					Type:  "age",
 					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
+				total: 2,
 			},
 		},
 		{
-			name:  "Empty query. Expect all entries",
-			query: common.ToPointer(""),
+			name: "Nil query. Page 1 - max results 1. Expect one entry",
+			filter: ports.SchemasFilter{
+				MaxResults: 1,
+				Page:       uint(1),
+				Query:      nil,
+			},
+			expected: expected{
+				collection: []domain.Schema{{
+					Type:  "nicePeopleAtWork",
+					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+				}},
+				total: 2,
+			},
+		},
+		{
+			name: "Nil query. Page 2 - max results 1. Expect one entry",
+			filter: ports.SchemasFilter{
+				MaxResults: 1,
+				Page:       uint(2),
+				Query:      nil,
+			},
+			expected: expected{
+				collection: []domain.Schema{{
+					Type:  "age",
+					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
+				}},
+				total: 2,
+			},
+		},
+		{
+			name: "Empty query. Expect all entries",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer(""),
+			},
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:  "nicePeopleAtWork",
@@ -177,71 +218,106 @@ func TestGetAllFullTextSearch(t *testing.T) {
 					Type:  "age",
 					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
+				total: 2,
 			},
 		},
 		{
-			name:  "Exact math for schema type. Expect one",
-			query: common.ToPointer("nicePeopleAtWork"),
+			name: "Exact math for schema type. Expect one",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("nicePeopleAtWork"),
+			},
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:  "nicePeopleAtWork",
 					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
+				total: 1,
 			},
 		},
 		{
-			name:  "Exact math for schema type in lower case . Expect one",
-			query: common.ToPointer("nicepeopleatwork"),
+			name: "Exact math for schema type in lower case . Expect one",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("nicepeopleatwork"),
+			},
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:  "nicePeopleAtWork",
 					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
+				total: 1,
 			},
 		},
 		{
-			name:  "partial match for schema type beginning. Expect one",
-			query: common.ToPointer("nicepeoplea"),
+			name: "partial match for schema type beginning. Expect one",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("nicepeoplea"),
+			},
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:  "nicePeopleAtWork",
 					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
+				total: 1,
 			},
 		},
 		{
-			name:  "Exact match attributes",
-			query: common.ToPointer("younger than eighteen"),
+			name: "Exact match attributes",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("younger than eighteen"),
+			},
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:  "age",
 					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
+				total: 1,
 			},
 		},
 		{
-			name:  "partial match attributes",
-			query: common.ToPointer("eighteen"),
+			name: "partial match attributes",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("eighteen"),
+			},
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:  "age",
 					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
+				total: 1,
 			},
 		},
 		{
-			name:  "partial match attributes, middle of the word",
-			query: common.ToPointer("eighte"),
+			name: "partial match attributes, middle of the word",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("eighte"),
+			},
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:  "age",
 					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
+				total: 1,
 			},
 		},
 		{
-			name:  "2 attributes from different records",
-			query: common.ToPointer("younger smart"),
+			name: "2 attributes from different records",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("younger smart"),
+			},
 			expected: expected{
 				collection: []domain.Schema{
 					{
@@ -253,11 +329,16 @@ func TestGetAllFullTextSearch(t *testing.T) {
 						Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 					},
 				},
+				total: 2,
 			},
 		},
 		{
-			name:  "2 attributes from different records, partial match",
-			query: common.ToPointer("young people"),
+			name: "2 attributes from different records, partial match",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("young people"),
+			},
 			expected: expected{
 				collection: []domain.Schema{
 					{
@@ -269,25 +350,32 @@ func TestGetAllFullTextSearch(t *testing.T) {
 						Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 					},
 				},
+				total: 2,
 			},
 		},
 		{
-			name:  "Something including did:******",
-			query: common.ToPointer("some words and did:polygonid:polygon:mumbai:2qE1BZ"),
+			name: "Something including did:******",
+			filter: ports.SchemasFilter{
+				MaxResults: 10,
+				Page:       uint(1),
+				Query:      common.ToPointer("some words and did:polygonid:polygon:mumbai:2qE1BZ"),
+			},
 			expected: expected{
 				collection: []domain.Schema{},
+				total:      0,
 			},
 		},
 
 		// TODO: Add partial like tests
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			collection, err := store.GetAll(ctx, *did, tc.query)
+			collection, total, err := store.GetAll(ctx, *did, tc.filter)
 			require.NoError(t, err)
 			require.Len(t, collection, len(tc.expected.collection))
 			for i := range collection {
 				assert.Equal(t, tc.expected.collection[i].Words, collection[i].Words)
 			}
+			assert.Equal(t, tc.expected.total, total)
 		})
 	}
 }

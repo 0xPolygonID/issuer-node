@@ -9,11 +9,18 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
+// SchemasFilter defines the filter for the schemas
+type SchemasFilter struct {
+	Query      *string
+	MaxResults uint
+	Page       uint
+}
+
 // SchemaService defines the methods that Schema manager will expose.
 type SchemaService interface {
 	ImportSchema(ctx context.Context, issuerDID w3c.DID, req *ImportSchemaRequest) (*domain.Schema, error)
 	GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.Schema, error)
-	GetAll(ctx context.Context, issuerDID w3c.DID, query *string) ([]domain.Schema, error)
+	GetAll(ctx context.Context, issuerDID w3c.DID, filter SchemasFilter) ([]domain.Schema, uint, error)
 }
 
 // ImportSchemaRequest defines the request for importing a schema

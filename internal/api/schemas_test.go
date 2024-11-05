@@ -176,12 +176,20 @@ func TestServer_GetSchemas(t *testing.T) {
 	type expected struct {
 		httpCode int
 		count    int
+		response GetSchemasResponseObject
 	}
+
+	type pagination struct {
+		page       *int
+		maxResults *int
+	}
+
 	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		query    *string
-		expected expected
+		name       string
+		auth       func() (string, string)
+		query      *string
+		pagination *pagination
+		expected   expected
 	}
 	for _, tc := range []testConfig{
 		{
@@ -198,6 +206,71 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    21,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
+			},
+		},
+		{
+			name:  "Happy path. All schemas, no query - maxResults 10 - page 1",
+			auth:  authOk,
+			query: nil,
+			pagination: &pagination{
+				page:       common.ToPointer(1),
+				maxResults: common.ToPointer(10),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    10,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 10,
+					},
+				},
+			},
+		},
+		{
+			name:  "Happy path. All schemas, no query - maxResults 10 - default page 1",
+			auth:  authOk,
+			query: nil,
+			pagination: &pagination{
+				maxResults: common.ToPointer(10),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    10,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 10,
+					},
+				},
+			},
+		},
+		{
+			name:  "Happy path. All schemas, no query - default maxResults 50 - page 1",
+			auth:  authOk,
+			query: nil,
+			pagination: &pagination{
+				page: common.ToPointer(1),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    21,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 		{
@@ -207,6 +280,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    21,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 		{
@@ -216,6 +296,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    20,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      20,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 		{
@@ -225,6 +312,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    21,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 		{
@@ -234,6 +328,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    1,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      1,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 	} {
@@ -242,6 +343,24 @@ func TestServer_GetSchemas(t *testing.T) {
 			endpoint := fmt.Sprintf("/v2/identities/%s/schemas", issuerDID)
 			if tc.query != nil {
 				endpoint = endpoint + "?query=" + url.QueryEscape(*tc.query)
+			}
+			if tc.pagination != nil {
+				if tc.pagination.page != nil {
+					if tc.query != nil {
+						endpoint = endpoint + fmt.Sprintf("&page=%d", *tc.pagination.page)
+					} else {
+						endpoint = endpoint + fmt.Sprintf("?page=%d", *tc.pagination.page)
+					}
+					if tc.pagination.maxResults != nil {
+						endpoint = endpoint + fmt.Sprintf("&max_results=%d", *tc.pagination.maxResults)
+					}
+				} else {
+					if tc.query != nil {
+						endpoint = endpoint + fmt.Sprintf("&max_results=%d", *tc.pagination.maxResults)
+					} else {
+						endpoint = endpoint + fmt.Sprintf("?max_results=%d", *tc.pagination.maxResults)
+					}
+				}
 			}
 			req, err := http.NewRequest("GET", endpoint, nil)
 			req.SetBasicAuth(tc.auth())
@@ -253,8 +372,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			switch tc.expected.httpCode {
 			case http.StatusOK:
 				var response GetSchemas200JSONResponse
+				expectedResponse, ok := tc.expected.response.(GetSchemas200JSONResponse)
+				require.True(t, ok)
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, tc.expected.count, len(response))
+				assert.Equal(t, tc.expected.count, len(response.Items))
+				assert.Equal(t, expectedResponse.Meta.Total, response.Meta.Total)
+				assert.Equal(t, expectedResponse.Meta.Page, response.Meta.Page)
+				assert.Equal(t, expectedResponse.Meta.MaxResults, response.Meta.MaxResults)
 			}
 		})
 	}

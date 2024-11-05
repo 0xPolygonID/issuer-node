@@ -7,6 +7,7 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
 
 type schemaInMemory struct {
@@ -31,12 +32,12 @@ func (s *schemaInMemory) GetByID(_ context.Context, _ w3c.DID, id uuid.UUID) (*d
 }
 
 // GetAll returns all. WARNING: query param will not work in the same way as DB repo
-func (s *schemaInMemory) GetAll(_ context.Context, _ w3c.DID, _ *string) ([]domain.Schema, error) {
+func (s *schemaInMemory) GetAll(_ context.Context, _ w3c.DID, _ ports.SchemasFilter) ([]domain.Schema, uint, error) {
 	schemas := make([]domain.Schema, len(s.schemas))
 	i := 0
 	for _, schema := range s.schemas {
 		schemas[i] = schema
 		i++
 	}
-	return schemas, nil
+	return schemas, uint(len(schemas)), nil
 }

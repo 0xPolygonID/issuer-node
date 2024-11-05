@@ -504,6 +504,12 @@ type Schema struct {
 	Version     string  `json:"version"`
 }
 
+// SchemasPaginated defines model for SchemasPaginated.
+type SchemasPaginated struct {
+	Items []Schema          `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
+}
+
 // StateStatusResponse defines model for StateStatusResponse.
 type StateStatusResponse struct {
 	PendingActions bool `json:"pendingActions"`
@@ -716,6 +722,10 @@ type GetCredentialOfferParamsType string
 type GetSchemasParams struct {
 	// Query Query string to do full text search in schema types and attributes.
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
+	Page  *uint   `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
 }
 
 // GetStateTransactionsParams defines parameters for GetStateTransactions.
@@ -2314,6 +2324,22 @@ func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Req
 	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
 		return
 	}
 
@@ -4171,7 +4197,7 @@ type GetSchemasResponseObject interface {
 	VisitGetSchemasResponse(w http.ResponseWriter) error
 }
 
-type GetSchemas200JSONResponse []Schema
+type GetSchemas200JSONResponse SchemasPaginated
 
 func (response GetSchemas200JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

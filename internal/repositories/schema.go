@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
@@ -85,41 +86,67 @@ func (r *schema) toFullTextSearchDocument(sType string, attrs domain.SchemaWords
 
 // GetAll returns all the schemas that match any of the words that are included in the query string.
 // For each word, it will search for attributes that start with it or include it following postgres full text search tokenization
-func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) ([]domain.Schema, error) {
+func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, filter ports.SchemasFilter) ([]domain.Schema, uint, error) {
 	var err error
 	var rows pgx.Rows
 	sqlArgs := make([]interface{}, 0)
-	sqlQuery := `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description
+	fields := []string{
+		"id",
+		"issuer_id",
+		"url",
+		"type",
+		"words",
+		"hash",
+		"created_at",
+		"version",
+		"title",
+		"description",
+	}
+
+	sqlQuery := `SELECT ##QUERYFIELDS##
 	FROM schemas
 	WHERE issuer_id=$1`
+
 	sqlArgs = append(sqlArgs, issuerDID.String())
-	if query != nil && *query != "" {
-		terms := tokenizeQuery(*query)
+	if filter.Query != nil && *filter.Query != "" {
+		terms := tokenizeQuery(*filter.Query)
 		sqlQuery += " AND (" + buildPartialQueryLikes("schemas.words", "OR", 1+len(sqlArgs), len(terms)) + ")"
 		for _, term := range terms {
 			sqlArgs = append(sqlArgs, term)
 		}
 	}
 	sqlQuery += " ORDER BY created_at DESC"
+	query := strings.Replace(sqlQuery, "##QUERYFIELDS##", strings.Join(fields, ", "), 1)
 
-	rows, err = r.conn.Pgx.Query(ctx, sqlQuery, sqlArgs...)
+	var count uint
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM (SELECT id FROM (%s) as innerquery) as count", query)
+	if err := r.conn.Pgx.QueryRow(ctx, countQuery, sqlArgs...).Scan(&count); err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, 0, nil
+		}
+		return nil, 0, err
+	}
+
+	query += fmt.Sprintf(" OFFSET %d LIMIT %d;", (filter.Page-1)*filter.MaxResults, filter.MaxResults)
+	rows, err = r.conn.Pgx.Query(ctx, query, sqlArgs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	schemaCol := make([]domain.Schema, 0)
 	s := dbSchema{}
 	for rows.Next() {
 		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		item, err := toSchemaDomain(&s)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		schemaCol = append(schemaCol, *item)
 	}
-	return schemaCol, rows.Err()
+
+	return schemaCol, count, rows.Err()
 }
 
 // GetByID searches and returns an schema by id

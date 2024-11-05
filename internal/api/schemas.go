@@ -60,12 +60,41 @@ func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return GetSchemas400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	col, err := s.schemaService.GetAll(ctx, *issuerDID, request.Params.Query)
+
+	filter := ports.SchemasFilter{
+		Query: request.Params.Query,
+	}
+
+	filter.MaxResults = 50
+	if request.Params.MaxResults != nil {
+		if *request.Params.MaxResults <= 0 {
+			filter.MaxResults = 10
+		} else {
+			filter.MaxResults = *request.Params.MaxResults
+		}
+	}
+	if request.Params.Page == nil {
+		filter.Page = uint(1)
+	} else {
+		filter.Page = *request.Params.Page
+	}
+
+	col, total, err := s.schemaService.GetAll(ctx, *issuerDID, filter)
 	if err != nil {
 		log.Error(ctx, "loading schemas", "err", err)
 		return GetSchemas500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-	return GetSchemas200JSONResponse(schemaCollectionResponse(col)), nil
+
+	response := GetSchemas200JSONResponse{
+		Items: schemaCollectionResponse(col),
+		Meta: PaginatedMetadata{
+			Total:      total,
+			Page:       filter.Page,
+			MaxResults: filter.MaxResults,
+		},
+	}
+
+	return response, nil
 }
 
 func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
