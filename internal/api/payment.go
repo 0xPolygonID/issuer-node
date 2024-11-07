@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -57,7 +58,10 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 		Type:     comm.ProtocolMessage(""),
 		Body:     bodyBytes,
 	}
-	isPaid, err := s.paymentService.VerifyPayment(ctx, basicMessage)
+
+	recipient := common.HexToAddress(request.Recipient)
+
+	isPaid, err := s.paymentService.VerifyPayment(ctx, recipient, basicMessage)
 	if err != nil {
 		log.Error(ctx, "can't process payment message", "err", err)
 		return VerifyPayment400JSONResponse{N400JSONResponse{Message: "can't process payment message"}}, nil

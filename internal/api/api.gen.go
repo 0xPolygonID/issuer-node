@@ -575,6 +575,9 @@ type PathIdentifier = string
 // PathNonce defines model for pathNonce.
 type PathNonce = int64
 
+// PathRecipient defines model for pathRecipient.
+type PathRecipient = string
+
 // SessionID defines model for sessionID.
 type SessionID = uuid.UUID
 
@@ -922,8 +925,8 @@ type ServerInterface interface {
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
 	// Verify Payment
-	// (POST /v2/payment/verify)
-	VerifyPayment(w http.ResponseWriter, r *http.Request)
+	// (POST /v2/payment/verify/{recipient})
+	VerifyPayment(w http.ResponseWriter, r *http.Request, recipient PathRecipient)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
@@ -1168,8 +1171,8 @@ func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Reque
 }
 
 // Verify Payment
-// (POST /v2/payment/verify)
-func (_ Unimplemented) VerifyPayment(w http.ResponseWriter, r *http.Request) {
+// (POST /v2/payment/verify/{recipient})
+func (_ Unimplemented) VerifyPayment(w http.ResponseWriter, r *http.Request, recipient PathRecipient) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2629,6 +2632,17 @@ func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r
 // VerifyPayment operation middleware
 func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
+	// ------------- Path parameter "recipient" -------------
+	var recipient PathRecipient
+
+	err = runtime.BindStyledParameterWithOptions("simple", "recipient", chi.URLParam(r, "recipient"), &recipient, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "recipient", Err: err})
+		return
+	}
+
 	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
@@ -2636,7 +2650,7 @@ func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.VerifyPayment(w, r)
+		siw.Handler.VerifyPayment(w, r, recipient)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2965,7 +2979,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/state/transactions", wrapper.GetStateTransactions)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v2/payment/verify", wrapper.VerifyPayment)
+		r.Post(options.BaseURL+"/v2/payment/verify/{recipient}", wrapper.VerifyPayment)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/qr-store", wrapper.GetQrFromStore)
@@ -4587,7 +4601,8 @@ func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsRes
 }
 
 type VerifyPaymentRequestObject struct {
-	Body *VerifyPaymentJSONRequestBody
+	Recipient PathRecipient `json:"recipient"`
+	Body      *VerifyPaymentJSONRequestBody
 }
 
 type VerifyPaymentResponseObject interface {
@@ -4888,7 +4903,7 @@ type StrictServerInterface interface {
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 	// Verify Payment
-	// (POST /v2/payment/verify)
+	// (POST /v2/payment/verify/{recipient})
 	VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
@@ -6020,8 +6035,10 @@ func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Req
 }
 
 // VerifyPayment operation middleware
-func (sh *strictHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) VerifyPayment(w http.ResponseWriter, r *http.Request, recipient PathRecipient) {
 	var request VerifyPaymentRequestObject
+
+	request.Recipient = recipient
 
 	var body VerifyPaymentJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

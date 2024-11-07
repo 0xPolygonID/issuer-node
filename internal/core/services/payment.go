@@ -180,12 +180,12 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, 
 		Domain: apitypes.TypedDataDomain{
 			Name:              "MCPayment",
 			Version:           "1.0.0",
-			ChainId:           math.NewHexOrDecimal256(80002),
-			VerifyingContract: "0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774",
+			ChainId:           math.NewHexOrDecimal256(80002),               // 1. config
+			VerifyingContract: "0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774", // 2. config
 		},
 		Message: apitypes.TypedDataMessage{
-			"recipient":      address,
-			"amount":         "100",
+			"recipient":      address, // 3. derive from PK
+			"amount":         "100",   // 4. config per credential
 			"expirationDate": fmt.Sprint(oneHourLater.Unix()),
 			"nonce":          randomBigInt.String(),
 			"metadata":       "0x",
@@ -275,14 +275,14 @@ type Iden3PaymentRailsV1Body struct {
 	Payments []Iden3PaymentRailsV1 `json:"payments"`
 }
 
-func (p *payment) VerifyPayment(ctx context.Context, message comm.BasicMessage) (bool, error) {
+func (p *payment) VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error) {
 	var paymentRequest Iden3PaymentRailsV1Body
 	err := json.Unmarshal(message.Body, &paymentRequest)
 	if err != nil {
 		return false, err
 	}
 
-	client, err := ethclient.Dial("")
+	client, err := ethclient.Dial("https://polygon-amoy.g.alchemy.com/v2/DHvucvBBzrBhaHzmjrMp24PGbl7vwee6")
 	if err != nil {
 		return false, err
 	}
@@ -292,7 +292,7 @@ func (p *payment) VerifyPayment(ctx context.Context, message comm.BasicMessage) 
 	if err != nil {
 		return false, err
 	}
-	recipient := common.HexToAddress("0xE9D7fCDf32dF4772A7EF7C24c76aB40E4A42274a")
+
 	nonce, _ := new(big.Int).SetString(paymentRequest.Payments[0].Nonce, 10)
 	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: context.Background()}, recipient, nonce)
 	if err != nil {

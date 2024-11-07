@@ -1325,7 +1325,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/payment/verify:
+  /v2/payment/verify/{recipient}:
     post:
       summary: Verify Payment
       operationId: VerifyPayment
@@ -1334,6 +1334,8 @@ paths:
         - Payment
       security:
         - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathRecipient'
       requestBody:
         required: true
         content:
@@ -2377,6 +2379,14 @@ components:
       in: path
       required: true
       description: Issuer identifier
+      schema:
+        type: string
+    
+    pathRecipient:
+      name: recipient
+      in: path
+      required: true
+      description: Payment recipient address
       schema:
         type: string
 
