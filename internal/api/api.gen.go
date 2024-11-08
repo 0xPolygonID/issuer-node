@@ -225,6 +225,13 @@ type CreateCredentialResponse struct {
 	Id string `json:"id"`
 }
 
+// CreateDisplayMethodRequest defines model for CreateDisplayMethodRequest.
+type CreateDisplayMethodRequest struct {
+	Default bool   `json:"default"`
+	Name    string `json:"name"`
+	Url     string `json:"url"`
+}
+
 // CreateIdentityRequest defines model for CreateIdentityRequest.
 type CreateIdentityRequest struct {
 	CredentialStatusType *CreateIdentityRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
@@ -311,6 +318,17 @@ type DisplayMethod struct {
 
 // DisplayMethodType defines model for DisplayMethod.Type.
 type DisplayMethodType string
+
+// DisplayMethodEntity defines model for DisplayMethodEntity.
+type DisplayMethodEntity struct {
+	Default bool      `json:"default"`
+	Id      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	Url     string    `json:"url"`
+}
+
+// DisplayMethodEntityList defines model for DisplayMethodEntityList.
+type DisplayMethodEntityList = []DisplayMethodEntity
 
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
@@ -712,6 +730,13 @@ type GetCredentialOfferParams struct {
 // GetCredentialOfferParamsType defines parameters for GetCredentialOffer.
 type GetCredentialOfferParamsType string
 
+// UpdateDisplayMethodJSONBody defines parameters for UpdateDisplayMethod.
+type UpdateDisplayMethodJSONBody struct {
+	Default *bool   `json:"default,omitempty"`
+	Name    *string `json:"name,omitempty"`
+	Url     *string `json:"url,omitempty"`
+}
+
 // GetSchemasParams defines parameters for GetSchemas.
 type GetSchemasParams struct {
 	// Query Query string to do full text search in schema types and attributes.
@@ -782,6 +807,12 @@ type CreateLinkQrCodeCallbackTextRequestBody = CreateLinkQrCodeCallbackTextBody
 
 // ActivateLinkJSONRequestBody defines body for ActivateLink for application/json ContentType.
 type ActivateLinkJSONRequestBody ActivateLinkJSONBody
+
+// CreateDisplayMethodJSONRequestBody defines body for CreateDisplayMethod for application/json ContentType.
+type CreateDisplayMethodJSONRequestBody = CreateDisplayMethodRequest
+
+// UpdateDisplayMethodJSONRequestBody defines body for UpdateDisplayMethod for application/json ContentType.
+type UpdateDisplayMethodJSONRequestBody UpdateDisplayMethodJSONBody
 
 // ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
@@ -878,6 +909,21 @@ type ServerInterface interface {
 	// Get Credentials Offer
 	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 	GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams)
+	// Get All Display Method
+	// (GET /v2/identities/{identifier}/display-method)
+	GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Create Display Method
+	// (POST /v2/identities/{identifier}/display-method)
+	CreateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Delete Display Method
+	// (DELETE /v2/identities/{identifier}/display-method/{id})
+	DeleteDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Get Display Method
+	// (GET /v2/identities/{identifier}/display-method/{id})
+	GetDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Update Display Method
+	// (PATCH /v2/identities/{identifier}/display-method/{id})
+	UpdateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -1091,6 +1137,36 @@ func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, ide
 // Get Credentials Offer
 // (GET /v2/identities/{identifier}/credentials/{id}/offer)
 func (_ Unimplemented) GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get All Display Method
+// (GET /v2/identities/{identifier}/display-method)
+func (_ Unimplemented) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Display Method
+// (POST /v2/identities/{identifier}/display-method)
+func (_ Unimplemented) CreateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete Display Method
+// (DELETE /v2/identities/{identifier}/display-method/{id})
+func (_ Unimplemented) DeleteDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Display Method
+// (GET /v2/identities/{identifier}/display-method/{id})
+func (_ Unimplemented) GetDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update Display Method
+// (PATCH /v2/identities/{identifier}/display-method/{id})
+func (_ Unimplemented) UpdateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2286,6 +2362,188 @@ func (siw *ServerInterfaceWrapper) GetCredentialOffer(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// GetAllDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAllDisplayMethod(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) CreateDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDisplayMethod(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDisplayMethod(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) GetDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDisplayMethod(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) UpdateDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateDisplayMethod(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSchemas operation middleware
 func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
 
@@ -2851,6 +3109,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}/offer", wrapper.GetCredentialOffer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/display-method", wrapper.GetAllDisplayMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/display-method", wrapper.CreateDisplayMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/display-method/{id}", wrapper.DeleteDisplayMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/display-method/{id}", wrapper.GetDisplayMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}/display-method/{id}", wrapper.UpdateDisplayMethod)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
@@ -4162,6 +4435,222 @@ func (response GetCredentialOffer500JSONResponse) VisitGetCredentialOfferRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetAllDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type GetAllDisplayMethodResponseObject interface {
+	VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type GetAllDisplayMethod200JSONResponse DisplayMethodEntityList
+
+func (response GetAllDisplayMethod200JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAllDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response GetAllDisplayMethod400JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAllDisplayMethod404JSONResponse struct{ N404JSONResponse }
+
+func (response GetAllDisplayMethod404JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAllDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response GetAllDisplayMethod500JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreateDisplayMethodJSONRequestBody
+}
+
+type CreateDisplayMethodResponseObject interface {
+	VisitCreateDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type CreateDisplayMethod201JSONResponse UUIDResponse
+
+func (response CreateDisplayMethod201JSONResponse) VisitCreateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateDisplayMethod400JSONResponse) VisitCreateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateDisplayMethod500JSONResponse) VisitCreateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type DeleteDisplayMethodResponseObject interface {
+	VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type DeleteDisplayMethod200JSONResponse GenericMessage
+
+func (response DeleteDisplayMethod200JSONResponse) VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response DeleteDisplayMethod400JSONResponse) VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteDisplayMethod404JSONResponse struct{ N404JSONResponse }
+
+func (response DeleteDisplayMethod404JSONResponse) VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response DeleteDisplayMethod500JSONResponse) VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type GetDisplayMethodResponseObject interface {
+	VisitGetDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type GetDisplayMethod200JSONResponse DisplayMethodEntity
+
+func (response GetDisplayMethod200JSONResponse) VisitGetDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response GetDisplayMethod400JSONResponse) VisitGetDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetDisplayMethod404JSONResponse struct{ N404JSONResponse }
+
+func (response GetDisplayMethod404JSONResponse) VisitGetDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response GetDisplayMethod500JSONResponse) VisitGetDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+	Body       *UpdateDisplayMethodJSONRequestBody
+}
+
+type UpdateDisplayMethodResponseObject interface {
+	VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type UpdateDisplayMethod200JSONResponse GenericMessage
+
+func (response UpdateDisplayMethod200JSONResponse) VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateDisplayMethod400JSONResponse) VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateDisplayMethod404JSONResponse struct{ N404JSONResponse }
+
+func (response UpdateDisplayMethod404JSONResponse) VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response UpdateDisplayMethod500JSONResponse) VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetSchemasRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Params     GetSchemasParams
@@ -4671,6 +5160,21 @@ type StrictServerInterface interface {
 	// Get Credentials Offer
 	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 	GetCredentialOffer(ctx context.Context, request GetCredentialOfferRequestObject) (GetCredentialOfferResponseObject, error)
+	// Get All Display Method
+	// (GET /v2/identities/{identifier}/display-method)
+	GetAllDisplayMethod(ctx context.Context, request GetAllDisplayMethodRequestObject) (GetAllDisplayMethodResponseObject, error)
+	// Create Display Method
+	// (POST /v2/identities/{identifier}/display-method)
+	CreateDisplayMethod(ctx context.Context, request CreateDisplayMethodRequestObject) (CreateDisplayMethodResponseObject, error)
+	// Delete Display Method
+	// (DELETE /v2/identities/{identifier}/display-method/{id})
+	DeleteDisplayMethod(ctx context.Context, request DeleteDisplayMethodRequestObject) (DeleteDisplayMethodResponseObject, error)
+	// Get Display Method
+	// (GET /v2/identities/{identifier}/display-method/{id})
+	GetDisplayMethod(ctx context.Context, request GetDisplayMethodRequestObject) (GetDisplayMethodResponseObject, error)
+	// Update Display Method
+	// (PATCH /v2/identities/{identifier}/display-method/{id})
+	UpdateDisplayMethod(ctx context.Context, request UpdateDisplayMethodRequestObject) (UpdateDisplayMethodResponseObject, error)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
@@ -5589,6 +6093,153 @@ func (sh *strictHandler) GetCredentialOffer(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetCredentialOfferResponseObject); ok {
 		if err := validResponse.VisitGetCredentialOfferResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAllDisplayMethod operation middleware
+func (sh *strictHandler) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request GetAllDisplayMethodRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAllDisplayMethod(ctx, request.(GetAllDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAllDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAllDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitGetAllDisplayMethodResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateDisplayMethod operation middleware
+func (sh *strictHandler) CreateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreateDisplayMethodRequestObject
+
+	request.Identifier = identifier
+
+	var body CreateDisplayMethodJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDisplayMethod(ctx, request.(CreateDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitCreateDisplayMethodResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteDisplayMethod operation middleware
+func (sh *strictHandler) DeleteDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request DeleteDisplayMethodRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteDisplayMethod(ctx, request.(DeleteDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitDeleteDisplayMethodResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetDisplayMethod operation middleware
+func (sh *strictHandler) GetDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request GetDisplayMethodRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDisplayMethod(ctx, request.(GetDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitGetDisplayMethodResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateDisplayMethod operation middleware
+func (sh *strictHandler) UpdateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request UpdateDisplayMethodRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	var body UpdateDisplayMethodJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateDisplayMethod(ctx, request.(UpdateDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitUpdateDisplayMethodResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

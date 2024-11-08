@@ -1292,6 +1292,156 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  # Display Methods
+  /v2/identities/{identifier}/display-method:
+    post:
+      summary: Create Display Method
+      operationId: CreateDisplayMethod
+      description: Create a display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDisplayMethodRequest'
+      responses:
+        '201':
+          description: Display Method Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+    get:
+      summary: Get All Display Method
+      operationId: GetAllDisplayMethod
+      description: |
+        Get all the display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Display Method list response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayMethodEntityList'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/identities/{identifier}/display-method/{id}:
+    get:
+      summary: Get Display Method
+      operationId: GetDisplayMethod
+      description: |
+        Get a specific display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Display Method response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayMethodEntity'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    patch:
+      summary: Update Display Method
+      operationId: UpdateDisplayMethod
+      description: |
+        Update a specific display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "New Display Method Name"
+                url:
+                  type: string
+                  example: "https://new-display-method.com"
+                default:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Display Method updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    delete:
+      summary: Delete Display Method
+      operationId: DeleteDisplayMethod
+      description: |
+        Delete a specific display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Display Method updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
 components:
   securitySchemes:
     basicAuth:
@@ -2067,6 +2217,36 @@ components:
           x-omitempty: false
           example: https://wallet.privado.id#request_uri=url
 
+
+    DisplayMethodEntity:
+      type: object
+      required:
+        - id
+        - name
+        - url
+        - default
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        name:
+          type: string
+          example: "a display method name"
+        url:
+          type: string
+          example: "https://someValidURL.com"
+        default:
+          type: boolean
+
+    DisplayMethodEntityList:
+      type: array
+      items:
+          $ref: '#/components/schemas/DisplayMethodEntity'
+
     CredentialSubject:
       type: object
       x-omitempty: false
@@ -2230,6 +2410,24 @@ components:
       x-go-type-import:
         name: protocol
         path: github.com/iden3/iden3comm/v2/protocol
+
+    CreateDisplayMethodRequest:
+        type: object
+        required:
+          - name
+          - url
+          - default
+        properties:
+          name:
+            type: string
+            example: "My Display Method"
+          url:
+            type: string
+            example: "https://my-display-method.com"
+          default:
+            type: boolean
+            example: true
+
 
   parameters:
     credentialStatusType:
