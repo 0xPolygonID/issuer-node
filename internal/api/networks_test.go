@@ -54,7 +54,12 @@ func TestServer_GetSupportedNetworks(t *testing.T) {
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, 1, len(response))
 				assert.Equal(t, "polygon", response[0].Blockchain)
-				assert.Equal(t, "amoy", response[0].Networks[0])
+				assert.Equal(t, []NetworkData{
+					{
+						Name:             "amoy",
+						CredentialStatus: []string{"Iden3commRevocationStatusV1.0"},
+					},
+				}, response[0].Networks)
 			}
 		})
 	}

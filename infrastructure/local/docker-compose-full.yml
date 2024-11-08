@@ -11,7 +11,7 @@ services:
       - ./scripts/sql:/docker-entrypoint-initdb.d:ro
       - postgres-data-full:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
+      test: ["CMD-SHELL", "pg_isready"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,7 +19,7 @@ services:
   redis:
     image: redis:6-alpine
     healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,8 +61,10 @@ services:
       - "8088:80"
     env_file:
       - ../../.env-ui
+      - ../../.env-issuer
+
     healthcheck:
-      test: [ "CMD", "curl", "-f", "ui/health" ]
+      test: ["CMD", "curl", "-f", "ui/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -80,7 +82,7 @@ services:
       - ../../localstoragekeys:/localstoragekeys:rw
       - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     healthcheck:
-      test: [ "CMD", "curl", "-f", "api:3001/status" ]
+      test: ["CMD", "curl", "-f", "api:3001/status"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -99,7 +101,7 @@ services:
       - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     command: sh -c "./notifications"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "notifications:3004/status" ]
+      test: ["CMD", "curl", "-f", "notifications:3004/status"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -116,7 +118,7 @@ services:
       - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     command: sh -c "./pending_publisher"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "pending_publisher:3005/status" ]
+      test: ["CMD", "curl", "-f", "pending_publisher:3005/status"]
       interval: 10s
       timeout: 5s
       retries: 5

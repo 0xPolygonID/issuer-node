@@ -1436,7 +1436,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         displayName:
           type: string
           x-omitempty: false
@@ -1467,7 +1467,7 @@ components:
         credentialStatusType:
           type: string
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
     GetIdentityDetailsResponse:
       type: object
@@ -1496,7 +1496,7 @@ components:
         credentialStatusType:
           type: string
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
     IdentityState:
       type: object
@@ -1630,7 +1630,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         method:
           type: string
           x-omitempty: false
@@ -1848,7 +1848,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
@@ -2315,8 +2315,22 @@ components:
         networks:
           type: array
           items:
+            $ref: '#/components/schemas/NetworkData'
+
+    NetworkData:
+      type: object
+      required:
+        - name
+        - credentialStatus
+      properties:
+        name:
+          type: string
+          example: "amoy"
+        credentialStatus:
+          type: array
+          items:
             type: string
-          example: [ "amoy", "mumbai" ]
+            example: "Iden3commRevocationStatusV1.0"
 
     Offer:
       type: object
