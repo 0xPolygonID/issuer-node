@@ -28,7 +28,7 @@ const (
 const (
 	CreateCredentialRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateCredentialRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	CreateCredentialRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateCredentialRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	CreateCredentialRequestCredentialStatusTypeIden3commRevocationStatusv20          CreateCredentialRequestCredentialStatusType = "Iden3commRevocationStatusv2.0"
+	CreateCredentialRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateCredentialRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for CreateCredentialRequestProofs.
@@ -41,7 +41,7 @@ const (
 const (
 	CreateIdentityRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateIdentityRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	CreateIdentityRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateIdentityRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	CreateIdentityRequestCredentialStatusTypeIden3commRevocationStatusv20          CreateIdentityRequestCredentialStatusType = "Iden3commRevocationStatusv2.0"
+	CreateIdentityRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateIdentityRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for CreateIdentityRequestDidMetadataType.
@@ -54,7 +54,7 @@ const (
 const (
 	CreateIdentityResponseCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateIdentityResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	CreateIdentityResponseCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateIdentityResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	CreateIdentityResponseCredentialStatusTypeIden3commRevocationStatusv20          CreateIdentityResponseCredentialStatusType = "Iden3commRevocationStatusv2.0"
+	CreateIdentityResponseCredentialStatusTypeIden3commRevocationStatusV10          CreateIdentityResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for DisplayMethodType.
@@ -66,14 +66,14 @@ const (
 const (
 	GetIdentitiesResponseCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	GetIdentitiesResponseCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	GetIdentitiesResponseCredentialStatusTypeIden3commRevocationStatusv20          GetIdentitiesResponseCredentialStatusType = "Iden3commRevocationStatusv2.0"
+	GetIdentitiesResponseCredentialStatusTypeIden3commRevocationStatusV10          GetIdentitiesResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for GetIdentityDetailsResponseCredentialStatusType.
 const (
 	Iden3OnchainSparseMerkleTreeProof2023 GetIdentityDetailsResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	Iden3ReverseSparseMerkleTreeProof     GetIdentityDetailsResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	Iden3commRevocationStatusv20          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusv2.0"
+	Iden3commRevocationStatusV10          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for LinkStatus.
@@ -434,6 +434,12 @@ type LinkSimple struct {
 	SchemaUrl  string    `json:"schemaUrl"`
 }
 
+// NetworkData defines model for NetworkData.
+type NetworkData struct {
+	CredentialStatus []string `json:"credentialStatus"`
+	Name             string   `json:"name"`
+}
+
 // Offer defines model for Offer.
 type Offer = protocol.CredentialsOfferMessage
 
@@ -526,8 +532,8 @@ type StateTransactionsPaginated struct {
 
 // SupportedNetworks defines model for SupportedNetworks.
 type SupportedNetworks struct {
-	Blockchain string   `json:"blockchain"`
-	Networks   []string `json:"networks"`
+	Blockchain string        `json:"blockchain"`
+	Networks   []NetworkData `json:"networks"`
 }
 
 // TimeUTC defines model for TimeUTC.
