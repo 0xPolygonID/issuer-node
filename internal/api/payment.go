@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
+
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
@@ -43,6 +44,7 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 	return CreatePaymentRequest201JSONResponse(basicMessage), nil
 }
 
+// VerifyPayment is the controller to verify payment
 func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error) {
 	bodyBytes, err := json.Marshal(request.Body.Body)
 	if err != nil {

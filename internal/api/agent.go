@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/iden3/iden3comm/v2/protocol"
+
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -25,8 +26,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 	var agent *domain.Agent
 
 	switch basicMessage.Type {
-	case protocol.CredentialFetchRequestMessageType:
-	case protocol.RevocationStatusRequestMessageType:
+	case protocol.CredentialFetchRequestMessageType, protocol.RevocationStatusRequestMessageType:
 		req, err := ports.NewAgentRequest(basicMessage)
 		if err != nil {
 			log.Error(ctx, "agent parsing request", "err", err)
@@ -38,7 +38,6 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 			log.Error(ctx, "agent error", "err", err)
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 		}
-		break
 	case protocol.CredentialProposalRequestMessageType:
 		proposalRequest, err := ports.NewAgentProposalRequest(basicMessage)
 		if err != nil {
@@ -61,7 +60,6 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 			log.Error(ctx, "agent error", "err", err)
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 		}
-		break
 	default:
 		log.Debug(ctx, "agent not supported type", basicMessage.Type)
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given message type"}}, nil

@@ -21,6 +21,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
+
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/eth"
 	"github.com/polygonid/sh-id-platform/internal/network"
@@ -30,16 +31,18 @@ type payment struct {
 	networkResolver network.Resolver
 }
 
-// NewClaim creates a new claim service
+// NewPaymentService creates a new payment service
 func NewPaymentService(resolver network.Resolver) ports.PaymentService {
 	return &payment{networkResolver: resolver}
 }
 
+// PaymentRequestMessageBody TODO: use ones from iden3comm
 type PaymentRequestMessageBody struct {
 	Agent    string               `json:"agent"`
 	Payments []PaymentRequestInfo `json:"payments"`
 }
 
+// PaymentRequestInfo TODO: use ones from iden3comm
 type PaymentRequestInfo struct {
 	Type        *string                         `json:"type,omitempty"`
 	Credentials []PaymentRequestInfoCredentials `json:"credentials"`
@@ -47,11 +50,13 @@ type PaymentRequestInfo struct {
 	Data        interface{}                     `json:"data"`
 }
 
+// PaymentRequestInfoCredentials TODO: use ones from iden3comm
 type PaymentRequestInfoCredentials struct {
 	Context string `json:"context,omitempty"`
 	Type    string `json:"type,omitempty"`
 }
 
+// EthereumEip712Signature2021 TODO: use ones from iden3comm
 type EthereumEip712Signature2021 struct {
 	Type               verifiable.ProofType `json:"type"`
 	ProofPurpose       string               `json:"proofPurpose"`
@@ -61,12 +66,14 @@ type EthereumEip712Signature2021 struct {
 	Eip712             Eip712Data           `json:"eip712"`
 }
 
+// Eip712Data TODO: use ones from iden3comm
 type Eip712Data struct {
 	Types       string       `json:"types"`
 	PrimaryType string       `json:"primaryType"`
 	Domain      Eip712Domain `json:"domain"`
 }
 
+// Eip712Domain TODO: use ones from iden3comm
 type Eip712Domain struct {
 	Name              string `json:"name"`
 	Version           string `json:"version"`
@@ -74,7 +81,7 @@ type Eip712Domain struct {
 	VerifyingContract string `json:"verifyingContract"`
 }
 
-// Iden3PaymentRailsRequestV1 represents the Iden3PaymentRailsRequestV1 payment request data.
+// Iden3PaymentRailsRequestV1 TODO: use ones from iden3comm
 type Iden3PaymentRailsRequestV1 struct {
 	Nonce          string                        `json:"nonce"`
 	Type           string                        `json:"type"`
@@ -87,7 +94,7 @@ type Iden3PaymentRailsRequestV1 struct {
 	Currency       string                        `json:"currency"`
 }
 
-// Iden3PaymentRailsERC20RequestV1 represents the Iden3PaymentRailsERC20RequestV1 payment request data.
+// Iden3PaymentRailsERC20RequestV1 TODO: use ones from iden3comm
 type Iden3PaymentRailsERC20RequestV1 struct {
 	Nonce          string                        `json:"nonce"`
 	Type           string                        `json:"type"`
@@ -102,6 +109,7 @@ type Iden3PaymentRailsERC20RequestV1 struct {
 	Features       []string                      `json:"features,omitempty"`
 }
 
+// CreatePaymentRequest creates a payment request
 func (p *payment) CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, userDID *w3c.DID, signingKey string, credContext string, credType string) (*comm.BasicMessage, error) {
 	id := uuid.New().String()
 	basicMessage := comm.BasicMessage{
@@ -113,8 +121,8 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, 
 		ThreadID: id,
 	}
 
-	var max *big.Int = big.NewInt(0).Exp(big.NewInt(2), big.NewInt(130), nil)
-	randomBigInt, err := rand.Int(rand.Reader, max)
+	//nolint:mnd
+	randomBigInt, err := rand.Int(rand.Reader, big.NewInt(0).Exp(big.NewInt(2), big.NewInt(130), nil))
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +188,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, 
 		Domain: apitypes.TypedDataDomain{
 			Name:              "MCPayment",
 			Version:           "1.0.0",
-			ChainId:           math.NewHexOrDecimal256(80002),               // 1. config
+			ChainId:           math.NewHexOrDecimal256(80002),               // nolint:mnd
 			VerifyingContract: "0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774", // 2. config
 		},
 		Message: apitypes.TypedDataMessage{
@@ -246,10 +254,14 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, 
 		},
 	}
 	basicMessage.Body, err = json.Marshal(paymentRequestMessageBody)
+	if err != nil {
+		return nil, err
+	}
 
 	return &basicMessage, nil
 }
 
+// CreatePaymentRequestForProposalRequest creates a payment request for a proposal request
 func (p *payment) CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error) {
 	basicMessage := comm.BasicMessage{
 		From:     proposalRequest.To,
@@ -261,6 +273,7 @@ func (p *payment) CreatePaymentRequestForProposalRequest(ctx context.Context, pr
 	return &basicMessage, nil
 }
 
+// Iden3PaymentRailsV1 TODO: Use ones from iden3comm
 type Iden3PaymentRailsV1 struct {
 	Nonce       string   `json:"nonce"`
 	Type        string   `json:"type"`
@@ -271,11 +284,13 @@ type Iden3PaymentRailsV1 struct {
 	} `json:"paymentData"`
 }
 
+// Iden3PaymentRailsV1Body TODO: Use ones from iden3comm
 type Iden3PaymentRailsV1Body struct {
 	Payments []Iden3PaymentRailsV1 `json:"payments"`
 }
 
 func (p *payment) VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error) {
+	const base10 = 10
 	var paymentRequest Iden3PaymentRailsV1Body
 	err := json.Unmarshal(message.Body, &paymentRequest)
 	if err != nil {
@@ -293,7 +308,7 @@ func (p *payment) VerifyPayment(ctx context.Context, recipient common.Address, m
 		return false, err
 	}
 
-	nonce, _ := new(big.Int).SetString(paymentRequest.Payments[0].Nonce, 10)
+	nonce, _ := new(big.Int).SetString(paymentRequest.Payments[0].Nonce, base10)
 	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: context.Background()}, recipient, nonce)
 	if err != nil {
 		return false, err

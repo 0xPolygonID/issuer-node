@@ -11,10 +11,11 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 )
 
+// Credential struct: TODO: This shouldn't be here with this name
 type Credential struct {
 	Type    string `json:"type"`
 	Context string `json:"context"`
-	typss   protocol.CredentialIssuanceRequestMessage
+	// typss   protocol.CredentialIssuanceRequestMessage
 }
 
 // AgentProposalRequest struct
