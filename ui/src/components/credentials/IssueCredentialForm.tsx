@@ -110,6 +110,7 @@ export function IssueCredentialForm({
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
   const [refreshServiceChecked, setRefreshServiceChecked] = useState(false);
+  const [displayMethodChecked, setDisplayMethodChecked] = useState(false);
 
   const isPositiveBigInt = (x: string) => {
     try {
@@ -509,6 +510,41 @@ export function IssueCredentialForm({
                           <Input
                             disabled={!refreshServiceChecked}
                             placeholder="Valid URL of the credential refresh service"
+                          />
+                        </Form.Item>
+                      </Space>
+                    </Form.Item>
+                    <Form.Item label="Display Method">
+                      <Space direction="vertical">
+                        <Form.Item
+                          name={["displayMethod", "enabled"]}
+                          noStyle
+                          valuePropName="checked"
+                        >
+                          <Checkbox
+                            checked={displayMethodChecked}
+                            onChange={() => {
+                              setDisplayMethodChecked(!displayMethodChecked);
+                            }}
+                          >
+                            Enable
+                          </Checkbox>
+                        </Form.Item>
+                        <Form.Item
+                          name={["displayMethod", "url"]}
+                          rules={[
+                            {
+                              message: URL_FIELD_ERROR_MESSAGE,
+                              validator: (_, value) =>
+                                displayMethodChecked
+                                  ? z.string().url().parseAsync(value)
+                                  : Promise.resolve(true),
+                            },
+                          ]}
+                        >
+                          <Input
+                            disabled={!displayMethodChecked}
+                            placeholder="Valid URL of the display method"
                           />
                         </Form.Item>
                       </Space>

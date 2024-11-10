@@ -19,6 +19,7 @@ import {
 } from "src/adapters/parsers";
 import {
   Credential,
+  DisplayMethod,
   Env,
   IssuedMessage,
   Json,
@@ -42,6 +43,7 @@ type CredentialInput = Pick<Credential, "id" | "revoked" | "schemaHash"> & {
       revocationNonce: number;
     } & Record<string, unknown>;
     credentialSubject: Record<string, unknown>;
+    displayMethod?: DisplayMethod | null;
     expirationDate?: string | null;
     issuanceDate: string;
     issuer: string;
@@ -69,6 +71,10 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
           })
           .and(z.record(z.unknown())),
         credentialSubject: z.record(z.unknown()),
+        displayMethod: z
+          .object({ id: z.string(), type: z.literal("Iden3BasicDisplayMethodv2") })
+          .nullable()
+          .default(null),
         expirationDate: datetimeParser.nullable().default(null),
         issuanceDate: datetimeParser,
         issuer: z.string(),
@@ -89,6 +95,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
           credentialSchema,
           credentialStatus,
           credentialSubject,
+          displayMethod,
           expirationDate,
           issuanceDate,
           issuer,
@@ -101,6 +108,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
 
         return {
           credentialSubject,
+          displayMethod,
           expirationDate,
           expired,
           id,
@@ -196,6 +204,7 @@ export async function getCredentials({
 export type CreateCredential = {
   credentialSchema: string;
   credentialSubject: Json;
+  displayMethod: DisplayMethod | null;
   expiration: number | null;
   proofs: ProofType[];
   refreshService: RefreshService | null;
@@ -432,6 +441,7 @@ export async function deleteLink({
 export type CreateLink = {
   credentialExpiration: string | null;
   credentialSubject: Json;
+  displayMethod: DisplayMethod | null;
   expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;

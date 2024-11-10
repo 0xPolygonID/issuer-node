@@ -202,6 +202,7 @@ export function CredentialDetails() {
           );
         } else {
           const {
+            displayMethod,
             expirationDate,
             issuanceDate,
             proofTypes,
@@ -263,6 +264,8 @@ export function CredentialDetails() {
                       label="Refresh Service"
                       text={refreshService ? refreshService.id : "-"}
                     />
+
+                    <Detail label="Display Method" text={displayMethod ? displayMethod.id : "-"} />
 
                     <Detail
                       copyable
