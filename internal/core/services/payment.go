@@ -18,12 +18,12 @@ import (
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
-	"github.com/iden3/go-schema-processor/v2/verifiable"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/eth"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
@@ -34,79 +34,6 @@ type payment struct {
 // NewPaymentService creates a new payment service
 func NewPaymentService(resolver network.Resolver) ports.PaymentService {
 	return &payment{networkResolver: resolver}
-}
-
-// PaymentRequestMessageBody TODO: use ones from iden3comm
-type PaymentRequestMessageBody struct {
-	Agent    string               `json:"agent"`
-	Payments []PaymentRequestInfo `json:"payments"`
-}
-
-// PaymentRequestInfo TODO: use ones from iden3comm
-type PaymentRequestInfo struct {
-	Type        *string                         `json:"type,omitempty"`
-	Credentials []PaymentRequestInfoCredentials `json:"credentials"`
-	Description string                          `json:"description"`
-	Data        interface{}                     `json:"data"`
-}
-
-// PaymentRequestInfoCredentials TODO: use ones from iden3comm
-type PaymentRequestInfoCredentials struct {
-	Context string `json:"context,omitempty"`
-	Type    string `json:"type,omitempty"`
-}
-
-// EthereumEip712Signature2021 TODO: use ones from iden3comm
-type EthereumEip712Signature2021 struct {
-	Type               verifiable.ProofType `json:"type"`
-	ProofPurpose       string               `json:"proofPurpose"`
-	ProofValue         string               `json:"proofValue"`
-	VerificationMethod string               `json:"verificationMethod"`
-	Created            string               `json:"created"`
-	Eip712             Eip712Data           `json:"eip712"`
-}
-
-// Eip712Data TODO: use ones from iden3comm
-type Eip712Data struct {
-	Types       string       `json:"types"`
-	PrimaryType string       `json:"primaryType"`
-	Domain      Eip712Domain `json:"domain"`
-}
-
-// Eip712Domain TODO: use ones from iden3comm
-type Eip712Domain struct {
-	Name              string `json:"name"`
-	Version           string `json:"version"`
-	ChainID           string `json:"chainId"`
-	VerifyingContract string `json:"verifyingContract"`
-}
-
-// Iden3PaymentRailsRequestV1 TODO: use ones from iden3comm
-type Iden3PaymentRailsRequestV1 struct {
-	Nonce          string                        `json:"nonce"`
-	Type           string                        `json:"type"`
-	Context        []string                      `json:"@context"`
-	Recipient      string                        `json:"recipient"`
-	Amount         string                        `json:"amount"` // Not negative number
-	ExpirationDate string                        `json:"expirationDate"`
-	Proof          []EthereumEip712Signature2021 `json:"proof"`
-	Metadata       string                        `json:"metadata"`
-	Currency       string                        `json:"currency"`
-}
-
-// Iden3PaymentRailsERC20RequestV1 TODO: use ones from iden3comm
-type Iden3PaymentRailsERC20RequestV1 struct {
-	Nonce          string                        `json:"nonce"`
-	Type           string                        `json:"type"`
-	Context        []string                      `json:"@context"`
-	Recipient      string                        `json:"recipient"`
-	Amount         string                        `json:"amount"` // Not negative number
-	ExpirationDate string                        `json:"expirationDate"`
-	Proof          []EthereumEip712Signature2021 `json:"proof"`
-	Metadata       string                        `json:"metadata"`
-	Currency       string                        `json:"currency"`
-	TokenAddress   string                        `json:"tokenAddress"`
-	Features       []string                      `json:"features,omitempty"`
 }
 
 // CreatePaymentRequest creates a payment request
@@ -130,7 +57,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, 
 	now := time.Now()
 	oneHourLater := now.Add(1 * time.Hour)
 
-	domain := Eip712Domain{
+	domain := protocol.Eip712Domain{
 		Name:              "MCPayment",
 		Version:           "1.0.0",
 		ChainID:           "80002",
@@ -150,7 +77,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return nil, fmt.Errorf("Cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+		return nil, fmt.Errorf("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
 	}
 	address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
 	typedData := apitypes.TypedData{
@@ -210,41 +137,41 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, 
 		return nil, err
 	}
 
-	nativePayments := Iden3PaymentRailsRequestV1{
+	nativePayments := protocol.Iden3PaymentRailsRequestV1{
 		Nonce: randomBigInt.String(),
 		Type:  "Iden3PaymentRailsRequestV1",
-		Context: []string{
+		Context: protocol.NewPaymentContextStringCol([]string{
 			"https://schema.iden3.io/core/jsonld/payment.jsonld#Iden3PaymentRailsERC20RequestV1",
 			"https://w3id.org/security/suites/eip712sig-2021/v1",
-		},
+		}),
 		Recipient:      address,
 		Amount:         "100",
 		ExpirationDate: fmt.Sprint(oneHourLater.Unix()),
 		Metadata:       "0x",
 		Currency:       "ETHWEI",
-		Proof: []EthereumEip712Signature2021{
+		Proof: protocol.NewPaymentProofEip712Signature([]protocol.EthereumEip712Signature2021{
 			{
 				Type:               "EthereumEip712Signature2021",
 				ProofPurpose:       "assertionMethod",
 				ProofValue:         hex.EncodeToString(signature),
 				VerificationMethod: "did:pkh:eip155:80002:0xE9D7fCDf32dF4772A7EF7C24c76aB40E4A42274a#blockchainAccountId",
 				Created:            now.Format(time.RFC3339),
-				Eip712: Eip712Data{
+				Eip712: protocol.Eip712Data{
 					Types:       "https://schema.iden3.io/core/json/Iden3PaymentRailsERC20RequestV1.json",
 					PrimaryType: "Iden3PaymentRailsRequestV1",
 					Domain:      domain,
 				},
 			},
-		},
+		}),
 	}
 
-	paymentRequestMessageBody := PaymentRequestMessageBody{
+	paymentRequestMessageBody := protocol.PaymentRequestMessageBody{
 		Agent: "localhost",
-		Payments: []PaymentRequestInfo{
+		Payments: []protocol.PaymentRequestInfo{
 			{
 				Description: "Payment for credential",
-				Data:        nativePayments,
-				Credentials: []PaymentRequestInfoCredentials{
+				Data:        protocol.NewPaymentRequestInfoDataRails(nativePayments),
+				Credentials: []protocol.PaymentRequestInfoCredentials{
 					{
 						Context: credContext,
 						Type:    credType,
@@ -273,25 +200,8 @@ func (p *payment) CreatePaymentRequestForProposalRequest(ctx context.Context, pr
 	return &basicMessage, nil
 }
 
-// Iden3PaymentRailsV1 TODO: Use ones from iden3comm
-type Iden3PaymentRailsV1 struct {
-	Nonce       string   `json:"nonce"`
-	Type        string   `json:"type"`
-	Context     []string `json:"@context,omitempty"`
-	PaymentData struct {
-		TxID    string `json:"txId"`
-		ChainID string `json:"chainId"`
-	} `json:"paymentData"`
-}
-
-// Iden3PaymentRailsV1Body TODO: Use ones from iden3comm
-type Iden3PaymentRailsV1Body struct {
-	Payments []Iden3PaymentRailsV1 `json:"payments"`
-}
-
 func (p *payment) VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error) {
-	const base10 = 10
-	var paymentRequest Iden3PaymentRailsV1Body
+	var paymentRequest protocol.PaymentRequestMessageBody
 	err := json.Unmarshal(message.Body, &paymentRequest)
 	if err != nil {
 		return false, err
@@ -308,10 +218,43 @@ func (p *payment) VerifyPayment(ctx context.Context, recipient common.Address, m
 		return false, err
 	}
 
-	nonce, _ := new(big.Int).SetString(paymentRequest.Payments[0].Nonce, base10)
+	// nonce, _ := new(big.Int).SetString(paymentRequest.Payments[0].Nonce, base10)
+	nonce, err := nonceFromPaymentRequestInfoData(paymentRequest.Payments[0].Data)
+	if err != nil {
+		log.Error(ctx, "failed to get nonce from payment request info data", "err", err)
+		return false, err
+	}
 	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: context.Background()}, recipient, nonce)
 	if err != nil {
 		return false, err
 	}
 	return isPaid, nil
+}
+
+func nonceFromPaymentRequestInfoData(data protocol.PaymentRequestInfoData) (*big.Int, error) {
+	const base10 = 10
+	var nonce string
+	switch data.Type() {
+	case protocol.Iden3PaymentRequestCryptoV1Type:
+		nonce = ""
+	case protocol.Iden3PaymentRailsRequestV1Type:
+		t, ok := data.Data().(protocol.Iden3PaymentRailsRequestV1)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast payment request data to Iden3PaymentRailsRequestV1")
+		}
+		nonce = t.Nonce
+	case protocol.Iden3PaymentRailsERC20RequestV1Type:
+		t, ok := data.Data().(protocol.Iden3PaymentRailsERC20RequestV1)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast payment request data to Iden3PaymentRailsERC20RequestV1")
+		}
+		nonce = t.Nonce
+	default:
+		return nil, fmt.Errorf("unsupported payment request data type: %s", data.Type())
+	}
+	bigIntNonce, ok := new(big.Int).SetString(nonce, base10)
+	if !ok {
+		return nil, fmt.Errorf("failed to parse nonce creating big int: %s", nonce)
+	}
+	return bigIntNonce, nil
 }
