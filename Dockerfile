@@ -27,3 +27,4 @@ COPY --from=base ./service/api ./api
 COPY --from=base ./service/bin/* ./
 COPY --from=base ./service/pkg/credentials ./pkg/credentials
 COPY --from=base ./service/resolvers_settings.* ./
+COPY --from=base ./service/payment.* ./

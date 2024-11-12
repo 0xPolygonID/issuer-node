@@ -62,6 +62,13 @@ type Configuration struct {
 	MediaTypeManager            MediaTypeManager
 	UniversalLinks              UniversalLinks
 	UniversalDIDResolver        UniversalDIDResolver
+	Payments                    Payments
+}
+
+// Payments configurations
+type Payments struct {
+	SettingsPath string  `env:"ISSUER_PAYMENTS_SETTINGS_PATH"`
+	SettingsFile *string `env:"ISSUER_PAYMENTS_SETTINGS_FILE"`
 }
 
 // Database has the database configuration
@@ -255,6 +262,8 @@ func lookupVaultTokenFromFile(pathVaultConfig string) (string, error) {
 
 // nolint:gocyclo,gocognit
 func checkEnvVars(ctx context.Context, cfg *Configuration) error {
+	const defResolverPath = "./resolvers_settings.yaml"
+	const defPaymentPath = "./payment_settings.yaml"
 	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
 		cfg.IPFS.GatewayURL = ipfsGateway
@@ -318,15 +327,19 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 	if cfg.NetworkResolverPath == "" {
 		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing. Trying to use ISSUER_RESOLVER_FILE")
 		if cfg.NetworkResolverFile == nil || *cfg.NetworkResolverFile == "" {
-			log.Info(ctx, "ISSUER_RESOLVER_FILE value is missing")
-		} else {
-			log.Info(ctx, "ISSUER_RESOLVER_FILE value is present")
+			log.Info(ctx, "ISSUER_RESOLVER_PATH and ISSUER_RESOLVER_FILE value is missing. Using default value", "path", "/resolvers_settings.yaml")
+			cfg.NetworkResolverPath = defResolverPath
 		}
+		log.Info(ctx, "ISSUER_RESOLVER_FILE value is present")
 	}
 
-	if cfg.NetworkResolverPath == "" && (cfg.NetworkResolverFile == nil || *cfg.NetworkResolverFile == "") {
-		log.Info(ctx, "ISSUER_RESOLVER_PATH and ISSUER_RESOLVER_FILE value is missing. Using default value: ./resolvers_settings.yaml")
-		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
+	if cfg.Payments.SettingsPath == "" {
+		log.Info(ctx, "ISSUER_PAYMENTS_SETTINGS_PATH value is missing. Trying to use ISSUER_PAYMENTS_SETTINGS_FILE")
+		if cfg.Payments.SettingsFile == nil || *cfg.Payments.SettingsFile == "" {
+			log.Info(ctx, "ISSUER_PAYMENTS_SETTINGS_FILE value is missing. Using default value:", "path", defPaymentPath)
+			cfg.Payments.SettingsPath = defPaymentPath
+		}
+		log.Info(ctx, "ISSUER_PAYMENTS_SETTINGS_FILE value is present")
 	}
 
 	if cfg.KeyStore.BJJProvider == "" {
