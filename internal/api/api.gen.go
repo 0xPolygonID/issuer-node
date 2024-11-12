@@ -17,6 +17,7 @@ import (
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+	payments "github.com/polygonid/sh-id-platform/internal/payments"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
@@ -468,6 +469,9 @@ type PaginatedMetadata struct {
 	Page       uint `json:"page"`
 	Total      uint `json:"total"`
 }
+
+// PaymentSettings defines model for PaymentSettings.
+type PaymentSettings = payments.Settings
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {
@@ -930,6 +934,9 @@ type ServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
+	// Return payment settings
+	// (GET /v2/payment/settings)
+	GetPaymentSettings(w http.ResponseWriter, r *http.Request)
 	// Verify Payment
 	// (POST /v2/payment/verify/{recipient})
 	VerifyPayment(w http.ResponseWriter, r *http.Request, recipient PathRecipient)
@@ -1173,6 +1180,12 @@ func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request, id
 // Get Identity State Transactions
 // (GET /v2/identities/{identifier}/state/transactions)
 func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Return payment settings
+// (GET /v2/payment/settings)
+func (_ Unimplemented) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2635,6 +2648,26 @@ func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// GetPaymentSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // VerifyPayment operation middleware
 func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.Request) {
 
@@ -2983,6 +3016,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/state/transactions", wrapper.GetStateTransactions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/payment/settings", wrapper.GetPaymentSettings)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/payment/verify/{recipient}", wrapper.VerifyPayment)
@@ -4606,6 +4642,22 @@ func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsRes
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetPaymentSettingsRequestObject struct {
+}
+
+type GetPaymentSettingsResponseObject interface {
+	VisitGetPaymentSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentSettings200JSONResponse PaymentSettings
+
+func (response GetPaymentSettings200JSONResponse) VisitGetPaymentSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type VerifyPaymentRequestObject struct {
 	Recipient PathRecipient `json:"recipient"`
 	Body      *VerifyPaymentJSONRequestBody
@@ -4908,6 +4960,9 @@ type StrictServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
+	// Return payment settings
+	// (GET /v2/payment/settings)
+	GetPaymentSettings(ctx context.Context, request GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error)
 	// Verify Payment
 	// (POST /v2/payment/verify/{recipient})
 	VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error)
@@ -6033,6 +6088,30 @@ func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetStateTransactionsResponseObject); ok {
 		if err := validResponse.VisitGetStateTransactionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentSettings operation middleware
+func (sh *strictHandler) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetPaymentSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentSettings(ctx, request.(GetPaymentSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentSettingsResponseObject); ok {
+		if err := validResponse.VisitGetPaymentSettingsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

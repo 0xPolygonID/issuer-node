@@ -21,20 +21,20 @@ type Settings map[int]ChainSettings
 
 // ChainSettings holds the settings for a chain
 type ChainSettings struct {
-	MCPayment string `yaml:"MCPayment"`
-	ERC20     *ERC20 `yaml:"ERC20,omitempty"`
+	MCPayment string `yaml:"MCPayment" json:"MCPayment"`
+	ERC20     *ERC20 `yaml:"ERC20,omitempty" json:"ERC20,omitempty"`
 }
 
 // ERC20 holds the settings for the ERC20 tokens
 type ERC20 struct {
-	USDT Token `yaml:"USDT"`
-	USDC Token `yaml:"USDC"`
+	USDT Token `yaml:"USDT" json:"USDT"`
+	USDC Token `yaml:"USDC" json:"USDC"`
 }
 
 // Token holds the settings for a token
 type Token struct {
-	ContractAddress string   `yaml:"ContractAddress"`
-	Features        []string `yaml:"Features"`
+	ContractAddress string   `yaml:"ContractAddress" json:"contractAddress"`
+	Features        []string `yaml:"Features" json:"features"`
 }
 
 // SettingsFromConfig returns the settings from the configuration

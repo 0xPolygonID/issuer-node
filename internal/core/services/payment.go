@@ -25,14 +25,16 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/eth"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
 type payment struct {
 	networkResolver network.Resolver
+	settings        payments.Settings
 }
 
 // NewPaymentService creates a new payment service
-func NewPaymentService(resolver network.Resolver) ports.PaymentService {
+func NewPaymentService(resolver network.Resolver, settings payments.Settings) ports.PaymentService {
 	return &payment{networkResolver: resolver}
 }
 
@@ -198,6 +200,11 @@ func (p *payment) CreatePaymentRequestForProposalRequest(ctx context.Context, pr
 		Typ:      proposalRequest.Typ,
 	}
 	return &basicMessage, nil
+}
+
+// GetSettings returns the current payment settings
+func (p *payment) GetSettings() payments.Settings {
+	return p.settings
 }
 
 func (p *payment) VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error) {

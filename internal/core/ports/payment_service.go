@@ -9,6 +9,8 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
+
+	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
 // Credential struct: TODO: This shouldn't be here with this name
@@ -77,5 +79,6 @@ func NewAgentProposalRequest(basicMessage *comm.BasicMessage) (*protocol.Credent
 type PaymentService interface {
 	CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, senderDID *w3c.DID, signingKey string, credContext string, credType string) (*comm.BasicMessage, error)
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
+	GetSettings() payments.Settings
 	VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error)
 }

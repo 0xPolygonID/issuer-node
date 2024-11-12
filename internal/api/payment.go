@@ -44,6 +44,11 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 	return CreatePaymentRequest201JSONResponse(basicMessage), nil
 }
 
+// GetPaymentSettings is the controller to get payment settings
+func (s *Server) GetPaymentSettings(_ context.Context, _ GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error) {
+	return GetPaymentSettings200JSONResponse(s.paymentService.GetSettings()), nil
+}
+
 // VerifyPayment is the controller to verify payment
 func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error) {
 	bodyBytes, err := json.Marshal(request.Body.Body)

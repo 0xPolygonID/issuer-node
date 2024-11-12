@@ -27,6 +27,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -280,13 +281,31 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	require.NoError(t, err)
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 
+	paymentSettings, err := payments.SettingsFromReader(common.NewMyYAMLReader([]byte(`
+137:
+  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774
+  ERC20:
+    USDT:
+      ContractAddress: 0xc2132D05D31c914a87C6611C10748AEb04B58e8F
+      Features: []
+    USDC:
+      ContractAddress: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359
+      Features:
+        - EIP-2612
+80002:
+  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774
+1101:
+  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774`,
+	)))
+	require.NoError(t, err)
+
 	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
 	qrService := services.NewQrStoreService(cachex)
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader)
-	paymentService := services.NewPaymentService(*networkResolver)
+	paymentService := services.NewPaymentService(*networkResolver, *paymentSettings)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{

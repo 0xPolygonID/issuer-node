@@ -30,6 +30,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/packagemanager"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -145,13 +146,19 @@ func main() {
 		return
 	}
 
+	paymentSettings, err := payments.SettingsFromConfig(context.Background(), &cfg.Payments)
+	if err != nil {
+		log.Error(ctx, "failed to load payment settings", "err", err)
+		return
+	}
+
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	proofService := services.NewProver(circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
-	paymentService := services.NewPaymentService(*networkResolver)
+	paymentService := services.NewPaymentService(*networkResolver, *paymentSettings)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
