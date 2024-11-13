@@ -419,8 +419,8 @@ github.com/iden3/driver-did-iden3 v0.0.5 h1:N3B9S3CBZHqWIZWspAiq2JFaLyq0eLZf26sN
 github.com/iden3/driver-did-iden3 v0.0.5/go.mod h1:TcEG6fkExW6hgafjrU4ObOQ/HZqIRPQoL3TMU+URbS0=
 github.com/iden3/go-circuits/v2 v2.4.0 h1:m+7uYtrvJKuc+gVhbXDXl1BJQyK7sWdW7OWttM3R/8I=
 github.com/iden3/go-circuits/v2 v2.4.0/go.mod h1:k0uYx/ZdZPiDEIy7kI3MAixnREKcc7NdCKDRw8Q+iFA=
-github.com/iden3/go-iden3-auth/v2 v2.5.1-0.20241111153205-5fe88a55e393 h1:OtKSqF+UjvyeRPuaJqwc7tSJxg3DzE9va7ro/oZZQBI=
-github.com/iden3/go-iden3-auth/v2 v2.5.1-0.20241111153205-5fe88a55e393/go.mod h1:8DYjax0IdfzN+LUvCuGUJkjMPgq7o0byZIrZGdhIxjM=
+github.com/iden3/go-iden3-auth/v2 v2.5.1 h1:2+YPVsYpbTl+eKzVDqEeiiVoAD+c6s/TYPo/oWbVjwg=
+github.com/iden3/go-iden3-auth/v2 v2.5.1/go.mod h1:8DYjax0IdfzN+LUvCuGUJkjMPgq7o0byZIrZGdhIxjM=
 github.com/iden3/go-iden3-core v1.0.2 h1:HwNDFeqcUv4ybZj5tH+58JKWKarn/qqBpNCqTLxGP0Y=
 github.com/iden3/go-iden3-core v1.0.2/go.mod h1:X4PjlJG8OsEQEsSbzzYqqAk2olYGZ2nuGqiUPyEYjOo=
 github.com/iden3/go-iden3-core/v2 v2.3.1 h1:ytQqiclnVAIWyRKR2LF31hfz4DGRBD6nMjiPILXGSKk=

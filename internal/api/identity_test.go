@@ -310,8 +310,8 @@ func TestServer_GetIdentities(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", "/v2/identities", nil)
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
+			req.SetBasicAuth(tc.auth())
 			handler.ServeHTTP(rr, req)
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)

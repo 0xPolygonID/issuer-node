@@ -23,7 +23,7 @@ require (
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20230911112726-4533c5701af1
 	github.com/iden3/go-circuits/v2 v2.4.0
-	github.com/iden3/go-iden3-auth/v2 v2.5.1-0.20241111153205-5fe88a55e393
+	github.com/iden3/go-iden3-auth/v2 v2.5.1
 	github.com/iden3/go-iden3-core/v2 v2.3.1
 	github.com/iden3/go-iden3-crypto v0.0.17
 	github.com/iden3/go-jwz/v2 v2.2.0

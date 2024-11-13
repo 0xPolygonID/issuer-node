@@ -35,7 +35,10 @@ type payment struct {
 
 // NewPaymentService creates a new payment service
 func NewPaymentService(resolver network.Resolver, settings payments.Settings) ports.PaymentService {
-	return &payment{networkResolver: resolver}
+	return &payment{
+		networkResolver: resolver,
+		settings:        settings,
+	}
 }
 
 // CreatePaymentRequest creates a payment request
