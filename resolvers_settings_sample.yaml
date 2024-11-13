@@ -1,7 +1,7 @@
 polygon:
   # main:
   #   contractAddress: 0x624ce98D2d27b20b8f8d521723Df8fC4db71D79D
-  #   networkURL: https://polygon-mainnet.g.alchemy.com/v2/X2
+  #   networkURL: <your-rpc-url>
   #   defaultGasLimit: 600000
   #   confirmationTimeout: 10s
   #   confirmationBlockCount: 5
@@ -182,6 +182,7 @@ privado:
 #       chainID: 59141
 #       publishingKey: pbke
 
+#customBlockchain:
 #  customNetwork:
 #    contractAddress: { replace with state contract }
 #    networkURL: { replace with custom RPC }
