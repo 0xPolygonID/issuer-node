@@ -13,6 +13,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // CreateQRCodeResponse - is the result of creating a link QRcode.
@@ -33,15 +34,24 @@ type LinksFilter struct {
 	Query      *string
 	MaxResults uint // Max number of results to return on each call.
 	Page       uint
+	OrderBy    sqltools.OrderByFilters
 }
 
 const (
-	LinkAll          LinkStatus = "all"                                                      // LinkAll : All links
-	LinkActive       LinkStatus = "active"                                                   // LinkActive : Active links
-	LinkInactive     LinkStatus = "inactive"                                                 // LinkInactive : Inactive links
-	LinkExceeded     LinkStatus = "exceeded"                                                 // LinkExceeded : Expired links or with more credentials issued than expected
-	AgentUrl                    = "%s/v2/agent"                                              // AgentUrl : Agent URL
-	LinksCallbackURL            = "%s/v2/identities/%s/credentials/links/callback?linkID=%s" // LinksCallbackURL : Links callback URL
+	LinkAll                              LinkStatus            = "all"                                                      // LinkAll : All links
+	LinkActive                           LinkStatus            = "active"                                                   // LinkActive : Active links
+	LinkInactive                         LinkStatus            = "inactive"                                                 // LinkInactive : Inactive links
+	LinkExceeded                         LinkStatus            = "exceeded"                                                 // LinkExceeded : Expired links or with more credentials issued than expected
+	AgentUrl                                                   = "%s/v2/agent"                                              // AgentUrl : Agent URL
+	LinksCallbackURL                                           = "%s/v2/identities/%s/credentials/links/callback?linkID=%s" // LinksCallbackURL : Links callback URL
+	LinksCreatedAt                       sqltools.SQLFieldName = "created_at"                                               // LinksCreatedAt : Created at field
+	LinksAccessibleUntil                 sqltools.SQLFieldName = "links.valid_until"                                        // LinksAccessibleUntil : Accessible until field
+	LinksParamsSortLinksActive           sqltools.SQLFieldName = "active"                                                   // LinksParamsSortLinksActive : Links active field
+	LinksParamsSortLinksCreatedAt        sqltools.SQLFieldName = "links.created_at"                                         // LinksParamsSortLinksCreatedAt : Links created at field
+	LinksParamsSortLinksCredentialIssued sqltools.SQLFieldName = "issued_claims"                                            // LinksParamsSortLinksCredentialIssued : Links credential issued field
+	LinksParamsSortLinksMaximumIssuance  sqltools.SQLFieldName = "links.max_issuance"                                       // LinksParamsSortLinksMaximumIssuance : Links maximum issuance field
+	LinksParamsSortLinksSchemaType       sqltools.SQLFieldName = "schemas.type"                                             // LinksParamsSortLinksSchemaType : Links schema type field
+	LinksParamsSortLinksStatus           sqltools.SQLFieldName = "links.active"                                             // LinksParamsSortLinksStatus : Links status field
 )
 
 // LinkTypeReqFromString constructs a LinkStatus from a string

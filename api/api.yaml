@@ -1123,7 +1123,18 @@ paths:
             example: 50
             default: 50
           description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "createdAt", "-createdAt", "schemaType", "-schemaType", "accessibleUntil", "-accessibleUntil", "credentialIssued", "-credentialIssued", "active", "-active", "maximumIssuance", "-maximumIssuance", "status", "-status" ]
+              default: "-createdAt"
+            description: >
+              The minus sign (-) before createdAt means descending order.
       responses:
         '200':
           description: Link collection

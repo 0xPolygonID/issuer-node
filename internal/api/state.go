@@ -119,9 +119,9 @@ func getStateTransitionsFilter(req GetStateTransactionsRequestObject) (request *
 			var err error
 			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
 			switch GetStateTransactionsParamsSort(field) {
-			case PublishDate:
+			case GetStateTransactionsParamsSortPublishDate:
 				err = orderBy.Add(ports.StateTransitionsPublishDate, desc)
-			case Status:
+			case GetStateTransactionsParamsSortStatus:
 				err = orderBy.Add(ports.StateTransitionsStatus, desc)
 			default:
 				return nil, errors.New("wrong sort field")

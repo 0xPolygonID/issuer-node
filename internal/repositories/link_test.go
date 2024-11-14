@@ -15,6 +15,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 func TestSaveLink(t *testing.T) {
@@ -417,6 +418,34 @@ func TestGetAll(t *testing.T) {
 				total: 0,
 			},
 		},
+		{
+			name: "all sort y creation date desc",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 50,
+				Page:       uint(1),
+				OrderBy:    sqltools.OrderByFilters{{Field: "links.created_at", Desc: true}},
+			},
+			expected: expected{
+				count: 50,
+				total: 50,
+			},
+		},
+		{
+			name: "all sort y creation date asc",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 50,
+				Page:       uint(1),
+				OrderBy:    sqltools.OrderByFilters{{Field: "links.created_at", Desc: false}},
+			},
+			expected: expected{
+				count: 50,
+				total: 50,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			all, count, err := linkStore.GetAll(ctx, *did, tc.filter)
@@ -494,4 +523,87 @@ func TestDeleteLink(t *testing.T) {
 	err = linkStore.Delete(ctx, uuid.New(), *did)
 	assert.Error(t, err)
 	assert.Equal(t, ErrLinkDoesNotExist, err)
+}
+
+func TestGetAllWithPagination(t *testing.T) {
+	ctx := context.Background()
+	didStr := "did:iden3:polygon:amoy:xAALmKpb53Qg7M81CqWmk2Ct5vwPXPYjU3bTThw4f"
+	schemaStore := NewSchema(*storage)
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
+	require.NoError(t, err)
+	linkStore := NewLink(*storage)
+	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
+	did, err := w3c.ParseDID(didStr)
+	require.NoError(t, err)
+
+	tomorrow := time.Now().Add(24 * time.Hour)
+	nextWeek := time.Now().Add(7 * 24 * time.Hour)
+
+	actives := make([]string, 0)
+	// 10  not expired links and no max issuance
+	for i := 0; i < 10; i++ {
+		linkToSave := domain.NewLink(*did, nil, &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil)
+		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
+		require.NoError(t, err)
+		assert.NotNil(t, linkID)
+		actives = append(actives, linkID.String())
+	}
+
+	type expected struct {
+		count  int
+		total  int
+		active *string
+	}
+	type testConfig struct {
+		name     string
+		filter   ports.LinksFilter
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "all order by created at desc",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 10,
+				Page:       uint(1),
+				OrderBy:    sqltools.OrderByFilters{{Field: "links.created_at", Desc: true}},
+			},
+			expected: expected{
+				active: common.ToPointer(string(ports.LinkAll)),
+				count:  10,
+				total:  10,
+			},
+		},
+		{
+			name: "all order by created at asc",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 10,
+				Page:       uint(1),
+				OrderBy:    sqltools.OrderByFilters{{Field: "links.created_at", Desc: false}},
+			},
+			expected: expected{
+				active: common.ToPointer(string(ports.LinkActive)),
+				count:  10,
+				total:  10,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			all, count, err := linkStore.GetAll(ctx, *did, tc.filter)
+			require.NoError(t, err)
+			require.Len(t, all, tc.expected.count)
+			assert.Equal(t, tc.expected.total, int(count))
+
+			for i, one := range all {
+				if tc.filter.OrderBy[0].Desc {
+					assert.Equal(t, actives[len(actives)-i-1], one.ID.String())
+				} else {
+					assert.Equal(t, actives[i], one.ID.String())
+				}
+			}
+		})
+	}
 }

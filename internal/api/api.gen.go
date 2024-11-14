@@ -131,6 +131,24 @@ const (
 	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
 )
 
+// Defines values for GetLinksParamsSort.
+const (
+	GetLinksParamsSortAccessibleUntil       GetLinksParamsSort = "accessibleUntil"
+	GetLinksParamsSortActive                GetLinksParamsSort = "active"
+	GetLinksParamsSortCreatedAt             GetLinksParamsSort = "createdAt"
+	GetLinksParamsSortCredentialIssued      GetLinksParamsSort = "credentialIssued"
+	GetLinksParamsSortMaximumIssuance       GetLinksParamsSort = "maximumIssuance"
+	GetLinksParamsSortMinusAccessibleUntil  GetLinksParamsSort = "-accessibleUntil"
+	GetLinksParamsSortMinusActive           GetLinksParamsSort = "-active"
+	GetLinksParamsSortMinusCreatedAt        GetLinksParamsSort = "-createdAt"
+	GetLinksParamsSortMinusCredentialIssued GetLinksParamsSort = "-credentialIssued"
+	GetLinksParamsSortMinusMaximumIssuance  GetLinksParamsSort = "-maximumIssuance"
+	GetLinksParamsSortMinusSchemaType       GetLinksParamsSort = "-schemaType"
+	GetLinksParamsSortMinusStatus           GetLinksParamsSort = "-status"
+	GetLinksParamsSortSchemaType            GetLinksParamsSort = "schemaType"
+	GetLinksParamsSortStatus                GetLinksParamsSort = "status"
+)
+
 // Defines values for GetCredentialOfferParamsType.
 const (
 	GetCredentialOfferParamsTypeDeepLink      GetCredentialOfferParamsType = "deepLink"
@@ -146,10 +164,10 @@ const (
 
 // Defines values for GetStateTransactionsParamsSort.
 const (
-	MinusPublishDate GetStateTransactionsParamsSort = "-publishDate"
-	MinusStatus      GetStateTransactionsParamsSort = "-status"
-	PublishDate      GetStateTransactionsParamsSort = "publishDate"
-	Status           GetStateTransactionsParamsSort = "status"
+	GetStateTransactionsParamsSortMinusPublishDate GetStateTransactionsParamsSort = "-publishDate"
+	GetStateTransactionsParamsSortMinusStatus      GetStateTransactionsParamsSort = "-status"
+	GetStateTransactionsParamsSortPublishDate      GetStateTransactionsParamsSort = "publishDate"
+	GetStateTransactionsParamsSortStatus           GetStateTransactionsParamsSort = "status"
 )
 
 // Defines values for AuthenticationParamsType.
@@ -692,11 +710,15 @@ type GetLinksParams struct {
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
+	MaxResults *uint                 `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetLinksParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
 // GetLinksParamsStatus defines parameters for GetLinks.
 type GetLinksParamsStatus string
+
+// GetLinksParamsSort defines parameters for GetLinks.
+type GetLinksParamsSort string
 
 // CreateLinkQrCodeCallbackTextBody defines parameters for CreateLinkQrCodeCallback.
 type CreateLinkQrCodeCallbackTextBody = string
@@ -1867,6 +1889,14 @@ func (siw *ServerInterfaceWrapper) GetLinks(w http.ResponseWriter, r *http.Reque
 	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 

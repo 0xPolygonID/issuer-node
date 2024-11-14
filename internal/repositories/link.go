@@ -196,7 +196,11 @@ func (l link) GetAll(ctx context.Context, issuerDID w3c.DID, filter ports.LinksF
 	// Dummy condition to include time in the query although not always used
 	sql += " AND (true OR $1::text IS NULL OR $2::text IS NULl)"
 	sql += " GROUP BY links.id, schemas.id"
-	sql += " ORDER BY links.created_at DESC"
+	if len(filter.OrderBy) > 0 {
+		sql += " ORDER BY " + filter.OrderBy.String()
+	} else {
+		sql += " ORDER BY links.created_at DESC" // default order
+	}
 
 	countInnerQuery := strings.Replace(sql, "##QUERYFIELDS##", "links.id", 1)
 	countQuery := `SELECT count(*) FROM (` + countInnerQuery + `) as count`
