@@ -589,6 +589,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 		query      *string
 		status     *GetLinksParamsStatus
 		pagination *pagination
+		sort       *string
 		auth       func() (string, string)
 		expected   expected
 	}
@@ -796,6 +797,24 @@ func TestServer_GetAllLinks(t *testing.T) {
 			},
 		},
 		{
+			name:   "Exceeded with filter found, partial match and sort by createdAt desc",
+			auth:   authOk,
+			query:  common.ToPointer("docum"),
+			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
+			sort:   common.ToPointer("-createdAt"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{
+					Items: []Link{linkInactive, linkExpired},
+					Meta: PaginatedMetadata{
+						Total:      2,
+						MaxResults: 50,
+						Page:       1,
+					},
+				},
+			},
+		},
+		{
 			name:   "Empty result",
 			auth:   authOk,
 			query:  common.ToPointer("documentType"),
@@ -830,6 +849,9 @@ func TestServer_GetAllLinks(t *testing.T) {
 				if tc.pagination.maxResults != nil {
 					endpoint.RawQuery = endpoint.RawQuery + "&max_results=" + strconv.Itoa(*tc.pagination.maxResults)
 				}
+			}
+			if tc.sort != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "&sort=" + *tc.sort
 			}
 
 			req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
