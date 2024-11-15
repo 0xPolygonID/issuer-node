@@ -182,8 +182,8 @@ func TestServer_CreateConnection(t *testing.T) {
 			reqBytes, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 			req, err := http.NewRequest(http.MethodPost, parsedURL.String(), bytes.NewBuffer(reqBytes))
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
+			req.SetBasicAuth(tc.auth())
 
 			handler.ServeHTTP(rr, req)
 

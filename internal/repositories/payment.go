@@ -13,8 +13,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-// PaymentOptionNotFound error
-var PaymentOptionNotFound = errors.New("payment option not found")
+// ErrPaymentOptionNotFound error
+var ErrPaymentOptionNotFound = errors.New("payment option not found")
 
 // Payment repository
 type Payment struct {
@@ -35,7 +35,9 @@ VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 	_, err := p.conn.Pgx.Exec(ctx, query, opt.ID, opt.IssuerDID.String(), opt.Name, opt.Description, opt.Config, opt.CreatedAt, opt.UpdatedAt)
 	if err != nil {
-		return uuid.Nil, err
+		if strings.Contains(err.Error(), "violates foreign key constraint") {
+			return uuid.Nil, ErrIdentityNotFound
+		}
 	}
 	return opt.ID, nil
 }
@@ -85,7 +87,7 @@ AND issuer_did = $2;`
 	err := p.conn.Pgx.QueryRow(ctx, query, id, issuerDID.String()).Scan(&opt.ID, &strIssuerDID, &opt.Name, &opt.Description, &opt.Config, &opt.CreatedAt, &opt.UpdatedAt)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
-			return nil, PaymentOptionNotFound
+			return nil, ErrPaymentOptionNotFound
 		}
 		return nil, err
 	}

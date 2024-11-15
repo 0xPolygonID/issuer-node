@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -10,6 +11,7 @@ import (
 	comm "github.com/iden3/iden3comm/v2"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // GetPaymentOptions is the controller to get payment options
@@ -50,6 +52,9 @@ func (s *Server) CreatePaymentOption(ctx context.Context, request CreatePaymentO
 	id, err := s.paymentService.CreatePaymentOption(ctx, issuerDID, request.Body.Name, request.Body.Description, request.Body.Config)
 	if err != nil {
 		log.Error(ctx, "creating payment option", "err", err, "issuer", issuerDID, "request", request.Body)
+		if errors.Is(err, repositories.ErrIdentityNotFound) {
+			return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+		}
 		return CreatePaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't create payment-option: <%s>", err.Error())}}, nil
 	}
 	return CreatePaymentOption201JSONResponse{Id: id.String()}, nil
