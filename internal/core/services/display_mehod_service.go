@@ -58,8 +58,8 @@ func (dm *DisplayMethod) GetByID(ctx context.Context, identityDID w3c.DID, id uu
 }
 
 // GetAll returns all display methods for the given identity
-func (dm *DisplayMethod) GetAll(ctx context.Context, identityDID w3c.DID) ([]domain.DisplayMethod, error) {
-	return dm.displayMethodRepository.GetAll(ctx, identityDID)
+func (dm *DisplayMethod) GetAll(ctx context.Context, identityDID w3c.DID, filter ports.DisplayMethodFilter) ([]domain.DisplayMethod, uint, error) {
+	return dm.displayMethodRepository.GetAll(ctx, identityDID, filter)
 }
 
 // Delete removes the display method with the given id

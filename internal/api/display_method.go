@@ -3,13 +3,16 @@ package api
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // CreateDisplayMethod - Create a new display method handler
@@ -73,15 +76,30 @@ func (s *Server) GetAllDisplayMethod(ctx context.Context, request GetAllDisplayM
 		log.Error(ctx, "Invalid identifier", "err", err)
 		return GetAllDisplayMethod400JSONResponse{N400JSONResponse{Message: "Invalid identifier"}}, nil
 	}
-	displayMethods, err := s.displayMethodService.GetAll(ctx, *identityDID)
+
+	filter, err := getDisplayMethodFilter(request)
+	if err != nil {
+		log.Error(ctx, "Error getting filter", "err", err)
+		return GetAllDisplayMethod400JSONResponse{N400JSONResponse{Message: "Error getting filter"}}, nil
+	}
+
+	displayMethods, total, err := s.displayMethodService.GetAll(ctx, *identityDID, *filter)
 	if err != nil {
 		log.Error(ctx, "Error getting display methods", "err", err)
 		return GetAllDisplayMethod500JSONResponse{N500JSONResponse{Message: "Error getting display methods"}}, nil
 	}
 
 	var response GetAllDisplayMethod200JSONResponse
+	items := make([]DisplayMethodEntity, 0, len(displayMethods))
 	for _, displayMethod := range displayMethods {
-		response = append(response, getDisplayMethodResponseObject(&displayMethod))
+		items = append(items, getDisplayMethodResponseObject(&displayMethod))
+	}
+
+	response.Items = items
+	response.Meta = PaginatedMetadata{
+		Total:      total,
+		Page:       filter.Page,
+		MaxResults: filter.MaxResults,
 	}
 
 	return response, nil
@@ -154,4 +172,42 @@ func getDisplayMethodResponseObject(displayMethod *domain.DisplayMethod) Display
 		Url:     displayMethod.URL,
 		Default: displayMethod.IsDefault,
 	}
+}
+
+// getDisplayMethodFilter - creates a display method filter from the request
+func getDisplayMethodFilter(req GetAllDisplayMethodRequestObject) (*ports.DisplayMethodFilter, error) {
+	filter := ports.DisplayMethodFilter{}
+	filter.MaxResults = 50
+	if req.Params.MaxResults != nil {
+		if *req.Params.MaxResults <= 0 {
+			filter.MaxResults = 10
+		} else {
+			filter.MaxResults = *req.Params.MaxResults
+		}
+	}
+	filter.Page = uint(1)
+	if req.Params.Page != nil {
+		filter.Page = *req.Params.Page
+	}
+
+	orderBy := sqltools.OrderByFilters{}
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetAllDisplayMethodParamsSort(field) {
+			case CreatedAt:
+				err = orderBy.Add(ports.DisplayMethodCreatedAtFilterField, desc)
+			case Name:
+				err = orderBy.Add(ports.DisplayMethodNameFilterField, desc)
+			default:
+				return nil, errors.New("wrong sort field")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
+	filter.OrderBy = orderBy
+	return &filter, nil
 }

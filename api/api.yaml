@@ -1333,13 +1333,40 @@ paths:
         - Display Methods
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "created_at", "-created_at", "name", "-name"]
+              default: "-created_at"
+            description: >
+              The minus sign (-) before field means descending order.
       responses:
         '200':
           description: Display Method list response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DisplayMethodEntityList'
+                $ref: '#/components/schemas/DisplayMethodPaginated'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -2242,10 +2269,16 @@ components:
         default:
           type: boolean
 
-    DisplayMethodEntityList:
-      type: array
-      items:
-          $ref: '#/components/schemas/DisplayMethodEntity'
+    DisplayMethodPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayMethodEntity'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
 
     CredentialSubject:
       type: object

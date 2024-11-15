@@ -138,6 +138,14 @@ const (
 	GetCredentialOfferParamsTypeUniversalLink GetCredentialOfferParamsType = "universalLink"
 )
 
+// Defines values for GetAllDisplayMethodParamsSort.
+const (
+	CreatedAt      GetAllDisplayMethodParamsSort = "created_at"
+	MinusCreatedAt GetAllDisplayMethodParamsSort = "-created_at"
+	MinusName      GetAllDisplayMethodParamsSort = "-name"
+	Name           GetAllDisplayMethodParamsSort = "name"
+)
+
 // Defines values for GetStateTransactionsParamsFilter.
 const (
 	GetStateTransactionsParamsFilterAll    GetStateTransactionsParamsFilter = "all"
@@ -327,8 +335,11 @@ type DisplayMethodEntity struct {
 	Url     string    `json:"url"`
 }
 
-// DisplayMethodEntityList defines model for DisplayMethodEntityList.
-type DisplayMethodEntityList = []DisplayMethodEntity
+// DisplayMethodPaginated defines model for DisplayMethodPaginated.
+type DisplayMethodPaginated struct {
+	Items []DisplayMethodEntity `json:"items"`
+	Meta  PaginatedMetadata     `json:"meta"`
+}
 
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
@@ -730,6 +741,18 @@ type GetCredentialOfferParams struct {
 // GetCredentialOfferParamsType defines parameters for GetCredentialOffer.
 type GetCredentialOfferParamsType string
 
+// GetAllDisplayMethodParams defines parameters for GetAllDisplayMethod.
+type GetAllDisplayMethodParams struct {
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint                            `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetAllDisplayMethodParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// GetAllDisplayMethodParamsSort defines parameters for GetAllDisplayMethod.
+type GetAllDisplayMethodParamsSort string
+
 // UpdateDisplayMethodJSONBody defines parameters for UpdateDisplayMethod.
 type UpdateDisplayMethodJSONBody struct {
 	Default *bool   `json:"default,omitempty"`
@@ -911,7 +934,7 @@ type ServerInterface interface {
 	GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams)
 	// Get All Display Method
 	// (GET /v2/identities/{identifier}/display-method)
-	GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodParams)
 	// Create Display Method
 	// (POST /v2/identities/{identifier}/display-method)
 	CreateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -1142,7 +1165,7 @@ func (_ Unimplemented) GetCredentialOffer(w http.ResponseWriter, r *http.Request
 
 // Get All Display Method
 // (GET /v2/identities/{identifier}/display-method)
-func (_ Unimplemented) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+func (_ Unimplemented) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2382,8 +2405,35 @@ func (siw *ServerInterfaceWrapper) GetAllDisplayMethod(w http.ResponseWriter, r 
 
 	r = r.WithContext(ctx)
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetAllDisplayMethodParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetAllDisplayMethod(w, r, identifier)
+		siw.Handler.GetAllDisplayMethod(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4437,13 +4487,14 @@ func (response GetCredentialOffer500JSONResponse) VisitGetCredentialOfferRespons
 
 type GetAllDisplayMethodRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
+	Params     GetAllDisplayMethodParams
 }
 
 type GetAllDisplayMethodResponseObject interface {
 	VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error
 }
 
-type GetAllDisplayMethod200JSONResponse DisplayMethodEntityList
+type GetAllDisplayMethod200JSONResponse DisplayMethodPaginated
 
 func (response GetAllDisplayMethod200JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -6101,10 +6152,11 @@ func (sh *strictHandler) GetCredentialOffer(w http.ResponseWriter, r *http.Reque
 }
 
 // GetAllDisplayMethod operation middleware
-func (sh *strictHandler) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+func (sh *strictHandler) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodParams) {
 	var request GetAllDisplayMethodRequestObject
 
 	request.Identifier = identifier
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetAllDisplayMethod(ctx, request.(GetAllDisplayMethodRequestObject))

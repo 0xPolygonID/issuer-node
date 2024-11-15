@@ -13,7 +13,7 @@ import (
 type DisplayMethodRepository interface {
 	Save(ctx context.Context, displayMethod domain.DisplayMethod) (*uuid.UUID, error)
 	GetByID(ctx context.Context, identityDID w3c.DID, id uuid.UUID) (*domain.DisplayMethod, error)
-	GetAll(ctx context.Context, identityDID w3c.DID) ([]domain.DisplayMethod, error)
+	GetAll(ctx context.Context, identityDID w3c.DID, filter DisplayMethodFilter) ([]domain.DisplayMethod, uint, error)
 	Delete(ctx context.Context, identityDID w3c.DID, id uuid.UUID) error
 	GetDefault(ctx context.Context, identityDID w3c.DID) (*domain.DisplayMethod, error)
 }

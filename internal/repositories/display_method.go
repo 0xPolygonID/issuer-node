@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -50,22 +51,41 @@ func (d DisplayMethod) Save(ctx context.Context, displayMethod domain.DisplayMet
 }
 
 // GetAll returns all display methods for the given identity
-func (d DisplayMethod) GetAll(ctx context.Context, identityDID w3c.DID) ([]domain.DisplayMethod, error) {
+func (d DisplayMethod) GetAll(ctx context.Context, identityDID w3c.DID, filter ports.DisplayMethodFilter) ([]domain.DisplayMethod, uint, error) {
 	var displayMethods []domain.DisplayMethod
 	sql := `SELECT id, name, url, issuer_did, is_default FROM display_methods WHERE issuer_did=$1`
+
+	orderStr := " ORDER BY created_at DESC"
+	if len(filter.OrderBy) > 0 {
+		orderStr = " ORDER BY " + filter.OrderBy.String()
+	}
+	sql += orderStr
+
+	sqlArgs := make([]interface{}, 0)
+	sqlArgs = append(sqlArgs, identityDID.String())
+	var count uint
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM (SELECT id FROM (%s) as innerquery) as count", sql)
+	if err := d.conn.Pgx.QueryRow(ctx, countQuery, sqlArgs...).Scan(&count); err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, 0, nil
+		}
+		return nil, 0, err
+	}
+
+	sql += fmt.Sprintf(" OFFSET %d LIMIT %d;", (filter.Page-1)*filter.MaxResults, filter.MaxResults)
 	rows, err := d.conn.Pgx.Query(ctx, sql, identityDID.String())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	for rows.Next() {
 		var displayMethod domain.DisplayMethod
 		err = rows.Scan(&displayMethod.ID, &displayMethod.Name, &displayMethod.URL, &displayMethod.IssuerDID, &displayMethod.IsDefault)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		displayMethods = append(displayMethods, displayMethod)
 	}
-	return displayMethods, nil
+	return displayMethods, count, nil
 }
 
 // GetByID returns the display method with the given id

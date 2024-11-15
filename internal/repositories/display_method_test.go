@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 func TestSaveDisplayMethod(t *testing.T) {
@@ -87,8 +89,8 @@ func TestGetAllDisplayMethod(t *testing.T) {
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr2, "BJJ")
 	require.NoError(t, err)
 
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", true)
-	displayMethod2 := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", false)
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod1", "http://test1.com", true)
+	displayMethod2 := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod2", "http://test2.com", false)
 	displayMethod3 := domain.NewDisplayMethod(uuid.New(), *issuerDID2, "test", "http://test.com", false)
 
 	_, err = displayMethodRepository.Save(ctx, displayMethod)
@@ -98,10 +100,51 @@ func TestGetAllDisplayMethod(t *testing.T) {
 	_, err = displayMethodRepository.Save(ctx, displayMethod3)
 	require.NoError(t, err)
 
-	t.Run("should return two display method", func(t *testing.T) {
-		displayMethods, err := displayMethodRepository.GetAll(ctx, *issuerDID)
+	t.Run("should return two display method - created at desc", func(t *testing.T) {
+		displayMethods, total, err := displayMethodRepository.GetAll(ctx, *issuerDID, ports.DisplayMethodFilter{
+			MaxResults: 10,
+			Page:       1,
+			OrderBy: sqltools.OrderByFilters{
+				{Field: "created_at", Desc: true},
+			},
+		})
 		require.NoError(t, err)
 		assert.Len(t, displayMethods, 2)
+		assert.Equal(t, uint(2), total)
+
+		assert.Equal(t, displayMethod2.ID, displayMethods[0].ID)
+		assert.Equal(t, displayMethod.ID, displayMethods[1].ID)
+	})
+
+	t.Run("should return two display method - created at asc", func(t *testing.T) {
+		displayMethods, total, err := displayMethodRepository.GetAll(ctx, *issuerDID, ports.DisplayMethodFilter{
+			MaxResults: 10,
+			Page:       1,
+			OrderBy: sqltools.OrderByFilters{
+				{Field: "created_at", Desc: false},
+			},
+		})
+		require.NoError(t, err)
+		assert.Len(t, displayMethods, 2)
+		assert.Equal(t, uint(2), total)
+
+		assert.Equal(t, displayMethod.ID, displayMethods[0].ID)
+		assert.Equal(t, displayMethod2.ID, displayMethods[1].ID)
+	})
+
+	t.Run("should return two display method - paginated", func(t *testing.T) {
+		displayMethods, total, err := displayMethodRepository.GetAll(ctx, *issuerDID, ports.DisplayMethodFilter{
+			MaxResults: 1,
+			Page:       1,
+			OrderBy: sqltools.OrderByFilters{
+				{Field: "created_at", Desc: true},
+			},
+		})
+		require.NoError(t, err)
+		assert.Len(t, displayMethods, 1)
+		assert.Equal(t, uint(2), total)
+
+		assert.Equal(t, displayMethod2.ID, displayMethods[0].ID)
 	})
 }
 

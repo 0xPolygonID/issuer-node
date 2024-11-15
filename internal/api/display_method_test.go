@@ -373,10 +373,10 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	displayMethodID1, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com", false)
+	displayMethodID1, err := server.Services.displayMethod.Save(ctx, *did, "test1", "http://test1.com", false)
 	require.NoError(t, err)
 
-	displayMethodID2, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com", true)
+	displayMethodID2, err := server.Services.displayMethod.Save(ctx, *did, "test2", "http://test2com", true)
 	require.NoError(t, err)
 
 	displayMethod1, err := server.Services.displayMethod.GetByID(ctx, *did, *displayMethodID1)
@@ -387,68 +387,183 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 
 	handler := getHandler(ctx, server)
 
-	type expected struct {
-		response GetAllDisplayMethodResponseObject
-		httpCode int
-	}
+	t.Run("GetAllDisplayMethod - no auth header", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/display-method", did)
+		req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
 
-	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		expected expected
-	}
+		require.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
 
-	for _, tc := range []testConfig{
-		{
-			name: "No auth header",
-			auth: authWrong,
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
-			name: "happy path",
-			auth: authOk,
-			expected: expected{
-				response: GetAllDisplayMethod200JSONResponse{
-					{
-						Id:      displayMethod1.ID,
-						Name:    displayMethod1.Name,
-						Url:     displayMethod1.URL,
-						Default: displayMethod1.IsDefault,
-					},
-					{
-						Id:      displayMethod2.ID,
-						Name:    displayMethod2.Name,
-						Url:     displayMethod2.URL,
-						Default: displayMethod2.IsDefault,
-					},
+	t.Run("GetAllDisplayMethod - created_at asc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/display-method?sort=created_at", did)
+		req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		expectedResponse := GetAllDisplayMethod200JSONResponse{
+			Items: []DisplayMethodEntity{
+				{
+					Id:      displayMethod1.ID,
+					Name:    displayMethod1.Name,
+					Url:     displayMethod1.URL,
+					Default: displayMethod1.IsDefault,
 				},
-				httpCode: http.StatusOK,
+				{
+					Id:      displayMethod2.ID,
+					Name:    displayMethod2.Name,
+					Url:     displayMethod2.URL,
+					Default: displayMethod2.IsDefault,
+				},
 			},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v2/identities/%s/display-method", did)
-			req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
-			require.NoError(t, err)
-			req.SetBasicAuth(tc.auth())
-			handler.ServeHTTP(rr, req)
+			Meta: PaginatedMetadata{
+				Total:      2,
+				Page:       1,
+				MaxResults: 50,
+			},
+		}
+		var response GetAllDisplayMethod200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.EqualValues(t, expectedResponse, response)
+	})
 
-			require.Equal(t, tc.expected.httpCode, rr.Code)
-			switch tc.expected.httpCode {
-			case http.StatusOK:
-				var response GetAllDisplayMethod200JSONResponse
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.EqualValues(t, tc.expected.response, response)
-			case http.StatusBadRequest:
-				var response GetAllDisplayMethod400JSONResponse
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.EqualValues(t, tc.expected.response, response)
-			}
-		})
-	}
+	t.Run("GetAllDisplayMethod - created_at desc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/display-method?sort=-created_at", did)
+		req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		expectedResponse := GetAllDisplayMethod200JSONResponse{
+			Items: []DisplayMethodEntity{
+				{
+					Id:      displayMethod2.ID,
+					Name:    displayMethod2.Name,
+					Url:     displayMethod2.URL,
+					Default: displayMethod2.IsDefault,
+				},
+				{
+					Id:      displayMethod1.ID,
+					Name:    displayMethod1.Name,
+					Url:     displayMethod1.URL,
+					Default: displayMethod1.IsDefault,
+				},
+			},
+			Meta: PaginatedMetadata{
+				Total:      2,
+				Page:       1,
+				MaxResults: 50,
+			},
+		}
+		var response GetAllDisplayMethod200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.EqualValues(t, expectedResponse, response)
+	})
+
+	t.Run("GetAllDisplayMethod - created_at desc - paginated", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/display-method?page=1&max_results=1&sort=-created_at", did)
+		req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		expectedResponse := GetAllDisplayMethod200JSONResponse{
+			Items: []DisplayMethodEntity{
+				{
+					Id:      displayMethod2.ID,
+					Name:    displayMethod2.Name,
+					Url:     displayMethod2.URL,
+					Default: displayMethod2.IsDefault,
+				},
+			},
+			Meta: PaginatedMetadata{
+				Total:      2,
+				Page:       1,
+				MaxResults: 1,
+			},
+		}
+		var response GetAllDisplayMethod200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.EqualValues(t, expectedResponse, response)
+	})
+
+	t.Run("GetAllDisplayMethod - name asc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/display-method?sort=name", did)
+		req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		expectedResponse := GetAllDisplayMethod200JSONResponse{
+			Items: []DisplayMethodEntity{
+				{
+					Id:      displayMethod1.ID,
+					Name:    displayMethod1.Name,
+					Url:     displayMethod1.URL,
+					Default: displayMethod1.IsDefault,
+				},
+				{
+					Id:      displayMethod2.ID,
+					Name:    displayMethod2.Name,
+					Url:     displayMethod2.URL,
+					Default: displayMethod2.IsDefault,
+				},
+			},
+			Meta: PaginatedMetadata{
+				Total:      2,
+				Page:       1,
+				MaxResults: 50,
+			},
+		}
+		var response GetAllDisplayMethod200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.EqualValues(t, expectedResponse, response)
+	})
+	t.Run("GetAllDisplayMethod - name desc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/display-method?sort=-name", did)
+		req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		expectedResponse := GetAllDisplayMethod200JSONResponse{
+			Items: []DisplayMethodEntity{
+				{
+					Id:      displayMethod2.ID,
+					Name:    displayMethod2.Name,
+					Url:     displayMethod2.URL,
+					Default: displayMethod2.IsDefault,
+				},
+				{
+					Id:      displayMethod1.ID,
+					Name:    displayMethod1.Name,
+					Url:     displayMethod1.URL,
+					Default: displayMethod1.IsDefault,
+				},
+			},
+			Meta: PaginatedMetadata{
+				Total:      2,
+				Page:       1,
+				MaxResults: 50,
+			},
+		}
+		var response GetAllDisplayMethod200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.EqualValues(t, expectedResponse, response)
+	})
 }
 
 func TestServer_DeleteDisplayMethodByID(t *testing.T) {
