@@ -138,6 +138,16 @@ const (
 	GetCredentialOfferParamsTypeUniversalLink GetCredentialOfferParamsType = "universalLink"
 )
 
+// Defines values for GetSchemasParamsSort.
+const (
+	ImportDate         GetSchemasParamsSort = "importDate"
+	MinusImportDate    GetSchemasParamsSort = "-importDate"
+	MinusSchemaType    GetSchemasParamsSort = "-schemaType"
+	MinusSchemaVersion GetSchemasParamsSort = "-schemaVersion"
+	SchemaType         GetSchemasParamsSort = "schemaType"
+	SchemaVersion      GetSchemasParamsSort = "schemaVersion"
+)
+
 // Defines values for GetStateTransactionsParamsFilter.
 const (
 	GetStateTransactionsParamsFilterAll    GetStateTransactionsParamsFilter = "all"
@@ -725,8 +735,12 @@ type GetSchemasParams struct {
 	Page  *uint   `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
+	MaxResults *uint                   `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetSchemasParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
+
+// GetSchemasParamsSort defines parameters for GetSchemas.
+type GetSchemasParamsSort string
 
 // GetStateTransactionsParams defines parameters for GetStateTransactions.
 type GetStateTransactionsParams struct {
@@ -2340,6 +2354,14 @@ func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Req
 	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 

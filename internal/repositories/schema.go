@@ -115,7 +115,12 @@ func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, filter ports.Sch
 			sqlArgs = append(sqlArgs, term)
 		}
 	}
-	sqlQuery += " ORDER BY created_at DESC"
+	orderStr := " ORDER BY created_at DESC"
+	if len(filter.OrderBy) > 0 {
+		orderStr = " ORDER BY " + filter.OrderBy.String()
+	}
+
+	sqlQuery += orderStr
 	query := strings.Replace(sqlQuery, "##QUERYFIELDS##", strings.Join(fields, ", "), 1)
 
 	var count uint

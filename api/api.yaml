@@ -1051,6 +1051,18 @@ paths:
             example: 50
             default: 50
           description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "importDate", "-importDate", "schemaType", "-schemaType", "schemaVersion", "-schemaVersion" ]
+              default: "-importDate"
+            description: >
+              The minus sign (-) before field means descending order.
       responses:
         '200':
           description: Schema collection
