@@ -21,6 +21,7 @@ import (
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/eth"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -31,14 +32,57 @@ import (
 type payment struct {
 	networkResolver network.Resolver
 	settings        payments.Settings
+	paymentsStore   ports.PaymentRepository
 }
 
 // NewPaymentService creates a new payment service
-func NewPaymentService(resolver network.Resolver, settings payments.Settings) ports.PaymentService {
+func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, settings payments.Settings) ports.PaymentService {
 	return &payment{
 		networkResolver: resolver,
 		settings:        settings,
+		paymentsStore:   payOptsRepo,
 	}
+}
+
+// CreatePaymentOption creates a payment option for a specific issuer
+func (p *payment) CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config any) (uuid.UUID, error) {
+	paymentOption := domain.NewPaymentOption(*issuerDID, name, description, config)
+	id, err := p.paymentsStore.SavePaymentOption(ctx, paymentOption)
+	if err != nil {
+		log.Error(ctx, "failed to save payment option", "err", err, "issuerDID", issuerDID, "name", name, "description", description, "config", config)
+		return uuid.Nil, err
+	}
+	return id, nil
+}
+
+// GetPaymentOptions returns all payment options of a issuer
+func (p *payment) GetPaymentOptions(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentOption, error) {
+	opts, err := p.paymentsStore.GetAllPaymentOptions(ctx, *issuerDID)
+	if err != nil {
+		log.Error(ctx, "failed to get payment options", "err", err, "issuerDID", issuerDID)
+		return nil, err
+	}
+	return opts, nil
+}
+
+// GetPaymentOptionByID returns a payment option by its ID
+func (p *payment) GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error) {
+	opt, err := p.paymentsStore.GetPaymentOptionByID(ctx, *issuerDID, id)
+	if err != nil {
+		log.Error(ctx, "failed to get payment option", "err", err, "issuerDID", issuerDID, "id", id)
+		return nil, err
+	}
+	return opt, nil
+}
+
+// DeletePaymentOption deletes a payment option
+func (p *payment) DeletePaymentOption(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error {
+	err := p.paymentsStore.DeletePaymentOption(ctx, *issuerDID, id)
+	if err != nil {
+		log.Error(ctx, "failed to delete payment option", "err", err, "issuerDID", issuerDID, "id", id)
+		return err
+	}
+	return nil
 }
 
 // CreatePaymentRequest creates a payment request

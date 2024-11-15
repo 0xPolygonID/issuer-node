@@ -6,10 +6,12 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
@@ -81,4 +83,9 @@ type PaymentService interface {
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
 	GetSettings() payments.Settings
 	VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error)
+
+	CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config any) (uuid.UUID, error)
+	GetPaymentOptions(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentOption, error)
+	GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error)
+	DeletePaymentOption(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error
 }

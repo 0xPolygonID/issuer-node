@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -10,6 +11,84 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
+
+// GetPaymentOptions is the controller to get payment options
+func (s *Server) GetPaymentOptions(ctx context.Context, request GetPaymentOptionsRequestObject) (GetPaymentOptionsResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return GetPaymentOptions400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	paymentOptions, err := s.paymentService.GetPaymentOptions(ctx, issuerDID)
+	if err != nil {
+		log.Error(ctx, "getting payment options", "err", err, "issuer", issuerDID)
+		return GetPaymentOptions500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-options: <%s>", err.Error())}}, nil
+	}
+	items, err := toGetPaymentOptionsResponse(paymentOptions)
+	if err != nil {
+		log.Error(ctx, "creating payment options response", "err", err)
+		return GetPaymentOptions500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't convert payment-options: <%s>", err.Error())}}, nil
+	}
+	return GetPaymentOptions200JSONResponse(
+		PaymentOptionsPaginated{
+			Items: items,
+			Meta: PaginatedMetadata{ // No pagination by now, just return all
+				MaxResults: uint(len(paymentOptions)),
+				Page:       1,
+				Total:      uint(len(paymentOptions)),
+			},
+		}), nil
+}
+
+// CreatePaymentOption is the controller to create a payment option
+func (s *Server) CreatePaymentOption(ctx context.Context, request CreatePaymentOptionRequestObject) (CreatePaymentOptionResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	id, err := s.paymentService.CreatePaymentOption(ctx, issuerDID, request.Body.Name, request.Body.Description, request.Body.Config)
+	if err != nil {
+		log.Error(ctx, "creating payment option", "err", err, "issuer", issuerDID, "request", request.Body)
+		return CreatePaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't create payment-option: <%s>", err.Error())}}, nil
+	}
+	return CreatePaymentOption201JSONResponse{Id: id.String()}, nil
+}
+
+// DeletePaymentOption is the controller to delete a payment option
+func (s *Server) DeletePaymentOption(ctx context.Context, request DeletePaymentOptionRequestObject) (DeletePaymentOptionResponseObject, error) {
+	issuerID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return DeletePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	if err := s.paymentService.DeletePaymentOption(ctx, issuerID, request.Id); err != nil {
+		log.Error(ctx, "deleting payment option", "err", err, "issuer", issuerID, "id", request.Id)
+		return DeletePaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't delete payment-option: <%s>", err.Error())}}, nil
+	}
+	return DeletePaymentOption200JSONResponse{Message: "deleted"}, nil
+}
+
+// GetPaymentOption is the controller to get a payment option
+func (s *Server) GetPaymentOption(ctx context.Context, request GetPaymentOptionRequestObject) (GetPaymentOptionResponseObject, error) {
+	issuerID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return GetPaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	paymentOption, err := s.paymentService.GetPaymentOptionByID(ctx, issuerID, request.Id)
+	if err != nil {
+		log.Error(ctx, "getting payment option", "err", err, "issuer", issuerID, "id", request.Id)
+		return GetPaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-option: <%s>", err.Error())}}, nil
+	}
+
+	option, err := toPaymentOption(paymentOption)
+	if err != nil {
+		log.Error(ctx, "creating payment option response", "err", err)
+		return GetPaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't convert payment-option: <%s>", err.Error())}}, nil
+	}
+	return GetPaymentOption200JSONResponse(option), nil
+}
 
 // CreatePaymentRequest is the controller to get qr bodies
 func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePaymentRequestRequestObject) (CreatePaymentRequestResponseObject, error) {

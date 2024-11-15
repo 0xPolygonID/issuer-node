@@ -1342,6 +1342,109 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentSettings'
 
+  /v2/identities/{identifier}/payment/options:
+    get:
+      summary: Get Payment Options
+      operationId: GetPaymentOptions
+      description: Get the payment options for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Payment options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOptionsPaginated'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+    post:
+      summary: Create Payment Option
+      operationId: CreatePaymentOption
+      description: Create a payment option for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentOptionRequest'
+      responses:
+        '201':
+          description: Payment Option Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '422':
+          $ref: '#/components/responses/422'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/identities/{identifier}/payment/options/{id}:
+    get:
+      summary: Get Payment Option
+      operationId: GetPaymentOption
+      description: Get a specific payment option for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Payment option
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOption'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+    delete:
+      summary: Delete Payment Option
+      operationId: DeletePaymentOption
+      description: Remove a specific payment option for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Payment option deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
 
   /v2/payment/verify/{recipient}:
@@ -2074,6 +2177,68 @@ components:
       x-go-type-import:
         name: payments
         path: "github.com/polygonid/sh-id-platform/internal/payments"
+
+    PaymentOptionsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          $ref: '#/components/schemas/PaymentOptions'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
+    PaymentOptions:
+      type: array
+      items:
+        $ref: '#/components/schemas/PaymentOption'
+
+    PaymentOption:
+      type: object
+      required:
+        - id
+        - issuerID
+        - name
+        - description
+        - config
+        - modifiedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+        issuerID:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        config:
+          type: object
+        modifiedAt:
+          $ref: '#/components/schemas/TimeUTC'
+        createdAt:
+          $ref: '#/components/schemas/TimeUTC'
+
+    PaymentOptionRequest:
+      type: object
+      required:
+        - id
+        - issuerID
+        - name
+        - description
+        - config
+        - modifiedAt
+        - createdAt
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        config:
+          type: object
 
     BasicMessage:
       type: object

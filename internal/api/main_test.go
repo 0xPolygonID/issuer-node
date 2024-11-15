@@ -233,6 +233,7 @@ type repos struct {
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
 	links          ports.LinkRepository
+	payments       ports.PaymentRepository
 	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
@@ -270,6 +271,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
 		identityState:  repositories.NewIdentityState(),
 		links:          repositories.NewLink(*st),
+		payments:       repositories.NewPayment(*st),
 		sessions:       repositories.NewSessionCached(cachex),
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
@@ -305,7 +307,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader)
-	paymentService := services.NewPaymentService(*networkResolver, *paymentSettings)
+	paymentService := services.NewPaymentService(repos.payments, *networkResolver, *paymentSettings)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{

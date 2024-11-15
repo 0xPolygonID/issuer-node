@@ -113,6 +113,7 @@ func main() {
 	schemaRepository := repositories.NewSchema(*storage)
 	linkRepository := repositories.NewLink(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
+	paymentsRepo := repositories.NewPayment(*storage)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
@@ -158,7 +159,7 @@ func main() {
 	proofService := services.NewProver(circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
-	paymentService := services.NewPaymentService(*networkResolver, *paymentSettings)
+	paymentService := services.NewPaymentService(paymentsRepo, *networkResolver, *paymentSettings)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {

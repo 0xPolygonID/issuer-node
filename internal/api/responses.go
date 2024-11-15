@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
@@ -279,4 +280,36 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 	default:
 		return "failed"
 	}
+}
+
+func toGetPaymentOptionsResponse(opts []domain.PaymentOption) (PaymentOptions, error) {
+	var err error
+	res := make([]PaymentOption, len(opts))
+	for i, opt := range opts {
+		res[i], err = toPaymentOption(&opt)
+		if err != nil {
+			return PaymentOptions{}, err
+		}
+	}
+	return res, nil
+}
+
+func toPaymentOption(opt *domain.PaymentOption) (PaymentOption, error) {
+	var config map[string]interface{}
+	raw, err := json.Marshal(opt.Config)
+	if err != nil {
+		return PaymentOption{}, err
+	}
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return PaymentOption{}, err
+	}
+	return PaymentOption{
+		Id:          opt.ID,
+		IssuerID:    opt.IssuerDID.String(),
+		Name:        opt.Name,
+		Description: opt.Description,
+		Config:      config,
+		CreatedAt:   TimeUTC(opt.CreatedAt),
+		ModifiedAt:  TimeUTC(opt.UpdatedAt),
+	}, nil
 }
