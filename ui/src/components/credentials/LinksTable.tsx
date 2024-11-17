@@ -141,7 +141,7 @@ export function LinksTable() {
       dataIndex: "accessibleUntil",
       ellipsis: true,
       key: "expiration",
-      render: (_, { expiration }: { expiration: Link["expiration"] }) => (
+      render: (_, { expiration }: Link) => (
         <Typography.Text>{expiration ? formatDate(expiration) : "Unlimited"}</Typography.Text>
       ),
       responsive: ["sm"],
@@ -155,7 +155,7 @@ export function LinksTable() {
       dataIndex: "credentialIssued",
       ellipsis: true,
       key: "issuedClaims",
-      render: (_, { issuedClaims }: { issuedClaims: Link["issuedClaims"] }) => {
+      render: (_, { issuedClaims }: Link) => {
         const value = issuedClaims ? issuedClaims : 0;
         return <Typography.Text>{value}</Typography.Text>;
       },
@@ -170,7 +170,7 @@ export function LinksTable() {
       dataIndex: "maximumIssuance",
       ellipsis: true,
       key: "maxIssuance",
-      render: (_, { maxIssuance }: { maxIssuance: Link["maxIssuance"] }) => {
+      render: (_, { maxIssuance }: Link) => {
         const value = maxIssuance ? maxIssuance : "Unlimited";
 
         return <Typography.Text>{value}</Typography.Text>;
@@ -475,7 +475,7 @@ export function LinksTable() {
             <Space size="middle">
               <Card.Meta title={LINKS} />
 
-              <Tag>{linksList.length}</Tag>
+              <Tag>{paginationTotal}</Tag>
             </Space>
 
             {(!showDefaultContent || status !== undefined) && (
