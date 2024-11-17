@@ -17,11 +17,13 @@ import {
   Typography,
 } from "antd";
 
-import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
+import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 
 import { getLinks, linkStatusParser, updateLink } from "src/adapters/api/credentials";
+import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { tableSorterParser } from "src/adapters/parsers/view";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
@@ -39,10 +41,16 @@ import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/ut
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   ACCESSIBLE_UNTIL,
+  DEFAULT_PAGINATION_MAX_RESULTS,
+  DEFAULT_PAGINATION_PAGE,
+  DEFAULT_PAGINATION_TOTAL,
   DELETE,
   DETAILS,
   LINKS,
+  PAGINATION_MAX_RESULTS_PARAM,
+  PAGINATION_PAGE_PARAM,
   QUERY_SEARCH_PARAM,
+  SORT_PARAM,
   STATUS,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
@@ -63,11 +71,29 @@ export function LinksTable() {
   });
   const [isLinkUpdating, setLinkUpdating] = useState<Record<string, boolean>>({});
   const [linkToDelete, setLinkToDelete] = useState<string>();
+  const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
 
   const linksList = isAsyncTaskDataAvailable(links) ? links.data : [];
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
+  const paginationPageParam = searchParams.get(PAGINATION_PAGE_PARAM);
+  const paginationMaxResultsParam = searchParams.get(PAGINATION_MAX_RESULTS_PARAM);
+  const sortParam = searchParams.get(SORT_PARAM);
+
+  const sorters = parseSorters(sortParam);
+
   const parsedStatusParam = linkStatusParser.safeParse(statusParam);
+  const paginationPageParsed = positiveIntegerFromStringParser.safeParse(paginationPageParam);
+  const paginationMaxResultsParsed =
+    positiveIntegerFromStringParser.safeParse(paginationMaxResultsParam);
+
+  const paginationPage = paginationPageParsed.success
+    ? paginationPageParsed.data
+    : DEFAULT_PAGINATION_PAGE;
+  const paginationMaxResults = paginationMaxResultsParsed.success
+    ? paginationMaxResultsParsed.data
+    : DEFAULT_PAGINATION_MAX_RESULTS;
+
   const showDefaultContent =
     links.status === "successful" && linksList.length === 0 && queryParam === null;
 
@@ -89,7 +115,10 @@ export function LinksTable() {
           size="small"
         />
       ),
-      sorter: ({ active: a }, { active: b }) => (a === b ? 0 : a ? 1 : -1),
+      sorter: {
+        multiple: 1,
+      },
+      sortOrder: sorters.find(({ field }) => field === "active")?.order,
       title: "Active",
       width: md ? 100 : 60,
     },
@@ -102,60 +131,55 @@ export function LinksTable() {
           <Typography.Text strong>{schemaType}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+      sorter: {
+        multiple: 2,
+      },
+      sortOrder: sorters.find(({ field }) => field === "schemaType")?.order,
       title: "Credential",
     },
     {
-      dataIndex: "expiration",
+      dataIndex: "accessibleUntil",
       ellipsis: true,
       key: "expiration",
-      render: (expiration: Link["expiration"]) => (
+      render: (_, { expiration }: { expiration: Link["expiration"] }) => (
         <Typography.Text>{expiration ? formatDate(expiration) : "Unlimited"}</Typography.Text>
       ),
       responsive: ["sm"],
-      sorter: ({ expiration: a }, { expiration: b }) => {
-        if (a && b) {
-          return dayjs(a).unix() - dayjs(b).unix();
-        } else if (a) {
-          return 1;
-        } else {
-          return -1;
-        }
+      sorter: {
+        multiple: 3,
       },
+      sortOrder: sorters.find(({ field }) => field === "accessibleUntil")?.order,
       title: ACCESSIBLE_UNTIL,
     },
     {
-      dataIndex: "issuedClaims",
+      dataIndex: "credentialIssued",
       ellipsis: true,
       key: "issuedClaims",
-      render: (issuedClaims: Link["issuedClaims"]) => {
+      render: (_, { issuedClaims }: { issuedClaims: Link["issuedClaims"] }) => {
         const value = issuedClaims ? issuedClaims : 0;
-
         return <Typography.Text>{value}</Typography.Text>;
       },
       responsive: ["md"],
-      sorter: ({ issuedClaims: a }, { issuedClaims: b }) => (a === b ? 0 : a ? 1 : -1),
+      sorter: {
+        multiple: 4,
+      },
+      sortOrder: sorters.find(({ field }) => field === "credentialIssued")?.order,
       title: "Credentials issued",
     },
     {
-      dataIndex: "maxIssuance",
+      dataIndex: "maximumIssuance",
       ellipsis: true,
       key: "maxIssuance",
-      render: (maxIssuance: Link["maxIssuance"]) => {
+      render: (_, { maxIssuance }: { maxIssuance: Link["maxIssuance"] }) => {
         const value = maxIssuance ? maxIssuance : "Unlimited";
 
         return <Typography.Text>{value}</Typography.Text>;
       },
       responsive: ["md"],
-      sorter: ({ maxIssuance: a }, { maxIssuance: b }) => {
-        if (a && b) {
-          return a - b;
-        } else if (a) {
-          return 1;
-        } else {
-          return -1;
-        }
+      sorter: {
+        multiple: 5,
       },
+      sortOrder: sorters.find(({ field }) => field === "maximumIssuance")?.order,
       title: "Maximum issuance",
     },
     {
@@ -205,11 +229,39 @@ export function LinksTable() {
           </Dropdown>
         </Row>
       ),
-      sorter: ({ status: a }, { status: b }) => a.localeCompare(b),
+      sorter: {
+        multiple: 6,
+      },
+      sortOrder: sorters.find(({ field }) => field === "status")?.order,
       title: STATUS,
       width: 140,
     },
   ];
+
+  const updateUrlParams = useCallback(
+    ({ maxResults, page, sorters }: { maxResults?: number; page?: number; sorters?: Sorter[] }) => {
+      setSearchParams((previousParams) => {
+        const params = new URLSearchParams(previousParams);
+        params.set(
+          PAGINATION_PAGE_PARAM,
+          page !== undefined ? page.toString() : DEFAULT_PAGINATION_PAGE.toString()
+        );
+        params.set(
+          PAGINATION_MAX_RESULTS_PARAM,
+          maxResults !== undefined
+            ? maxResults.toString()
+            : DEFAULT_PAGINATION_MAX_RESULTS.toString()
+        );
+        const newSorters = sorters || parseSorters(sortParam);
+        newSorters.length > 0
+          ? params.set(SORT_PARAM, serializeSorters(newSorters))
+          : params.delete(SORT_PARAM);
+
+        return params;
+      });
+    },
+    [setSearchParams, sortParam]
+  );
 
   const fetchLinks = useCallback(
     async (signal?: AbortSignal) => {
@@ -223,22 +275,40 @@ export function LinksTable() {
         env,
         identifier,
         params: {
+          maxResults: paginationMaxResults,
+          page: paginationPage,
           query: queryParam || undefined,
+          sorters: parseSorters(sortParam),
           status: status,
         },
         signal,
       });
 
       if (response.success) {
-        setLinks({ data: response.data.successful, status: "successful" });
-        notifyParseErrors(response.data.failed);
+        setLinks({ data: response.data.items.successful, status: "successful" });
+        setPaginationTotal(response.data.meta.total);
+        updateUrlParams({
+          maxResults: response.data.meta.max_results,
+          page: response.data.meta.page,
+        });
+
+        notifyParseErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setLinks({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam, status, identifier]
+    [
+      env,
+      queryParam,
+      status,
+      identifier,
+      paginationMaxResults,
+      paginationPage,
+      sortParam,
+      updateUrlParams,
+    ]
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
@@ -379,7 +449,22 @@ export function LinksTable() {
                   <NoResults searchQuery={queryParam} />
                 ),
             }}
-            pagination={false}
+            onChange={({ current, pageSize, total }, _, sorters) => {
+              setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
+              const parsedSorters = tableSorterParser.safeParse(sorters);
+              updateUrlParams({
+                maxResults: pageSize,
+                page: current,
+                sorters: parsedSorters.success ? parsedSorters.data : [],
+              });
+            }}
+            pagination={{
+              current: paginationPage,
+              hideOnSinglePage: true,
+              pageSize: paginationMaxResults,
+              position: ["bottomRight"],
+              total: paginationTotal,
+            }}
             rowKey="id"
             showSorterTooltip
             sortDirections={["ascend", "descend"]}

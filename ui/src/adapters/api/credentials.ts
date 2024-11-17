@@ -11,12 +11,7 @@ import {
   messageParser,
   serializeSorters,
 } from "src/adapters/api";
-import {
-  datetimeParser,
-  getListParser,
-  getResourceParser,
-  getStrictParser,
-} from "src/adapters/parsers";
+import { datetimeParser, getResourceParser, getStrictParser } from "src/adapters/parsers";
 import {
   Credential,
   Env,
@@ -28,7 +23,7 @@ import {
   RefreshService,
 } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
-import { List, Resource } from "src/utils/types";
+import { Resource } from "src/utils/types";
 
 // Credentials
 
@@ -338,17 +333,20 @@ export async function getLink({
 export async function getLinks({
   env,
   identifier,
-  params: { query, status },
+  params: { maxResults, page, query, sorters, status },
   signal,
 }: {
   env: Env;
   identifier: string;
   params: {
+    maxResults?: number;
+    page?: number;
     query?: string;
+    sorters?: Sorter[];
     status?: LinkStatus;
   };
   signal?: AbortSignal;
-}): Promise<Response<List<Link>>> {
+}): Promise<Response<Resource<Link>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -359,18 +357,14 @@ export async function getLinks({
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(status !== undefined ? { [STATUS_SEARCH_PARAM]: status } : {}),
+        ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
+        ...(page !== undefined ? { page: page.toString() } : {}),
+        ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
       url: `${API_VERSION}/identities/${identifier}/credentials/links`,
     });
-    return buildSuccessResponse(
-      getListParser(linkParser)
-        .transform(({ failed, successful }) => ({
-          failed,
-          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-        }))
-        .parse(response.data)
-    );
+    return buildSuccessResponse(getResourceParser(linkParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
