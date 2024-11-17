@@ -2,12 +2,12 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
-import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
-import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
+import { ID, IDParser, Sorter, buildAuthorizationHeader, serializeSorters } from "src/adapters/api";
+import { datetimeParser, getResourceParser, getStrictParser } from "src/adapters/parsers";
 import { ApiSchema, Env, JsonLdType } from "src/domain";
 import { getStorageByKey } from "src/utils/browser";
 import { API_VERSION, IPFS_CUSTOM_GATEWAY_KEY, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { List } from "src/utils/types";
+import { Resource } from "src/utils/types";
 
 type ApiSchemaInput = Omit<ApiSchema, "createdAt"> & {
   createdAt: string;
@@ -96,16 +96,19 @@ export async function getApiSchema({
 export async function getApiSchemas({
   env,
   identifier,
-  params: { query },
+  params: { maxResults, page, query, sorters },
   signal,
 }: {
   env: Env;
   identifier: string;
   params: {
+    maxResults?: number;
+    page?: number;
     query?: string;
+    sorters?: Sorter[];
   };
   signal: AbortSignal;
-}): Promise<Response<List<ApiSchema>>> {
+}): Promise<Response<Resource<ApiSchema>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -115,18 +118,15 @@ export async function getApiSchemas({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
+        ...(page !== undefined ? { page: page.toString() } : {}),
+        ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
       url: `${API_VERSION}/identities/${identifier}/schemas`,
     });
-    return buildSuccessResponse(
-      getListParser(apiSchemaParser)
-        .transform(({ failed, successful }) => ({
-          failed,
-          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-        }))
-        .parse(response.data)
-    );
+
+    return buildSuccessResponse(getResourceParser(apiSchemaParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

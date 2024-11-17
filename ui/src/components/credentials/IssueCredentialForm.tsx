@@ -311,10 +311,10 @@ export function IssueCredentialForm({
       });
 
       if (response.success) {
-        setApiSchemas({ data: response.data.successful, status: "successful" });
+        setApiSchemas({ data: response.data.items.successful, status: "successful" });
         const selectedSchema =
           initialValues.schemaID !== undefined
-            ? response.data.successful.find((schema) => schema.id === initialValues.schemaID)
+            ? response.data.items.successful.find((schema) => schema.id === initialValues.schemaID)
             : undefined;
 
         if (selectedSchema) {
