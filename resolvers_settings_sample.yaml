@@ -2,7 +2,7 @@
 privado:
   main:
     contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
-    networkURL: https://rpc-mainnet.privado.id #Switch to dedicated rpc url as this public one might be rate limited
+    networkURL: https://rpc-mainnet.privado.id # Switch to dedicated rpc url as this public one might be rate limited
     defaultGasLimit: 600000
     confirmationTimeout: 10s
     confirmationBlockCount: 5
@@ -18,7 +18,7 @@ privado:
       contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
       rhsUrl: https://rhs-staging.polygonid.me
       chainID: 21000
-      publishingKey: pbke
+      publishingKey: pbkey
 
 polygon:
   # main:
@@ -43,7 +43,7 @@ polygon:
 
   amoy:
     contractAddress: 0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124
-    networkURL: https://rpc-amoy.polygon.technology #Switch to dedicated rpc url as this public one might be rate limited
+    networkURL: https://rpc-amoy.polygon.technology # Switch to dedicated rpc url as this public one might be rate limited
     defaultGasLimit: 600000
     confirmationTimeout: 10s
     confirmationBlockCount: 5
@@ -63,7 +63,7 @@ polygon:
 
  zkevm:
    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
-   networkURL: https://zkevm-rpc.com #Switch to dedicated rpc url as this public one might be rate limited
+   networkURL: https://zkevm-rpc.com # Switch to dedicated rpc url as this public one might be rate limited
    defaultGasLimit: 600000
    confirmationTimeout: 10s
    confirmationBlockCount: 5
@@ -79,11 +79,11 @@ polygon:
      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
      rhsUrl: https://rhs-staging.polygonid.me
      chainID: 1101
-     publishingKey: pbke
+     publishingKey: pbkey
 
  cardona:
    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
-   networkURL: https://etherscan.cardona.zkevm-rpc.com/ #Switch to dedicated rpc url as this public one might be rate limited
+   networkURL: https://etherscan.cardona.zkevm-rpc.com # Switch to dedicated rpc url as this public one might be rate limited
    defaultGasLimit: 600000
    confirmationTimeout: 10s
    confirmationBlockCount: 5
@@ -99,7 +99,7 @@ polygon:
      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
      rhsUrl: https://rhs-staging.polygonid.me
      chainID: 2442
-     publishingKey: pbke
+     publishingKey: pbkey
 
 # ethereum:
 #   main:
@@ -120,7 +120,7 @@ polygon:
 #       contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
 #       rhsUrl: https://rhs-staging.polygonid.me
 #       chainID: 1
-#       publishingKey: pbke
+#       publishingKey: pbkey
 
 #   sepolia:
 #     contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
@@ -140,7 +140,7 @@ polygon:
 #       contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
 #       rhsUrl: https://rhs-staging.polygonid.me
 #       chainID: 11155111
-#       publishingKey: pbke
+#       publishingKey: pbkey
 
 # linea:
 #   main:
@@ -161,7 +161,7 @@ polygon:
 #       contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
 #       rhsUrl: https://rhs-staging.polygonid.me
 #       chainID: 59144
-#       publishingKey: pbke
+#       publishingKey: pbkey
 
 #   sepolia:
 #     contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
@@ -181,7 +181,7 @@ polygon:
 #       contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
 #       rhsUrl: https://rhs-staging.polygonid.me
 #       chainID: 59141
-#       publishingKey: pbke
+#       publishingKey: pbkey
 
 #customBlockchain:
 #  customNetwork:
