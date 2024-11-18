@@ -1,4 +1,4 @@
-# Configuring Privado Idenity Chain (privado:main) is necessary as identities on the Privado ID Web Wallet and the Privado ID Wallet App are asociated to this chain. This configuration ensures issuance of credentials to these identities.
+# Configuring Privado Identity Chain (privado:main) is necessary as identities on the Privado ID Web Wallet and the Privado ID Wallet App are associated to this chain. This configuration ensures issuance of credentials to these identities.
 privado:
   main:
     contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
