@@ -1,3 +1,25 @@
+# Configuring Privado Idenity Chain (privado:main) is necessary as identities on the Privado ID Web Wallet and the Privado ID Wallet App are asociated to this chain. This configuration ensures issuance of credentials to these identities.
+privado:
+  main:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: https://rpc-mainnet.privado.id #Switch to dedicated rpc url as this public one might be rate limited
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 21000
+      publishingKey: pbke
+
 polygon:
   # main:
   #   contractAddress: 0x624ce98D2d27b20b8f8d521723Df8fC4db71D79D
@@ -21,7 +43,7 @@ polygon:
 
   amoy:
     contractAddress: 0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124
-    networkURL: https://rpc-amoy.polygon.technology
+    networkURL: https://rpc-amoy.polygon.technology #Switch to dedicated rpc url as this public one might be rate limited
     defaultGasLimit: 600000
     confirmationTimeout: 10s
     confirmationBlockCount: 5
@@ -38,67 +60,46 @@ polygon:
       rhsUrl: https://rhs-staging.polygonid.me
       chainID: 80002
       publishingKey: pbkey
-#
-#  zkevm:
-#    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
-#    networkURL: <your-rpc-url>
-#    defaultGasLimit: 600000
-#    confirmationTimeout: 10s
-#    confirmationBlockCount: 5
-#    receiptTimeout: 600s
-#    minGasPrice: 0
-#    maxGasPrice: 1000000
-#    rpcResponseTimeout: 5s
-#    waitReceiptCycleTime: 30s
-#    waitBlockCycleTime: 30s
-#    gasLess: false
-#    rhsSettings:
-#      mode: None
-#      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
-#      rhsUrl: https://rhs-staging.polygonid.me
-#      chainID: 1101
-#      publishingKey: pbke
-#
-#  cardona:
-#    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
-#    networkURL: <your-rpc-url>
-#    defaultGasLimit: 600000
-#    confirmationTimeout: 10s
-#    confirmationBlockCount: 5
-#    receiptTimeout: 600s
-#    minGasPrice: 0
-#    maxGasPrice: 1000000
-#    rpcResponseTimeout: 5s
-#    waitReceiptCycleTime: 30s
-#    waitBlockCycleTime: 30s
-#    gasLess: false
-#    rhsSettings:
-#      mode: None
-#      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
-#      rhsUrl: https://rhs-staging.polygonid.me
-#      chainID: 2442
-#      publishingKey: pbke
 
-privado:
-  main:
-    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
-    networkURL: https://rpc-mainnet.privado.id
-    defaultGasLimit: 600000
-    confirmationTimeout: 10s
-    confirmationBlockCount: 5
-    receiptTimeout: 600s
-    minGasPrice: 0
-    maxGasPrice: 1000000
-    rpcResponseTimeout: 5s
-    waitReceiptCycleTime: 30s
-    waitBlockCycleTime: 30s
-    gasLess: false
-    rhsSettings:
-      mode: None
-      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
-      rhsUrl: https://rhs-staging.polygonid.me
-      chainID: 21000
-      publishingKey: pbke
+ zkevm:
+   contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+   networkURL: https://zkevm-rpc.com #Switch to dedicated rpc url as this public one might be rate limited
+   defaultGasLimit: 600000
+   confirmationTimeout: 10s
+   confirmationBlockCount: 5
+   receiptTimeout: 600s
+   minGasPrice: 0
+   maxGasPrice: 1000000
+   rpcResponseTimeout: 5s
+   waitReceiptCycleTime: 30s
+   waitBlockCycleTime: 30s
+   gasLess: false
+   rhsSettings:
+     mode: None
+     contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+     rhsUrl: https://rhs-staging.polygonid.me
+     chainID: 1101
+     publishingKey: pbke
+
+ cardona:
+   contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+   networkURL: https://etherscan.cardona.zkevm-rpc.com/ #Switch to dedicated rpc url as this public one might be rate limited
+   defaultGasLimit: 600000
+   confirmationTimeout: 10s
+   confirmationBlockCount: 5
+   receiptTimeout: 600s
+   minGasPrice: 0
+   maxGasPrice: 1000000
+   rpcResponseTimeout: 5s
+   waitReceiptCycleTime: 30s
+   waitBlockCycleTime: 30s
+   gasLess: false
+   rhsSettings:
+     mode: None
+     contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+     rhsUrl: https://rhs-staging.polygonid.me
+     chainID: 2442
+     publishingKey: pbke
 
 # ethereum:
 #   main:
