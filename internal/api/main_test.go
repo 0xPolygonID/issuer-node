@@ -244,6 +244,7 @@ type servicex struct {
 	identity    ports.IdentityService
 	schema      ports.SchemaService
 	links       ports.LinkService
+	payments    ports.PaymentService
 	qrs         ports.QrStoreService
 }
 
@@ -329,6 +330,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 			credentials: claimsService,
 			identity:    identityService,
 			links:       linkService,
+			payments:    paymentService,
 			qrs:         qrService,
 			schema:      schemaService,
 		},

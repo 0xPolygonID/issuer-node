@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -161,6 +162,109 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 			case http.StatusBadRequest:
 				var response CreatePaymentOption400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.msg, response.Message)
+
+			}
+		})
+	}
+}
+
+func TestServer_GetPaymentOption(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+
+	var config map[string]interface{}
+	ctx := context.Background()
+
+	server := newTestServer(t, nil)
+	handler := getHandler(ctx, server)
+
+	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	issuerDID, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
+	require.NoError(t, err)
+
+	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "1 POL Payment", "Payment Option explanation", config)
+	require.NoError(t, err)
+
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
+
+	type expected struct {
+		httpCode int
+		msg      string
+	}
+
+	for _, tc := range []struct {
+		name      string
+		issuerDID w3c.DID
+		optionID  uuid.UUID
+		auth      func() (string, string)
+		expected  expected
+	}{
+		{
+			name:      "no auth header",
+			auth:      authWrong,
+			issuerDID: *issuerDID,
+			optionID:  optionID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:      "Happy Path",
+			auth:      authOk,
+			issuerDID: *issuerDID,
+			optionID:  optionID,
+			expected: expected{
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name:      "Not existing issuerDID",
+			auth:      authOk,
+			issuerDID: *otherDID,
+			optionID:  optionID,
+			expected: expected{
+				httpCode: http.StatusNotFound,
+				msg:      "payment option not found",
+			},
+		},
+		{
+			name:      "Not existing Payment option",
+			auth:      authOk,
+			issuerDID: *issuerDID,
+			optionID:  uuid.New(),
+			expected: expected{
+				httpCode: http.StatusNotFound,
+				msg:      "payment option not found",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v2/identities/%s/payment/options/%s", tc.issuerDID.String(), tc.optionID.String())
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			assert.NoError(t, err)
+			req.SetBasicAuth(tc.auth())
+
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetPaymentOption200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.optionID, response.Id)
+			case http.StatusNotFound:
+				var response GetPaymentOption404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.msg, response.Message)
 			}

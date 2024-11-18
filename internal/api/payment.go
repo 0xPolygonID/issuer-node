@@ -83,6 +83,9 @@ func (s *Server) GetPaymentOption(ctx context.Context, request GetPaymentOptionR
 	}
 	paymentOption, err := s.paymentService.GetPaymentOptionByID(ctx, issuerID, request.Id)
 	if err != nil {
+		if errors.Is(err, repositories.ErrPaymentOptionNotFound) {
+			return GetPaymentOption404JSONResponse{N404JSONResponse{Message: "payment option not found"}}, nil
+		}
 		log.Error(ctx, "getting payment option", "err", err, "issuer", issuerID, "id", request.Id)
 		return GetPaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-option: <%s>", err.Error())}}, nil
 	}
