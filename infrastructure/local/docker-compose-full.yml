@@ -81,7 +81,7 @@ services:
     volumes:
       - ../../localstoragekeys:/localstoragekeys:rw
       - ../../resolvers_settings.yaml:/resolvers_settings.yaml
-      - ../../payment_settings.test.yaml:/payment_settings.test.yaml
+      - ../../payment_settings.yaml:/payment_settings.yaml
     healthcheck:
       test: ["CMD", "curl", "-f", "api:3001/status"]
       interval: 10s
