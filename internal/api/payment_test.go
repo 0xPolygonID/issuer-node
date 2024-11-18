@@ -271,3 +271,97 @@ func TestServer_GetPaymentOption(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_GetPaymentOptions(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+
+	var config map[string]interface{}
+	ctx := context.Background()
+
+	server := newTestServer(t, nil)
+	handler := getHandler(ctx, server)
+
+	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	issuerDID, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
+	require.NoError(t, err)
+
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
+
+	for i := 0; i < 10; i++ {
+		_, err = server.Services.payments.CreatePaymentOption(ctx, issuerDID, fmt.Sprintf("Payment Option %d", i+1), "Payment Option explanation", config)
+		require.NoError(t, err)
+	}
+
+	type expected struct {
+		httpCode int
+		msg      string
+		count    int
+	}
+
+	for _, tc := range []struct {
+		name      string
+		issuerDID w3c.DID
+		auth      func() (string, string)
+		expected  expected
+	}{
+		{
+			name:      "no auth header",
+			auth:      authWrong,
+			issuerDID: *issuerDID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:      "Happy Path",
+			auth:      authOk,
+			issuerDID: *issuerDID,
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    10,
+			},
+		},
+		{
+			name:      "Other issuer DID with no payment options. Should return empty string",
+			auth:      authOk,
+			issuerDID: *otherDID,
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    0,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v2/identities/%s/payment/options", tc.issuerDID.String())
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			assert.NoError(t, err)
+			req.SetBasicAuth(tc.auth())
+
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetPaymentOptions200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.count, len(response.Items)) // Check that 10 items are returned
+				assert.Equal(t, 1, int(response.Meta.Page))
+				assert.Equal(t, tc.expected.count, int(response.Meta.Total))
+			case http.StatusBadRequest:
+				var response GetPaymentOptions400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.msg, response.Message)
+			}
+		})
+	}
+}
