@@ -46,7 +46,6 @@ const (
 	jsonKeyType      = "key_type"
 	jsonPrivateKey   = "private_key"
 	ethereum         = "ethereum"
-	eth              = "ETH"
 	pluginFolderPath = "./localstoragekeys"
 	envFile          = ".env-issuer"
 )
