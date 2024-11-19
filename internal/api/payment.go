@@ -69,6 +69,9 @@ func (s *Server) DeletePaymentOption(ctx context.Context, request DeletePaymentO
 	}
 	if err := s.paymentService.DeletePaymentOption(ctx, issuerID, request.Id); err != nil {
 		log.Error(ctx, "deleting payment option", "err", err, "issuer", issuerID, "id", request.Id)
+		if errors.Is(err, repositories.ErrPaymentOptionDoesNotExists) {
+			return DeletePaymentOption400JSONResponse{N400JSONResponse{Message: "payment option not found"}}, nil
+		}
 		return DeletePaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't delete payment-option: <%s>", err.Error())}}, nil
 	}
 	return DeletePaymentOption200JSONResponse{Message: "deleted"}, nil
@@ -83,7 +86,7 @@ func (s *Server) GetPaymentOption(ctx context.Context, request GetPaymentOptionR
 	}
 	paymentOption, err := s.paymentService.GetPaymentOptionByID(ctx, issuerID, request.Id)
 	if err != nil {
-		if errors.Is(err, repositories.ErrPaymentOptionNotFound) {
+		if errors.Is(err, repositories.ErrPaymentOptionDoesNotExists) {
 			return GetPaymentOption404JSONResponse{N404JSONResponse{Message: "payment option not found"}}, nil
 		}
 		log.Error(ctx, "getting payment option", "err", err, "issuer", issuerID, "id", request.Id)

@@ -13,8 +13,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-// ErrPaymentOptionNotFound error
-var ErrPaymentOptionNotFound = errors.New("payment option not found")
+// ErrPaymentOptionDoesNotExists error
+var ErrPaymentOptionDoesNotExists = errors.New("payment option not found")
 
 // Payment repository
 type Payment struct {
@@ -87,7 +87,7 @@ AND issuer_did = $2;`
 	err := p.conn.Pgx.QueryRow(ctx, query, id, issuerDID.String()).Scan(&opt.ID, &strIssuerDID, &opt.Name, &opt.Description, &opt.Config, &opt.CreatedAt, &opt.UpdatedAt)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
-			return nil, ErrPaymentOptionNotFound
+			return nil, ErrPaymentOptionDoesNotExists
 		}
 		return nil, err
 	}
@@ -103,9 +103,12 @@ AND issuer_did = $2;`
 func (p *Payment) DeletePaymentOption(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) error {
 	const query = `DELETE FROM payment_options WHERE id = $1 and issuer_did = $2;`
 
-	_, err := p.conn.Pgx.Exec(ctx, query, id, issuerDID.String())
+	cmd, err := p.conn.Pgx.Exec(ctx, query, id, issuerDID.String())
 	if err != nil {
 		return err
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrPaymentOptionDoesNotExists
 	}
 	return nil
 }
