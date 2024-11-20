@@ -22,7 +22,7 @@ func TestSaveDisplayMethod(t *testing.T) {
 	require.NoError(t, err)
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", true)
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com")
 
 	t.Run("Save display method", func(t *testing.T) {
 		id, err := displayMethodRepository.Save(ctx, displayMethod)
@@ -35,13 +35,6 @@ func TestSaveDisplayMethod(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, id)
 	})
-
-	t.Run("Save display method should return an error", func(t *testing.T) {
-		displayMethod2 := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", true)
-		id, err := displayMethodRepository.Save(ctx, displayMethod2)
-		require.Error(t, err)
-		require.Nil(t, id)
-	})
 }
 
 func TestGetDisplayMethod(t *testing.T) {
@@ -52,7 +45,7 @@ func TestGetDisplayMethod(t *testing.T) {
 	require.NoError(t, err)
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", true)
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com")
 
 	t.Run("should return a display method", func(t *testing.T) {
 		id, err := displayMethodRepository.Save(ctx, displayMethod)
@@ -64,7 +57,6 @@ func TestGetDisplayMethod(t *testing.T) {
 		assert.Equal(t, displayMethod.Name, displayMethodToGet.Name)
 		assert.Equal(t, displayMethod.URL, displayMethodToGet.URL)
 		assert.Equal(t, displayMethod.IssuerDID, displayMethodToGet.IssuerDID)
-		assert.Equal(t, displayMethod.IsDefault, displayMethodToGet.IsDefault)
 	})
 
 	t.Run("should return an error", func(t *testing.T) {
@@ -89,9 +81,9 @@ func TestGetAllDisplayMethod(t *testing.T) {
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr2, "BJJ")
 	require.NoError(t, err)
 
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod1", "http://test1.com", true)
-	displayMethod2 := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod2", "http://test2.com", false)
-	displayMethod3 := domain.NewDisplayMethod(uuid.New(), *issuerDID2, "test", "http://test.com", false)
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod1", "http://test1.com")
+	displayMethod2 := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod2", "http://test2.com")
+	displayMethod3 := domain.NewDisplayMethod(uuid.New(), *issuerDID2, "test", "http://test.com")
 
 	_, err = displayMethodRepository.Save(ctx, displayMethod)
 	require.NoError(t, err)
@@ -156,7 +148,7 @@ func TestUpdateDisplayMethod(t *testing.T) {
 	require.NoError(t, err)
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", true)
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com")
 
 	t.Run("should return a display method", func(t *testing.T) {
 		id, err := displayMethodRepository.Save(ctx, displayMethod)
@@ -168,11 +160,9 @@ func TestUpdateDisplayMethod(t *testing.T) {
 		assert.Equal(t, displayMethod.Name, displayMethodToGet.Name)
 		assert.Equal(t, displayMethod.URL, displayMethodToGet.URL)
 		assert.Equal(t, displayMethod.IssuerDID, displayMethodToGet.IssuerDID)
-		assert.Equal(t, displayMethod.IsDefault, displayMethodToGet.IsDefault)
 
 		displayMethod.URL = "http://test2.com"
 		displayMethod.Name = "test2"
-		displayMethod.IsDefault = false
 		id, err = displayMethodRepository.Save(ctx, displayMethod)
 		require.NoError(t, err)
 
@@ -183,7 +173,6 @@ func TestUpdateDisplayMethod(t *testing.T) {
 		assert.Equal(t, displayMethod.Name, displayMethodAfterUpdate.Name)
 		assert.Equal(t, displayMethod.URL, displayMethodAfterUpdate.URL)
 		assert.Equal(t, displayMethod.IssuerDID, displayMethodAfterUpdate.IssuerDID)
-		assert.Equal(t, displayMethod.IsDefault, displayMethodAfterUpdate.IsDefault)
 	})
 }
 
@@ -195,7 +184,7 @@ func TestDeleteDisplayMethod(t *testing.T) {
 	require.NoError(t, err)
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", true)
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com")
 
 	t.Run("should return a display method", func(t *testing.T) {
 		id, err := displayMethodRepository.Save(ctx, displayMethod)
@@ -205,29 +194,5 @@ func TestDeleteDisplayMethod(t *testing.T) {
 
 		err = displayMethodRepository.Delete(ctx, *issuerDID, *id)
 		require.NoError(t, err)
-	})
-}
-
-func TestGetDEfaultDisplayMethod(t *testing.T) {
-	ctx := context.Background()
-	displayMethodRepository := NewDisplayMethod(*storage)
-	didStr := "did:iden3:privado:main:2SiWJdYPm2Nzc862h9NQs27EAThmPH3svDenpM15Pb"
-	issuerDID, err := w3c.ParseDID(didStr)
-	require.NoError(t, err)
-	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
-	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", true)
-
-	t.Run("should return a display method", func(t *testing.T) {
-		_, err := displayMethodRepository.Save(ctx, displayMethod)
-		require.NoError(t, err)
-		displayMethodToGet, err := displayMethodRepository.GetDefault(ctx, *issuerDID)
-		require.NoError(t, err)
-		require.NotNil(t, displayMethodToGet)
-		assert.Equal(t, displayMethod.ID, displayMethodToGet.ID)
-		assert.Equal(t, displayMethod.Name, displayMethodToGet.Name)
-		assert.Equal(t, displayMethod.URL, displayMethodToGet.URL)
-		assert.Equal(t, displayMethod.IssuerDID, displayMethodToGet.IssuerDID)
-		assert.Equal(t, displayMethod.IsDefault, displayMethodToGet.IsDefault)
 	})
 }

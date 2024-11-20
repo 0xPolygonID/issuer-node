@@ -235,9 +235,8 @@ type CreateCredentialResponse struct {
 
 // CreateDisplayMethodRequest defines model for CreateDisplayMethodRequest.
 type CreateDisplayMethodRequest struct {
-	Default bool   `json:"default"`
-	Name    string `json:"name"`
-	Url     string `json:"url"`
+	Name string `json:"name"`
+	Url  string `json:"url"`
 }
 
 // CreateIdentityRequest defines model for CreateIdentityRequest.
@@ -329,10 +328,9 @@ type DisplayMethodType string
 
 // DisplayMethodEntity defines model for DisplayMethodEntity.
 type DisplayMethodEntity struct {
-	Default bool      `json:"default"`
-	Id      uuid.UUID `json:"id"`
-	Name    string    `json:"name"`
-	Url     string    `json:"url"`
+	Id   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Url  string    `json:"url"`
 }
 
 // DisplayMethodPaginated defines model for DisplayMethodPaginated.

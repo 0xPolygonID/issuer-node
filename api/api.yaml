@@ -2251,7 +2251,6 @@ components:
         - id
         - name
         - url
-        - default
       properties:
         id:
           type: string
@@ -2266,8 +2265,6 @@ components:
         url:
           type: string
           example: "https://someValidURL.com"
-        default:
-          type: boolean
 
     DisplayMethodPaginated:
       type: object
@@ -2449,7 +2446,6 @@ components:
         required:
           - name
           - url
-          - default
         properties:
           name:
             type: string
@@ -2457,9 +2453,6 @@ components:
           url:
             type: string
             example: "https://my-display-method.com"
-          default:
-            type: boolean
-            example: true
 
 
   parameters:

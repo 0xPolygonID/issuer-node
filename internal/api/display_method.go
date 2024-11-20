@@ -32,7 +32,7 @@ func (s *Server) CreateDisplayMethod(ctx context.Context, request CreateDisplayM
 		return CreateDisplayMethod400JSONResponse{N400JSONResponse{Message: "url is required"}}, nil
 	}
 
-	id, err := s.displayMethodService.Save(ctx, *identityDID, request.Body.Name, request.Body.Url, request.Body.Default)
+	id, err := s.displayMethodService.Save(ctx, *identityDID, request.Body.Name, request.Body.Url)
 	if err != nil {
 		log.Error(ctx, "Error saving display method", "err", err)
 		if errors.Is(err, repositories.DuplicatedDefaultDisplayMethodError) {
@@ -62,10 +62,9 @@ func (s *Server) GetDisplayMethod(ctx context.Context, request GetDisplayMethodR
 	}
 
 	return GetDisplayMethod200JSONResponse{
-		Id:      displayMethod.ID,
-		Name:    displayMethod.Name,
-		Url:     displayMethod.URL,
-		Default: displayMethod.IsDefault,
+		Id:   displayMethod.ID,
+		Name: displayMethod.Name,
+		Url:  displayMethod.URL,
 	}, nil
 }
 
@@ -122,7 +121,7 @@ func (s *Server) UpdateDisplayMethod(ctx context.Context, request UpdateDisplayM
 		return UpdateDisplayMethod400JSONResponse{N400JSONResponse{Message: "url cannot be empty"}}, nil
 	}
 
-	_, err = s.displayMethodService.Update(ctx, *identityDID, request.Id, request.Body.Name, request.Body.Url, request.Body.Default)
+	_, err = s.displayMethodService.Update(ctx, *identityDID, request.Id, request.Body.Name, request.Body.Url)
 	if err != nil {
 		log.Error(ctx, "Error updating display method", "err", err)
 		if errors.Is(err, repositories.DisplayMethodNotFoundErr) {
@@ -167,10 +166,9 @@ func (s *Server) DeleteDisplayMethod(ctx context.Context, request DeleteDisplayM
 // getDisplayMethodResponseObject - creates a response object from a display method
 func getDisplayMethodResponseObject(displayMethod *domain.DisplayMethod) DisplayMethodEntity {
 	return DisplayMethodEntity{
-		Id:      displayMethod.ID,
-		Name:    displayMethod.Name,
-		Url:     displayMethod.URL,
-		Default: displayMethod.IsDefault,
+		Id:   displayMethod.ID,
+		Name: displayMethod.Name,
+		Url:  displayMethod.URL,
 	}
 }
 

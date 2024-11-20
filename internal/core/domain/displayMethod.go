@@ -18,17 +18,15 @@ type DisplayMethod struct {
 	Name      string
 	URL       string
 	IssuerDID DisplayMethodCoreDID
-	IsDefault bool
 }
 
 // NewDisplayMethod creates a new display method
-func NewDisplayMethod(id uuid.UUID, issuerDID w3c.DID, name, url string, isDefault bool) DisplayMethod {
+func NewDisplayMethod(id uuid.UUID, issuerDID w3c.DID, name, url string) DisplayMethod {
 	return DisplayMethod{
 		ID:        id,
 		IssuerDID: DisplayMethodCoreDID(issuerDID),
 		Name:      name,
 		URL:       url,
-		IsDefault: isDefault,
 	}
 }
 

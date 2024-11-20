@@ -25,13 +25,13 @@ func NewDisplayMethod(displayMethodRepository ports.DisplayMethodRepository) *Di
 }
 
 // Save stores the display method
-func (dm *DisplayMethod) Save(ctx context.Context, identityDID w3c.DID, name, url string, isDefault bool) (*uuid.UUID, error) {
-	displayMethod := domain.NewDisplayMethod(uuid.New(), identityDID, name, url, isDefault)
+func (dm *DisplayMethod) Save(ctx context.Context, identityDID w3c.DID, name, url string) (*uuid.UUID, error) {
+	displayMethod := domain.NewDisplayMethod(uuid.New(), identityDID, name, url)
 	return dm.displayMethodRepository.Save(ctx, displayMethod)
 }
 
 // Update updates the display method with the given id
-func (dm *DisplayMethod) Update(ctx context.Context, identityDID w3c.DID, id uuid.UUID, name, url *string, isDefault *bool) (*uuid.UUID, error) {
+func (dm *DisplayMethod) Update(ctx context.Context, identityDID w3c.DID, id uuid.UUID, name, url *string) (*uuid.UUID, error) {
 	displayMethodToUpdate, err := dm.GetByID(ctx, identityDID, id)
 	if err != nil {
 		return nil, err
@@ -44,11 +44,6 @@ func (dm *DisplayMethod) Update(ctx context.Context, identityDID w3c.DID, id uui
 	if url != nil {
 		displayMethodToUpdate.URL = *url
 	}
-
-	if isDefault != nil {
-		displayMethodToUpdate.IsDefault = *isDefault
-	}
-
 	return dm.displayMethodRepository.Save(ctx, *displayMethodToUpdate)
 }
 
@@ -64,19 +59,5 @@ func (dm *DisplayMethod) GetAll(ctx context.Context, identityDID w3c.DID, filter
 
 // Delete removes the display method with the given id
 func (dm *DisplayMethod) Delete(ctx context.Context, identityDID w3c.DID, id uuid.UUID) error {
-	displayMethodToDelete, err := dm.GetByID(ctx, identityDID, id)
-	if err != nil {
-		return err
-	}
-
-	if displayMethodToDelete.IsDefault {
-		return DefaultDisplayMethodErr
-	}
-
 	return dm.displayMethodRepository.Delete(ctx, identityDID, id)
-}
-
-// GetDefault returns the default display method for the given identity
-func (dm *DisplayMethod) GetDefault(ctx context.Context, identityDID w3c.DID) (*domain.DisplayMethod, error) {
-	return dm.displayMethodRepository.GetDefault(ctx, identityDID)
 }
