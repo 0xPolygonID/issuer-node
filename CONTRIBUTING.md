@@ -15,17 +15,17 @@ Welcome to Issuer Node! We're thrilled to have you here. Before you get started,
 
 ## How to Contribute
 
-**Reporting Issues**: If you encounter any bugs or have suggestions for improvements, please open an issue on GitHub. If the bug is a security vulnerability, please report it directly [here](https://support.polygon.technology/support/solutions/categories/82000473421/folders/82000694808).
+**Reporting Issues**: If you encounter any bugs or have suggestions for improvements, please open an issue on GitHub. If the bug is a security vulnerability, please report it directly [in our Telegram channel](https://t.me/PrivadoID_Official/2).
 
 **Requesting Features**: If you have ideas for new features or enhancements, please submit a feature request on GitHub.
 
-**Submitting Changes**: Fork the repository, make your changes, and submit a pull request. The `develop` branch is the default branch for development. Pull request to `main` branch only will be accepted for hotfixes or releases. Please follow the guidelines outlined below.
+**Submitting Changes**: Fork the repository, make your changes, and submit a pull request. The `develop` branch is the default branch for development. Pull request to `main` branch only will be accepted for hot-fixes or releases. Please follow the guidelines outlined below.
 
 ## Getting Started
 
 To set up the project locally, follow the [README](./README.md#quick-start-installation) instructions.
 
-For an advanced setup, visit our [extended documentation](https://devs.polygonid.com/docs/issuer/issuer-configuration).
+For an advanced setup, visit our [extended documentation](https://docs.privado.id/docs/issuer/issuer-configuration).
 
 ## Issue Tracker Guidelines
 
@@ -36,7 +36,7 @@ Provide detailed information and steps to reproduce when reporting bugs.
 Follow the issue template if available.
 
 ## Code Contribution Guidelines
-Before submitting a contribution, please consider whether it will be useful to the community and try to minimise breaking changes.  In general, a Pull Request with breaking changes is unlikely to be accepted immediately.
+Before submitting a contribution, please consider whether it will be useful to the community and try to minimize breaking changes.  In general, a Pull Request with breaking changes is unlikely to be accepted immediately.
 Submit concise and focused pull requests with clear descriptions.
 
 Follow the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) specification both for the commits and PR names.
@@ -69,4 +69,4 @@ By contributing to this project, you agree to the terms of licenses [Apache](LIC
 
 ## Contact Information
 
-If you have any questions or need assistance, feel free to contact the project maintainers [here](https://support.polygon.technology/support/solutions/categories/82000473421/folders/82000694808).
+If you have any questions or need assistance, feel free to contact the project maintainers [in our Telegram channel](https://t.me/PrivadoID_Official/2).

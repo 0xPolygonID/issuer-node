@@ -10,8 +10,14 @@ export type RefreshService = {
   type: "Iden3RefreshService2023";
 };
 
+export type DisplayMethod = {
+  id: string;
+  type: "Iden3BasicDisplayMethodv2";
+};
+
 export type Credential = {
   credentialSubject: Record<string, unknown>;
+  displayMethod: DisplayMethod | null;
   expirationDate: Date | null;
   expired: boolean;
   id: string;

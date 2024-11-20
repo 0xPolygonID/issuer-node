@@ -9,6 +9,7 @@ export type {
   Link,
   LinkStatus,
   RefreshService,
+  DisplayMethod,
 } from "src/domain/credential";
 
 export { ProofType } from "src/domain/credential";
@@ -58,6 +59,6 @@ export type {
 
 export type { Schema as ApiSchema } from "src/domain/schema";
 
-export type { Identity, IdentityDetails, SupportedNetwork } from "src/domain/identity";
+export type { Identity, IdentityDetails, Blockchain, Network } from "src/domain/identity";
 
-export { IdentityType, CredentialStatusType, Method } from "src/domain/identity";
+export { IdentityType, Method, CredentialStatusType } from "src/domain/identity";

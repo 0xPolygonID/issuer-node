@@ -266,17 +266,31 @@ func (r *Resolver) GetSupportedNetworks() []SupportedNetworks {
 }
 
 // IsCredentialStatusTypeSupported returns true if the credential status type is supported
-func (r *Resolver) IsCredentialStatusTypeSupported(rhsSettings *RhsSettings, credentialStatusType verifiable.CredentialStatusType) bool {
+func (r *Resolver) IsCredentialStatusTypeSupported(rhsMode string, credentialStatusType verifiable.CredentialStatusType) bool {
 	if credentialStatusType == verifiable.Iden3ReverseSparseMerkleTreeProof &&
-		rhsSettings.Mode != All && rhsSettings.Mode != OffChain {
+		rhsMode != All && rhsMode != OffChain {
 		return false
 	}
 	if credentialStatusType == verifiable.Iden3OnchainSparseMerkleTreeProof2023 &&
-		rhsSettings.Mode != All && rhsSettings.Mode != OnChain {
+		rhsMode != All && rhsMode != OnChain {
 		return false
 	}
 
 	return true
+}
+
+// SupportedCredentialStatusTypes returns a list of supported credential status types for a specific rhs mode
+func (r *Resolver) SupportedCredentialStatusTypes(rhsMode string) []verifiable.CredentialStatusType {
+	accepted := []verifiable.CredentialStatusType{
+		verifiable.Iden3commRevocationStatusV1,
+	}
+	if rhsMode == All || rhsMode == OffChain {
+		accepted = append(accepted, verifiable.Iden3ReverseSparseMerkleTreeProof)
+	}
+	if rhsMode == All || rhsMode == OnChain {
+		accepted = append(accepted, verifiable.Iden3OnchainSparseMerkleTreeProof2023)
+	}
+	return accepted
 }
 
 func getResolverPrefixKey(blockchain, network string) string {
