@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -14,8 +15,43 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
+const paymentOptionTest = `
+{
+    "Chains": [
+      {
+        "ChainId": 137,
+        "Recipient": "0x..",
+        "SigningKeyId": "<key id>",
+        "Iden3PaymentRailsRequestV1": {
+          "Amount": "0.01",
+          "Currency": "POL" 
+        },
+        "Iden3PaymentRailsERC20RequestV1": {
+          "USDT": {
+            "Amount": "3"
+          },
+          "USDC": {
+            "Amount": "3"
+          }
+        }
+      },
+      {
+        "ChainId": 1101,
+        "Recipient": "0x..",
+        "SigningKeyId": "<key id>",
+        "Iden3PaymentRailsRequestV1": {
+          "Amount": "0.5",
+          "Currency": "ETH"
+        }
+      }
+    ]
+  }
+`
+
 func TestPayment_SavePaymentOption(t *testing.T) {
+	var paymentOptionConfig domain.PaymentOptionConfig
 	ctx := context.Background()
+
 	fixture := NewFixture(storage)
 	issuerID, err := w3c.ParseDID("did:iden3:privado:main:2Sh93vMXNar5fP5ifutHerL9bdUkocB464n3TG6BWV")
 	require.NoError(t, err)
@@ -24,20 +60,23 @@ func TestPayment_SavePaymentOption(t *testing.T) {
 
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig))
+
 	repo := NewPayment(*storage)
 	t.Run("Save payment option", func(t *testing.T) {
-		id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", struct{}{}))
+		id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &paymentOptionConfig))
 		assert.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, id)
 	})
 	t.Run("Save payment option linked to non existing issuer", func(t *testing.T) {
-		id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerDIDOther, "name 2", "description 2", struct{}{}))
+		id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerDIDOther, "name 2", "description 2", &paymentOptionConfig))
 		require.Error(t, err)
 		assert.Equal(t, uuid.Nil, id)
 	})
 }
 
 func TestPayment_GetAllPaymentOptions(t *testing.T) {
+	var paymentOptionConfig domain.PaymentOptionConfig
 	ctx := context.Background()
 	fixture := NewFixture(storage)
 	issuerID, err := w3c.ParseDID("did:iden3:privado:main:2SbDGSG2TTN1N1UuFaFq7EoFK3RY5wfcotuD8rDCn2")
@@ -45,6 +84,8 @@ func TestPayment_GetAllPaymentOptions(t *testing.T) {
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	issuerDIDOther, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qYQdd1yqFyrM9ZPqYTE4WHAQH2PX5Rjtj7YDYPppj")
 	require.NoError(t, err)
+
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig))
 
 	repo := NewPayment(*storage)
 	ids := make([]uuid.UUID, 0)
@@ -55,7 +96,7 @@ func TestPayment_GetAllPaymentOptions(t *testing.T) {
 			IssuerDID:   *issuerID,
 			Name:        fmt.Sprintf("name %d", i),
 			Description: fmt.Sprintf("description %d", i),
-			Config:      struct{}{},
+			Config:      &paymentOptionConfig,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		})
@@ -70,6 +111,9 @@ func TestPayment_GetAllPaymentOptions(t *testing.T) {
 		assert.Len(t, opts, 10)
 		for i, opt := range opts {
 			assert.Equal(t, ids[i], opt.ID)
+			assert.Equal(t, fmt.Sprintf("name %d", len(opts)-i-1), opt.Name)
+			assert.Equal(t, fmt.Sprintf("description %d", len(opts)-i-1), opt.Description)
+			assert.Equal(t, paymentOptionConfig, *opt.Config)
 		}
 	})
 	t.Run("Get all payment options linked to non existing issuer", func(t *testing.T) {
@@ -80,6 +124,7 @@ func TestPayment_GetAllPaymentOptions(t *testing.T) {
 }
 
 func TestPayment_GetPaymentOptionByID(t *testing.T) {
+	var paymentOptionConfig domain.PaymentOptionConfig
 	ctx := context.Background()
 	fixture := NewFixture(storage)
 	issuerID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qWxoum8UEJzbUL1Ej9UWjGYHL8oL31BBLJ4ob8bmM")
@@ -87,9 +132,11 @@ func TestPayment_GetPaymentOptionByID(t *testing.T) {
 	issuerDIDOther, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qYQdd1yqFyrM9ZPqYTE4WHAQH2PX5Rjtj7YDYPppj")
 	require.NoError(t, err)
 
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig))
+
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	repo := NewPayment(*storage)
-	id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", struct{}{}))
+	id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &paymentOptionConfig))
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, id)
 
@@ -97,6 +144,9 @@ func TestPayment_GetPaymentOptionByID(t *testing.T) {
 		opt, err := repo.GetPaymentOptionByID(ctx, *issuerID, id)
 		assert.NoError(t, err)
 		assert.Equal(t, id, opt.ID)
+		assert.Equal(t, "name", opt.Name)
+		assert.Equal(t, "description", opt.Description)
+		assert.Equal(t, paymentOptionConfig, *opt.Config)
 	})
 	t.Run("Get payment option linked to non existing issuer", func(t *testing.T) {
 		opt, err := repo.GetPaymentOptionByID(ctx, *issuerDIDOther, id)
@@ -113,7 +163,7 @@ func TestPayment_DeletePaymentOption(t *testing.T) {
 
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	repo := NewPayment(*storage)
-	id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", struct{}{}))
+	id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &domain.PaymentOptionConfig{}))
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, id)
 

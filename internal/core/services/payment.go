@@ -45,7 +45,7 @@ func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Res
 }
 
 // CreatePaymentOption creates a payment option for a specific issuer
-func (p *payment) CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config any) (uuid.UUID, error) {
+func (p *payment) CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config *domain.PaymentOptionConfig) (uuid.UUID, error) {
 	paymentOption := domain.NewPaymentOption(*issuerDID, name, description, config)
 	id, err := p.paymentsStore.SavePaymentOption(ctx, paymentOption)
 	if err != nil {

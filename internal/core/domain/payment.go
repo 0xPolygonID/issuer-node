@@ -13,13 +13,13 @@ type PaymentOption struct {
 	IssuerDID   w3c.DID
 	Name        string
 	Description string
-	Config      any
+	Config      *PaymentOptionConfig
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 // NewPaymentOption creates a new PaymentOption
-func NewPaymentOption(issuerDID w3c.DID, name string, description string, config any) *PaymentOption {
+func NewPaymentOption(issuerDID w3c.DID, name string, description string, config *PaymentOptionConfig) *PaymentOption {
 	return &PaymentOption{
 		ID:          uuid.New(),
 		IssuerDID:   issuerDID,
@@ -28,5 +28,29 @@ func NewPaymentOption(issuerDID w3c.DID, name string, description string, config
 		Config:      config,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
+	}
+}
+
+// PaymentOptionConfig represents the configuration of a payment option
+type PaymentOptionConfig struct {
+	Chains []PaymentOptionConfigChain `json:"Chains"`
+}
+
+// PaymentOptionConfigChain represents the configuration of a payment option chain
+type PaymentOptionConfigChain struct {
+	ChainId                    int    `json:"ChainId"`
+	Recipient                  string `json:"Recipient"`
+	SigningKeyId               string `json:"SigningKeyId"`
+	Iden3PaymentRailsRequestV1 struct {
+		Amount   string `json:"Amount"`
+		Currency string `json:"Currency"`
+	} `json:"Iden3PaymentRailsRequestV1"`
+	Iden3PaymentRailsERC20RequestV1 struct {
+		USDT struct {
+			Amount string `json:"Amount"`
+		} `json:"USDT"`
+		USDC struct {
+			Amount string `json:"Amount"`
+		} `json:"USDC"`
 	}
 }

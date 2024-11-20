@@ -17,6 +17,7 @@ import (
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+	domain "github.com/polygonid/sh-id-platform/internal/core/domain"
 	payments "github.com/polygonid/sh-id-platform/internal/payments"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
@@ -472,20 +473,20 @@ type PaginatedMetadata struct {
 
 // PaymentOption defines model for PaymentOption.
 type PaymentOption struct {
-	Config      map[string]interface{} `json:"config"`
-	CreatedAt   TimeUTC                `json:"createdAt"`
-	Description string                 `json:"description"`
-	Id          uuid.UUID              `json:"id"`
-	IssuerID    string                 `json:"issuerID"`
-	ModifiedAt  TimeUTC                `json:"modifiedAt"`
-	Name        string                 `json:"name"`
+	Config      domain.PaymentOptionConfig `json:"config"`
+	CreatedAt   TimeUTC                    `json:"createdAt"`
+	Description string                     `json:"description"`
+	Id          uuid.UUID                  `json:"id"`
+	IssuerID    string                     `json:"issuerID"`
+	ModifiedAt  TimeUTC                    `json:"modifiedAt"`
+	Name        string                     `json:"name"`
 }
 
 // PaymentOptionRequest defines model for PaymentOptionRequest.
 type PaymentOptionRequest struct {
-	Config      map[string]interface{} `json:"config"`
-	Description string                 `json:"description"`
-	Name        string                 `json:"name"`
+	Config      domain.PaymentOptionConfig `json:"config"`
+	Description string                     `json:"description"`
+	Name        string                     `json:"name"`
 }
 
 // PaymentOptions defines model for PaymentOptions.

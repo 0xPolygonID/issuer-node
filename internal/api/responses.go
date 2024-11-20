@@ -308,7 +308,7 @@ func toPaymentOption(opt *domain.PaymentOption) (PaymentOption, error) {
 		IssuerID:    opt.IssuerDID.String(),
 		Name:        opt.Name,
 		Description: opt.Description,
-		Config:      config,
+		Config:      *opt.Config,
 		CreatedAt:   TimeUTC(opt.CreatedAt),
 		ModifiedAt:  TimeUTC(opt.UpdatedAt),
 	}, nil

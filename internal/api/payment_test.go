@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
 
@@ -75,7 +76,7 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 		BJJ        = "BJJ"
 	)
 
-	var config map[string]interface{}
+	var config domain.PaymentOptionConfig
 	ctx := context.Background()
 
 	server := newTestServer(t, nil)
@@ -178,7 +179,7 @@ func TestServer_GetPaymentOption(t *testing.T) {
 		BJJ        = "BJJ"
 	)
 
-	var config map[string]interface{}
+	var config domain.PaymentOptionConfig
 	ctx := context.Background()
 
 	server := newTestServer(t, nil)
@@ -192,14 +193,15 @@ func TestServer_GetPaymentOption(t *testing.T) {
 	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
 	require.NoError(t, err)
 
-	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "1 POL Payment", "Payment Option explanation", config)
-	require.NoError(t, err)
-
 	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
+
+	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "1 POL Payment", "Payment Option explanation", &config)
+	require.NoError(t, err)
 
 	type expected struct {
 		httpCode int
 		msg      string
+		option   domain.PaymentOption
 	}
 
 	for _, tc := range []struct {
@@ -225,6 +227,13 @@ func TestServer_GetPaymentOption(t *testing.T) {
 			optionID:  optionID,
 			expected: expected{
 				httpCode: http.StatusOK,
+				option: domain.PaymentOption{
+					ID:          optionID,
+					IssuerDID:   *issuerDID,
+					Name:        "1 POL Payment",
+					Description: "Payment Option explanation",
+					Config:      &config,
+				},
 			},
 		},
 		{
@@ -263,6 +272,10 @@ func TestServer_GetPaymentOption(t *testing.T) {
 				var response GetPaymentOption200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.optionID, response.Id)
+				assert.Equal(t, tc.expected.option.Name, response.Name)
+				assert.Equal(t, tc.expected.option.Description, response.Description)
+				assert.Equal(t, tc.expected.option.Config, &response.Config)
+
 			case http.StatusNotFound:
 				var response GetPaymentOption404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -280,7 +293,7 @@ func TestServer_GetPaymentOptions(t *testing.T) {
 		BJJ        = "BJJ"
 	)
 
-	var config map[string]interface{}
+	var config domain.PaymentOptionConfig
 	ctx := context.Background()
 
 	server := newTestServer(t, nil)
@@ -297,7 +310,7 @@ func TestServer_GetPaymentOptions(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
 
 	for i := 0; i < 10; i++ {
-		_, err = server.Services.payments.CreatePaymentOption(ctx, issuerDID, fmt.Sprintf("Payment Option %d", i+1), "Payment Option explanation", config)
+		_, err = server.Services.payments.CreatePaymentOption(ctx, issuerDID, fmt.Sprintf("Payment Option %d", i+1), "Payment Option explanation", &config)
 		require.NoError(t, err)
 	}
 
@@ -374,7 +387,7 @@ func TestServer_DeletePaymentOption(t *testing.T) {
 		BJJ        = "BJJ"
 	)
 
-	var config map[string]interface{}
+	var config domain.PaymentOptionConfig
 	ctx := context.Background()
 
 	server := newTestServer(t, nil)
@@ -388,7 +401,7 @@ func TestServer_DeletePaymentOption(t *testing.T) {
 	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
 	require.NoError(t, err)
 
-	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "1 POL Payment", "Payment Option explanation", config)
+	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "1 POL Payment", "Payment Option explanation", &config)
 	require.NoError(t, err)
 
 	type expected struct {

@@ -49,7 +49,7 @@ func (s *Server) CreatePaymentOption(ctx context.Context, request CreatePaymentO
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	id, err := s.paymentService.CreatePaymentOption(ctx, issuerDID, request.Body.Name, request.Body.Description, request.Body.Config)
+	id, err := s.paymentService.CreatePaymentOption(ctx, issuerDID, request.Body.Name, request.Body.Description, &request.Body.Config)
 	if err != nil {
 		log.Error(ctx, "creating payment option", "err", err, "issuer", issuerDID, "request", request.Body)
 		if errors.Is(err, repositories.ErrIdentityNotFound) {

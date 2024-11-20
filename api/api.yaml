@@ -2213,8 +2213,13 @@ components:
           type: string
         description:
           type: string
+        # TODO: Convert config into a DTO object when format is more clear.
         config:
           type: object
+          x-go-type: domain.PaymentOptionConfig
+          x-go-type-import:
+            name: domain
+            path: "github.com/polygonid/sh-id-platform/internal/core/domain"
         modifiedAt:
           $ref: '#/components/schemas/TimeUTC'
         createdAt:
@@ -2235,8 +2240,13 @@ components:
           type: string
         description:
           type: string
+        # TODO: Convert config into a DTO object when format is more clear.
         config:
           type: object
+          x-go-type: domain.PaymentOptionConfig
+          x-go-type-import:
+            name: domain
+            path: "github.com/polygonid/sh-id-platform/internal/core/domain"
 
     BasicMessage:
       type: object

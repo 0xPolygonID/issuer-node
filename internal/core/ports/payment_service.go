@@ -84,7 +84,7 @@ type PaymentService interface {
 	GetSettings() payments.Settings
 	VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error)
 
-	CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config any) (uuid.UUID, error)
+	CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config *domain.PaymentOptionConfig) (uuid.UUID, error)
 	GetPaymentOptions(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentOption, error)
 	GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error)
 	DeletePaymentOption(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error
