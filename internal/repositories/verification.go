@@ -3,11 +3,11 @@ package repositories
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgconn"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/jackc/pgconn"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db"
