@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"errors"
+	"github.com/jackc/pgconn"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -11,8 +13,14 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-// VerificationQueryNotFoundError is returned when a verification query is not found
-var VerificationQueryNotFoundError = errors.New("verification query not found")
+const foreignKeyViolationErrorCode = "23503"
+
+var (
+	// VerificationQueryNotFoundError is returned when a verification query is not found
+	VerificationQueryNotFoundError = errors.New("verification query not found")
+	// VerificationScopeNotFoundError is returned when a verification scope is not found
+	VerificationScopeNotFoundError = errors.New("verification scope not found")
+)
 
 // VerificationRepository is a repository for verification queries
 type VerificationRepository struct {
@@ -75,7 +83,8 @@ func (r *VerificationRepository) Get(ctx context.Context, issuerID w3c.DID, id u
 	var query domain.VerificationQuery
 	err := r.conn.Pgx.QueryRow(ctx, sql, issuerID.String(), id).Scan(&query.ID, &query.IssuerDID, &query.ChainID, &query.SkipCheckRevocation, &query.CreatedAt)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+
+		if strings.Contains(err.Error(), "no rows in result set") {
 			return nil, VerificationQueryNotFoundError
 		}
 		return nil, err
@@ -144,4 +153,23 @@ func (r *VerificationRepository) GetAll(ctx context.Context, issuerID w3c.DID) (
 		queries = append(queries, query)
 	}
 	return queries, nil
+}
+
+// AddResponse stores a verification response in the database
+func (r *VerificationRepository) AddResponse(ctx context.Context, scopeID uuid.UUID, response domain.VerificationResponse) (uuid.UUID, error) {
+	sql := `INSERT INTO verification_responses (id, verification_scope_id, user_did, response, pass)
+			VALUES($1, $2, $3, $4, $5) ON CONFLICT (id) DO
+			UPDATE SET user_did=$3, response=$4, pass=$5
+			RETURNING id`
+
+	var responseID uuid.UUID
+	err := r.conn.Pgx.QueryRow(ctx, sql, response.ID, scopeID, response.UserDID, response.Response, response.Pass).Scan(&responseID)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolationErrorCode {
+			return uuid.Nil, VerificationScopeNotFoundError
+		}
+		return uuid.Nil, err
+	}
+	return responseID, nil
 }

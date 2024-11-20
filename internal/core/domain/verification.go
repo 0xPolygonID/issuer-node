@@ -28,3 +28,13 @@ type VerificationScope struct {
 	CredentialSubject pgtype.JSONB `json:"credential_subject"`
 	CreatedAt         time.Time
 }
+
+// VerificationResponse holds the verification response data
+type VerificationResponse struct {
+	ID                  uuid.UUID
+	VerificationScopeID uuid.UUID
+	UserDID             string
+	Response            pgtype.JSONB `json:"response"`
+	Pass                bool
+	CreatedAt           time.Time
+}
