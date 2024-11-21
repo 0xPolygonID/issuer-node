@@ -35,7 +35,6 @@ export const envParser = getStrictParser<EnvInput, Env>()(
     .transform(
       ({
         VITE_API_PASSWORD,
-        VITE_API_URL,
         VITE_API_USERNAME,
         VITE_BUILD_TAG,
         VITE_IPFS_GATEWAY_URL,
@@ -46,7 +45,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
       }): Env => ({
         api: {
           password: VITE_API_PASSWORD,
-          url: VITE_API_URL,
+          url: "/",
           username: VITE_API_USERNAME,
         },
         buildTag: VITE_BUILD_TAG,
