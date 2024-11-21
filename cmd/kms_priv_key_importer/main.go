@@ -38,9 +38,10 @@ const (
 	issuerKeyStorePluginIden3MountPath  = "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH"
 	issuerVaultUserPassAuthEnabled      = "ISSUER_VAULT_USERPASS_AUTH_ENABLED"
 	issuerVaultUserPassAuthPasword      = "ISSUER_VAULT_USERPASS_AUTH_PASSWORD"
-	aWSAccessKey                        = "ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"
-	aWSSecretKey                        = "ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"
-	aWSRegion                           = "ISSUER_KMS_ETH_PLUGIN_AWS_REGION"
+	awsAccessKey                        = "ISSUER_KMS_AWS_ACCESS_KEY"
+	awsSecretKey                        = "ISSUER_KMS_AWS_SECRET_KEY"
+	awsRegion                           = "ISSUER_KMS_AWS_REGION"
+	awsURL                              = "ISSUER_KMS_AWS_URL"
 
 	jsonKeyPath      = "key_path"
 	jsonKeyType      = "key_type"
@@ -83,7 +84,7 @@ func main() {
 	issuerKmsPluginLocalStorageFilePath := os.Getenv(issuerKmsPluginLocalStorageFilePath)
 
 	if issuerKMSETHProviderToUse != config.LocalStorage && issuerKMSETHProviderToUse != config.Vault && issuerKMSETHProviderToUse != config.AWS {
-		log.Error(ctx, "issuer kms eth provider is not set or is not localstorage or vault or aws", "plugin: ", issuerKMSETHProviderToUse)
+		log.Error(ctx, "kms eth provider is invalid, supported values are: localstorage, vault, aws")
 		return
 	}
 
@@ -165,9 +166,9 @@ func main() {
 	}
 
 	if issuerKMSETHProviderToUse == config.AWS {
-		awsAccessKey := os.Getenv(aWSAccessKey)
-		awsSecretKey := os.Getenv(aWSSecretKey)
-		awsRegion := os.Getenv(aWSRegion)
+		awsAccessKey := os.Getenv(awsAccessKey)
+		awsSecretKey := os.Getenv(awsSecretKey)
+		awsRegion := os.Getenv(awsRegion)
 
 		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" {
 			log.Error(ctx, "aws access key, aws secret key, or aws region is not set")
@@ -185,9 +186,10 @@ func main() {
 
 		var options []func(*secretsmanager.Options)
 		if strings.ToLower(awsRegion) == "local" {
+			awsURLEndpoint := os.Getenv(awsURL)
 			options = make([]func(*secretsmanager.Options), 1)
 			options[0] = func(o *secretsmanager.Options) {
-				o.BaseEndpoint = aws.String("http://localhost:4566")
+				o.BaseEndpoint = aws.String(awsURLEndpoint)
 			}
 		}
 		secretManager := secretsmanager.NewFromConfig(cfg, options...)

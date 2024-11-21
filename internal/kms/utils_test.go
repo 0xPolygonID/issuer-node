@@ -8,19 +8,19 @@ import (
 )
 
 func Test_getKeyID(t *testing.T) {
-	identity, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qQ68JkRcf3ySMcjPtGKJhGgu7jh4zzhrz6UxpXwPw")
+	identity, err := w3c.ParseDID("did:iden3:privado:main:2SizDYDWBViKXRfp1VgUAMqhz5SDvP7D1MYiPfwJV3")
 	assert.NoError(t, err)
 
 	t.Run("should get did/BJJ:PrivateKey id", func(t *testing.T) {
 		keyType := KeyTypeBabyJubJub
 		id := getKeyID(identity, keyType, "PrivateKey")
-		assert.Equal(t, "did:polygonid:polygon:amoy:2qQ68JkRcf3ySMcjPtGKJhGgu7jh4zzhrz6UxpXwPw/BJJ:PrivateKey", id)
+		assert.Equal(t, "did:iden3:privado:main:2SizDYDWBViKXRfp1VgUAMqhz5SDvP7D1MYiPfwJV3/BJJ:PrivateKey", id)
 	})
 
 	t.Run("should get did/ETH:PrivateKey id", func(t *testing.T) {
 		keyType := KeyTypeEthereum
 		id := getKeyID(identity, keyType, "PrivateKey")
-		assert.Equal(t, "did:polygonid:polygon:amoy:2qQ68JkRcf3ySMcjPtGKJhGgu7jh4zzhrz6UxpXwPw/ETH:PrivateKey", id)
+		assert.Equal(t, "did:iden3:privado:main:2SizDYDWBViKXRfp1VgUAMqhz5SDvP7D1MYiPfwJV3/ETH:PrivateKey", id)
 	})
 
 	t.Run("should get ETH:PrivateKey id", func(t *testing.T) {

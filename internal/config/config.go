@@ -136,9 +136,10 @@ type KeyStore struct {
 	BJJProvider                  string `env:"ISSUER_KMS_BJJ_PROVIDER"`
 	ETHProvider                  string `env:"ISSUER_KMS_ETH_PROVIDER"`
 	ProviderLocalStorageFilePath string `env:"ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH"`
-	AWSAccessKey                 string `env:"ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"`
-	AWSSecretKey                 string `env:"ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"`
-	AWSRegion                    string `env:"ISSUER_KMS_ETH_PLUGIN_AWS_REGION"`
+	AWSAccessKey                 string `env:"ISSUER_KMS_AWS_ACCESS_KEY"`
+	AWSSecretKey                 string `env:"ISSUER_KMS_AWS_SECRET_KEY"`
+	AWSRegion                    string `env:"ISSUER_KMS_AWS_REGION"`
+	AWSURL                       string `env:"ISSUER_KMS_AWS_URL" envDefault:"http://localstack:4566"`
 	VaultUserPassAuthEnabled     bool   `env:"ISSUER_VAULT_USERPASS_AUTH_ENABLED"`
 	VaultUserPassAuthPassword    string `env:"ISSUER_VAULT_USERPASS_AUTH_PASSWORD"`
 	TLSEnabled                   bool   `env:"ISSUER_VAULT_TLS_ENABLED"`
@@ -392,9 +393,10 @@ func KeyStoreConfig(ctx context.Context, cfg *Configuration, vaultCfg providers.
 	kmsConfig := kms.Config{
 		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJProvider),
 		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHProvider),
-		AWSKMSAccessKey:          cfg.KeyStore.AWSAccessKey,
-		AWSKMSSecretKey:          cfg.KeyStore.AWSSecretKey,
-		AWSKMSRegion:             cfg.KeyStore.AWSRegion,
+		AWSAccessKey:             cfg.KeyStore.AWSAccessKey,
+		AWSSecretKey:             cfg.KeyStore.AWSSecretKey,
+		AWSRegion:                cfg.KeyStore.AWSRegion,
+		AWSURL:                   cfg.KeyStore.AWSURL,
 		LocalStoragePath:         cfg.KeyStore.ProviderLocalStorageFilePath,
 		Vault:                    vaultCli,
 		PluginIden3MountPath:     cfg.KeyStore.PluginIden3MountPath,

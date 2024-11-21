@@ -32,8 +32,10 @@ run-all-registry:
 	@make down
 ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
 	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
-else
+else ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), vaultvault)
 	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres vault api pending_publisher notifications ui
+else
+	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
 endif
 
 .PHONY: build-local
@@ -78,10 +80,10 @@ endif
 ifeq ($(ISSUER_KMS_BJJ_PROVIDER), vault)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
 endif
-ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_ETH_PLUGIN_AWS_REGION), awslocal)
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
-ifeq ($(ISSUER_KMS_BJJ_PROVIDER)$(ISSUER_KMS_ETH_PLUGIN_AWS_REGION), awslocal)
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
 
@@ -196,7 +198,7 @@ lint-fix: $(BIN)/golangci-lint
 ## localstorage and vault: make private_key=XXX import-private-key-to-kms
 .PHONY: import-private-key-to-kms
 import-private-key-to-kms:
-ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
+ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws-sm)
 	@echo ">>> importing private key to AWS KMS"
 	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
     		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \

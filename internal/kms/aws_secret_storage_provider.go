@@ -17,10 +17,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-const (
-	localstackSecretManagerEndpoint = "http://localhost:4566"
-)
-
 type secretStorageProviderKeyMaterial struct {
 	KeyType    string `json:"key_type"`
 	KeyPath    string `json:"key_path"`
@@ -33,6 +29,7 @@ type AwsSecretStorageProviderConfig struct {
 	AccessKey string
 	SecretKey string
 	Region    string
+	URL       string
 }
 
 type awsSecretStorageProvider struct {
@@ -54,7 +51,7 @@ func NewAwsSecretStorageProvider(ctx context.Context, conf AwsSecretStorageProvi
 	if strings.ToLower(conf.Region) == "local" {
 		options = make([]func(*secretsmanager.Options), 1)
 		options[0] = func(o *secretsmanager.Options) {
-			o.BaseEndpoint = aws.String(localstackSecretManagerEndpoint)
+			o.BaseEndpoint = aws.String(conf.URL)
 		}
 	}
 

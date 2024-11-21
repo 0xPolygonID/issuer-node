@@ -14,6 +14,7 @@ func Test_SaveKeyMaterial(t *testing.T) {
 		AccessKey: "access_key",
 		SecretKey: "secret_key",
 		Region:    "local",
+		URL:       "http://localhost:4566",
 	})
 	require.NoError(t, err)
 
@@ -75,6 +76,7 @@ func Test_searchByIdentity(t *testing.T) {
 		AccessKey: "access_key",
 		SecretKey: "secret_key",
 		Region:    "local",
+		URL:       "http://localhost:4566",
 	})
 	require.NoError(t, err)
 
@@ -135,6 +137,7 @@ func Test_searchPrivateKey(t *testing.T) {
 		AccessKey: "access_key",
 		SecretKey: "secret_key",
 		Region:    "local",
+		URL:       "http://localhost:4566",
 	})
 	require.NoError(t, err)
 

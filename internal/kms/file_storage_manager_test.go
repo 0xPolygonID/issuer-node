@@ -17,7 +17,7 @@ func TestSaveKeyMaterialToFile_Success(t *testing.T) {
 	//nolint:errcheck
 	defer os.Remove(tmpFile.Name())
 
-	ls := NewLocalStorageFileProvider(tmpFile.Name())
+	ls := NewFileStorageManager(tmpFile.Name())
 	ctx := context.Background()
 	keyMaterial := map[string]string{jsonKeyType: string(KeyTypeEthereum), jsonKeyData: "0xABC123"}
 	id := "key1"
@@ -39,7 +39,7 @@ func TestSaveKeyMaterialToFile_Success(t *testing.T) {
 }
 
 func TestSaveKeyMaterialToFile_FailOnFileWrite(t *testing.T) {
-	ls := NewLocalStorageFileProvider("/path/to/non/existent/file")
+	ls := NewFileStorageManager("/path/to/non/existent/file")
 	ctx := context.Background()
 	keyMaterial := map[string]string{"type": "ethereum", "data": "0xABC123"}
 	id := "key1"
@@ -65,7 +65,7 @@ func TestSearchByIdentityInFile_ReturnsKeyIDsOnMatch(t *testing.T) {
 	err = os.WriteFile("./kms.json", content, 0644)
 	require.NoError(t, err)
 
-	ls := NewLocalStorageFileProvider(tmpFile.Name())
+	ls := NewFileStorageManager(tmpFile.Name())
 	ctx := context.Background()
 	did, err := w3c.ParseDID(identity)
 	require.NoError(t, err)
@@ -83,7 +83,7 @@ func TestSearchByIdentityInFile_ReturnsKeyIDsOnMatch(t *testing.T) {
 
 //nolint:lll
 func TestSearchByIdentityInFile_ReturnsErrorOnFileReadFailure(t *testing.T) {
-	ls := NewLocalStorageFileProvider("/path/to/nonexistent/file")
+	ls := NewFileStorageManager("/path/to/nonexistent/file")
 	ctx := context.Background()
 	did, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qQ68JkRcf3ybQNvgRV9BP6qLgBrXmUezqBi4wsEuV")
 	require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestSearchByIdentityInFile_ReturnsEmptySliceWhenNoMatch(t *testing.T) {
 	err = os.WriteFile("./kms.json", content, 0644)
 	require.NoError(t, err)
 
-	ls := NewLocalStorageFileProvider(tmpFile.Name())
+	ls := NewFileStorageManager(tmpFile.Name())
 	ctx := context.Background()
 
 	did, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qQ68JkRcf3ybQNvgRV9BP6qLgBrXmUezqBi4wsEuV")
@@ -133,7 +133,7 @@ func TestSearchPrivateKeyInFile_ReturnsPrivateKeyOnMatch(t *testing.T) {
 	err = os.WriteFile("./kms.json", content, 0644)
 	require.NoError(t, err)
 
-	ls := NewLocalStorageFileProvider(tmpFile.Name())
+	ls := NewFileStorageManager(tmpFile.Name())
 	ctx := context.Background()
 
 	privateKey, err := ls.searchPrivateKey(ctx, KeyID{ID: "key1"})
@@ -157,7 +157,7 @@ func TestSearchPrivateKeyInFile_ReturnsErrorWhenKeyNotFound(t *testing.T) {
 	err = os.WriteFile("./kms.json", content, 0644)
 	require.NoError(t, err)
 
-	ls := NewLocalStorageFileProvider(tmpFile.Name())
+	ls := NewFileStorageManager(tmpFile.Name())
 	ctx := context.Background()
 
 	_, err = ls.searchPrivateKey(ctx, KeyID{ID: "key2"})

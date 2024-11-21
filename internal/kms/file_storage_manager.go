@@ -24,16 +24,16 @@ type localStorageProviderFileContent struct {
 	PrivateKey string `json:"private_key"`
 }
 
-type localStorageFileProvider struct {
+type fileStorageManager struct {
 	file string
 }
 
-// NewLocalStorageFileProvider - creates new local storage file manager
-func NewLocalStorageFileProvider(file string) StorageManager {
-	return &localStorageFileProvider{file}
+// NewFileStorageManager - creates new local storage file manager
+func NewFileStorageManager(file string) *fileStorageManager {
+	return &fileStorageManager{file}
 }
 
-func (ls *localStorageFileProvider) SaveKeyMaterial(ctx context.Context, keyMaterial map[string]string, id string) error {
+func (ls *fileStorageManager) SaveKeyMaterial(ctx context.Context, keyMaterial map[string]string, id string) error {
 	localStorageFileContent, err := readContentFile(ctx, ls.file)
 	if err != nil {
 		return err
@@ -57,7 +57,7 @@ func (ls *localStorageFileProvider) SaveKeyMaterial(ctx context.Context, keyMate
 	return nil
 }
 
-func (ls *localStorageFileProvider) searchByIdentity(ctx context.Context, identity w3c.DID, keyType KeyType) ([]KeyID, error) {
+func (ls *fileStorageManager) searchByIdentity(ctx context.Context, identity w3c.DID, keyType KeyType) ([]KeyID, error) {
 	keyTypeToRead := convertFromKeyType(keyType)
 	localStorageFileContent, err := readContentFile(ctx, ls.file)
 	if err != nil {
@@ -81,7 +81,7 @@ func (ls *localStorageFileProvider) searchByIdentity(ctx context.Context, identi
 	return keyIDs, nil
 }
 
-func (ls *localStorageFileProvider) searchPrivateKey(ctx context.Context, keyID KeyID) (string, error) {
+func (ls *fileStorageManager) searchPrivateKey(ctx context.Context, keyID KeyID) (string, error) {
 	localStorageFileContent, err := readContentFile(ctx, ls.file)
 	if err != nil {
 		return "", err
