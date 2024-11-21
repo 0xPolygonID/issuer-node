@@ -129,7 +129,7 @@ export function IssueCredentialForm({
   };
 
   const isCountryCode = (x: number) => {
-    const iso31661NumericRegex = /^\d{3}$/;
+    const iso31661NumericRegex = /^\d{1,3}$/;
     return iso31661NumericRegex.test(x.toString());
   };
 
