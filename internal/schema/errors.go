@@ -2,23 +2,23 @@ package schema
 
 import "fmt"
 
-// ParsingClaimError - Error type for parsing claims
-type ParsingClaimError struct {
+// ParseClaimError - Error type for parsing claims
+type ParseClaimError struct {
 	Message string
 }
 
 // Error - Implements the error interface
-func (e *ParsingClaimError) Error() string {
-	return fmt.Sprintf("ParsingClaimError: %s", e.Message)
+func (e *ParseClaimError) Error() string {
+	return fmt.Sprintf("ParseClaimError: %s", e.Message)
 }
 
-// NewParsingClaimError - Creates a new ParsingClaimError
-func NewParsingClaimError(message string) *ParsingClaimError {
-	return &ParsingClaimError{Message: message}
+// NewParsingClaimError - Creates a new ParseClaimError
+func NewParsingClaimError(message string) *ParseClaimError {
+	return &ParseClaimError{Message: message}
 }
 
 // Is - Implements the Is method of the error interface
-func (e *ParsingClaimError) Is(target error) bool {
-	_, ok := target.(*ParsingClaimError)
+func (e *ParseClaimError) Is(target error) bool {
+	_, ok := target.(*ParseClaimError)
 	return ok
 }
