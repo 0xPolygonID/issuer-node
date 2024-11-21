@@ -285,10 +285,12 @@ type CreateLinkRequest struct {
 
 // CreatePaymentRequest defines model for CreatePaymentRequest.
 type CreatePaymentRequest struct {
-	CredentialContext string `json:"credentialContext"`
-	CredentialType    string `json:"credentialType"`
-	SigningKey        string `json:"signingKey"`
-	UserDID           string `json:"userDID"`
+	Credentials []struct {
+		Context string `json:"context"`
+		Type    string `json:"type"`
+	} `json:"credentials"`
+	Option  uuid.UUID `json:"option"`
+	UserDID string    `json:"userDID"`
 }
 
 // Credential defines model for Credential.

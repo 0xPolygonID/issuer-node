@@ -38,19 +38,27 @@ type PaymentOptionConfig struct {
 
 // PaymentOptionConfigChain represents the configuration of a payment option chain
 type PaymentOptionConfigChain struct {
-	ChainId                    int    `json:"ChainId"`
-	Recipient                  string `json:"Recipient"`
-	SigningKeyId               string `json:"SigningKeyId"`
-	Iden3PaymentRailsRequestV1 struct {
-		Amount   string `json:"Amount"`
-		Currency string `json:"Currency"`
-	} `json:"Iden3PaymentRailsRequestV1"`
-	Iden3PaymentRailsERC20RequestV1 struct {
-		USDT struct {
-			Amount string `json:"Amount"`
-		} `json:"USDT"`
-		USDC struct {
-			Amount string `json:"Amount"`
-		} `json:"USDC"`
-	}
+	ChainId                         int                                                      `json:"ChainId"`
+	Recipient                       string                                                   `json:"Recipient"`
+	SigningKeyId                    string                                                   `json:"SigningKeyId"`
+	Iden3PaymentRailsRequestV1      *PaymentOptionConfigChainIden3PaymentRailsRequestV1      `json:"Iden3PaymentRailsRequestV1"`
+	Iden3PaymentRailsERC20RequestV1 *PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 `json:"Iden3PaymentRailsERC20RequestV1"`
+}
+
+// PaymentOptionConfigChainIden3PaymentRailsRequestV1 represents the configuration of a payment option rails
+// TODO: Add validation for the amount and currency when creating it
+type PaymentOptionConfigChainIden3PaymentRailsRequestV1 struct {
+	Amount   string `json:"Amount"`
+	Currency string `json:"Currency"`
+}
+
+// PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 represents the configuration of a rails ERC20 payment option
+// TODO: Add validation for the amounts when creating it
+type PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 struct {
+	USDT struct {
+		Amount string `json:"Amount"`
+	} `json:"USDT"`
+	USDC struct {
+		Amount string `json:"Amount"`
+	} `json:"USDC"`
 }

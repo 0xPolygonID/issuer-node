@@ -9,7 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/protocol"
 
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
@@ -115,8 +117,22 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 		log.Error(ctx, "parsing user did", "err", err, "did", request.Identifier)
 		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
+	if len(request.Body.Credentials) == 0 {
+		log.Error(ctx, "create payment request: empty credentials")
+		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "empty credentials"}}, nil
+	}
 
-	paymentRequest, err := s.paymentService.CreatePaymentRequest(ctx, issuerDID, userDID, request.Body.SigningKey, request.Body.CredentialContext, request.Body.CredentialType)
+	req := &ports.CreatePaymentRequestReq{
+		IssuerDID: *issuerDID,
+		UserDID:   *userDID,
+		OptionID:  request.Body.Option,
+	}
+	req.Creds = make([]protocol.PaymentRequestInfoCredentials, 0, len(request.Body.Credentials))
+	for i, cred := range request.Body.Credentials {
+		req.Creds[i] = protocol.PaymentRequestInfoCredentials{Type: cred.Type, Context: cred.Context}
+	}
+
+	paymentRequest, err := s.paymentService.CreatePaymentRequest(ctx, req)
 	if err != nil {
 		log.Error(ctx, "creating payment request", "err", err)
 		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "can't create payment-request"}}, nil

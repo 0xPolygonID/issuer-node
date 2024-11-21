@@ -77,9 +77,17 @@ func NewAgentProposalRequest(basicMessage *comm.BasicMessage) (*protocol.Credent
 	}, nil
 }
 
+// CreatePaymentRequestReq is the request for PaymentService.CreatePaymentRequest
+type CreatePaymentRequestReq struct {
+	IssuerDID w3c.DID
+	UserDID   w3c.DID
+	OptionID  uuid.UUID
+	Creds     []protocol.PaymentRequestInfoCredentials
+}
+
 // PaymentService is the interface implemented by the payment service
 type PaymentService interface {
-	CreatePaymentRequest(ctx context.Context, issuerDID *w3c.DID, senderDID *w3c.DID, signingKey string, credContext string, credType string) (*comm.BasicMessage, error)
+	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq) (*protocol.PaymentRequestMessage, error)
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
 	GetSettings() payments.Settings
 	VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error)

@@ -2277,20 +2277,31 @@ components:
     CreatePaymentRequest:
       type: object
       required:
-        - signingKey
-        - credentialType
-        - credentialContext
+        - option
+        - credentials
         - userDID
       properties:
-        signingKey:
+        option:
           type: string
-        credentialType:
-          type: string
-        credentialContext:
-          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+        credentials:
+          type: array
+          items:
+            type: object
+            required: [type, context]
+            properties:
+              type:
+                type: string
+                example: "AML"
+              context:
+                type: string
+                example: "<context url>"
         userDID:
           type: string
-
+          example: "<user did>"
 
     TimeUTC:
       type: string
