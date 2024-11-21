@@ -9,6 +9,7 @@ import {
   Col,
   DatePicker,
   Divider,
+  Flex,
   Form,
   Input,
   Row,
@@ -19,6 +20,7 @@ import {
 import { Store } from "antd/es/form/interface";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
+import { generatePath } from "react-router-dom";
 import { z } from "zod";
 
 import { getApiSchemas } from "src/adapters/api/schemas";
@@ -30,20 +32,19 @@ import {
 } from "src/adapters/parsers/view";
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
-import IconCheckMark from "src/assets/icons/check.svg?react";
-import IconCopy from "src/assets/icons/copy-01.svg?react";
+import IconLink from "src/assets/icons/link-external-01.svg?react";
 import { InputErrors, ObjectAttributeForm } from "src/components/credentials/ObjectAttributeForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
 import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute, ProofType } from "src/domain";
+import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   ISSUE_CREDENTIAL_DIRECT,
   ISSUE_CREDENTIAL_LINK,
-  SCHEMA_HASH,
   SCHEMA_TYPE,
   URL_FIELD_ERROR_MESSAGE,
   VALUE_REQUIRED,
@@ -74,6 +75,7 @@ function addErrorToPath(inputErrors: InputErrors, path: string[], error: string)
 }
 
 export function IssueCredentialForm({
+  did,
   initialValues,
   isLoading,
   onBack,
@@ -81,6 +83,7 @@ export function IssueCredentialForm({
   onSubmit,
   type,
 }: {
+  did?: string;
   initialValues: IssueCredentialFormData;
   isLoading: boolean;
   onBack: () => void;
@@ -369,54 +372,60 @@ export function IssueCredentialForm({
           isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
       }}
     >
-      <Form.Item
-        label="Select schema type"
-        name="schemaID"
-        rules={[{ message: VALUE_REQUIRED, required: true }]}
-      >
-        <Select
-          className="full-width"
-          loading={isAsyncTaskStarting(apiSchemas)}
-          onChange={(id: string) => {
-            const schema =
-              isAsyncTaskDataAvailable(apiSchemas) &&
-              apiSchemas.data.find((schema) => schema.id === id);
-            if (schema) {
-              onSelectApiSchema(schema);
-              setApiSchema(schema);
-              fetchJsonSchema(schema);
-            }
-          }}
-          placeholder={SCHEMA_TYPE}
+      {did && (
+        <>
+          <Flex justify="space-between">
+            <Typography.Text>User identifier:</Typography.Text>
+            <Typography.Text>{did}</Typography.Text>
+          </Flex>
+          <Divider />
+        </>
+      )}
+
+      <Flex align="flex-end" gap={8} justify="space-between">
+        <Form.Item
+          label="Select schema type"
+          name="schemaID"
+          rules={[{ message: VALUE_REQUIRED, required: true }]}
+          style={{ marginBottom: 0, width: "100%" }}
         >
-          {isAsyncTaskDataAvailable(apiSchemas) &&
-            apiSchemas.data.map(({ id, type }) => (
-              <Select.Option key={id} value={id}>
-                {type}
-              </Select.Option>
-            ))}
-        </Select>
-      </Form.Item>
+          <Select
+            className="full-width"
+            loading={isAsyncTaskStarting(apiSchemas)}
+            onChange={(id: string) => {
+              const schema =
+                isAsyncTaskDataAvailable(apiSchemas) &&
+                apiSchemas.data.find((schema) => schema.id === id);
+              if (schema) {
+                onSelectApiSchema(schema);
+                setApiSchema(schema);
+                fetchJsonSchema(schema);
+              }
+            }}
+            placeholder={SCHEMA_TYPE}
+          >
+            {isAsyncTaskDataAvailable(apiSchemas) &&
+              apiSchemas.data.map(({ id, type }) => (
+                <Select.Option key={id} value={id}>
+                  {type}
+                </Select.Option>
+              ))}
+          </Select>
+        </Form.Item>
+
+        <Button
+          disabled={!apiSchema}
+          href={generatePath(ROUTES.schemaDetails.path, {
+            schemaID: apiSchema?.id || "",
+          })}
+          icon={<IconLink />}
+          target="_blank"
+        />
+      </Flex>
 
       {apiSchema && (
         <>
-          <Form.Item>
-            <Space direction="vertical">
-              <Row justify="space-between">
-                <Typography.Text type="secondary">{SCHEMA_HASH}</Typography.Text>
-
-                <Typography.Text
-                  copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
-                >
-                  {apiSchema.hash}
-                </Typography.Text>
-              </Row>
-            </Space>
-          </Form.Item>
-
           <Divider />
-
-          <Typography.Paragraph>{apiSchema.type}</Typography.Paragraph>
 
           {(() => {
             switch (jsonSchema.status) {
@@ -436,22 +445,19 @@ export function IssueCredentialForm({
 
                 return credentialSubjectAttributeWithoutId?.schema.attributes ? (
                   <>
-                    {jsonSchema.data.schema.description && (
-                      <Typography.Paragraph type="secondary">
-                        {jsonSchema.data.schema.description}
-                      </Typography.Paragraph>
-                    )}
-
-                    <Space direction="vertical" size="large">
+                    <Space direction="vertical" size="large" style={{ rowGap: 0 }}>
                       <ObjectAttributeForm
                         attributes={credentialSubjectAttributeWithoutId.schema.attributes}
                         inputErrors={inputErrors}
                       />
 
+                      <Divider />
+
                       <Form.Item
                         label="Proof type"
                         name="proofTypes"
                         rules={[{ message: VALUE_REQUIRED, required: true }]}
+                        style={{ marginBottom: 0 }}
                       >
                         <Checkbox.Group>
                           <Space direction="vertical">
@@ -479,7 +485,8 @@ export function IssueCredentialForm({
                         </Checkbox.Group>
                       </Form.Item>
                     </Space>
-                    <Form.Item label="Refresh Service">
+                    <Divider />
+                    <Form.Item style={{ marginBottom: 0 }}>
                       <Space direction="vertical">
                         <Form.Item
                           name={["refreshService", "enabled"]}
@@ -492,10 +499,11 @@ export function IssueCredentialForm({
                               setRefreshServiceChecked(!refreshServiceChecked);
                             }}
                           >
-                            Enable
+                            Refresh Service
                           </Checkbox>
                         </Form.Item>
                         <Form.Item
+                          hidden={!refreshServiceChecked}
                           name={["refreshService", "url"]}
                           rules={[
                             {
@@ -507,14 +515,11 @@ export function IssueCredentialForm({
                             },
                           ]}
                         >
-                          <Input
-                            disabled={!refreshServiceChecked}
-                            placeholder="Valid URL of the credential refresh service"
-                          />
+                          <Input placeholder="Valid URL of the credential refresh service" />
                         </Form.Item>
                       </Space>
                     </Form.Item>
-                    <Form.Item label="Display Method">
+                    <Form.Item>
                       <Space direction="vertical">
                         <Form.Item
                           name={["displayMethod", "enabled"]}
@@ -527,10 +532,11 @@ export function IssueCredentialForm({
                               setDisplayMethodChecked(!displayMethodChecked);
                             }}
                           >
-                            Enable
+                            Display Method
                           </Checkbox>
                         </Form.Item>
                         <Form.Item
+                          hidden={!displayMethodChecked}
                           name={["displayMethod", "url"]}
                           rules={[
                             {
@@ -542,10 +548,7 @@ export function IssueCredentialForm({
                             },
                           ]}
                         >
-                          <Input
-                            disabled={!displayMethodChecked}
-                            placeholder="Valid URL of the display method"
-                          />
+                          <Input placeholder="Valid URL of the display method" />
                         </Form.Item>
                       </Space>
                     </Form.Item>

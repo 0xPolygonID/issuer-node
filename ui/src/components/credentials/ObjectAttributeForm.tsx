@@ -115,6 +115,7 @@ export function ObjectAttributeForm({
 
     return isRootAttribute ? (
       <Card
+        className="wrapped-form-item"
         key={key}
         title={shouldShowTitle ? attribute.schema.title || attribute.name : undefined}
         type="inner"

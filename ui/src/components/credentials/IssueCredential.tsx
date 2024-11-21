@@ -231,6 +231,7 @@ export function IssueCredential() {
               <Card className="issue-credential-card" title="Credential details">
                 <Space direction="vertical">
                   <IssueCredentialForm
+                    did={did}
                     initialValues={credentialFormInput.issueCredential}
                     isLoading={isLoading}
                     onBack={() => {
