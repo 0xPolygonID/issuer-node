@@ -12,8 +12,8 @@ func (e *ParseClaimError) Error() string {
 	return fmt.Sprintf("ParseClaimError: %s", e.Message)
 }
 
-// NewParsingClaimError - Creates a new ParseClaimError
-func NewParsingClaimError(message string) *ParseClaimError {
+// NewParseClaimError - Creates a new ParseClaimError
+func NewParseClaimError(message string) *ParseClaimError {
 	return &ParseClaimError{Message: message}
 }
 
