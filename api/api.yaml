@@ -2142,8 +2142,8 @@ components:
                 value:
                   type: string
 
-    #Agent
-    AgentResponse:
+
+    BasicMessage:
       type: object
       required:
         - body
@@ -2168,6 +2168,9 @@ components:
           type: string
         to:
           type: string
+
+    AgentResponse:
+      $ref: '#/components/schemas/BasicMessage'
 
     PaymentSettings:
       type: object
@@ -2247,32 +2250,6 @@ components:
           x-go-type-import:
             name: domain
             path: "github.com/polygonid/sh-id-platform/internal/core/domain"
-
-    BasicMessage:
-      type: object
-      required:
-        - body
-        - id
-        - typ
-        - type
-        - threadID
-        - from
-        - to
-      properties:
-        id:
-          type: string
-        typ:
-          type: string
-        type:
-          type: string
-        threadID:
-          type: string
-        body:
-          type: null
-        from:
-          type: string
-        to:
-          type: string
 
     CreatePaymentRequest:
       type: object

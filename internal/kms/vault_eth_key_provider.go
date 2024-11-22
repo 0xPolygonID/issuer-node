@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/pkg/errors"
+
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 type vaultETHKeyProvider struct {
@@ -202,4 +204,41 @@ func NewVaultEthProvider(valutCli *api.Client, keyType KeyType) KeyProvider {
 func DecodeETHPubKey(key []byte) (*ecdsa.PublicKey, error) {
 	pubKey, err := crypto.DecompressPubkey(key)
 	return pubKey, errors.WithStack(err)
+}
+
+// EthPubKey returns the ethereum public key from the key manager service.
+// the public key is either uncompressed or compressed, so we need to handle both cases.
+func EthPubKey(ctx context.Context, keyMS KMSType, keyID KeyID) (*ecdsa.PublicKey, error) {
+	const (
+		uncompressedKeyLength = 65
+		awsKeyLength          = 88
+		defaultKeyLength      = 33
+	)
+
+	if keyID.Type != KeyTypeEthereum {
+		return nil, errors.New("key type is not ethereum")
+	}
+
+	keyBytes, err := keyMS.PublicKey(keyID)
+	if err != nil {
+		log.Error(ctx, "can't get bytes from public key", "err", err)
+		return nil, err
+	}
+
+	// public key is uncompressed. It's 65 bytes long.
+	if len(keyBytes) == uncompressedKeyLength {
+		return crypto.UnmarshalPubkey(keyBytes)
+	}
+
+	// public key is AWS format. It's 88 bytes long.
+	if len(keyBytes) == awsKeyLength {
+		return DecodeAWSETHPubKey(ctx, keyBytes)
+	}
+
+	// public key is compressed. It's 33 bytes long.
+	if len(keyBytes) == defaultKeyLength {
+		return DecodeETHPubKey(keyBytes)
+	}
+
+	return nil, errors.New("unsupported public key format")
 }

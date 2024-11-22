@@ -15,24 +15,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
-// Credential struct: TODO: This shouldn't be here with this name
-type Credential struct {
-	Type    string `json:"type"`
-	Context string `json:"context"`
-	// typss   protocol.CredentialIssuanceRequestMessage
-}
-
-// AgentProposalRequest struct
-type AgentProposalRequest struct {
-	Body        json.RawMessage
-	ThreadID    string
-	IssuerDID   *w3c.DID
-	UserDID     *w3c.DID
-	Typ         comm.MediaType
-	Type        comm.ProtocolMessage
-	Credentials []Credential
-}
-
 // NewAgentProposalRequest validates the inputs and returns a new AgentRequest
 func NewAgentProposalRequest(basicMessage *comm.BasicMessage) (*protocol.CredentialsProposalRequestMessage, error) {
 	if basicMessage.To == "" {
@@ -87,7 +69,7 @@ type CreatePaymentRequestReq struct {
 
 // PaymentService is the interface implemented by the payment service
 type PaymentService interface {
-	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq) (*protocol.PaymentRequestMessage, error)
+	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq, baseURL string) (*protocol.PaymentRequestMessage, error)
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
 	GetSettings() payments.Settings
 	VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error)

@@ -132,7 +132,7 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 		req.Creds[i] = protocol.PaymentRequestInfoCredentials{Type: cred.Type, Context: cred.Context}
 	}
 
-	paymentRequest, err := s.paymentService.CreatePaymentRequest(ctx, req)
+	paymentRequest, err := s.paymentService.CreatePaymentRequest(ctx, req, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "creating payment request", "err", err)
 		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "can't create payment-request"}}, nil

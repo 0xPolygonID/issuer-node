@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/google/uuid"
@@ -24,28 +25,37 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/eth"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
 const (
-	iden3PaymentRailsRequestV1Type      = "Iden3PaymentRailsRequestV1"
-	iden3PaymentRailsERC20RequestV1Type = "Iden3PaymentRailsERC20RequestV1"
+	iden3PaymentRailsRequestV1Type      paymentRequestType = "Iden3PaymentRailsRequestV1"
+	iden3PaymentRailsERC20RequestV1Type paymentRequestType = "Iden3PaymentRailsERC20RequestV1"
 )
+
+type paymentRequestType string
+
+func (t paymentRequestType) Valid() bool {
+	return t == iden3PaymentRailsRequestV1Type || t == iden3PaymentRailsERC20RequestV1Type
+}
 
 type payment struct {
 	networkResolver network.Resolver
 	settings        payments.Settings
 	paymentsStore   ports.PaymentRepository
+	kms             kms.KMSType
 }
 
 // NewPaymentService creates a new payment service
-func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, settings payments.Settings) ports.PaymentService {
+func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, settings payments.Settings, kms kms.KMSType) ports.PaymentService {
 	return &payment{
 		networkResolver: resolver,
 		settings:        settings,
 		paymentsStore:   payOptsRepo,
+		kms:             kms,
 	}
 }
 
@@ -91,7 +101,7 @@ func (p *payment) DeletePaymentOption(ctx context.Context, issuerDID *w3c.DID, i
 }
 
 // CreatePaymentRequest creates a payment request
-func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePaymentRequestReq) (*protocol.PaymentRequestMessage, error) {
+func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePaymentRequestReq, baseURL string) (*protocol.PaymentRequestMessage, error) {
 	const defaultExpirationDate = 1 * time.Hour
 
 	option, err := p.paymentsStore.GetPaymentOptionByID(ctx, req.IssuerDID, req.OptionID)
@@ -114,8 +124,16 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 			return nil, err
 		}
 		expirationTime := time.Now().Add(defaultExpirationDate)
+
+		pubKey, err := kms.EthPubKey(ctx, p.kms, kms.KeyID{ID: chainConfig.SigningKeyId, Type: kms.KeyTypeEthereum})
+		if err != nil {
+			log.Error(ctx, "failed to get ethereum public key", "err", err, "keyId", chainConfig.SigningKeyId)
+			return nil, fmt.Errorf("cannot get ethAddr creaing payment request: %w", err)
+		}
+		address := crypto.PubkeyToAddress(*pubKey)
+
 		if chainConfig.Iden3PaymentRailsRequestV1 != nil {
-			data, err := p.newIden3PaymentRailsRequestV1(ctx, chainConfig, setting, expirationTime, nonce)
+			data, err := p.newIden3PaymentRailsRequestV1(ctx, chainConfig, setting, expirationTime, nonce, address)
 			if err != nil {
 				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
 				return nil, err
@@ -128,7 +146,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 			})
 		}
 		if chainConfig.Iden3PaymentRailsERC20RequestV1 != nil {
-			data, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, nonce)
+			data, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, nonce, address)
 			if err != nil {
 				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
 				return nil, err
@@ -139,9 +157,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 				Credentials: req.Creds,
 				Data:        *data,
 			})
-
 		}
-
 	}
 
 	msgID := uuid.New()
@@ -153,7 +169,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		ID:       msgID.String(),
 		ThreadID: msgID.String(),
 		Body: protocol.PaymentRequestMessageBody{
-			Agent:    "localhost", // TODO!!!,
+			Agent:    fmt.Sprintf(ports.AgentUrl, baseURL),
 			Payments: paymentsList,
 		},
 	}
@@ -161,15 +177,54 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 	return message, nil
 }
 
-// TODO: something
-func (p *payment) newIden3PaymentRailsERC20RequestV1(ctx context.Context, chainConfig domain.PaymentOptionConfigChain, setting payments.ChainSettings, expirationTime time.Time, nonce *big.Int) (*protocol.PaymentRequestInfoData, error) {
-	data := protocol.NewPaymentRequestInfoDataRailsERC20(protocol.Iden3PaymentRailsERC20RequestV1{})
-	return &data, nil
+// newIden3PaymentRailsERC20RequestV1 creates a new Iden3PaymentRailsERC20RequestV1
+// TODO: Check implementation correctness!!!!
+func (p *payment) newIden3PaymentRailsERC20RequestV1(ctx context.Context, chainConfig domain.PaymentOptionConfigChain, setting payments.ChainSettings, expirationTime time.Time, nonce *big.Int, address common.Address) (*protocol.PaymentRequestInfoData, error) {
+	metadata := "0x"
+	signature, err := p.paymentRequestSignature(ctx, iden3PaymentRailsERC20RequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, expirationTime, nonce, metadata, address, chainConfig.SigningKeyId)
+	if err != nil {
+		log.Error(ctx, "failed to create payment request signature", "err", err)
+		return nil, err
+	}
+
+	paymentInfo := protocol.NewPaymentRequestInfoDataRailsERC20(protocol.Iden3PaymentRailsERC20RequestV1{
+		Nonce: nonce.String(),
+		Type:  protocol.PaymentRequestType(iden3PaymentRailsERC20RequestV1Type),
+		Context: protocol.NewPaymentContextStringCol([]string{
+			"https://schema.iden3.io/core/jsonld/payment.jsonld#Iden3PaymentRailsERC20RequestV1",
+			"https://w3id.org/security/suites/eip712sig-2021/v1",
+		}),
+		Amount:         chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount,
+		ExpirationDate: fmt.Sprint(expirationTime.Unix()),
+		Metadata:       metadata,
+		Currency:       "USDT",
+		Recipient:      address.String(),
+		Proof: protocol.NewPaymentProofEip712Signature([]protocol.EthereumEip712Signature2021{
+			{
+				Type:               "EthereumEip712Signature2021",
+				ProofPurpose:       "assertionMethod",
+				ProofValue:         hex.EncodeToString(signature),
+				VerificationMethod: fmt.Sprintf("did:pkh:eip155:%d:%s", chainConfig.ChainId, address),
+				Created:            time.Now().Format(time.RFC3339),
+				Eip712: protocol.Eip712Data{
+					Types:       "https://schema.iden3.io/core/json/Iden3PaymentRailsERC20RequestV1.json",
+					PrimaryType: string(protocol.Iden3PaymentRailsERC20RequestV1Type),
+					Domain: protocol.Eip712Domain{
+						Name:              "MCPayment",
+						Version:           "1.0.0",
+						ChainID:           strconv.Itoa(chainConfig.ChainId),
+						VerifyingContract: setting.MCPayment,
+					},
+				},
+			},
+		}),
+	})
+	return &paymentInfo, nil
 }
 
-func (p *payment) newIden3PaymentRailsRequestV1(ctx context.Context, chainConfig domain.PaymentOptionConfigChain, setting payments.ChainSettings, expirationTime time.Time, nonce *big.Int) (*protocol.PaymentRequestInfoData, error) {
+func (p *payment) newIden3PaymentRailsRequestV1(ctx context.Context, chainConfig domain.PaymentOptionConfigChain, setting payments.ChainSettings, expirationTime time.Time, nonce *big.Int, address common.Address) (*protocol.PaymentRequestInfoData, error) {
 	metadata := "0x"
-	signature, address, err := p.paymentRequestSignature(chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsRequestV1.Amount, expirationTime, nonce, metadata, chainConfig.SigningKeyId)
+	signature, err := p.paymentRequestSignature(ctx, iden3PaymentRailsRequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsRequestV1.Amount, expirationTime, nonce, metadata, address, chainConfig.SigningKeyId)
 	if err != nil {
 		log.Error(ctx, "failed to create payment request signature", "err", err)
 		return nil, err
@@ -177,7 +232,7 @@ func (p *payment) newIden3PaymentRailsRequestV1(ctx context.Context, chainConfig
 
 	paymentInfo := protocol.NewPaymentRequestInfoDataRails(protocol.Iden3PaymentRailsRequestV1{
 		Nonce: nonce.String(),
-		Type:  iden3PaymentRailsRequestV1Type,
+		Type:  protocol.PaymentRequestType(iden3PaymentRailsRequestV1Type),
 		Context: protocol.NewPaymentContextStringCol([]string{
 			"https://schema.iden3.io/core/jsonld/payment.jsonld#Iden3PaymentRailsERC20RequestV1",
 			"https://w3id.org/security/suites/eip712sig-2021/v1",
@@ -210,51 +265,37 @@ func (p *payment) newIden3PaymentRailsRequestV1(ctx context.Context, chainConfig
 	return &paymentInfo, nil
 }
 
-func (p *payment) paymentRequestSignature(chainID int, verifContract string, amount string, expTime time.Time, nonce *big.Int, metadata string, signingKeyId string) ([]byte, common.Address, error) {
-	// TODO: Sign message with SigningKeyId. Get the "recipient"? address from private key
-	/*
-		signingKey := "0x" + option.Config.Chains[0].SigningKeyId
-		privateKeyBytes, err := hex.DecodeString(signingKey)
-		if err != nil {
-			return nil, common.Address{}, err
-		}
-		privateKey, err := crypto.ToECDSA(privateKeyBytes)
-		if err != nil {
-			return nil, common.Address{}, err
-		}
-		publicKey := privateKey.Public()
-		publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-		if !ok {
-			return nil, common.Address{}, errors.New("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-		}
+func (p *payment) paymentRequestSignature(ctx context.Context, paymentType paymentRequestType, chainID int, verifContract string, amount string, expTime time.Time, nonce *big.Int, metadata string, address common.Address, signingKeyId string) ([]byte, error) {
+	if !paymentType.Valid() {
+		return nil, fmt.Errorf("unsupported payment type: %s", paymentType)
+	}
 
-		address := crypto.PubkeyToAddress(*publicKeyECDSA)
-	*/
-	address := common.Address{} // Get from private key
-	typedData, err := typedDataForHashing(iden3PaymentRailsRequestV1Type, chainID, verifContract, address, amount, expTime, nonce, metadata)
+	keyID := kms.KeyID{
+		Type: kms.KeyTypeEthereum,
+		ID:   signingKeyId,
+	}
+
+	typedData, err := typedDataForHashing(paymentType, chainID, verifContract, address, amount, expTime, nonce, metadata)
 	if err != nil {
-		return nil, common.Address{}, err
+		return nil, err
 	}
 
 	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, typedData.Message)
 	if err != nil {
-		return nil, common.Address{}, err
+		return nil, err
 	}
 
-	// TODO: Sign the hash with the private key
-	/*
-		signature, err := crypto.Sign(typedDataHash[:], privateKey)
-		if err != nil {
-			return nil, common.Address{}, err
-		}
-	*/
-	_ = typedDataHash
-	signature := []byte{} // Sign with private key
-	return signature, address, nil
+	signature, err := p.kms.Sign(ctx, keyID, typedDataHash[:])
+	if err != nil {
+		log.Error(ctx, "failed to sign typed data hash", "err", err, "keyId", signingKeyId)
+		return nil, err
+	}
+
+	return signature, nil
 }
 
-func typedDataForHashing(paymentType string, chainID int, verifyContract string, address common.Address, amount string, expTime time.Time, nonce *big.Int, metadata string) (*apitypes.TypedData, error) {
-	if paymentType != iden3PaymentRailsRequestV1Type && paymentType != iden3PaymentRailsERC20RequestV1Type {
+func typedDataForHashing(paymentType paymentRequestType, chainID int, verifyContract string, address common.Address, amount string, expTime time.Time, nonce *big.Int, metadata string) (*apitypes.TypedData, error) {
+	if !paymentType.Valid() {
 		return nil, fmt.Errorf("unsupported payment type: %s", paymentType)
 	}
 
@@ -266,7 +307,7 @@ func typedDataForHashing(paymentType string, chainID int, verifyContract string,
 				{Name: "chainId", Type: "uint256"},
 				{Name: "verifyingContract", Type: "address"},
 			},
-			paymentType: []apitypes.Type{
+			string(paymentType): []apitypes.Type{
 				{
 					Name: "recipient",
 					Type: "address",
@@ -305,7 +346,7 @@ func typedDataForHashing(paymentType string, chainID int, verifyContract string,
 		},
 	}
 	if paymentType == iden3PaymentRailsERC20RequestV1Type {
-		data.Types[paymentType] = append(data.Types[paymentType], apitypes.Type{
+		data.Types[string(paymentType)] = append(data.Types[string(paymentType)], apitypes.Type{
 			Name: "tokenAddress",
 			Type: "address",
 		})
