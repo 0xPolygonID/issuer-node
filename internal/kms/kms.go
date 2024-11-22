@@ -46,7 +46,7 @@ const (
 	// ETHLocalStorageKeyProvider is a key provider for Ethereum keys in local storage
 	ETHLocalStorageKeyProvider ConfigProvider = "localstorage"
 	// ETHAwsKmsKeyProvider is a key provider for Ethereum keys in AWS KMS
-	ETHAwsKmsKeyProvider ConfigProvider = "aws"
+	ETHAwsKmsKeyProvider ConfigProvider = "aws-kms"
 	// BJJAWSSecretManagerStorage - AWS Secret Manager storage for BabyJubJub keys
 	BJJAWSSecretManagerStorage ConfigProvider = "aws-sm"
 	// ETHAWSSecretManagerStorage - AWS Secret Manager storage for Ethereum keys
@@ -330,7 +330,7 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 
 	if config.ETHKeyProvider == ETHAWSSecretManagerStorage {
 		if config.AWSAccessKey == "" || config.AWSSecretKey == "" || config.AWSRegion == "" {
-			return nil, errors.New("AWS KMS access key, secret key and region have to be provided")
+			return nil, errors.New("AWS secret manager access key, secret key and region have to be provided")
 		}
 		provider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
 			AccessKey: config.AWSAccessKey,
@@ -343,6 +343,22 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		}
 		ethKeyProvider = NewLocalEthKeyProvider(KeyTypeEthereum, provider)
 		log.Info(ctx, "Ethereum key provider created", "provider:", ETHAWSSecretManagerStorage)
+	}
+
+	if config.ETHKeyProvider == ETHAwsKmsKeyProvider {
+		if config.AWSAccessKey == "" || config.AWSSecretKey == "" || config.AWSRegion == "" {
+			return nil, errors.New("AWS KMS access key, secret key and region have to be provided")
+		}
+		ethKeyProvider, err = NewAwsKMSEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath, AwEthKeyProviderConfig{
+			AccessKey: config.AWSAccessKey,
+			SecretKey: config.AWSSecretKey,
+			Region:    config.AWSRegion,
+			URL:       config.AWSURL,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cannot create Ethereum aws kms key provider: %+v", err)
+		}
+		log.Info(ctx, "Ethereum key provider created", "provider:", ETHAwsKmsKeyProvider)
 	}
 
 	keyStore := NewKMS()

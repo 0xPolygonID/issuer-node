@@ -32,10 +32,11 @@ type AwEthKeyProviderConfig struct {
 	AccessKey string
 	SecretKey string
 	Region    string
+	URL       string
 }
 
-// NewAwsEthKeyProvider - creates new key provider for Ethereum keys stored in AWS KMS
-func NewAwsEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransferKeyPath string, awsKmsEthKeyProviderConfig AwEthKeyProviderConfig) (KeyProvider, error) {
+// NewAwsKMSEthKeyProvider - creates new key provider for Ethereum keys stored in AWS KMS
+func NewAwsKMSEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransferKeyPath string, awsKmsEthKeyProviderConfig AwEthKeyProviderConfig) (KeyProvider, error) {
 	keyTypeRE := regexp.QuoteMeta(string(keyType))
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" + keyTypeRE + ":([a-f0-9]{64})$")
 	cfg, err := config.LoadDefaultConfig(
@@ -47,7 +48,16 @@ func NewAwsEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransfe
 	if err != nil {
 		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
-	svc := kms.NewFromConfig(cfg)
+
+	var options []func(*kms.Options)
+	if strings.ToLower(awsKmsEthKeyProviderConfig.Region) == "local" {
+		options = make([]func(*kms.Options), 1)
+		options[0] = func(o *kms.Options) {
+			o.BaseEndpoint = aws.String(awsKmsEthKeyProviderConfig.URL)
+		}
+	}
+
+	svc := kms.NewFromConfig(cfg, options...)
 	return &awsEthKeyProvider{
 		keyType:                  keyType,
 		reIdenKeyPathHex:         reIdenKeyPathHex,

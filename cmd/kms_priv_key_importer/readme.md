@@ -1,14 +1,14 @@
 ### Requirements
 You have to have installed the following tools:
 - [Go](https://golang.org/doc/install)
-- [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) -- if you want to import your private key to AWS KMS
+- [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) -- if you want to import your private key to AWS KMS or Secrets Manager
 - [openssl](https://www.openssl.org/) -- if you want to import your private key to AWS KMS
 
 this tools needs the following environment variables to be set up:
 ```
-# Could be either [localstorage | vault] (BJJ) and [localstorage | vault] | aws (ETH)
+# Could be either [localstorage | vault | aws-sm] (BJJ) and [localstorage | vault | aws-sm |aws-kms] | aws (ETH)
 ISSUER_PUBLISH_KEY_PATH=pbkey
-ISSUER_KMS_ETH_PROVIDER=aws
+ISSUER_KMS_ETH_PROVIDER=aws-sm or aws-kms
 
 # if the plugin is localstorage, you can specify the file path (default path is current directory)
 # Important!!!: this path must be the same as the one used by the issuer node (defined in .env-issuer file)
@@ -49,11 +49,18 @@ and then run:
 
 
 ### How import your private key to AWS KMS
+First you need to create a new key in AWS KMS, so export the variables defined in the requirements section:
+```shell
+export ISSUER_KMS_ETH_PROVIDER=aws-kms
+export ISSUER_KMS_AWS_ACCESS_KEY=<aws-access-key>
+export ISSUER_KMS_AWS_SECRET_KEY=<aws-secret-key>
+```
 
-First you need to create a new key in AWS KMS, so export the variables defined in the requirements section and run the following command:
+
+and run the following command:
 
 ```shell
-$ go run . --privateKey <privateETHKey>
+$ go run .
 ```
 To get the key id you have to take a look at the output (or logs) of the previous command, it will be something like:
 
@@ -77,7 +84,23 @@ where:
 
 if you get `Key material successfully imported!!!` message, then your private key was successfully imported to AWS KMS.
 
-### Running Importer with Docker (AWS)
+
+### How import your private key to AWS Secrets Manager
+Export the variables defined in the requirements section:
+```shell
+export ISSUER_KMS_ETH_PROVIDER=aws-kms
+export ISSUER_KMS_AWS_ACCESS_KEY=<aws-access-key>
+export ISSUER_KMS_AWS_SECRET_KEY=<aws-secret-key>
+```
+and run the following command:
+
+```shell
+$ go run . --privateKey <privateETHKey>
+```
+that's it, your private key was successfully imported to AWS Secrets Manager.
+
+
+### Running Importer with Docker (AWS KMS)
 In the root project folder run:
 
 ```shell
@@ -95,7 +118,7 @@ docker run -it -v ./.env-issuer:/.env-issuer privadoid-kms-importer sh
 inside the container `privadoid-kms-importer` execute:
 
 ```
-./kms_priv_key_importer --privateKey <ETH-PRIV-KEY>
+./kms_priv_key_importer
 ```
 
 you will see something like this:
@@ -108,6 +131,28 @@ you will see something like this:
 then import the material key
 
 ```shell
-sh ./aws_kms_material_key_importer.sh d3bdf6f80e510b2efed2d1dd2652f3ad5d433b8eeff0cb622d426d259576b551 9bb5b78b-c288-44a7-b1d4-0543e0a6 privadoid
+sh ./aws_kms_material_key_importer.sh <private-key> <keyId> privadoid
 ```
 if you get `Key material successfully imported!!!` message, then your private key was successfully imported to AWS KMS.
+
+
+### Running Importer with Docker (AWS Secrets Manager)
+In the root project folder run:
+
+```shell
+docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=XXXX \
+  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=YYYY \
+  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=ZZZZ -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+```
+
+after the docker image is created run the following command (make sure you have the .env-issuer with your env vars):
+
+```shell
+docker run -it -v ./.env-issuer:/.env-issuer privadoid-kms-importer sh
+```
+
+inside the container `privadoid-kms-importer` execute:
+
+```shell
+./kms_priv_key_importer --privateKey <ETH-PRIV-KEY>
+```
