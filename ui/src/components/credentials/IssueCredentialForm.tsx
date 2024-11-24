@@ -372,10 +372,10 @@ export function IssueCredentialForm({
           isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
       }}
     >
-      {did && (
+      {did && apiSchema && (
         <>
-          <Flex justify="space-between">
-            <Typography.Text>User identifier:</Typography.Text>
+          <Flex justify="space-between" vertical>
+            <Typography.Text>Recipient Identifier</Typography.Text>
             <Typography.Text>{did}</Typography.Text>
           </Flex>
           <Divider />
@@ -499,7 +499,20 @@ export function IssueCredentialForm({
                               setRefreshServiceChecked(!refreshServiceChecked);
                             }}
                           >
-                            Refresh Service
+                            Refresh Service{" ("}
+                            <Typography.Link
+                              href="https://docs.privado.id/docs/category/refresh-service"
+                              style={{
+                                alignItems: "center",
+                                display: "inline-flex",
+                                flexWrap: "nowrap",
+                                gap: 4,
+                              }}
+                              target="_blank"
+                            >
+                              see documentation <IconLink style={{ width: 14 }} />
+                            </Typography.Link>
+                            {") "}
                           </Checkbox>
                         </Form.Item>
                         <Form.Item

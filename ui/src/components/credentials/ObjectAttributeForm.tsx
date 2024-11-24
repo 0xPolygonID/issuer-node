@@ -128,7 +128,7 @@ export function ObjectAttributeForm({
   });
 
   return isRootAttribute ? (
-    <Space direction="vertical" size="large">
+    <Space direction="vertical" size="large" style={{ rowGap: 16 }}>
       {form}
     </Space>
   ) : (
