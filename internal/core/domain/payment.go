@@ -46,14 +46,12 @@ type PaymentOptionConfigChain struct {
 }
 
 // PaymentOptionConfigChainIden3PaymentRailsRequestV1 represents the configuration of a payment option rails
-// TODO: Add validation for the amount and currency when creating it
 type PaymentOptionConfigChainIden3PaymentRailsRequestV1 struct {
 	Amount   string `json:"Amount"`
 	Currency string `json:"Currency"`
 }
 
 // PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 represents the configuration of a rails ERC20 payment option
-// TODO: Add validation for the amounts when creating it
 type PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 struct {
 	USDT struct {
 		Amount string `json:"Amount"`
