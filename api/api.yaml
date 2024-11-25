@@ -1320,8 +1320,6 @@ paths:
           $ref: '#/components/responses/400'
         '401':
           $ref: '#/components/responses/401'
-        '422':
-          $ref: '#/components/responses/422'
         '500':
           $ref: '#/components/responses/500'
 

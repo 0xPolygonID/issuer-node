@@ -4563,15 +4563,6 @@ func (response CreatePaymentRequest401JSONResponse) VisitCreatePaymentRequestRes
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreatePaymentRequest422JSONResponse struct{ N422JSONResponse }
-
-func (response CreatePaymentRequest422JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(422)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type CreatePaymentRequest500JSONResponse struct{ N500JSONResponse }
 
 func (response CreatePaymentRequest500JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
