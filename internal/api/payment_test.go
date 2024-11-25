@@ -483,3 +483,138 @@ func TestServer_DeletePaymentOption(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_CreatePaymentRequest(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+	ctx := context.Background()
+	server := newTestServer(t, nil)
+	handler := getHandler(ctx, server)
+
+	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	issuerDID, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
+	require.NoError(t, err)
+
+	var config domain.PaymentOptionConfig
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
+
+	paymentOptionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "Cinema ticket single", "Payment Option explanation", &config)
+	require.NoError(t, err)
+
+	_ = otherDID
+
+	type expected struct {
+		httpCode int
+		msg      string
+		count    int
+	}
+
+	for _, tc := range []struct {
+		name      string
+		issuerDID w3c.DID
+		auth      func() (string, string)
+		body      CreatePaymentRequestJSONRequestBody
+		expected  expected
+	}{
+		{
+			name:      "no auth header",
+			auth:      authWrong,
+			issuerDID: *issuerDID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:      "Empty body",
+			auth:      authOk,
+			issuerDID: *issuerDID,
+			body:      CreatePaymentRequestJSONRequestBody{},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				msg:      "invalid userDID",
+			},
+		},
+		{
+			name:      "Not existing payment option",
+			auth:      authOk,
+			issuerDID: *issuerDID,
+			body: CreatePaymentRequestJSONRequestBody{
+				UserDID: otherDID.String(),
+				Option:  uuid.New(),
+				Credentials: []struct {
+					Context string `json:"context"`
+					Type    string `json:"type"`
+				}{
+					{
+						Context: "context",
+						Type:    "type",
+					},
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				msg:      "can't create payment-request: payment option not found",
+			},
+		},
+
+		{
+			name:      "Happy Path",
+			auth:      authOk,
+			issuerDID: *issuerDID,
+			body: CreatePaymentRequestJSONRequestBody{
+				UserDID: otherDID.String(),
+				Option:  paymentOptionID,
+				Credentials: []struct {
+					Context string `json:"context"`
+					Type    string `json:"type"`
+				}{
+					{
+						Context: "context",
+						Type:    "type",
+					},
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    10,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			payload, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+			url := fmt.Sprintf("/v2/identities/%s/payment-request", tc.issuerDID.String())
+			req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(payload))
+			assert.NoError(t, err)
+			req.SetBasicAuth(tc.auth())
+
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response CreatePaymentRequest201JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			case http.StatusBadRequest:
+				var response CreatePaymentRequest400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.msg, response.Message)
+			case http.StatusInternalServerError:
+				var response CreatePaymentRequest500JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.msg, response.Message)
+			}
+
+		})
+	}
+
+}

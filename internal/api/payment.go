@@ -114,8 +114,8 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 
 	userDID, err := w3c.ParseDID(request.Body.UserDID)
 	if err != nil {
-		log.Error(ctx, "parsing user did", "err", err, "did", request.Identifier)
-		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+		log.Error(ctx, "parsing user did", "err", err, "did", request.Body.UserDID)
+		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "invalid userDID"}}, nil
 	}
 	if len(request.Body.Credentials) == 0 {
 		log.Error(ctx, "create payment request: empty credentials")
@@ -127,7 +127,7 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 		UserDID:   *userDID,
 		OptionID:  request.Body.Option,
 	}
-	req.Creds = make([]protocol.PaymentRequestInfoCredentials, 0, len(request.Body.Credentials))
+	req.Creds = make([]protocol.PaymentRequestInfoCredentials, len(request.Body.Credentials))
 	for i, cred := range request.Body.Credentials {
 		req.Creds[i] = protocol.PaymentRequestInfoCredentials{Type: cred.Type, Context: cred.Context}
 	}
@@ -135,7 +135,7 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 	paymentRequest, err := s.paymentService.CreatePaymentRequest(ctx, req, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "creating payment request", "err", err)
-		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "can't create payment-request"}}, nil
+		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("can't create payment-request: %s", err)}}, nil
 	}
 
 	basicMessage := BasicMessage{
