@@ -18,6 +18,7 @@ ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH=./localstoragekeys
 ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=XXX
 ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY=YYY
 ISSUER_KMS_ETH_PLUGIN_AWS_REGION=eu-west-1
+ISSUER_KMS_AWS_URL=<optional-aws-url>
 
 # if the plugin is vault, you can specify the vault address and token
 ISSUER_KEY_STORE_ADDRESS=http://localhost:8200
@@ -54,9 +55,9 @@ First you need to create a new key in AWS KMS, so export the variables defined i
 export ISSUER_KMS_ETH_PROVIDER=aws-kms
 export ISSUER_KMS_AWS_ACCESS_KEY=<aws-access-key>
 export ISSUER_KMS_AWS_SECRET_KEY=<aws-secret-key>
+export ISSUER_KMS_AWS_REGION=<aws-region>
+export ISSUER_KMS_AWS_URL=<aws_endpoint_url> # optional
 ```
-
-
 and run the following command:
 
 ```shell
@@ -73,7 +74,7 @@ then you can import your private key using the following command:
 
 ```shell
 $ chmod +x aws_kms_material_key_imporer.sh
-$ ./kms_priv_key_importer <privateETHKey> <key-id> <aws-profile>
+$ ./kms_priv_key_importer <privateETHKey> <key-id> <aws-profile> [<aws_endpoint_url>]
 ```
 
 where:
@@ -81,6 +82,7 @@ where:
 * `key-id` is the key id of the key created in AWS KMS (in this example `157a8b2a-e5e9-4414-b9c5-301ce828f6c5`)
 * `aws-profile` is the profile name in your `~/.aws/credentials` file
 * `aws-region` is the region where the key was created
+* `aws-endpoint-url` is the endpoint url of the AWS KMS service (optional)
 
 if you get `Key material successfully imported!!!` message, then your private key was successfully imported to AWS KMS.
 
@@ -91,6 +93,8 @@ Export the variables defined in the requirements section:
 export ISSUER_KMS_ETH_PROVIDER=aws-kms
 export ISSUER_KMS_AWS_ACCESS_KEY=<aws-access-key>
 export ISSUER_KMS_AWS_SECRET_KEY=<aws-secret-key>
+export ISSUER_KMS_AWS_REGION=<aws-region>
+export ISSUER_KMS_AWS_URL=<aws_endpoint_url> # optional
 ```
 and run the following command:
 
@@ -104,12 +108,14 @@ that's it, your private key was successfully imported to AWS Secrets Manager.
 In the root project folder run:
 
 ```shell
-docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=XXXX \
-  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=YYYY \
-  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=ZZZZ -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=<aws-access-key> \
+  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=<aws-secret-key> \
+  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=<aws-region> --build-arg=<aws_endpoint_url> -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
 ```
 
-after the docker image is created run the following command (make sure you have the .env-issuer with your env vars):
+Note: if you don't have an endpoint url, you can remove the `--build-arg=<aws_endpoint_url>` argument from the command above.
+
+After the docker image is created run the following command (make sure you have the .env-issuer with your env vars):
 
 ```shell
 docker run -it -v ./.env-issuer:/.env-issuer privadoid-kms-importer sh
@@ -131,7 +137,7 @@ you will see something like this:
 then import the material key
 
 ```shell
-sh ./aws_kms_material_key_importer.sh <private-key> <keyId> privadoid
+sh ./aws_kms_material_key_importer.sh <private-key> <keyId> privadoid [<aws_endpoint_url>]
 ```
 if you get `Key material successfully imported!!!` message, then your private key was successfully imported to AWS KMS.
 
@@ -140,9 +146,9 @@ if you get `Key material successfully imported!!!` message, then your private ke
 In the root project folder run:
 
 ```shell
-docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=XXXX \
-  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=YYYY \
-  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=ZZZZ -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=<aws-access-key> \
+  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=<aws-secret-key> \
+  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=<aws-region> --build-arg=<aws_endpoint_url> -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
 ```
 
 after the docker image is created run the following command (make sure you have the .env-issuer with your env vars):

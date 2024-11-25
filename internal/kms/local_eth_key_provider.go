@@ -13,7 +13,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-type fileEthKeyProvider struct {
+type localEthKeyProvider struct {
 	keyType          KeyType
 	reIdenKeyPathHex *regexp.Regexp // RE of key path bounded to identity
 	storageManager   StorageManager
@@ -24,7 +24,7 @@ type fileEthKeyProvider struct {
 func NewLocalEthKeyProvider(keyType KeyType, storageManager StorageManager) KeyProvider {
 	keyTypeRE := regexp.QuoteMeta(string(keyType))
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" + keyTypeRE + ":([a-f0-9]{64})$")
-	return &fileEthKeyProvider{
+	return &localEthKeyProvider{
 		keyType:          keyType,
 		storageManager:   storageManager,
 		reIdenKeyPathHex: reIdenKeyPathHex,
@@ -32,7 +32,7 @@ func NewLocalEthKeyProvider(keyType KeyType, storageManager StorageManager) KeyP
 	}
 }
 
-func (ls *fileEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
+func (ls *localEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	keyID := KeyID{Type: ls.keyType}
 	ethPrivKey, err := crypto.GenerateKey()
 	if err != nil {
@@ -57,7 +57,7 @@ func (ls *fileEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	return keyID, nil
 }
 
-func (ls *fileEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
+func (ls *localEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 	ctx := context.Background()
 	if keyID.Type != ls.keyType {
 		return nil, ErrIncorrectKeyType
@@ -85,7 +85,7 @@ func (ls *fileEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 	return val, err
 }
 
-func (ls *fileEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error) {
+func (ls *localEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error) {
 	privKeyData, err := ls.privateKey(ctx, keyID)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func (ls *fileEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte
 	return sig, err
 }
 
-func (ls *fileEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
+func (ls *localEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
 	if keyID.Type != ls.keyType {
 		return keyID, ErrIncorrectKeyType
 	}
@@ -121,12 +121,12 @@ func (ls *fileEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, i
 }
 
 // ListByIdentity lists keys by identity
-func (ls *fileEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
+func (ls *localEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
 	return ls.storageManager.searchByIdentity(ctx, identity, ls.keyType)
 }
 
 // nolint
-func (ls *fileEthKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]byte, error) {
+func (ls *localEthKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]byte, error) {
 	if keyID.Type != ls.keyType {
 		return nil, ErrIncorrectKeyType
 	}

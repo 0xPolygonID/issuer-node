@@ -21,7 +21,6 @@ openssl pkcs8 -topk8 -outform DER -nocrypt -inform DER -in <(echo "${ASN1_PRIV_K
 printf "private key successfully written to: %s\n" "${OUT_FILE}"
 
 if [[ -n "${aws_endpoint}" ]]; then
-  echo "hereeeee1"
   export KEY=`aws kms get-parameters-for-import --profile ${aws_profile} --endpoint-url ${aws_endpoint}\
   --key-id ${key_id} \
   --wrapping-algorithm RSAES_OAEP_SHA_256 \
@@ -52,7 +51,6 @@ openssl pkeyutl \
 -pubin -encrypt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
 
 if [[ -z "${aws_endpoint}" ]]; then
-  echo "hereeeee"
   aws kms import-key-material --profile ${aws_profile} \
   --key-id ${key_id} \
   --encrypted-key-material fileb://EncryptedKeyMaterial.bin \

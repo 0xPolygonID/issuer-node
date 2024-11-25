@@ -159,23 +159,36 @@ func TestLoadKmsProviders(t *testing.T) {
 	assert.Equal(t, "localstorage", cfg.KeyStore.BJJProvider)
 	assert.Equal(t, "localstorage", cfg.KeyStore.ETHProvider)
 
-	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-sm"
 	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = ""
 	loadEnvironmentVariables(t, envVars)
 	_, err = Load()
 	assert.Error(t, err)
 
-	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-sm"
 	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = "123"
 	envVars["ISSUER_KMS_AWS_SECRET_KEY"] = ""
 	loadEnvironmentVariables(t, envVars)
 	_, err = Load()
 	assert.Error(t, err)
 
-	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-sm"
 	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = "123"
 	envVars["ISSUER_KMS_AWS_SECRET_KEY"] = "456"
 	envVars["ISSUER_KMS_AWS_REGION"] = ""
+	loadEnvironmentVariables(t, envVars)
+	_, err = Load()
+	assert.Error(t, err)
+
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-kms"
+	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = ""
+	loadEnvironmentVariables(t, envVars)
+	_, err = Load()
+	assert.Error(t, err)
+
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-kms"
+	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = "123"
+	envVars["ISSUER_KMS_AWS_SECRET_KEY"] = ""
 	loadEnvironmentVariables(t, envVars)
 	_, err = Load()
 	assert.Error(t, err)

@@ -274,7 +274,7 @@ func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion s
 		}
 	}
 
-	svc := awskms.NewFromConfig(cfg)
+	svc := awskms.NewFromConfig(cfg, options...)
 	input := &awskms.CreateKeyInput{
 		KeySpec:     types.KeySpecEccSecgP256k1,
 		KeyUsage:    types.KeyUsageTypeSignVerify,

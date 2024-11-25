@@ -349,7 +349,7 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		if config.AWSAccessKey == "" || config.AWSSecretKey == "" || config.AWSRegion == "" {
 			return nil, errors.New("AWS KMS access key, secret key and region have to be provided")
 		}
-		ethKeyProvider, err = NewAwsKMSEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath, AwEthKeyProviderConfig{
+		ethKeyProvider, err = NewAwsKMSEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath, AwKmsEthKeyProviderConfig{
 			AccessKey: config.AWSAccessKey,
 			SecretKey: config.AWSSecretKey,
 			Region:    config.AWSRegion,

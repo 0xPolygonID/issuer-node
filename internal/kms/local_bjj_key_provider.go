@@ -14,7 +14,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-type fileBJJKeyProvider struct {
+type localBJJKeyProvider struct {
 	keyType          KeyType
 	reIdenKeyPathHex *regexp.Regexp // RE of key path bound to identity
 	reAnonKeyPathHex *regexp.Regexp // RE of key path not bound to identity
@@ -27,7 +27,7 @@ func NewLocalBJJKeyProvider(keyType KeyType, storageManager StorageManager) KeyP
 	keyTypeRE := regexp.QuoteMeta(string(keyType))
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" + keyTypeRE + ":([a-f0-9]{64})$")
 	reAnonKeyPathHex := regexp.MustCompile("^(?i)" + keyTypeRE + ":([a-f0-9]{64})$")
-	return &fileBJJKeyProvider{
+	return &localBJJKeyProvider{
 		keyType:          keyType,
 		storageManager:   storageManager,
 		reIdenKeyPathHex: reIdenKeyPathHex,
@@ -37,7 +37,7 @@ func NewLocalBJJKeyProvider(keyType KeyType, storageManager StorageManager) KeyP
 }
 
 // New generates random a KeyID.
-func (ls *fileBJJKeyProvider) New(identity *w3c.DID) (KeyID, error) {
+func (ls *localBJJKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	bjjPrivateKey := babyjub.NewRandPrivKey()
 	keyID := KeyID{
 		Type: ls.keyType,
@@ -59,7 +59,7 @@ func (ls *fileBJJKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 }
 
 // PublicKey returns bytes representation for public key for specified key ID
-func (ls *fileBJJKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
+func (ls *localBJJKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 	if keyID.Type != ls.keyType {
 		return nil, ErrIncorrectKeyType
 	}
@@ -77,7 +77,7 @@ func (ls *fileBJJKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 }
 
 // Sign signs digest with private key
-func (ls *fileBJJKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error) {
+func (ls *localBJJKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error) {
 	if len(data) > defaultLength {
 		return nil, errors.New("data to sign is too large")
 	}
@@ -102,12 +102,12 @@ func (ls *fileBJJKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte
 }
 
 // ListByIdentity lists keys by identity
-func (ls *fileBJJKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
+func (ls *localBJJKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
 	return ls.storageManager.searchByIdentity(ctx, identity, ls.keyType)
 }
 
 // LinkToIdentity links key to identity
-func (ls *fileBJJKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
+func (ls *localBJJKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
 	if keyID.Type != ls.keyType {
 		return keyID, ErrIncorrectKeyType
 	}
@@ -125,7 +125,7 @@ func (ls *fileBJJKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, i
 	return keyID, nil
 }
 
-func (ls *fileBJJKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]byte, error) {
+func (ls *localBJJKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]byte, error) {
 	if keyID.Type != ls.keyType {
 		return nil, ErrIncorrectKeyType
 	}
