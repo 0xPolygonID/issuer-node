@@ -54,7 +54,6 @@ type Resolver struct {
 	supportedContracts map[string]*abi.State
 	stateResolvers     map[string]pubsignals.StateResolver
 	supportedNetworks  []SupportedNetworks
-	// paymentSettings    map[resolverPrefix]PaymentSettings
 }
 
 // SupportedNetworks holds the chain and networks supoprted
