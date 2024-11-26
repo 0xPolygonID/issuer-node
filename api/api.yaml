@@ -1426,9 +1426,6 @@ paths:
                 url:
                   type: string
                   example: "https://new-display-method.com"
-                default:
-                  type: boolean
-                  example: true
       responses:
         '200':
           description: Display Method updated

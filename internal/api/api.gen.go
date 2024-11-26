@@ -753,9 +753,8 @@ type GetAllDisplayMethodParamsSort string
 
 // UpdateDisplayMethodJSONBody defines parameters for UpdateDisplayMethod.
 type UpdateDisplayMethodJSONBody struct {
-	Default *bool   `json:"default,omitempty"`
-	Name    *string `json:"name,omitempty"`
-	Url     *string `json:"url,omitempty"`
+	Name *string `json:"name,omitempty"`
+	Url  *string `json:"url,omitempty"`
 }
 
 // GetSchemasParams defines parameters for GetSchemas.

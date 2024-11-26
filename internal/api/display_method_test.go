@@ -202,23 +202,11 @@ func TestServer_UpdateDisplayMethod(t *testing.T) {
 			},
 		},
 		{
-			name:            "update default",
-			auth:            authOk,
-			displayMethodID: displayMethodToUpdateID,
-			body: UpdateDisplayMethodJSONRequestBody{
-				Default: common.ToPointer(false),
-			},
-			expected: expected{
-				response: UpdateDisplayMethod200JSONResponse{},
-				httpCode: http.StatusOK,
-			},
-		},
-		{
 			name:            "update invalid id",
 			auth:            authOk,
 			displayMethodID: common.ToPointer(uuid.New()),
 			body: UpdateDisplayMethodJSONRequestBody{
-				Default: common.ToPointer(false),
+				Name: common.ToPointer("test"),
 			},
 			expected: expected{
 				response: UpdateDisplayMethod404JSONResponse{

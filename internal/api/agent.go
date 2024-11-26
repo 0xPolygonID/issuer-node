@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -31,6 +30,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
+
 	return Agent200JSONResponse{
 		Body:     agent.Body,
 		From:     agent.From,
