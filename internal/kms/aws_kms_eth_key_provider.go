@@ -82,7 +82,7 @@ func (awsKeyProv *awsKmsEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 		log.Error(ctx, "failed to create key: %v", err)
 		return KeyID{}, fmt.Errorf("failed to create key: %v", err)
 	}
-	log.Info(ctx, "keyArn: %v", keyArn.KeyMetadata.Arn)
+	log.Info(ctx, "keyArn:", keyArn.KeyMetadata.Arn)
 	inputPublicKey := &kms.GetPublicKeyInput{
 		KeyId: aws.String(*keyArn.KeyMetadata.Arn),
 	}
