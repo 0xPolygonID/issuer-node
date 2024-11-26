@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
