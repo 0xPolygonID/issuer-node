@@ -11,11 +11,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
 const paymentOptionConfigurationTesting = `
@@ -24,7 +26,7 @@ const paymentOptionConfigurationTesting = `
     {
       "ChainId": 137,
       "Recipient": "0x..",
-      "SigningKeyId": "<key id>",
+      "SigningKeyId": "testSigninKey1",
       "Iden3PaymentRailsRequestV1": {
         "Amount": "0.01",
         "Currency": "POL"
@@ -41,7 +43,7 @@ const paymentOptionConfigurationTesting = `
     {
       "ChainId": 1101,
       "Recipient": "0x..",
-      "SigningKeyId": "<key id>",
+      "SigningKeyId": "testSigninKey2",
       "Iden3PaymentRailsRequestV1": {
         "Amount": "0.5",
         "Currency": "ETH"
@@ -500,16 +502,53 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 	issuerDID, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
+	receiverDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
 	require.NoError(t, err)
 
-	var config domain.PaymentOptionConfig
-	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
+	_ = receiverDID
 
+	// Creating an ethereum key
+	signingKeyID, err := keyStore.CreateKey(kms.KeyTypeEthereum, issuerDID)
+	require.NoError(t, err)
+
+	// Creating a payment config using previously created key
+	config := domain.PaymentOptionConfig{
+		Chains: []domain.PaymentOptionConfigChain{
+			{
+				ChainId:      1101,
+				Recipient:    "0x..",
+				SigningKeyId: signingKeyID.ID,
+				Iden3PaymentRailsRequestV1: &domain.PaymentOptionConfigChainIden3PaymentRailsRequestV1{
+					Amount:   0.5,
+					Currency: "ETH",
+				},
+				Iden3PaymentRailsERC20RequestV1: nil,
+			},
+			{
+				ChainId:      137,
+				Recipient:    "0x..",
+				SigningKeyId: signingKeyID.ID,
+				Iden3PaymentRailsRequestV1: &domain.PaymentOptionConfigChainIden3PaymentRailsRequestV1{
+					Amount:   0.01,
+					Currency: "POL",
+				},
+				Iden3PaymentRailsERC20RequestV1: &domain.PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1{
+					USDT: struct {
+						Amount float64 `json:"Amount"`
+					}{
+						Amount: 5.2,
+					},
+					USDC: struct {
+						Amount float64 `json:"Amount"`
+					}{
+						Amount: 4.3,
+					},
+				},
+			},
+		},
+	}
 	paymentOptionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "Cinema ticket single", "Payment Option explanation", &config)
 	require.NoError(t, err)
-
-	_ = otherDID
 
 	type expected struct {
 		httpCode int
@@ -547,7 +586,7 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			auth:      authOk,
 			issuerDID: *issuerDID,
 			body: CreatePaymentRequestJSONRequestBody{
-				UserDID: otherDID.String(),
+				UserDID: receiverDID.String(),
 				Option:  uuid.New(),
 				Credentials: []struct {
 					Context string `json:"context"`
@@ -570,7 +609,7 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			auth:      authOk,
 			issuerDID: *issuerDID,
 			body: CreatePaymentRequestJSONRequestBody{
-				UserDID: otherDID.String(),
+				UserDID: receiverDID.String(),
 				Option:  paymentOptionID,
 				Credentials: []struct {
 					Context string `json:"context"`
@@ -583,7 +622,7 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 				},
 			},
 			expected: expected{
-				httpCode: http.StatusOK,
+				httpCode: http.StatusCreated,
 				count:    10,
 			},
 		},
@@ -601,9 +640,18 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch tc.expected.httpCode {
-			case http.StatusOK:
+			case http.StatusCreated:
 				var response CreatePaymentRequest201JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				raw, err := json.Marshal(response)
+				require.NoError(t, err)
+
+				var requestMessage protocol.PaymentRequestMessage
+				require.NoError(t, json.Unmarshal(raw, &requestMessage))
+				assert.Equal(t, issuerDID.String(), requestMessage.From)
+				assert.Equal(t, receiverDID.String(), requestMessage.To)
+				assert.Len(t, requestMessage.Body.Payments, 4)
+
 			case http.StatusBadRequest:
 				var response CreatePaymentRequest400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -613,8 +661,6 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.msg, response.Message)
 			}
-
 		})
 	}
-
 }

@@ -1,6 +1,9 @@
 package domain
 
 import (
+	"encoding/json"
+	"errors"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,16 +50,84 @@ type PaymentOptionConfigChain struct {
 
 // PaymentOptionConfigChainIden3PaymentRailsRequestV1 represents the configuration of a payment option rails
 type PaymentOptionConfigChainIden3PaymentRailsRequestV1 struct {
-	Amount   string `json:"Amount"`
-	Currency string `json:"Currency"`
+	Amount   float64 `json:"Amount"`
+	Currency string  `json:"Currency"`
+}
+
+// UnmarshalJSON unmarshals a PaymentOptionConfigChainIden3PaymentRailsRequestV1
+// so we can accept amounts with string or float64 types
+func (p *PaymentOptionConfigChainIden3PaymentRailsRequestV1) UnmarshalJSON(data []byte) error {
+	var temp struct {
+		Amount   any    `json:"Amount"`
+		Currency string `json:"Currency"`
+	}
+	err := json.Unmarshal(data, &temp)
+	if err != nil {
+		return err
+	}
+
+	switch temp.Amount.(type) {
+	case float64:
+		p.Amount = temp.Amount.(float64)
+	case string:
+		amountFloat, err := strconv.ParseFloat(temp.Amount.(string), 64)
+		if err != nil {
+			return err
+		}
+		p.Amount = amountFloat
+	default:
+		return errors.New("unexpected format of amount")
+	}
+
+	p.Currency = temp.Currency
+
+	return nil
 }
 
 // PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 represents the configuration of a rails ERC20 payment option
 type PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 struct {
 	USDT struct {
-		Amount string `json:"Amount"`
+		Amount float64 `json:"Amount"`
 	} `json:"USDT"`
 	USDC struct {
-		Amount string `json:"Amount"`
+		Amount float64 `json:"Amount"`
 	} `json:"USDC"`
+}
+
+// UnmarshalJSON unmarshals a PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1
+// so we can accept amounts with string or float64 types
+func (p *PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1) UnmarshalJSON(data []byte) error {
+	var temp struct {
+		USDT struct {
+			Amount any `json:"Amount"`
+		}
+		USDC struct {
+			Amount any `json:"Amount"`
+		}
+	}
+	err := json.Unmarshal(data, &temp)
+	if err != nil {
+		return err
+	}
+	switch temp.USDT.Amount.(type) {
+	case float64:
+		p.USDT.Amount = temp.USDT.Amount.(float64)
+	case string:
+		amountFloat, err := strconv.ParseFloat(temp.USDT.Amount.(string), 64)
+		if err != nil {
+			return err
+		}
+		p.USDT.Amount = amountFloat
+	}
+	switch temp.USDC.Amount.(type) {
+	case float64:
+		p.USDC.Amount = temp.USDC.Amount.(float64)
+	case string:
+		amountFloat, err := strconv.ParseFloat(temp.USDC.Amount.(string), 64)
+		if err != nil {
+			return err
+		}
+		p.USDC.Amount = amountFloat
+	}
+	return nil
 }
