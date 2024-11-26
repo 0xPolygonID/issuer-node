@@ -68,7 +68,7 @@ func (p *PaymentOptionConfigChainIden3PaymentRailsRequestV1) UnmarshalJSON(data 
 
 	switch temp.Amount.(type) {
 	case float64:
-		p.Amount = temp.Amount.(float64)
+		p.Amount = temp.Amount.(float64) // nolint: forcetypeassert
 	case string:
 		amountFloat, err := strconv.ParseFloat(temp.Amount.(string), 64)
 		if err != nil {
@@ -111,7 +111,7 @@ func (p *PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1) UnmarshalJSON(
 	}
 	switch temp.USDT.Amount.(type) {
 	case float64:
-		p.USDT.Amount = temp.USDT.Amount.(float64)
+		p.USDT.Amount = temp.USDT.Amount.(float64) // nolint: forcetypeassert
 	case string:
 		amountFloat, err := strconv.ParseFloat(temp.USDT.Amount.(string), 64)
 		if err != nil {
@@ -121,7 +121,7 @@ func (p *PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1) UnmarshalJSON(
 	}
 	switch temp.USDC.Amount.(type) {
 	case float64:
-		p.USDC.Amount = temp.USDC.Amount.(float64)
+		p.USDC.Amount = temp.USDC.Amount.(float64) // nolint: forcetypeassert
 	case string:
 		amountFloat, err := strconv.ParseFloat(temp.USDC.Amount.(string), 64)
 		if err != nil {
