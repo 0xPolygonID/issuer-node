@@ -192,30 +192,12 @@ func (awsKeyProv *awsKmsEthKeyProvider) LinkToIdentity(ctx context.Context, keyI
 	}
 
 	log.Info(ctx, "resource tagged:", "resourceOutput:", resourceOutput.ResultMetadata)
-
-	//t := strings.Replace(identity.String(), ":", "", -1)
-	//aliasName := aliasPrefix + t
-	//if err := awsKeyProv.createAlias(ctx, aliasName, *keyMetadata.Arn); err != nil {
-	//	log.Error(ctx, "failed to create alias: %v", err)
-	//	return KeyID{}, fmt.Errorf("failed to create alias: %v", err)
-	//}
 	keyID.ID = identity.String()
 	return keyID, nil
 }
 
 // ListByIdentity returns list of keyIDs for given identity
 func (awsKeyProv *awsKmsEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
-	//t := strings.Replace(identity.String(), ":", "", -1)
-	//aliasName := aliasPrefix + t
-	//metadata, err := awsKeyProv.getKeyInfoByAlias(ctx, aliasName)
-	//if err != nil {
-	//	log.Info(ctx, "eth key not found in awsKeyProv kms", "err", err)
-	//}
-	//
-	//if metadata == nil {
-	//	return []KeyID{}, nil
-	//}
-
 	listKeysInput := &kms.ListKeysInput{}
 	listKeysOutput, err := awsKeyProv.kmsClient.ListKeys(ctx, listKeysInput)
 	if err != nil {
