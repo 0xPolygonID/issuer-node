@@ -167,7 +167,7 @@ func (awsKeyProv *awsKmsEthKeyProvider) Sign(ctx context.Context, keyID KeyID, d
 func (awsKeyProv *awsKmsEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
 	keyMetadata, err := awsKeyProv.getKeyInfoByAlias(ctx, keyID.ID)
 	if err != nil {
-		log.Error(ctx, "failed to get key metadata: %v", err)
+		log.Error(ctx, "failed to get key metadata", "keyMetadata", keyMetadata, "err", err)
 		return KeyID{}, fmt.Errorf("failed to get key metadata: %v", err)
 	}
 

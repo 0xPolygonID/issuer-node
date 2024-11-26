@@ -101,6 +101,34 @@ func Test_LinkToIdentity_LocalBJJKeyProvider(t *testing.T) {
 		assert.Equal(t, KeyTypeBabyJubJub, keyID.Type)
 	})
 
+	t.Run("should link two keys to identity using local storage manager", func(t *testing.T) {
+		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, ls)
+		keyID1, err := localbbjKeyProvider.New(nil)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, keyID1.ID)
+
+		keyID2, err := localbbjKeyProvider.New(nil)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, keyID2.ID)
+
+		did := randomDID(t)
+		keyID1, err = localbbjKeyProvider.LinkToIdentity(ctx, keyID1, did)
+		assert.NoError(t, err)
+		assert.NotNil(t, keyID1)
+		assert.Equal(t, did.String(), keyID1.ID)
+		assert.Equal(t, KeyTypeBabyJubJub, keyID1.Type)
+
+		keyID2, err = localbbjKeyProvider.LinkToIdentity(ctx, keyID2, did)
+		assert.NoError(t, err)
+		assert.NotNil(t, keyID2)
+		assert.Equal(t, did.String(), keyID2.ID)
+		assert.Equal(t, KeyTypeBabyJubJub, keyID2.Type)
+
+		keys, err := localbbjKeyProvider.ListByIdentity(ctx, did)
+		assert.NoError(t, err)
+		assert.Len(t, keys, 2)
+	})
+
 	t.Run("should link key to identity using aws storage manager", func(t *testing.T) {
 		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, awsStorageProvider)
 		keyID, err := localbbjKeyProvider.New(nil)
@@ -113,6 +141,33 @@ func Test_LinkToIdentity_LocalBJJKeyProvider(t *testing.T) {
 		assert.NotNil(t, keyID)
 		assert.Equal(t, did.String(), keyID.ID)
 		assert.Equal(t, KeyTypeBabyJubJub, keyID.Type)
+	})
+
+	t.Run("should link two keys to identity using aws storage manager", func(t *testing.T) {
+		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, awsStorageProvider)
+		keyID1, err := localbbjKeyProvider.New(nil)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, keyID1.ID)
+
+		keyID2, err := localbbjKeyProvider.New(nil)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, keyID2.ID)
+
+		did := randomDID(t)
+		keyID1, err = localbbjKeyProvider.LinkToIdentity(ctx, keyID1, did)
+		assert.NoError(t, err)
+		assert.NotNil(t, keyID1)
+		assert.Equal(t, did.String(), keyID1.ID)
+		assert.Equal(t, KeyTypeBabyJubJub, keyID1.Type)
+
+		keyID2, err = localbbjKeyProvider.LinkToIdentity(ctx, keyID2, did)
+		assert.NoError(t, err)
+		assert.NotNil(t, keyID2)
+		assert.Equal(t, did.String(), keyID2.ID)
+		assert.Equal(t, KeyTypeBabyJubJub, keyID2.Type)
+		keys, err := localbbjKeyProvider.ListByIdentity(ctx, did)
+		assert.NoError(t, err)
+		assert.Len(t, keys, 2)
 	})
 }
 
