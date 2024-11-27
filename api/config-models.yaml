@@ -1,0 +1,6 @@
+package: api
+generate:
+  models: true
+output-options:
+  user-templates:
+  skip-prune: true

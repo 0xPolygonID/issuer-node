@@ -63,6 +63,7 @@ $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API fi
 
 .PHONY: api
 api: $(BIN)/oapi-codegen
+	$(BIN)/oapi-codegen -config ./api/config-models.yaml ./api/components.yaml > ./internal/api/components.gen.go
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
 
 # Starts the infrastructure services

@@ -294,6 +294,12 @@ type CredentialOfferResponse struct {
 	UniversalLink string `json:"universalLink"`
 }
 
+// CredentialSchema defines model for CredentialSchema.
+type CredentialSchema struct {
+	Id   string `json:"id"`
+	Type string `json:"type"`
+}
+
 // CredentialSubject defines model for CredentialSubject.
 type CredentialSubject = map[string]interface{}
 
@@ -311,16 +317,6 @@ type DisplayMethod struct {
 
 // DisplayMethodType defines model for DisplayMethod.Type.
 type DisplayMethodType string
-
-// GenericErrorMessage defines model for GenericErrorMessage.
-type GenericErrorMessage struct {
-	Message string `json:"message"`
-}
-
-// GenericMessage defines model for GenericMessage.
-type GenericMessage struct {
-	Message string `json:"message"`
-}
 
 // GetAuthenticationConnectionResponse defines model for GetAuthenticationConnectionResponse.
 type GetAuthenticationConnectionResponse struct {
@@ -547,6 +543,9 @@ type UUIDResponse struct {
 // UUIDString defines model for UUIDString.
 type UUIDString = string
 
+// CredentialStatusType defines model for credentialStatusType.
+type CredentialStatusType = string
+
 // Id defines model for id.
 type Id = uuid.UUID
 
@@ -571,11 +570,17 @@ type N400 = GenericErrorMessage
 // N401 defines model for 401.
 type N401 = GenericErrorMessage
 
+// N402 defines model for 402.
+type N402 = GenericErrorMessage
+
 // N403 defines model for 403.
 type N403 = GenericErrorMessage
 
 // N404 defines model for 404.
 type N404 = GenericErrorMessage
+
+// N407 defines model for 407.
+type N407 = GenericErrorMessage
 
 // N409 defines model for 409.
 type N409 = GenericErrorMessage
@@ -2890,9 +2895,13 @@ type N400JSONResponse GenericErrorMessage
 
 type N401JSONResponse GenericErrorMessage
 
+type N402JSONResponse GenericErrorMessage
+
 type N403JSONResponse GenericErrorMessage
 
 type N404JSONResponse GenericErrorMessage
+
+type N407JSONResponse GenericErrorMessage
 
 type N409JSONResponse GenericErrorMessage
 

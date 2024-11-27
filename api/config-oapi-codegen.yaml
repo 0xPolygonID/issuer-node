@@ -12,3 +12,7 @@ generate:
   embedded-spec: false
 output-options:
   user-templates:
+  skip-prune: true
+
+import-mapping:
+  ./components.yaml: "-"

@@ -1,0 +1,19 @@
+
+components:
+  schemas:
+    GenericMessage:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
+    GenericErrorMessage:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: 'Something happen'
