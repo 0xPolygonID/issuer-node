@@ -83,6 +83,13 @@ services:
       start_period: 5s
     command: ./vault/scripts/init.sh
 
+  hardhat:
+    image: privadoid/state-contracts-test
+    container_name: hardhat
+    ports:
+    - 8545:8545
+    command: ["./entrypoint.sh"]
+
 networks:
   default:
       name: issuer-network

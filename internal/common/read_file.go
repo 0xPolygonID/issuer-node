@@ -32,19 +32,18 @@ func CreateFile(t *testing.T) *MyYAMLReader {
 	t.Helper()
 	yamlData := []byte(`polygon:
   amoy:
-    contractAddress: 0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124
-    networkURL: https://polygon-amoy.g.alchemy.com/v2/123
-    defaultGasLimit: 600000
+    contractAddress: 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6
+    networkURL: http://localhost:8545
+    defaultGasLimit: 30000000
     confirmationTimeout: 10s
-    confirmationBlockCount: 5
+    confirmationBlockCount: -1
     receiptTimeout: 600s
     minGasPrice: 0
-    maxGasPrice: 1000000
+    maxGasPrice: 33159325530000000
     rpcResponseTimeout: 5s
     waitReceiptCycleTime: 30s
     waitBlockCycleTime: 30s
-    gasLess: false
-    transferAmountWei: 1000000000000000000
+    gasLess: true
     rhsSettings:
       mode: None
       rhsUrl: https://rhs-staging.polygonid.me

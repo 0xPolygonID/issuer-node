@@ -2,18 +2,26 @@ package api
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
+	commonETH "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
 
@@ -384,5 +392,149 @@ func TestServer_GetStateTransactions(t *testing.T) {
 			assert.Equal(t, tc.expected.response.Meta.Page, response.Meta.Page)
 			assert.Equal(t, tc.expected.response.Meta.Total, response.Meta.Total)
 		})
+	}
+}
+
+//nolint:all
+func TestServer_PublishState(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+		ETH        = "ETH"
+	)
+	ctx := context.Background()
+
+	server := newTestServer(t, nil)
+	identityBJJ, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	identityETH, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
+	require.NoError(t, err)
+
+	client, err := ethclient.Dial("http://localhost:8545")
+	require.NoError(t, err)
+	defer client.Close()
+
+	gasLimit := uint64(21000)
+	gasPrice, err := client.SuggestGasPrice(ctx)
+	require.NoError(t, err)
+	privateKey, err := crypto.HexToECDSA("7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6")
+	require.NoError(t, err)
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	require.True(t, ok)
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+
+	nonce, err := client.PendingNonceAt(ctx, fromAddress)
+	require.NoError(t, err)
+	chainID, err := client.NetworkID(ctx)
+	require.NoError(t, err)
+	toAddress := commonETH.HexToAddress(*identityETH.Address)
+	// nolinter
+	value := big.NewInt(500000000000000000) //0.5 ETH
+	txData := &types.LegacyTx{
+		To:       common.ToPointer(toAddress),
+		Value:    value,
+		Gas:      gasLimit,
+		GasPrice: gasPrice,
+		Nonce:    nonce,
+	}
+	tx := types.NewTx(txData)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	require.NoError(t, err)
+
+	err = client.SendTransaction(context.Background(), signedTx)
+	require.NoError(t, err)
+
+	_, err = waitForTransactionReceipt(client, signedTx.Hash())
+	require.NoError(t, err)
+
+	didBJJ, err := w3c.ParseDID(identityBJJ.Identifier)
+	require.NoError(t, err)
+
+	didETH, err := w3c.ParseDID(identityETH.Identifier)
+	require.NoError(t, err)
+
+	_, err = server.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(didBJJ, nil, "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json", map[string]any{"id": "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ", "birthday": 19960424, "documentType": 2}, nil, "KYCAgeCredential", nil, nil, nil, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	require.NoError(t, err)
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		status   int
+		response PublishIdentityStateResponseObject
+	}
+
+	type testConfig struct {
+		name     string
+		did      *w3c.DID
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			did:  didBJJ,
+			auth: authWrong,
+			expected: expected{
+				status:   http.StatusUnauthorized,
+				response: PublishIdentityState400JSONResponse{N400JSONResponse{Message: "invalid credentials"}},
+			},
+		},
+		{
+			name: "should publish state for bjj identity",
+			did:  didBJJ,
+			auth: authOk,
+			expected: expected{
+				status:   http.StatusAccepted,
+				response: PublishIdentityState202JSONResponse{},
+			},
+		},
+		{
+			name: "should publish state for eth identity",
+			did:  didETH,
+			auth: authOk,
+			expected: expected{
+				status:   http.StatusAccepted,
+				response: PublishIdentityState202JSONResponse{},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v2/identities/%s/state/publish", tc.did)
+			req, err := http.NewRequest(http.MethodPost, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, tc.expected.status, rr.Code)
+			switch tc.expected.status {
+			case http.StatusOK:
+				var response PublishIdentityState202JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.NotNil(t, response.State)
+				assert.NotNil(t, response.TxID)
+				assert.NotNil(t, response.RevocationTreeRoot)
+				assert.NotNil(t, response.ClaimsTreeRoot)
+				assert.NotNil(t, response.RootOfRoots)
+			}
+		})
+	}
+}
+
+func waitForTransactionReceipt(client *ethclient.Client, txHash commonETH.Hash) (*types.Receipt, error) {
+	time.Sleep(3 * time.Second)
+	for {
+		receipt, err := client.TransactionReceipt(context.Background(), txHash)
+		if err == ethereum.NotFound {
+			time.Sleep(3 * time.Second)
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+		return receipt, nil
 	}
 }

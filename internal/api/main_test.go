@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -23,6 +25,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/errors"
+	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -32,6 +35,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/internal/reversehash"
 	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
+	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
 )
 
 var (
@@ -94,6 +98,20 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	data := make(map[string]any)
+	data["key_type"] = "ethereum"
+	data["private_key"] = "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+
+	vaultPath := "iden3"
+	keyPath := "pbkey"
+	_, err = vaultCli.Logical().Write(path.Join(vaultPath, "import", keyPath), data)
+	if err != nil {
+		if !strings.Contains(err.Error(), "key already exists") {
+			log.Error(ctx, "failed to write data to vault", "err", err)
+			os.Exit(1)
+		}
+	}
+
 	bjjKeyProvider, err = kms.NewVaultPluginIden3KeyProvider(vaultCli, cfgForTesting.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
 		log.Error(ctx, "failed to create Iden3 Key Provider", "err", err)
@@ -121,6 +139,8 @@ func TestMain(m *testing.M) {
 	cfg.ServerUrl = "https://testing.env"
 	cfg.Ethereum = cfgForTesting.Ethereum
 	cfg.UniversalLinks = config.UniversalLinks{BaseUrl: "https://testing.env"}
+	cfg.PublishingKeyPath = "pbkey"
+	cfg.Circuit.Path = "../../pkg/credentials/circuits"
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL, false)
 	m.Run()
 }
@@ -295,10 +315,19 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		true,
 	)
 
+	publisherGateway, err := gateways.NewPublisherEthGateway(*networkResolver, keyStore, "pbkey")
+	require.NoError(t, err)
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
+
+	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
+	transactionService, err := gateways.NewTransaction(*networkResolver)
+	require.NoError(t, err)
+	proofService := services.NewProver(circuitsLoaderService)
+	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, networkResolver, pubSub)
+
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, publisher, NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
 
 	return &testServer{
 		Server: server,
