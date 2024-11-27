@@ -32,6 +32,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/internal/reversehash"
 	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
+
+	auth "github.com/iden3/go-iden3-auth/v2"
+	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
+	"github.com/polygonid/sh-id-platform/internal/packagemanager"
 )
 
 var (
@@ -235,6 +239,7 @@ type repos struct {
 	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
+	verification   ports.VerificationRepository
 }
 
 type servicex struct {
@@ -272,6 +277,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		sessions:       repositories.NewSessionCached(cachex),
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
+		verification:   repositories.NewVerification(*st),
 	}
 
 	pubSub := pubsub.NewMock()
@@ -298,7 +304,18 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
+
+	universalDIDResolverUrl := auth.UniversalResolverURL
+	if cfg.UniversalDIDResolver.UniversalResolverURL != nil && *cfg.UniversalDIDResolver.UniversalResolverURL != "" {
+		universalDIDResolverUrl = *cfg.UniversalDIDResolver.UniversalResolverURL
+	}
+	universalDIDResolverHandler := packagemanager.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
+	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
+	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
+
+	verificationService := services.NewVerificationService(verifier, repos.verification)
+
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, verificationService, mediaTypeManager)
 
 	return &testServer{
 		Server: server,

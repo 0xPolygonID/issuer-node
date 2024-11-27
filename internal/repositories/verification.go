@@ -15,8 +15,11 @@ import (
 
 const foreignKeyViolationErrorCode = "23503"
 
-// VerificationQueryNotFoundError is returned when a verification query is not found
-var VerificationQueryNotFoundError = errors.New("verification query not found")
+var (
+	// VerificationQueryNotFoundError is returned when a verification query is not found
+	VerificationQueryNotFoundError    = errors.New("verification query not found")
+	VerificationResponseNotFoundError = errors.New("verification response not found")
+)
 
 // VerificationRepository is a repository for verification queries
 type VerificationRepository struct {
@@ -100,4 +103,29 @@ func (r *VerificationRepository) AddResponse(ctx context.Context, queryID uuid.U
 		return uuid.Nil, err
 	}
 	return responseID, nil
+}
+
+// GetVerificationResponse returns a verification response by scopeID and userDID
+func (r *VerificationRepository) GetVerificationResponse(ctx context.Context, queryID uuid.UUID, userDID string) (*domain.VerificationResponse, error) {
+	sql := `SELECT id, verification_query_id, user_did, response, pass, created_at
+            FROM verification_responses
+            WHERE verification_query_id = $1 AND user_did = $2`
+
+	var response domain.VerificationResponse
+	err := r.conn.Pgx.QueryRow(ctx, sql, queryID, userDID).Scan(
+		&response.ID,
+		&response.VerificationQueryID,
+		&response.UserDID,
+		&response.Response,
+		&response.Pass,
+		&response.CreatedAt,
+	)
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, VerificationResponseNotFoundError
+		}
+		return nil, err
+	}
+
+	return &response, nil
 }
