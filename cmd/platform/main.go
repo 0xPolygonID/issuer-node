@@ -115,6 +115,7 @@ func main() {
 	sessionRepository := repositories.NewSessionCached(cachex)
 	keyRepository := repositories.NewKey(*storage)
 	paymentsRepo := repositories.NewPayment(*storage)
+	verificationRepository := repositories.NewVerification(*storage)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
@@ -170,6 +171,8 @@ func main() {
 	}
 	accountService := services.NewAccountService(*networkResolver)
 
+	verificationService := services.NewVerificationService(verifier, verificationRepository)
+
 	publisherGateway, err := gateways.NewPublisherEthGateway(*networkResolver, keyStore, cfg.PublishingKeyPath)
 	if err != nil {
 		log.Error(ctx, "error creating publish gateway", "err", err)
@@ -205,7 +208,7 @@ func main() {
 
 	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, displayMethodService, keyService, paymentService),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, displayMethodService, keyService, paymentService, verificationService, mediaTypeManager),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

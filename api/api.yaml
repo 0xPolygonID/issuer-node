@@ -1989,6 +1989,77 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  # Verification
+
+  /v2/verification/{identifier}/check:
+    get:
+      summary: Check Verification Response or Provide Query
+      operationId: CheckVerification
+      description: |
+        Checks if a verification response already exists for the given identifier.
+        If no response is found, it returns the verification query request to be completed by the user.
+      tags:
+        - Verification
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: User's DID identifier
+          schema:
+            type: string
+        - $ref: '#/components/parameters/verificationQueryId'
+      responses:
+        '200':
+          description: Verification Response or Query Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/VerificationResponse'
+                  - $ref: '#/components/schemas/VerificationQueryRequest'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/verification/{identifier}/callback:
+    post:
+      summary: Submit Verification Response
+      operationId: SubmitVerificationResponse
+      description: |
+        Endpoint to submit a verification response for the given verification query request.
+        The response will be validated and stored in the verification_responses table.
+      tags:
+        - Verification
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: User's DID identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationResponseRequest'
+      responses:
+        '200':
+          description: Verification response submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponseStatus'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+    
+  
 components:
   securitySchemes:
     basicAuth:
@@ -3163,6 +3234,85 @@ components:
       x-go-type-import:
         name: protocol
         path: github.com/iden3/iden3comm/v2/protocol
+    
+    VerificationResponse:
+      type: object
+      required:
+        - verification_scope_id
+        - user_did
+        - response
+        - pass
+      properties:
+        verification_scope_id:
+          type: string
+          description: Scope ID for the verification query.
+        user_did:
+          type: string
+          description: Decentralized identifier of the user.
+        response:
+          type: object
+          description: The response from the user as a JSON object.
+        pass:
+          type: boolean
+          description: Indicates if the verification passed.
+
+    VerificationQueryRequest:
+      type: object
+      required:
+        - verification_query_id
+        - scopes
+      properties:
+        verification_query_id:
+          type: string
+          description: The ID of the verification query.
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationScope'
+      
+    VerificationScope:
+      type: object
+      required:
+        - scope_id
+        - query_type
+        - context
+      properties:
+        scope_id:
+          type: string
+          description: ID of the scope.
+        query_type:
+          type: string
+          description: Type of query for the verification.
+        context:
+          type: string
+          description: Additional context for the query.
+
+    VerificationResponseRequest:
+      type: object
+      required:
+        - verification_scope_id
+        - user_did
+        - response
+      properties:
+        verification_scope_id:
+          type: string
+          description: Scope ID of the verification query.
+        user_did:
+          type: string
+          description: User's DID identifier.
+        response:
+          type: object
+          description: Response to the verification query request.
+
+    VerificationResponseStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ submitted, validated, error ]
+          description: The status of the submitted verification response.
 
     CreateDisplayMethodRequest:
       type: object
@@ -3367,6 +3517,17 @@ components:
       schema:
         type: string
 
+    verificationQueryId:
+      name: verificationQueryId
+      in: query
+      required: true
+      description: The verification query ID to check for a response
+      schema:
+        type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
 
   responses:
     '400':
