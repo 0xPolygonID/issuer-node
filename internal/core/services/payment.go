@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -125,15 +126,34 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		}
 		expirationTime := time.Now().Add(defaultExpirationDate)
 
-		pubKey, err := kms.EthPubKey(ctx, p.kms, kms.KeyID{ID: chainConfig.SigningKeyId, Type: kms.KeyTypeEthereum})
-		if err != nil {
-			log.Error(ctx, "failed to get kms signing key", "err", err, "keyId", chainConfig.SigningKeyId)
-			return nil, fmt.Errorf("kms signing key not found: %w", err)
+		var address common.Address
+		var privateKey *ecdsa.PrivateKey
+		if chainConfig.SigningKeyOpt == nil {
+			pubKey, err := kms.EthPubKey(ctx, p.kms, kms.KeyID{ID: chainConfig.SigningKeyId, Type: kms.KeyTypeEthereum})
+			if err != nil {
+				log.Error(ctx, "failed to get kms signing key", "err", err, "keyId", chainConfig.SigningKeyId)
+				return nil, fmt.Errorf("kms signing key not found: %w", err)
+			}
+			address = crypto.PubkeyToAddress(*pubKey)
+		} else { // Temporary solution until we have key management. We use SigningKeyOpt as a private key if present
+			privateKeyBytes, err := hex.DecodeString(*chainConfig.SigningKeyOpt)
+			if err != nil {
+				return nil, err
+			}
+			privateKey, err = crypto.ToECDSA(privateKeyBytes)
+			if err != nil {
+				return nil, err
+			}
+			publicKey := privateKey.Public()
+			publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+			if !ok {
+				return nil, fmt.Errorf("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+			}
+			address = crypto.PubkeyToAddress(*publicKeyECDSA)
 		}
-		address := crypto.PubkeyToAddress(*pubKey)
 
 		if chainConfig.Iden3PaymentRailsRequestV1 != nil {
-			data, err := p.newIden3PaymentRailsRequestV1(ctx, chainConfig, setting, expirationTime, nonce, address)
+			data, err := p.newIden3PaymentRailsRequestV1(ctx, chainConfig, setting, expirationTime, nonce, address, privateKey)
 			if err != nil {
 				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
 				return nil, err
@@ -147,12 +167,12 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 			})
 		}
 		if chainConfig.Iden3PaymentRailsERC20RequestV1 != nil {
-			reqUSDT, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, nonce, address, payments.USDT, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, setting.ERC20.USDT.ContractAddress)
+			reqUSDT, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, nonce, address, payments.USDT, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, setting.ERC20.USDT.ContractAddress, privateKey)
 			if err != nil {
 				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
 				return nil, err
 			}
-			reqUSDC, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, nonce, address, payments.USDC, chainConfig.Iden3PaymentRailsERC20RequestV1.USDC.Amount, setting.ERC20.USDC.ContractAddress)
+			reqUSDC, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, nonce, address, payments.USDC, chainConfig.Iden3PaymentRailsERC20RequestV1.USDC.Amount, setting.ERC20.USDC.ContractAddress, privateKey)
 			if err != nil {
 				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
 				return nil, err
@@ -193,7 +213,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 }
 
 // CreatePaymentRequestForProposalRequest creates a payment request for a proposal request
-func (p *payment) CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error) {
+func (p *payment) CreatePaymentRequestForProposalRequest(_ context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error) {
 	basicMessage := comm.BasicMessage{
 		From:     proposalRequest.To,
 		To:       proposalRequest.From,
@@ -274,9 +294,10 @@ func (p *payment) newIden3PaymentRailsRequestV1(
 	expirationTime time.Time,
 	nonce *big.Int,
 	address common.Address,
+	signingKeyOpt *ecdsa.PrivateKey, // Temporary solution until we have key management
 ) (*protocol.PaymentRequestInfoData, error) {
 	metadata := "0x"
-	signature, err := p.paymentRequestSignature(ctx, iden3PaymentRailsRequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsRequestV1.Amount, expirationTime, nonce, metadata, address, chainConfig.SigningKeyId, "")
+	signature, err := p.paymentRequestSignature(ctx, iden3PaymentRailsRequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsRequestV1.Amount, expirationTime, nonce, metadata, address, chainConfig.SigningKeyId, signingKeyOpt, "")
 	if err != nil {
 		log.Error(ctx, "failed to create payment request signature", "err", err)
 		return nil, err
@@ -328,9 +349,10 @@ func (p *payment) newIden3PaymentRailsERC20RequestV1(
 	currency payments.Coin,
 	amount float64,
 	tokenAddress string,
+	signingKeyOpt *ecdsa.PrivateKey, // Temporary solution until we have key management
 ) (*protocol.PaymentRequestInfoData, error) {
 	metadata := "0x"
-	signature, err := p.paymentRequestSignature(ctx, iden3PaymentRailsERC20RequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, expirationTime, nonce, metadata, address, chainConfig.SigningKeyId, tokenAddress)
+	signature, err := p.paymentRequestSignature(ctx, iden3PaymentRailsERC20RequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, expirationTime, nonce, metadata, address, chainConfig.SigningKeyId, signingKeyOpt, tokenAddress)
 	if err != nil {
 		log.Error(ctx, "failed to create payment request signature", "err", err)
 		return nil, err
@@ -382,6 +404,7 @@ func (p *payment) paymentRequestSignature(
 	metadata string,
 	addr common.Address,
 	signingKeyId string,
+	signingKeyOpt *ecdsa.PrivateKey, // Temporary solution until we have key management
 	tokenAddr string,
 ) ([]byte, error) {
 	if !paymentType.Valid() {
@@ -403,13 +426,21 @@ func (p *payment) paymentRequestSignature(
 		return nil, err
 	}
 
-	signature, err := p.kms.Sign(ctx, keyID, typedDataHash[:])
-	if err != nil {
-		log.Error(ctx, "failed to sign typed data hash", "err", err, "keyId", signingKeyId)
-		return nil, err
-	}
+	if signingKeyOpt == nil {
+		signature, err := p.kms.Sign(ctx, keyID, typedDataHash[:])
+		if err != nil {
+			log.Error(ctx, "failed to sign typed data hash", "err", err, "keyId", signingKeyId)
+			return nil, err
+		}
 
-	return signature, nil
+		return signature, nil
+	} else { // Temporary solution until we have key management. We use SigningKeyOpt as a private key if present
+		signature, err := crypto.Sign(typedDataHash[:], signingKeyOpt)
+		if err != nil {
+			return nil, err
+		}
+		return signature, nil
+	}
 }
 
 func typedDataForHashing(paymentType paymentRequestType, chainID int, verifyContract string, address common.Address, amount float64, expTime time.Time, nonce *big.Int, metadata string, tokenAddress string) (*apitypes.TypedData, error) {

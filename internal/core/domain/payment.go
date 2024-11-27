@@ -41,9 +41,16 @@ type PaymentOptionConfig struct {
 
 // PaymentOptionConfigChain represents the configuration of a payment option chain
 type PaymentOptionConfigChain struct {
-	ChainId                         int                                                      `json:"ChainId"`
-	Recipient                       string                                                   `json:"Recipient"`
-	SigningKeyId                    string                                                   `json:"SigningKeyId"`
+	ChainId      int    `json:"ChainId"`
+	Recipient    string `json:"Recipient"`
+	SigningKeyId string `json:"SigningKeyId"`
+
+	// TODO: remove field SigningKeyOpt once we have key management.
+	// Temporary solution until we have key management
+	// WARNING: Only for testing purposes. This is not secure as SigningKey will be stored in the database
+	// USE AT YOUR OWN RISK
+	SigningKeyOpt *string `json:"SigningKeyOpt"`
+
 	Iden3PaymentRailsRequestV1      *PaymentOptionConfigChainIden3PaymentRailsRequestV1      `json:"Iden3PaymentRailsRequestV1"`
 	Iden3PaymentRailsERC20RequestV1 *PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 `json:"Iden3PaymentRailsERC20RequestV1"`
 }

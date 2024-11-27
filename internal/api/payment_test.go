@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2/protocol"
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -547,7 +548,50 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			},
 		},
 	}
+
+	// Payment option with private key inside payment for temporary solution
+	configUnsecure := domain.PaymentOptionConfig{
+		Chains: []domain.PaymentOptionConfigChain{
+			{
+				ChainId:       1101,
+				Recipient:     "0x..",
+				SigningKeyId:  signingKeyID.ID,
+				SigningKeyOpt: common.ToPointer("d1f13a3d23b8a3c5b76fbd62c29e86a3b1cd0e3ef564d11a5e55aab544ce33a4"),
+				Iden3PaymentRailsRequestV1: &domain.PaymentOptionConfigChainIden3PaymentRailsRequestV1{
+					Amount:   0.5,
+					Currency: "ETH",
+				},
+				Iden3PaymentRailsERC20RequestV1: nil,
+			},
+			{
+				ChainId:       137,
+				Recipient:     "0x..",
+				SigningKeyId:  signingKeyID.ID,
+				SigningKeyOpt: common.ToPointer("d1f13a3d23b8a3c5b76fbd62c29e86a3b1cd0e3ef564d11a5e55aab544ce33a4"),
+				Iden3PaymentRailsRequestV1: &domain.PaymentOptionConfigChainIden3PaymentRailsRequestV1{
+					Amount:   0.01,
+					Currency: "POL",
+				},
+				Iden3PaymentRailsERC20RequestV1: &domain.PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1{
+					USDT: struct {
+						Amount float64 `json:"Amount"`
+					}{
+						Amount: 5.2,
+					},
+					USDC: struct {
+						Amount float64 `json:"Amount"`
+					}{
+						Amount: 4.3,
+					},
+				},
+			},
+		},
+	}
+
 	paymentOptionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "Cinema ticket single", "Payment Option explanation", &config)
+	require.NoError(t, err)
+
+	paymentOptionIDUnsecure, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "Cinema ticket single", "Payment Option explanation", &configUnsecure)
 	require.NoError(t, err)
 
 	type expected struct {
@@ -611,6 +655,28 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			body: CreatePaymentRequestJSONRequestBody{
 				UserDID: receiverDID.String(),
 				Option:  paymentOptionID,
+				Credentials: []struct {
+					Context string `json:"context"`
+					Type    string `json:"type"`
+				}{
+					{
+						Context: "context",
+						Type:    "type",
+					},
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusCreated,
+				count:    10,
+			},
+		},
+		{
+			name:      "Happy Path with with unsecure payment option including private key",
+			auth:      authOk,
+			issuerDID: *issuerDID,
+			body: CreatePaymentRequestJSONRequestBody{
+				UserDID: receiverDID.String(),
+				Option:  paymentOptionIDUnsecure,
 				Credentials: []struct {
 					Context string `json:"context"`
 					Type    string `json:"type"`
