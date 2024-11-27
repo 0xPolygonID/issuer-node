@@ -1323,10 +1323,10 @@ paths:
           $ref: '#/components/responses/500'
 
     get:
-      summary: Get All Display Method
-      operationId: GetAllDisplayMethod
+      summary: Get All Display Methods
+      operationId: GetAllDisplayMethods
       description: |
-        Get all the display method for the provided identity.
+        Get all the display methods for the provided identity.
       security:
         - basicAuth: [ ]
       tags:

@@ -327,7 +327,7 @@ func TestServer_GetDisplayMethodByID(t *testing.T) {
 	}
 }
 
-func TestServer_GetAllDisplayMethod(t *testing.T) {
+func TestServer_GetAllDisplayMethods(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
@@ -375,7 +375,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		require.Equal(t, http.StatusOK, rr.Code)
-		expectedResponse := GetAllDisplayMethod200JSONResponse{
+		expectedResponse := GetAllDisplayMethods200JSONResponse{
 			Items: []DisplayMethodEntity{
 				{
 					Id:   displayMethod1.ID,
@@ -394,7 +394,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 				MaxResults: 50,
 			},
 		}
-		var response GetAllDisplayMethod200JSONResponse
+		var response GetAllDisplayMethods200JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.EqualValues(t, expectedResponse, response)
 	})
@@ -408,7 +408,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		require.Equal(t, http.StatusOK, rr.Code)
-		expectedResponse := GetAllDisplayMethod200JSONResponse{
+		expectedResponse := GetAllDisplayMethods200JSONResponse{
 			Items: []DisplayMethodEntity{
 				{
 					Id:   displayMethod2.ID,
@@ -427,7 +427,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 				MaxResults: 50,
 			},
 		}
-		var response GetAllDisplayMethod200JSONResponse
+		var response GetAllDisplayMethods200JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.EqualValues(t, expectedResponse, response)
 	})
@@ -441,7 +441,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		require.Equal(t, http.StatusOK, rr.Code)
-		expectedResponse := GetAllDisplayMethod200JSONResponse{
+		expectedResponse := GetAllDisplayMethods200JSONResponse{
 			Items: []DisplayMethodEntity{
 				{
 					Id:   displayMethod2.ID,
@@ -455,7 +455,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 				MaxResults: 1,
 			},
 		}
-		var response GetAllDisplayMethod200JSONResponse
+		var response GetAllDisplayMethods200JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.EqualValues(t, expectedResponse, response)
 	})
@@ -469,7 +469,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		require.Equal(t, http.StatusOK, rr.Code)
-		expectedResponse := GetAllDisplayMethod200JSONResponse{
+		expectedResponse := GetAllDisplayMethods200JSONResponse{
 			Items: []DisplayMethodEntity{
 				{
 					Id:   displayMethod1.ID,
@@ -488,7 +488,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 				MaxResults: 50,
 			},
 		}
-		var response GetAllDisplayMethod200JSONResponse
+		var response GetAllDisplayMethods200JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.EqualValues(t, expectedResponse, response)
 	})
@@ -501,7 +501,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		require.Equal(t, http.StatusOK, rr.Code)
-		expectedResponse := GetAllDisplayMethod200JSONResponse{
+		expectedResponse := GetAllDisplayMethods200JSONResponse{
 			Items: []DisplayMethodEntity{
 				{
 					Id:   displayMethod2.ID,
@@ -520,7 +520,7 @@ func TestServer_GetAllDisplayMethod(t *testing.T) {
 				MaxResults: 50,
 			},
 		}
-		var response GetAllDisplayMethod200JSONResponse
+		var response GetAllDisplayMethods200JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.EqualValues(t, expectedResponse, response)
 	})

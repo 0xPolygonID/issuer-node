@@ -68,27 +68,27 @@ func (s *Server) GetDisplayMethod(ctx context.Context, request GetDisplayMethodR
 	}, nil
 }
 
-// GetAllDisplayMethod - Get all display methods handler
-func (s *Server) GetAllDisplayMethod(ctx context.Context, request GetAllDisplayMethodRequestObject) (GetAllDisplayMethodResponseObject, error) {
+// GetAllDisplayMethods - Get all display methods handler
+func (s *Server) GetAllDisplayMethods(ctx context.Context, request GetAllDisplayMethodsRequestObject) (GetAllDisplayMethodsResponseObject, error) {
 	identityDID, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		log.Error(ctx, "Invalid identifier", "err", err)
-		return GetAllDisplayMethod400JSONResponse{N400JSONResponse{Message: "Invalid identifier"}}, nil
+		return GetAllDisplayMethods400JSONResponse{N400JSONResponse{Message: "Invalid identifier"}}, nil
 	}
 
 	filter, err := getDisplayMethodFilter(request)
 	if err != nil {
 		log.Error(ctx, "Error getting filter", "err", err)
-		return GetAllDisplayMethod400JSONResponse{N400JSONResponse{Message: "Error getting filter"}}, nil
+		return GetAllDisplayMethods400JSONResponse{N400JSONResponse{Message: "Error getting filter"}}, nil
 	}
 
 	displayMethods, total, err := s.displayMethodService.GetAll(ctx, *identityDID, *filter)
 	if err != nil {
 		log.Error(ctx, "Error getting display methods", "err", err)
-		return GetAllDisplayMethod500JSONResponse{N500JSONResponse{Message: "Error getting display methods"}}, nil
+		return GetAllDisplayMethods500JSONResponse{N500JSONResponse{Message: "Error getting display methods"}}, nil
 	}
 
-	var response GetAllDisplayMethod200JSONResponse
+	var response GetAllDisplayMethods200JSONResponse
 	items := make([]DisplayMethodEntity, 0, len(displayMethods))
 	for _, displayMethod := range displayMethods {
 		items = append(items, getDisplayMethodResponseObject(&displayMethod))
@@ -173,7 +173,7 @@ func getDisplayMethodResponseObject(displayMethod *domain.DisplayMethod) Display
 }
 
 // getDisplayMethodFilter - creates a display method filter from the request
-func getDisplayMethodFilter(req GetAllDisplayMethodRequestObject) (*ports.DisplayMethodFilter, error) {
+func getDisplayMethodFilter(req GetAllDisplayMethodsRequestObject) (*ports.DisplayMethodFilter, error) {
 	filter := ports.DisplayMethodFilter{}
 	filter.MaxResults = 50
 	if req.Params.MaxResults != nil {
@@ -193,7 +193,7 @@ func getDisplayMethodFilter(req GetAllDisplayMethodRequestObject) (*ports.Displa
 		for _, sortBy := range *req.Params.Sort {
 			var err error
 			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
-			switch GetAllDisplayMethodParamsSort(field) {
+			switch GetAllDisplayMethodsParamsSort(field) {
 			case CreatedAt:
 				err = orderBy.Add(ports.DisplayMethodCreatedAtFilterField, desc)
 			case Name:

@@ -138,12 +138,12 @@ const (
 	GetCredentialOfferParamsTypeUniversalLink GetCredentialOfferParamsType = "universalLink"
 )
 
-// Defines values for GetAllDisplayMethodParamsSort.
+// Defines values for GetAllDisplayMethodsParamsSort.
 const (
-	CreatedAt      GetAllDisplayMethodParamsSort = "created_at"
-	MinusCreatedAt GetAllDisplayMethodParamsSort = "-created_at"
-	MinusName      GetAllDisplayMethodParamsSort = "-name"
-	Name           GetAllDisplayMethodParamsSort = "name"
+	CreatedAt      GetAllDisplayMethodsParamsSort = "created_at"
+	MinusCreatedAt GetAllDisplayMethodsParamsSort = "-created_at"
+	MinusName      GetAllDisplayMethodsParamsSort = "-name"
+	Name           GetAllDisplayMethodsParamsSort = "name"
 )
 
 // Defines values for GetStateTransactionsParamsFilter.
@@ -739,17 +739,17 @@ type GetCredentialOfferParams struct {
 // GetCredentialOfferParamsType defines parameters for GetCredentialOffer.
 type GetCredentialOfferParamsType string
 
-// GetAllDisplayMethodParams defines parameters for GetAllDisplayMethod.
-type GetAllDisplayMethodParams struct {
+// GetAllDisplayMethodsParams defines parameters for GetAllDisplayMethods.
+type GetAllDisplayMethodsParams struct {
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *uint                            `form:"max_results,omitempty" json:"max_results,omitempty"`
-	Sort       *[]GetAllDisplayMethodParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+	MaxResults *uint                             `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetAllDisplayMethodsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
-// GetAllDisplayMethodParamsSort defines parameters for GetAllDisplayMethod.
-type GetAllDisplayMethodParamsSort string
+// GetAllDisplayMethodsParamsSort defines parameters for GetAllDisplayMethods.
+type GetAllDisplayMethodsParamsSort string
 
 // UpdateDisplayMethodJSONBody defines parameters for UpdateDisplayMethod.
 type UpdateDisplayMethodJSONBody struct {
@@ -929,9 +929,9 @@ type ServerInterface interface {
 	// Get Credentials Offer
 	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 	GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams)
-	// Get All Display Method
+	// Get All Display Methods
 	// (GET /v2/identities/{identifier}/display-method)
-	GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodParams)
+	GetAllDisplayMethods(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodsParams)
 	// Create Display Method
 	// (POST /v2/identities/{identifier}/display-method)
 	CreateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -1160,9 +1160,9 @@ func (_ Unimplemented) GetCredentialOffer(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get All Display Method
+// Get All Display Methods
 // (GET /v2/identities/{identifier}/display-method)
-func (_ Unimplemented) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodParams) {
+func (_ Unimplemented) GetAllDisplayMethods(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2382,8 +2382,8 @@ func (siw *ServerInterfaceWrapper) GetCredentialOffer(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
-// GetAllDisplayMethod operation middleware
-func (siw *ServerInterfaceWrapper) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request) {
+// GetAllDisplayMethods operation middleware
+func (siw *ServerInterfaceWrapper) GetAllDisplayMethods(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -2403,7 +2403,7 @@ func (siw *ServerInterfaceWrapper) GetAllDisplayMethod(w http.ResponseWriter, r 
 	r = r.WithContext(ctx)
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetAllDisplayMethodParams
+	var params GetAllDisplayMethodsParams
 
 	// ------------- Optional query parameter "page" -------------
 
@@ -2430,7 +2430,7 @@ func (siw *ServerInterfaceWrapper) GetAllDisplayMethod(w http.ResponseWriter, r 
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetAllDisplayMethod(w, r, identifier, params)
+		siw.Handler.GetAllDisplayMethods(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3158,7 +3158,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}/offer", wrapper.GetCredentialOffer)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v2/identities/{identifier}/display-method", wrapper.GetAllDisplayMethod)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/display-method", wrapper.GetAllDisplayMethods)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/display-method", wrapper.CreateDisplayMethod)
@@ -4482,45 +4482,45 @@ func (response GetCredentialOffer500JSONResponse) VisitGetCredentialOfferRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetAllDisplayMethodRequestObject struct {
+type GetAllDisplayMethodsRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
-	Params     GetAllDisplayMethodParams
+	Params     GetAllDisplayMethodsParams
 }
 
-type GetAllDisplayMethodResponseObject interface {
-	VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error
+type GetAllDisplayMethodsResponseObject interface {
+	VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error
 }
 
-type GetAllDisplayMethod200JSONResponse DisplayMethodPaginated
+type GetAllDisplayMethods200JSONResponse DisplayMethodPaginated
 
-func (response GetAllDisplayMethod200JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
+func (response GetAllDisplayMethods200JSONResponse) VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetAllDisplayMethod400JSONResponse struct{ N400JSONResponse }
+type GetAllDisplayMethods400JSONResponse struct{ N400JSONResponse }
 
-func (response GetAllDisplayMethod400JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
+func (response GetAllDisplayMethods400JSONResponse) VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetAllDisplayMethod404JSONResponse struct{ N404JSONResponse }
+type GetAllDisplayMethods404JSONResponse struct{ N404JSONResponse }
 
-func (response GetAllDisplayMethod404JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
+func (response GetAllDisplayMethods404JSONResponse) VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetAllDisplayMethod500JSONResponse struct{ N500JSONResponse }
+type GetAllDisplayMethods500JSONResponse struct{ N500JSONResponse }
 
-func (response GetAllDisplayMethod500JSONResponse) VisitGetAllDisplayMethodResponse(w http.ResponseWriter) error {
+func (response GetAllDisplayMethods500JSONResponse) VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -5208,9 +5208,9 @@ type StrictServerInterface interface {
 	// Get Credentials Offer
 	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 	GetCredentialOffer(ctx context.Context, request GetCredentialOfferRequestObject) (GetCredentialOfferResponseObject, error)
-	// Get All Display Method
+	// Get All Display Methods
 	// (GET /v2/identities/{identifier}/display-method)
-	GetAllDisplayMethod(ctx context.Context, request GetAllDisplayMethodRequestObject) (GetAllDisplayMethodResponseObject, error)
+	GetAllDisplayMethods(ctx context.Context, request GetAllDisplayMethodsRequestObject) (GetAllDisplayMethodsResponseObject, error)
 	// Create Display Method
 	// (POST /v2/identities/{identifier}/display-method)
 	CreateDisplayMethod(ctx context.Context, request CreateDisplayMethodRequestObject) (CreateDisplayMethodResponseObject, error)
@@ -6148,26 +6148,26 @@ func (sh *strictHandler) GetCredentialOffer(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// GetAllDisplayMethod operation middleware
-func (sh *strictHandler) GetAllDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodParams) {
-	var request GetAllDisplayMethodRequestObject
+// GetAllDisplayMethods operation middleware
+func (sh *strictHandler) GetAllDisplayMethods(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodsParams) {
+	var request GetAllDisplayMethodsRequestObject
 
 	request.Identifier = identifier
 	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetAllDisplayMethod(ctx, request.(GetAllDisplayMethodRequestObject))
+		return sh.ssi.GetAllDisplayMethods(ctx, request.(GetAllDisplayMethodsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetAllDisplayMethod")
+		handler = middleware(handler, "GetAllDisplayMethods")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetAllDisplayMethodResponseObject); ok {
-		if err := validResponse.VisitGetAllDisplayMethodResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetAllDisplayMethodsResponseObject); ok {
+		if err := validResponse.VisitGetAllDisplayMethodsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
