@@ -432,8 +432,7 @@ func TestServer_PublishState(t *testing.T) {
 	chainID, err := client.NetworkID(ctx)
 	require.NoError(t, err)
 	toAddress := commonETH.HexToAddress(*identityETH.Address)
-	// nolinter
-	value := big.NewInt(500000000000000000) //0.5 ETH
+	value := big.NewInt(600000000000000000)
 	txData := &types.LegacyTx{
 		To:       common.ToPointer(toAddress),
 		Value:    value,

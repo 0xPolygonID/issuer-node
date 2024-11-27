@@ -39,7 +39,7 @@ func CreateFile(t *testing.T) *MyYAMLReader {
     confirmationBlockCount: -1
     receiptTimeout: 600s
     minGasPrice: 0
-    maxGasPrice: 33159325530000000
+    maxGasPrice: 4404437738
     rpcResponseTimeout: 5s
     waitReceiptCycleTime: 30s
     waitBlockCycleTime: 30s
