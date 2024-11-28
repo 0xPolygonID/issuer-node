@@ -83,7 +83,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
 	}
 
-	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, *credentialStatusType) {
+	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings.Mode, *credentialStatusType) {
 		log.Warn(ctx, "unsupported credential status type", "req", request)
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", *credentialStatusType)}}, nil
 	}
@@ -112,6 +112,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 			services.ErrDisplayMethodLacksURL,
 			services.ErrUnsupportedDisplayMethodType,
 			services.ErrWrongCredentialSubjectID,
+			&schema.ParseClaimError{},
 		}
 		for _, e := range errs {
 			if errors.Is(err, e) {
