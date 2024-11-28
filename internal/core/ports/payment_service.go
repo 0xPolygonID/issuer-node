@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
@@ -72,7 +71,7 @@ type PaymentService interface {
 	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq, baseURL string) (*protocol.PaymentRequestMessage, error)
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
 	GetSettings() payments.Settings
-	VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error)
+	VerifyPayment(ctx context.Context, paymentOptionID uuid.UUID, message *protocol.PaymentMessage) (bool, error)
 
 	CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config *domain.PaymentOptionConfig) (uuid.UUID, error)
 	GetPaymentOptions(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentOption, error)

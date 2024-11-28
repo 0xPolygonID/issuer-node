@@ -141,7 +141,7 @@ func TestPayment_GetPaymentOptionByID(t *testing.T) {
 	assert.NotEqual(t, uuid.Nil, id)
 
 	t.Run("Get payment option", func(t *testing.T) {
-		opt, err := repo.GetPaymentOptionByID(ctx, *issuerID, id)
+		opt, err := repo.GetPaymentOptionByID(ctx, issuerID, id)
 		assert.NoError(t, err)
 		assert.Equal(t, id, opt.ID)
 		assert.Equal(t, "name", opt.Name)
@@ -149,7 +149,7 @@ func TestPayment_GetPaymentOptionByID(t *testing.T) {
 		assert.Equal(t, paymentOptionConfig, *opt.Config)
 	})
 	t.Run("Get payment option linked to non existing issuer", func(t *testing.T) {
-		opt, err := repo.GetPaymentOptionByID(ctx, *issuerDIDOther, id)
+		opt, err := repo.GetPaymentOptionByID(ctx, issuerDIDOther, id)
 		require.Error(t, err)
 		assert.Nil(t, opt)
 	})
@@ -167,13 +167,13 @@ func TestPayment_DeletePaymentOption(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, id)
 
-	opt, err := repo.GetPaymentOptionByID(ctx, *issuerID, id)
+	opt, err := repo.GetPaymentOptionByID(ctx, issuerID, id)
 	assert.NoError(t, err)
 	assert.Equal(t, id, opt.ID)
 
 	require.NoError(t, repo.DeletePaymentOption(ctx, *issuerID, id))
 
-	opt, err = repo.GetPaymentOptionByID(ctx, *issuerID, id)
+	opt, err = repo.GetPaymentOptionByID(ctx, issuerID, id)
 	assert.Error(t, err)
 	assert.Nil(t, opt)
 }

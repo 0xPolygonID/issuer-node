@@ -2,13 +2,10 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
-	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -157,27 +154,13 @@ func (s *Server) GetPaymentSettings(_ context.Context, _ GetPaymentSettingsReque
 
 // VerifyPayment is the controller to verify payment
 func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error) {
-	bodyBytes, err := json.Marshal(request.Body.Body)
-	if err != nil {
-		log.Error(ctx, "marshaling request body", "err", err)
-		return VerifyPayment400JSONResponse{N400JSONResponse{Message: "can't parse payment"}}, nil
-	}
-	basicMessage := comm.BasicMessage{
-		From:     request.Body.From,
-		To:       request.Body.To,
-		ThreadID: request.Body.ThreadID,
-		ID:       request.Body.Id,
-		Typ:      comm.MediaType(request.Body.Typ),
-		Type:     comm.ProtocolMessage(""),
-		Body:     bodyBytes,
-	}
-
-	recipient := common.HexToAddress(request.Recipient)
-
-	isPaid, err := s.paymentService.VerifyPayment(ctx, recipient, basicMessage)
+	isPaid, err := s.paymentService.VerifyPayment(ctx, request.PaymentOptionID, request.Body)
 	if err != nil {
 		log.Error(ctx, "can't process payment message", "err", err)
 		return VerifyPayment400JSONResponse{N400JSONResponse{Message: "can't process payment message"}}, nil
 	}
-	return VerifyPayment200JSONResponse(isPaid), nil
+	if !isPaid {
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusPending}, nil
+	}
+	return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess}, nil
 }

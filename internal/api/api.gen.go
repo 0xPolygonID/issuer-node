@@ -85,6 +85,14 @@ const (
 	LinkStatusInactive LinkStatus = "inactive"
 )
 
+// Defines values for PaymentStatusStatus.
+const (
+	PaymentStatusStatusCanceled PaymentStatusStatus = "canceled"
+	PaymentStatusStatusFailed   PaymentStatusStatus = "failed"
+	PaymentStatusStatusPending  PaymentStatusStatus = "pending"
+	PaymentStatusStatusSuccess  PaymentStatusStatus = "success"
+)
+
 // Defines values for RefreshServiceType.
 const (
 	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
@@ -92,10 +100,10 @@ const (
 
 // Defines values for StateTransactionStatus.
 const (
-	Created   StateTransactionStatus = "created"
-	Failed    StateTransactionStatus = "failed"
-	Pending   StateTransactionStatus = "pending"
-	Published StateTransactionStatus = "published"
+	StateTransactionStatusCreated   StateTransactionStatus = "created"
+	StateTransactionStatusFailed    StateTransactionStatus = "failed"
+	StateTransactionStatusPending   StateTransactionStatus = "pending"
+	StateTransactionStatusPublished StateTransactionStatus = "published"
 )
 
 // Defines values for GetConnectionsParamsSort.
@@ -465,6 +473,9 @@ type PaginatedMetadata struct {
 	Total      uint `json:"total"`
 }
 
+// PaymentMessage defines model for PaymentMessage.
+type PaymentMessage = protocol.PaymentMessage
+
 // PaymentOption defines model for PaymentOption.
 type PaymentOption struct {
 	Config      domain.PaymentOptionConfig `json:"config"`
@@ -494,6 +505,14 @@ type PaymentOptionsPaginated struct {
 
 // PaymentSettings defines model for PaymentSettings.
 type PaymentSettings = payments.Settings
+
+// PaymentStatus defines model for PaymentStatus.
+type PaymentStatus struct {
+	Status PaymentStatusStatus `json:"status"`
+}
+
+// PaymentStatusStatus defines model for PaymentStatus.Status.
+type PaymentStatusStatus string
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {
@@ -606,9 +625,6 @@ type PathIdentifier = string
 
 // PathNonce defines model for pathNonce.
 type PathNonce = int64
-
-// PathRecipient defines model for pathRecipient.
-type PathRecipient = string
 
 // SessionID defines model for sessionID.
 type SessionID = uuid.UUID
@@ -841,7 +857,7 @@ type CreatePaymentOptionJSONRequestBody = PaymentOptionRequest
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
 
 // VerifyPaymentJSONRequestBody defines body for VerifyPayment for application/json ContentType.
-type VerifyPaymentJSONRequestBody = BasicMessage
+type VerifyPaymentJSONRequestBody = PaymentMessage
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -975,8 +991,8 @@ type ServerInterface interface {
 	// (GET /v2/payment/settings)
 	GetPaymentSettings(w http.ResponseWriter, r *http.Request)
 	// Verify Payment
-	// (POST /v2/payment/verify/{recipient})
-	VerifyPayment(w http.ResponseWriter, r *http.Request, recipient PathRecipient)
+	// (POST /v2/payment/verify/{paymentOptionID})
+	VerifyPayment(w http.ResponseWriter, r *http.Request, paymentOptionID uuid.UUID)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
@@ -1251,8 +1267,8 @@ func (_ Unimplemented) GetPaymentSettings(w http.ResponseWriter, r *http.Request
 }
 
 // Verify Payment
-// (POST /v2/payment/verify/{recipient})
-func (_ Unimplemented) VerifyPayment(w http.ResponseWriter, r *http.Request, recipient PathRecipient) {
+// (POST /v2/payment/verify/{paymentOptionID})
+func (_ Unimplemented) VerifyPayment(w http.ResponseWriter, r *http.Request, paymentOptionID uuid.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2876,12 +2892,12 @@ func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.
 
 	var err error
 
-	// ------------- Path parameter "recipient" -------------
-	var recipient PathRecipient
+	// ------------- Path parameter "paymentOptionID" -------------
+	var paymentOptionID uuid.UUID
 
-	err = runtime.BindStyledParameterWithOptions("simple", "recipient", chi.URLParam(r, "recipient"), &recipient, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "paymentOptionID", chi.URLParam(r, "paymentOptionID"), &paymentOptionID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "recipient", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "paymentOptionID", Err: err})
 		return
 	}
 
@@ -2892,7 +2908,7 @@ func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.VerifyPayment(w, r, recipient)
+		siw.Handler.VerifyPayment(w, r, paymentOptionID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3236,7 +3252,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/payment/settings", wrapper.GetPaymentSettings)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v2/payment/verify/{recipient}", wrapper.VerifyPayment)
+		r.Post(options.BaseURL+"/v2/payment/verify/{paymentOptionID}", wrapper.VerifyPayment)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/qr-store", wrapper.GetQrFromStore)
@@ -5035,15 +5051,15 @@ func (response GetPaymentSettings200JSONResponse) VisitGetPaymentSettingsRespons
 }
 
 type VerifyPaymentRequestObject struct {
-	Recipient PathRecipient `json:"recipient"`
-	Body      *VerifyPaymentJSONRequestBody
+	PaymentOptionID uuid.UUID `json:"paymentOptionID"`
+	Body            *VerifyPaymentJSONRequestBody
 }
 
 type VerifyPaymentResponseObject interface {
 	VisitVerifyPaymentResponse(w http.ResponseWriter) error
 }
 
-type VerifyPayment200JSONResponse bool
+type VerifyPayment200JSONResponse PaymentStatus
 
 func (response VerifyPayment200JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -5352,7 +5368,7 @@ type StrictServerInterface interface {
 	// (GET /v2/payment/settings)
 	GetPaymentSettings(ctx context.Context, request GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error)
 	// Verify Payment
-	// (POST /v2/payment/verify/{recipient})
+	// (POST /v2/payment/verify/{paymentOptionID})
 	VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
@@ -6621,10 +6637,10 @@ func (sh *strictHandler) GetPaymentSettings(w http.ResponseWriter, r *http.Reque
 }
 
 // VerifyPayment operation middleware
-func (sh *strictHandler) VerifyPayment(w http.ResponseWriter, r *http.Request, recipient PathRecipient) {
+func (sh *strictHandler) VerifyPayment(w http.ResponseWriter, r *http.Request, paymentOptionID uuid.UUID) {
 	var request VerifyPaymentRequestObject
 
-	request.Recipient = recipient
+	request.PaymentOptionID = paymentOptionID
 
 	var body VerifyPaymentJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

@@ -1443,7 +1443,7 @@ paths:
           $ref: '#/components/responses/500'
 
 
-  /v2/payment/verify/{recipient}:
+  /v2/payment/verify/{paymentOptionID}:
     post:
       summary: Verify Payment
       operationId: VerifyPayment
@@ -1453,20 +1453,25 @@ paths:
       security:
         - basicAuth: [ ]
       parameters:
-        - $ref: '#/components/parameters/pathRecipient'
+        - name: paymentOptionID
+          schema:
+            type: string
+            x-go-type: uuid.UUID
+          required: true
+          in: path
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BasicMessage'
+              $ref: '#/components/schemas/PaymentMessage'
       responses:
         '200':
           description: Payment verified
           content:
             application/json:
               schema:
-                type: boolean
+                $ref: '#/components/schemas/PaymentStatus'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -2140,6 +2145,12 @@ components:
                 value:
                   type: string
 
+    PaymentMessage:
+      type: object
+      x-go-type: protocol.PaymentMessage
+      x-go-type-import:
+        name: protocol
+        path: "github.com/iden3/iden3comm/v2/protocol"
 
     BasicMessage:
       type: object
@@ -2190,6 +2201,15 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/PaymentOption'
+
+    PaymentStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ success, failed, pending, canceled ]
 
     PaymentOption:
       type: object
@@ -2266,7 +2286,7 @@ components:
           type: array
           items:
             type: object
-            required: [type, context]
+            required: [ type, context ]
             properties:
               type:
                 type: string
@@ -2578,14 +2598,6 @@ components:
       in: path
       required: true
       description: Issuer identifier
-      schema:
-        type: string
-    
-    pathRecipient:
-      name: recipient
-      in: path
-      required: true
-      description: Payment recipient address
       schema:
         type: string
 

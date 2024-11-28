@@ -75,15 +75,19 @@ ORDER BY created_at DESC;`
 }
 
 // GetPaymentOptionByID returns a payment option by ID
-func (p *Payment) GetPaymentOptionByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentOption, error) {
-	const query = `
+func (p *Payment) GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error) {
+	const baseQuery = `
 SELECT id, issuer_did, name, description, configuration, created_at, updated_at 
 FROM payment_options 
 WHERE id = $1
-AND issuer_did = $2;`
-
+`
 	var opt domain.PaymentOption
 	var strIssuerDID string
+
+	query := baseQuery
+	if issuerDID != nil {
+		query += ` AND issuer_did = $2`
+	}
 	err := p.conn.Pgx.QueryRow(ctx, query, id, issuerDID.String()).Scan(&opt.ID, &strIssuerDID, &opt.Name, &opt.Description, &opt.Config, &opt.CreatedAt, &opt.UpdatedAt)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {

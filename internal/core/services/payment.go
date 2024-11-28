@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -83,7 +82,7 @@ func (p *payment) GetPaymentOptions(ctx context.Context, issuerDID *w3c.DID) ([]
 
 // GetPaymentOptionByID returns a payment option by its ID
 func (p *payment) GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error) {
-	opt, err := p.paymentsStore.GetPaymentOptionByID(ctx, *issuerDID, id)
+	opt, err := p.paymentsStore.GetPaymentOptionByID(ctx, issuerDID, id)
 	if err != nil {
 		log.Error(ctx, "failed to get payment option", "err", err, "issuerDID", issuerDID, "id", id)
 		return nil, err
@@ -105,7 +104,7 @@ func (p *payment) DeletePaymentOption(ctx context.Context, issuerDID *w3c.DID, i
 func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePaymentRequestReq, baseURL string) (*protocol.PaymentRequestMessage, error) {
 	const defaultExpirationDate = 1 * time.Hour
 
-	option, err := p.paymentsStore.GetPaymentOptionByID(ctx, req.IssuerDID, req.OptionID)
+	option, err := p.paymentsStore.GetPaymentOptionByID(ctx, &req.IssuerDID, req.OptionID)
 	if err != nil {
 		log.Error(ctx, "failed to get payment option", "err", err, "issuerDID", req.IssuerDID, "optionID", req.OptionID)
 		return nil, err
@@ -229,49 +228,92 @@ func (p *payment) GetSettings() payments.Settings {
 	return p.settings
 }
 
-func (p *payment) VerifyPayment(ctx context.Context, recipient common.Address, message comm.BasicMessage) (bool, error) {
-	var paymentRequest protocol.PaymentRequestMessageBody
-	err := json.Unmarshal(message.Body, &paymentRequest)
+func (p *payment) VerifyPayment(ctx context.Context, paymentOptionID uuid.UUID, message *protocol.PaymentMessage) (bool, error) {
+	option, err := p.paymentsStore.GetPaymentOptionByID(ctx, nil, paymentOptionID)
 	if err != nil {
 		return false, err
 	}
 
+	// TODO: Load rpc from network resolvers
 	client, err := ethclient.Dial("https://polygon-amoy.g.alchemy.com/v2/DHvucvBBzrBhaHzmjrMp24PGbl7vwee6")
 	if err != nil {
 		return false, err
 	}
 
-	contractAddress := common.HexToAddress("0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774")
+	// TODO: Load contract from payment config
+	contractAddress := common.HexToAddress("0xF8E49b922D5Fb00d3EdD12bd14064f275726D339")
 	instance, err := eth.NewPaymentContract(contractAddress, client)
 	if err != nil {
 		return false, err
 	}
 
-	nonce, err := nonceFromPaymentRequestInfoData(paymentRequest.Payments[0].Data)
+	// TODO: Iterate over all payments?
+	nonce, err := nonceFromPayment(&message.Body.Payments[0])
 	if err != nil {
 		log.Error(ctx, "failed to get nonce from payment request info data", "err", err)
 		return false, err
 	}
-	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: context.Background()}, recipient, nonce)
+
+	address, err := recipientAddressFromPayment(&message.Body.Payments[0], option)
+	if err != nil {
+		log.Error(ctx, "failed to get recipient address from payment", "err", err)
+		return false, err
+	}
+
+	// TODO: pending, canceled, success, failed
+	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: ctx}, address, nonce)
 	if err != nil {
 		return false, err
 	}
 	return isPaid, nil
 }
 
-func nonceFromPaymentRequestInfoData(data protocol.PaymentRequestInfoData) (*big.Int, error) {
+func recipientAddressFromPayment(data *protocol.Payment, option *domain.PaymentOption) (common.Address, error) {
+	var address common.Address
+	switch data.Type() {
+	case protocol.Iden3PaymentCryptoV1Type:
+		address = common.Address{}
+	case protocol.Iden3PaymentRailsV1Type:
+		t, ok := data.Data().(protocol.Iden3PaymentRailsV1)
+		if !ok {
+			return common.Address{}, fmt.Errorf("failed to cast payment request data to Iden3PaymentRailsRequestV1")
+		}
+		for _, chain := range option.Config.Chains {
+			if strconv.Itoa(chain.ChainId) == t.PaymentData.ChainID {
+				address = common.HexToAddress(chain.Recipient)
+				break
+			}
+		}
+	case protocol.Iden3PaymentRailsERC20V1Type:
+		t, ok := data.Data().(protocol.Iden3PaymentRailsERC20V1)
+		if !ok {
+			return common.Address{}, fmt.Errorf("failed to cast payment request data to Iden3PaymentRailsERC20RequestV1")
+		}
+		for _, chain := range option.Config.Chains {
+			if strconv.Itoa(chain.ChainId) == t.PaymentData.ChainID {
+				address = common.HexToAddress(chain.Recipient)
+				break
+			}
+		}
+	default:
+		return common.Address{}, fmt.Errorf("unsupported payment request data type: %s", data.Type())
+	}
+	return address, nil
+}
+
+func nonceFromPayment(data *protocol.Payment) (*big.Int, error) {
 	const base10 = 10
 	var nonce string
 	switch data.Type() {
-	case protocol.Iden3PaymentRequestCryptoV1Type:
+	case protocol.Iden3PaymentCryptoV1Type:
 		nonce = ""
-	case protocol.Iden3PaymentRailsRequestV1Type:
+	case protocol.Iden3PaymentRailsV1Type:
 		t, ok := data.Data().(protocol.Iden3PaymentRailsRequestV1)
 		if !ok {
 			return nil, fmt.Errorf("failed to cast payment request data to Iden3PaymentRailsRequestV1")
 		}
 		nonce = t.Nonce
-	case protocol.Iden3PaymentRailsERC20RequestV1Type:
+	case protocol.Iden3PaymentRailsERC20V1Type:
 		t, ok := data.Data().(protocol.Iden3PaymentRailsERC20RequestV1)
 		if !ok {
 			return nil, fmt.Errorf("failed to cast payment request data to Iden3PaymentRailsERC20RequestV1")

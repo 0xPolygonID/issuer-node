@@ -13,6 +13,6 @@ import (
 type PaymentRepository interface {
 	SavePaymentOption(ctx context.Context, opt *domain.PaymentOption) (uuid.UUID, error)
 	GetAllPaymentOptions(ctx context.Context, issuerDID w3c.DID) ([]domain.PaymentOption, error)
-	GetPaymentOptionByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentOption, error)
+	GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error)
 	DeletePaymentOption(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) error
 }
