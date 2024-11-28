@@ -13,26 +13,14 @@ type VerificationQuery struct {
 	IssuerDID           string
 	ChainID             int
 	SkipCheckRevocation bool
-	Scopes              []VerificationScope
+	Scope               pgtype.JSONB `json:"scopes"`
 	CreatedAt           time.Time
-}
-
-// VerificationScope holds the verification scope data
-type VerificationScope struct {
-	ID                uuid.UUID
-	ScopeID           int
-	CircuitID         string
-	Context           string
-	AllowedIssuers    []string
-	CredentialType    string
-	CredentialSubject pgtype.JSONB `json:"credential_subject"`
-	CreatedAt         time.Time
 }
 
 // VerificationResponse holds the verification response data
 type VerificationResponse struct {
 	ID                  uuid.UUID
-	VerificationScopeID uuid.UUID
+	VerificationQueryID uuid.UUID
 	UserDID             string
 	Response            pgtype.JSONB `json:"response"`
 	Pass                bool

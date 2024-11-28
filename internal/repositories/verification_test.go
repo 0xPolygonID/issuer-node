@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -26,40 +27,14 @@ func TestSaveVerificationQuery(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("should save the verification", func(t *testing.T) {
-		credentialSubject := pgtype.JSONB{}
-		err = credentialSubject.Set(`{
-		"birthday": {
-			"$eq": 19791109
-		}
-		}`)
-
-		credentialSubject2 := pgtype.JSONB{}
-		err = credentialSubject2.Set(` {"position": {"$eq": 1}}`)
+		scope := pgtype.JSONB{}
+		err = scope.Set(`[{"ID": 1, "circuitID": "credentialAtomicQuerySigV2", "query": {"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", "allowedIssuers": ["*"], "type": "KYCAgeCredential", "credentialSubject": {"birthday": {"$eq": 19791109}}}}]`)
 		require.NoError(t, err)
 		verificationQuery := domain.VerificationQuery{
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scopes: []domain.VerificationScope{
-				{
-					ID:                uuid.New(),
-					ScopeID:           1,
-					CircuitID:         "credentialAtomicQuerySigV2",
-					Context:           "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
-					AllowedIssuers:    []string{"issuer1", "issuer2"},
-					CredentialType:    "KYCAgeCredential",
-					CredentialSubject: credentialSubject,
-				},
-				{
-					ID:                uuid.New(),
-					ScopeID:           2,
-					CircuitID:         "credentialAtomicQuerySigV2",
-					Context:           "ipfs://QmaBJzpoYT2CViDx5ShJiuYLKXizrPEfXo8JqzrXCvG6oc",
-					AllowedIssuers:    []string{"*"},
-					CredentialType:    "TestInteger01",
-					CredentialSubject: credentialSubject2,
-				},
-			},
+			Scope:               scope,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -68,6 +43,7 @@ func TestSaveVerificationQuery(t *testing.T) {
 	})
 }
 
+//nolint:all
 func TestGetVerification(t *testing.T) {
 	ctx := context.Background()
 	didStr := "did:iden3:polygon:amoy:xBdqiqz3yVT79NEAuNaqKSDZ6a5V6q8Ph66i5d2tT"
@@ -80,35 +56,14 @@ func TestGetVerification(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("should get the verification", func(t *testing.T) {
-		credentialSubject := pgtype.JSONB{}
-		err = credentialSubject.Set(`{"birthday": {"$eq": 19791109}}`)
-		credentialSubject2 := pgtype.JSONB{}
-		err = credentialSubject2.Set(`{"position": {"$eq": 1}}`)
+		scope := pgtype.JSONB{}
+		err = scope.Set(`[{"ID": 1, "circuitID": "credentialAtomicQuerySigV2", "query": {"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", "allowedIssuers": ["*"], "type": "KYCAgeCredential", "credentialSubject": {"birthday": {"$eq": 19791109}}}}]`)
 		require.NoError(t, err)
 		verificationQuery := domain.VerificationQuery{
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scopes: []domain.VerificationScope{
-				{
-					ID:                uuid.New(),
-					ScopeID:           1,
-					CircuitID:         "credentialAtomicQuerySigV2",
-					Context:           "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
-					AllowedIssuers:    []string{"issuer1", "issuer2"},
-					CredentialType:    "KYCAgeCredential",
-					CredentialSubject: credentialSubject,
-				},
-				{
-					ID:                uuid.New(),
-					ScopeID:           2,
-					CircuitID:         "credentialAtomicQuerySigV2",
-					Context:           "ipfs://QmaBJzpoYT2CViDx5ShJiuYLKXizrPEfXo8JqzrXCvG6oc",
-					AllowedIssuers:    []string{"*"},
-					CredentialType:    "TestInteger01",
-					CredentialSubject: credentialSubject2,
-				},
-			},
+			Scope:               scope,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -120,20 +75,17 @@ func TestGetVerification(t *testing.T) {
 		assert.Equal(t, verificationQuery.ID, verificationQueryFromDB.ID)
 		assert.Equal(t, verificationQuery.ChainID, verificationQueryFromDB.ChainID)
 		assert.Equal(t, verificationQuery.SkipCheckRevocation, verificationQueryFromDB.SkipCheckRevocation)
-		assert.Equal(t, verificationQuery.Scopes[0].ID, verificationQueryFromDB.Scopes[0].ID)
-		assert.Equal(t, verificationQuery.Scopes[0].ScopeID, verificationQueryFromDB.Scopes[0].ScopeID)
-		assert.Equal(t, verificationQuery.Scopes[0].CircuitID, verificationQueryFromDB.Scopes[0].CircuitID)
-		assert.Equal(t, verificationQuery.Scopes[0].Context, verificationQueryFromDB.Scopes[0].Context)
-		assert.Equal(t, verificationQuery.Scopes[0].AllowedIssuers, verificationQueryFromDB.Scopes[0].AllowedIssuers)
-		assert.Equal(t, verificationQuery.Scopes[0].CredentialType, verificationQueryFromDB.Scopes[0].CredentialType)
-		assert.Equal(t, verificationQuery.Scopes[0].CredentialSubject.Bytes, verificationQueryFromDB.Scopes[0].CredentialSubject.Bytes)
-		assert.Equal(t, verificationQuery.Scopes[1].ID, verificationQueryFromDB.Scopes[1].ID)
-		assert.Equal(t, verificationQuery.Scopes[1].ScopeID, verificationQueryFromDB.Scopes[1].ScopeID)
-		assert.Equal(t, verificationQuery.Scopes[1].CircuitID, verificationQueryFromDB.Scopes[1].CircuitID)
-		assert.Equal(t, verificationQuery.Scopes[1].Context, verificationQueryFromDB.Scopes[1].Context)
-		assert.Equal(t, verificationQuery.Scopes[1].AllowedIssuers, verificationQueryFromDB.Scopes[1].AllowedIssuers)
-		assert.Equal(t, verificationQuery.Scopes[1].CredentialType, verificationQueryFromDB.Scopes[1].CredentialType)
-		assert.Equal(t, verificationQuery.Scopes[1].CredentialSubject.Bytes, verificationQueryFromDB.Scopes[1].CredentialSubject.Bytes)
+		assert.NotNil(t, verificationQueryFromDB.Scope)
+
+		var res []map[string]interface{}
+		require.NoError(t, json.Unmarshal(verificationQuery.Scope.Bytes, &res))
+		assert.Equal(t, 1, len(res))
+		assert.Equal(t, 1, int(res[0]["ID"].(float64)))
+		assert.Equal(t, "credentialAtomicQuerySigV2", res[0]["circuitID"])
+		assert.Equal(t, "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", res[0]["query"].(map[string]interface{})["context"])
+		assert.Equal(t, []interface{}{"*"}, res[0]["query"].(map[string]interface{})["allowedIssuers"])
+		assert.Equal(t, "KYCAgeCredential", res[0]["query"].(map[string]interface{})["type"])
+		assert.Equal(t, 19791109, int(res[0]["query"].(map[string]interface{})["credentialSubject"].(map[string]interface{})["birthday"].(map[string]interface{})["$eq"].(float64)))
 	})
 
 	t.Run("should not get the verification", func(t *testing.T) {
@@ -144,6 +96,7 @@ func TestGetVerification(t *testing.T) {
 	})
 }
 
+//nolint:all
 func TestUpdateVerificationQuery(t *testing.T) {
 	ctx := context.Background()
 	didStr := "did:iden3:polygon:amoy:x7tz1NB9fy4GJJW1oQV1wGYpuratuApN8FWEQVKZP"
@@ -161,37 +114,25 @@ func TestUpdateVerificationQuery(t *testing.T) {
 		credentialSubject2 := pgtype.JSONB{}
 		err = credentialSubject2.Set(`{"position": {"$eq": 1}}`)
 		require.NoError(t, err)
+
+		scope := pgtype.JSONB{}
+		err = scope.Set(`[{"ID": 1, "circuitID": "credentialAtomicQuerySigV2", "query": {"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", "allowedIssuers": ["*"], "type": "KYCAgeCredential", "credentialSubject": {"birthday": {"$eq": 19791109}}}}]`)
+		require.NoError(t, err)
+		scope2 := pgtype.JSONB{}
+		err = scope2.Set(`[{"ID": 1,"circuitID": "credentialAtomicQueryV3-beta.1","query": {"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld","allowedIssuers": ["*"],"type": "KYCAgeCredential","credentialSubject": {"birthday": {"$eq": 19791109}}}}]`)
+		require.NoError(t, err)
 		verificationQuery := domain.VerificationQuery{
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scopes: []domain.VerificationScope{
-				{
-					ID:                uuid.New(),
-					ScopeID:           1,
-					CircuitID:         "credentialAtomicQuerySigV2",
-					Context:           "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
-					AllowedIssuers:    []string{"issuer1", "issuer2"},
-					CredentialType:    "KYCAgeCredential",
-					CredentialSubject: credentialSubject1,
-				},
-			},
+			Scope:               scope,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
 		require.NoError(t, err)
 		assert.Equal(t, verificationQuery.ID, verificationQueryID)
 
-		verificationQuery.Scopes = append(verificationQuery.Scopes, domain.VerificationScope{
-			ID:                uuid.New(),
-			ScopeID:           2,
-			CircuitID:         "credentialAtomicQuerySigV2",
-			Context:           "ipfs://QmaBJzpoYT2CViDx5ShJiuYLKXizrPEfXo8JqzrXCvG6oc",
-			AllowedIssuers:    []string{"*"},
-			CredentialType:    "TestInteger01",
-			CredentialSubject: credentialSubject2,
-		})
-
+		verificationQuery.Scope = scope2
 		verificationQuery.SkipCheckRevocation = true
 		verificationQuery.ChainID = 137
 		_, err = verificationRepository.Save(ctx, *did, verificationQuery)
@@ -202,23 +143,21 @@ func TestUpdateVerificationQuery(t *testing.T) {
 		assert.Equal(t, verificationQuery.ID, verificationQueryFromDB.ID)
 		assert.Equal(t, verificationQuery.ChainID, verificationQueryFromDB.ChainID)
 		assert.Equal(t, verificationQuery.SkipCheckRevocation, verificationQueryFromDB.SkipCheckRevocation)
-		assert.Equal(t, verificationQuery.Scopes[0].ID, verificationQueryFromDB.Scopes[0].ID)
-		assert.Equal(t, verificationQuery.Scopes[0].ScopeID, verificationQueryFromDB.Scopes[0].ScopeID)
-		assert.Equal(t, verificationQuery.Scopes[0].CircuitID, verificationQueryFromDB.Scopes[0].CircuitID)
-		assert.Equal(t, verificationQuery.Scopes[0].Context, verificationQueryFromDB.Scopes[0].Context)
-		assert.Equal(t, verificationQuery.Scopes[0].AllowedIssuers, verificationQueryFromDB.Scopes[0].AllowedIssuers)
-		assert.Equal(t, verificationQuery.Scopes[0].CredentialType, verificationQueryFromDB.Scopes[0].CredentialType)
-		assert.Equal(t, verificationQuery.Scopes[0].CredentialSubject.Bytes, verificationQueryFromDB.Scopes[0].CredentialSubject.Bytes)
-		assert.Equal(t, verificationQuery.Scopes[1].ID, verificationQueryFromDB.Scopes[1].ID)
-		assert.Equal(t, verificationQuery.Scopes[1].ScopeID, verificationQueryFromDB.Scopes[1].ScopeID)
-		assert.Equal(t, verificationQuery.Scopes[1].CircuitID, verificationQueryFromDB.Scopes[1].CircuitID)
-		assert.Equal(t, verificationQuery.Scopes[1].Context, verificationQueryFromDB.Scopes[1].Context)
-		assert.Equal(t, verificationQuery.Scopes[1].AllowedIssuers, verificationQueryFromDB.Scopes[1].AllowedIssuers)
-		assert.Equal(t, verificationQuery.Scopes[1].CredentialType, verificationQueryFromDB.Scopes[1].CredentialType)
-		assert.Equal(t, verificationQuery.Scopes[1].CredentialSubject.Bytes, verificationQueryFromDB.Scopes[1].CredentialSubject.Bytes)
+		assert.NotNil(t, verificationQueryFromDB.Scope)
+
+		var res []map[string]interface{}
+		require.NoError(t, json.Unmarshal(verificationQueryFromDB.Scope.Bytes, &res))
+		assert.Equal(t, 1, len(res))
+		assert.Equal(t, 1, int(res[0]["ID"].(float64)))
+		assert.Equal(t, "credentialAtomicQueryV3-beta.1", res[0]["circuitID"])
+		assert.Equal(t, "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", res[0]["query"].(map[string]interface{})["context"])
+		assert.Equal(t, []interface{}{"*"}, res[0]["query"].(map[string]interface{})["allowedIssuers"])
+		assert.Equal(t, "KYCAgeCredential", res[0]["query"].(map[string]interface{})["type"])
+		assert.Equal(t, 19791109, int(res[0]["query"].(map[string]interface{})["credentialSubject"].(map[string]interface{})["birthday"].(map[string]interface{})["$eq"].(float64)))
 	})
 }
 
+//nolint:all
 func TestGetAllVerification(t *testing.T) {
 	ctx := context.Background()
 	didStr := "did:iden3:polygon:amoy:xCu8Cshrj4oegWRabzGtbKzqUFtXN85x8XkCPdREU"
@@ -231,45 +170,26 @@ func TestGetAllVerification(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("GetAll", func(t *testing.T) {
-		credentialSubject := pgtype.JSONB{}
-		err = credentialSubject.Set(`{"birthday": {"$eq": 19791109}}`)
-		credentialSubject2 := pgtype.JSONB{}
-		err = credentialSubject2.Set(`{"position": {"$eq": 1}}`)
+		scope := pgtype.JSONB{}
+		err = scope.Set(`[{"ID": 1, "circuitID": "credentialAtomicQuerySigV2", "query": {"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", "allowedIssuers": ["*"], "type": "KYCAgeCredential", "credentialSubject": {"birthday": {"$eq": 19791109}}}}]`)
 		require.NoError(t, err)
+
+		scope2 := pgtype.JSONB{}
+		err = scope2.Set(`[{"ID": 2,"circuitID": "credentialAtomicQueryV3-beta.1","query": {"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld","allowedIssuers": ["*"],"type": "KYCAgeCredential","credentialSubject": {"birthday": {"$eq": 19791109}}}}]`)
+
 		verificationQuery1 := domain.VerificationQuery{
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scopes: []domain.VerificationScope{
-				{
-					ID:                uuid.New(),
-					ScopeID:           1,
-					CircuitID:         "credentialAtomicQuerySigV2",
-					Context:           "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
-					AllowedIssuers:    []string{"issuer1", "issuer2"},
-					CredentialType:    "KYCAgeCredential",
-					CredentialSubject: credentialSubject,
-				},
-			},
+			Scope:               scope,
 		}
 
 		verificationQuery2 := domain.VerificationQuery{
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scopes: []domain.VerificationScope{
-				{
-					ID:                uuid.New(),
-					ScopeID:           2,
-					CircuitID:         "credentialAtomicQuerySigV2",
-					Context:           "ipfs://QmaBJzpoYT2CViDx5ShJiuYLKXizrPEfXo8JqzrXCvG6oc",
-					AllowedIssuers:    []string{"*"},
-					CredentialType:    "TestInteger01",
-					CredentialSubject: credentialSubject2,
-				},
-			},
+			Scope:               scope2,
 		}
-
 		verificationQueryID1, err := verificationRepository.Save(ctx, *did, verificationQuery1)
 		require.NoError(t, err)
 		assert.Equal(t, verificationQuery1.ID, verificationQueryID1)
@@ -281,26 +201,34 @@ func TestGetAllVerification(t *testing.T) {
 		verificationQueryFromDB, err := verificationRepository.GetAll(ctx, *did)
 		require.NoError(t, err)
 		assert.Equal(t, 2, len(verificationQueryFromDB))
+
+		var resVerificationQuery1 []map[string]interface{}
+		require.NoError(t, json.Unmarshal(verificationQueryFromDB[0].Scope.Bytes, &resVerificationQuery1))
+
 		assert.Equal(t, verificationQuery1.ID, verificationQueryFromDB[0].ID)
 		assert.Equal(t, verificationQuery1.ChainID, verificationQueryFromDB[0].ChainID)
 		assert.Equal(t, verificationQuery1.SkipCheckRevocation, verificationQueryFromDB[0].SkipCheckRevocation)
-		assert.Equal(t, verificationQuery1.Scopes[0].ID, verificationQueryFromDB[0].Scopes[0].ID)
-		assert.Equal(t, verificationQuery1.Scopes[0].ScopeID, verificationQueryFromDB[0].Scopes[0].ScopeID)
-		assert.Equal(t, verificationQuery1.Scopes[0].CircuitID, verificationQueryFromDB[0].Scopes[0].CircuitID)
-		assert.Equal(t, verificationQuery1.Scopes[0].Context, verificationQueryFromDB[0].Scopes[0].Context)
-		assert.Equal(t, verificationQuery1.Scopes[0].AllowedIssuers, verificationQueryFromDB[0].Scopes[0].AllowedIssuers)
-		assert.Equal(t, verificationQuery1.Scopes[0].CredentialType, verificationQueryFromDB[0].Scopes[0].CredentialType)
-		assert.Equal(t, verificationQuery1.Scopes[0].CredentialSubject.Bytes, verificationQueryFromDB[0].Scopes[0].CredentialSubject.Bytes)
+		assert.Equal(t, 1, len(resVerificationQuery1))
+		assert.Equal(t, 1, int(resVerificationQuery1[0]["ID"].(float64)))
+		assert.Equal(t, "credentialAtomicQuerySigV2", resVerificationQuery1[0]["circuitID"])
+		assert.Equal(t, "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", resVerificationQuery1[0]["query"].(map[string]interface{})["context"])
+		assert.Equal(t, []interface{}{"*"}, resVerificationQuery1[0]["query"].(map[string]interface{})["allowedIssuers"])
+		assert.Equal(t, "KYCAgeCredential", resVerificationQuery1[0]["query"].(map[string]interface{})["type"])
+		assert.Equal(t, 19791109, int(resVerificationQuery1[0]["query"].(map[string]interface{})["credentialSubject"].(map[string]interface{})["birthday"].(map[string]interface{})["$eq"].(float64)))
+
+		var resVerificationQuery2 []map[string]interface{}
+		require.NoError(t, json.Unmarshal(verificationQueryFromDB[1].Scope.Bytes, &resVerificationQuery2))
+
 		assert.Equal(t, verificationQuery2.ID, verificationQueryFromDB[1].ID)
 		assert.Equal(t, verificationQuery2.ChainID, verificationQueryFromDB[1].ChainID)
 		assert.Equal(t, verificationQuery2.SkipCheckRevocation, verificationQueryFromDB[1].SkipCheckRevocation)
-		assert.Equal(t, verificationQuery2.Scopes[0].ID, verificationQueryFromDB[1].Scopes[0].ID)
-		assert.Equal(t, verificationQuery2.Scopes[0].ScopeID, verificationQueryFromDB[1].Scopes[0].ScopeID)
-		assert.Equal(t, verificationQuery2.Scopes[0].CircuitID, verificationQueryFromDB[1].Scopes[0].CircuitID)
-		assert.Equal(t, verificationQuery2.Scopes[0].Context, verificationQueryFromDB[1].Scopes[0].Context)
-		assert.Equal(t, verificationQuery2.Scopes[0].AllowedIssuers, verificationQueryFromDB[1].Scopes[0].AllowedIssuers)
-		assert.Equal(t, verificationQuery2.Scopes[0].CredentialType, verificationQueryFromDB[1].Scopes[0].CredentialType)
-		assert.Equal(t, verificationQuery2.Scopes[0].CredentialSubject.Bytes, verificationQueryFromDB[1].Scopes[0].CredentialSubject.Bytes)
+		assert.Equal(t, 1, len(resVerificationQuery2))
+		assert.Equal(t, 2, int(resVerificationQuery2[0]["ID"].(float64)))
+		assert.Equal(t, "credentialAtomicQueryV3-beta.1", resVerificationQuery2[0]["circuitID"])
+		assert.Equal(t, "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", resVerificationQuery2[0]["query"].(map[string]interface{})["context"])
+		assert.Equal(t, []interface{}{"*"}, resVerificationQuery2[0]["query"].(map[string]interface{})["allowedIssuers"])
+		assert.Equal(t, "KYCAgeCredential", resVerificationQuery2[0]["query"].(map[string]interface{})["type"])
+		assert.Equal(t, 19791109, int(resVerificationQuery2[0]["query"].(map[string]interface{})["credentialSubject"].(map[string]interface{})["birthday"].(map[string]interface{})["$eq"].(float64)))
 	})
 }
 
@@ -319,21 +247,15 @@ func TestAddVerification(t *testing.T) {
 		credentialSubject := pgtype.JSONB{}
 		err = credentialSubject.Set(`{"birthday": {"$eq": 19791109}}`)
 		require.NoError(t, err)
+
+		scope := pgtype.JSONB{}
+		err = scope.Set(`[{"ID": 1, "circuitID": "credentialAtomicQuerySigV2", "query": {"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", "allowedIssuers": ["*"], "type": "KYCAgeCredential", "credentialSubject": {"birthday": {"$eq": 19791109}}}}]`)
+		require.NoError(t, err)
 		verificationQuery := domain.VerificationQuery{
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scopes: []domain.VerificationScope{
-				{
-					ID:                uuid.New(),
-					ScopeID:           1,
-					CircuitID:         "credentialAtomicQuerySigV2",
-					Context:           "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
-					AllowedIssuers:    []string{"issuer1", "issuer2"},
-					CredentialType:    "KYCAgeCredential",
-					CredentialSubject: credentialSubject,
-				},
-			},
+			Scope:               scope,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -349,12 +271,12 @@ func TestAddVerification(t *testing.T) {
 		require.NoError(t, err)
 		verificationResponse := domain.VerificationResponse{
 			ID:                  uuid.New(),
-			VerificationScopeID: verificationQueryFromDB.Scopes[0].ID,
+			VerificationQueryID: verificationQueryFromDB.ID,
 			UserDID:             "did:iden3:privado:main:2SizDYDWBViKXRfp1VgUAMqhz5SDvP7D1MYiPfwJV3",
 			Response:            response,
 		}
 
-		responseID, err := verificationRepository.AddResponse(ctx, verificationQueryFromDB.Scopes[0].ID, verificationResponse)
+		responseID, err := verificationRepository.AddResponse(ctx, verificationQueryFromDB.ID, verificationResponse)
 		require.NoError(t, err)
 		assert.Equal(t, verificationResponse.ID, responseID)
 	})
@@ -370,7 +292,7 @@ func TestAddVerification(t *testing.T) {
 		}
 		responseID, err := verificationRepository.AddResponse(ctx, uuid.New(), verificationResponse)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, VerificationScopeNotFoundError))
+		require.True(t, errors.Is(err, VerificationQueryNotFoundError))
 		assert.Equal(t, uuid.Nil, responseID)
 	})
 }
