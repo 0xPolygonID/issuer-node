@@ -15,10 +15,10 @@ import (
 )
 
 var (
-	// DuplicatedDefaultDisplayMethodError is the error returned when trying to save a display method as default when there is already one
-	DuplicatedDefaultDisplayMethodError = errors.New("duplicated default display method")
 	// DisplayMethodNotFoundErr is the error returned when the display method is not found
 	DisplayMethodNotFoundErr = errors.New("display method not found")
+	// DisplayMethodDuplicateNameError is the error returned when trying to save a display method with the same name
+	DisplayMethodDuplicateNameError = errors.New("display method with the same name already exists")
 )
 
 // DisplayMethod represents the display method repository
@@ -43,7 +43,7 @@ func (d DisplayMethod) Save(ctx context.Context, displayMethod domain.DisplayMet
 	err := d.conn.Pgx.QueryRow(ctx, sql, displayMethod.ID, displayMethod.Name, displayMethod.URL, displayMethod.IssuerCoreDID().String()).Scan(&id)
 	if err != nil {
 		if strings.Contains(err.Error(), "violates unique constraint") {
-			return nil, DuplicatedDefaultDisplayMethodError
+			return nil, DisplayMethodDuplicateNameError
 		}
 		return nil, err
 	}

@@ -35,8 +35,8 @@ func (s *Server) CreateDisplayMethod(ctx context.Context, request CreateDisplayM
 	id, err := s.displayMethodService.Save(ctx, *identityDID, request.Body.Name, request.Body.Url)
 	if err != nil {
 		log.Error(ctx, "Error saving display method", "err", err)
-		if errors.Is(err, repositories.DuplicatedDefaultDisplayMethodError) {
-			return CreateDisplayMethod400JSONResponse{N400JSONResponse{Message: "Duplicated default display method"}}, nil
+		if errors.Is(err, repositories.DisplayMethodDuplicateNameError) {
+			return CreateDisplayMethod400JSONResponse{N400JSONResponse{Message: "Duplicated name display method"}}, nil
 		}
 		return CreateDisplayMethod500JSONResponse{N500JSONResponse{Message: "Error saving display method"}}, nil
 	}
@@ -127,8 +127,8 @@ func (s *Server) UpdateDisplayMethod(ctx context.Context, request UpdateDisplayM
 		if errors.Is(err, repositories.DisplayMethodNotFoundErr) {
 			return UpdateDisplayMethod404JSONResponse{N404JSONResponse{Message: "Display method not found"}}, nil
 		}
-		if errors.Is(err, repositories.DuplicatedDefaultDisplayMethodError) {
-			return UpdateDisplayMethod400JSONResponse{N400JSONResponse{Message: "Duplicated default display method"}}, nil
+		if errors.Is(err, repositories.DisplayMethodDuplicateNameError) {
+			return UpdateDisplayMethod400JSONResponse{N400JSONResponse{Message: "Duplicated name display method"}}, nil
 		}
 		return UpdateDisplayMethod500JSONResponse{N500JSONResponse{Message: "Error updating display method"}}, nil
 	}

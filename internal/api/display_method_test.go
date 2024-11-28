@@ -93,6 +93,20 @@ func TestServer_CreateDisplayMethod(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 			},
 		},
+		{
+			name: "duplicate name",
+			auth: authOk,
+			body: CreateDisplayMethodRequest{
+				Name: "test",
+				Url:  "http://test.com",
+			},
+			expected: expected{
+				response: CreateDisplayMethod400JSONResponse{
+					N400JSONResponse: N400JSONResponse{Message: "Duplicated name display method"},
+				},
+				httpCode: http.StatusBadRequest,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -137,6 +151,9 @@ func TestServer_UpdateDisplayMethod(t *testing.T) {
 	displayMethodToUpdateID, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com")
 	require.NoError(t, err)
 
+	_, err = server.Services.displayMethod.Save(ctx, *did, "test-duplicated", "http://test-duplicated.com")
+	require.NoError(t, err)
+
 	handler := getHandler(ctx, server)
 
 	type expected struct {
@@ -171,6 +188,20 @@ func TestServer_UpdateDisplayMethod(t *testing.T) {
 			expected: expected{
 				response: UpdateDisplayMethod200JSONResponse{},
 				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name:            "duplicated name",
+			auth:            authOk,
+			displayMethodID: displayMethodToUpdateID,
+			body: UpdateDisplayMethodJSONRequestBody{
+				Name: common.ToPointer("test-duplicated"),
+			},
+			expected: expected{
+				response: UpdateDisplayMethod400JSONResponse{
+					N400JSONResponse: N400JSONResponse{Message: "Duplicated name display method"},
+				},
+				httpCode: http.StatusBadRequest,
 			},
 		},
 		{

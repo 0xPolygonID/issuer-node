@@ -35,6 +35,13 @@ func TestSaveDisplayMethod(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, id)
 	})
+
+	t.Run("Save display method with same name", func(t *testing.T) {
+		displayMethod.ID = uuid.New()
+		id, err := displayMethodRepository.Save(ctx, displayMethod)
+		require.Error(t, err)
+		require.Nil(t, id)
+	})
 }
 
 func TestGetDisplayMethod(t *testing.T) {

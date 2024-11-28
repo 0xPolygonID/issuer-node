@@ -6,6 +6,7 @@ CREATE TABLE display_methods(
     name                            text NOT NULL,
     url                             text NOT NULL,
     created_at                      timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT display_methods_unique_name UNIQUE (issuer_did, name),
     CONSTRAINT display_methods_identities_id_key foreign key (issuer_did) references identities (identifier)
 );
 -- +goose StatementEnd
