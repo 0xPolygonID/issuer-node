@@ -85,10 +85,13 @@ WHERE id = $1
 	var strIssuerDID string
 
 	query := baseQuery
+	queryParams := []interface{}{id}
 	if issuerDID != nil {
 		query += ` AND issuer_did = $2`
+		queryParams = append(queryParams, issuerDID.String())
 	}
-	err := p.conn.Pgx.QueryRow(ctx, query, id, issuerDID.String()).Scan(&opt.ID, &strIssuerDID, &opt.Name, &opt.Description, &opt.Config, &opt.CreatedAt, &opt.UpdatedAt)
+
+	err := p.conn.Pgx.QueryRow(ctx, query, queryParams...).Scan(&opt.ID, &strIssuerDID, &opt.Name, &opt.Description, &opt.Config, &opt.CreatedAt, &opt.UpdatedAt)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
 			return nil, ErrPaymentOptionDoesNotExists

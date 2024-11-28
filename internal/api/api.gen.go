@@ -473,7 +473,8 @@ type PaginatedMetadata struct {
 	Total      uint `json:"total"`
 }
 
-// PaymentMessage defines model for PaymentMessage.
+// PaymentMessage // protocol.PaymentMessage
+// // https://iden3-communication.io/credentials/0.1/payment/
 type PaymentMessage = protocol.PaymentMessage
 
 // PaymentOption defines model for PaymentOption.

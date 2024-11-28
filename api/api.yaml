@@ -2151,7 +2151,7 @@ components:
       x-go-type-import:
         name: protocol
         path: "github.com/iden3/iden3comm/v2/protocol"
-      example: |
+      description: |
         // protocol.PaymentMessage
         // https://iden3-communication.io/credentials/0.1/payment/
 
