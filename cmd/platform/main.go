@@ -151,7 +151,7 @@ func main() {
 	proofService := services.NewProver(circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
-
+	keyService := services.NewKeyService(keyStore, claimsService)
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
@@ -191,10 +191,12 @@ func main() {
 		corsMiddleware.Handler,
 		chiMiddleware.NoCache,
 	)
+
 	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, keyService),
 			middlewares(ctx, cfg.HTTPBasicAuth),
+
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"encoding/hex"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 	"github.com/iden3/go-circuits/v2"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/jackc/pgtype"
 
@@ -122,6 +124,19 @@ func (c *CoreClaim) Scan(value interface{}) error {
 // Get returns the value of the core claim
 func (c *CoreClaim) Get() *core.Claim {
 	return (*core.Claim)(c)
+}
+
+// HasPublicKey returns true if the claim has the given public key
+func (c *CoreClaim) HasPublicKey(pubKey []byte) bool {
+	entry := c.Get()
+	bjjClaim := entry.RawSlotsAsInts()
+
+	var authCoreClaimPublicKey babyjub.PublicKey
+	authCoreClaimPublicKey.X = bjjClaim[2]
+	authCoreClaimPublicKey.Y = bjjClaim[3]
+
+	compPubKey := authCoreClaimPublicKey.Compress()
+	return bytes.Equal(pubKey, compPubKey[:])
 }
 
 // ValidProof returns true if the claim has a valid proof

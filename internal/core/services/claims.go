@@ -587,6 +587,14 @@ func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, did *w3c.DID, stat
 	return c.icRepo.GetByStateIDWithMTPProof(ctx, c.storage.Pgx, did, state)
 }
 
+func (c *claim) GetAuthCoreClaims(ctx context.Context, identifier *w3c.DID) ([]*domain.Claim, error) {
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	return c.icRepo.GetAuthCoreClaims(ctx, c.storage.Pgx, identifier, string(authHash))
+}
+
 func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, description string, querier db.Querier) error {
 	rID := new(big.Int).SetUint64(nonce)
 	revocation := domain.Revocation{

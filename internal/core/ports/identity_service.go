@@ -58,5 +58,5 @@ type IdentityService interface {
 	GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error)
 	PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error
 	UpdateIdentityDisplayName(ctx context.Context, did w3c.DID, displayName string) error
-	AddKey(ctx context.Context, did *w3c.DID) (*uint64, error)
+	AddKey(ctx context.Context, did *w3c.DID, keyID string) (uuid.UUID, error)
 }

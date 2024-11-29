@@ -26,6 +26,8 @@ tags:
     description: Collection of endpoints related to Mobile
   - name: config
     description: Collection of endpoints related to Config
+  - name: Key Management
+    description: Collection of endpoints related to Key Management
 
 paths:
 
@@ -425,31 +427,48 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/identities/{identifier}/add-key:
+  /v2/identities/{identifier}/create-auth-core-claim:
     post:
       summary: Add a new key to the identity
-      operationId: AddKey
-      description: Endpoint to add a new key to the identity
+      operationId: CreateAuthCoreClaim
+      description: Endpoint to create a new Auth Core Claim
       security:
         - basicAuth: [ ]
       parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathIdentifier2'
       tags:
         - Identity
+        - Key Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - keyID
+              properties:
+                keyID:
+                  type: string
+                  x-omitempty: false
+                  example: ZGlkOnBvbHlnb25pZDpwb2x5Z29uOmFtb3k6MnFRNjhKa1JjZjN5cXBYanRqVVQ3WjdVeW1TV0hzYll
       responses:
-        '200':
+        '201':
           description: Key added successfully
           content:
             application/json:
               schema:
                 type: object
                 required:
-                  - revocationNonce
+                  - id
                 properties:
-                  revocationNonce:
-                    type: integer
-                    format: int64
-                    description: added key revocation nonce
+                  id:
+                    type: string
+                    x-go-type: uuid.UUID
+                    x-go-type-import:
+                      name: uuid
+                      path: github.com/google/uuid
+                    example: 8edd8112-c415-11ed-b036-debe37e1cbd6
 
         '400':
           $ref: '#/components/responses/400'
@@ -1323,6 +1342,115 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v2/identities/{identifier}/keys:
+    post:
+      summary: Create a Key
+      operationId: CreateKey
+      description: Endpoint to create a new key.
+      tags:
+        - Key Management
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier2'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKeyRequest'
+      responses:
+        '201':
+          description: Crated Key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateKeyResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+    get:
+      summary: Get Keys
+      operationId: GetKeys
+      description: |
+        Returns a list of Keys for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Key Management
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier2'
+      responses:
+        '200':
+          description: Keys collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Key'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/identities/{identifier}/keys/{keyID}:
+    get:
+      summary: Get a Key
+      operationId: GetKey
+      description: Get a specific key for the provided identity.
+      tags:
+        - Key Management
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier2'
+        - $ref: '#/components/parameters/pathKeyID'
+      responses:
+        '200':
+          description: Key found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Key'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+#    delete:
+#      summary: Delete Key
+#      operationId: DeleteKey
+#      description: Remove a specific key for the provided identity.
+#      tags:
+#        - Identity
+#      security:
+#        - basicAuth: [ ]
+#      parameters:
+#        - $ref: '#/components/parameters/pathIdentifier'
+#        - $ref: '#/components/parameters/keyID'
+#      responses:
+#        '200':
+#          description: Key deleted
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/GenericMessage'
+#        '400':
+#          $ref: '#/components/responses/400'
+#        '401':
+#          $ref: '#/components/responses/401'
+#        '500':
+#          $ref: '#/components/responses/500'
 components:
   securitySchemes:
     basicAuth:
@@ -2262,6 +2390,55 @@ components:
         name: protocol
         path: github.com/iden3/iden3comm/v2/protocol
 
+    CreateKeyRequest:
+      type: object
+      required:
+        - keyType
+      properties:
+        keyType:
+          type: string
+          x-omitempty: false
+          example: "BJJ"
+          enum: [ BJJ, ETH ]
+
+    CreateKeyResponse:
+      type: object
+      required:
+        - keyID
+      properties:
+        keyID:
+          type: string
+          x-omitempty: false
+          description: base64 encoded keyID
+          example: a2V5cy9kaWQ6aWRlbjM6cG9seWdvbjphbW95OnhKQktvbkJ1dWdKbW1aMkdvS2gzOTM
+
+    Key:
+      type: object
+      required:
+        - keyID
+        - keyType
+        - publicKey
+        - isAuthCoreClaim
+      properties:
+        keyID:
+          type: string
+          x-omitempty: false
+          example: ZGlkOnBvbHlnb25pZDpwb2x5Z29uOmFtb3k6MnFRNjhKa1JjZjN5cXBYanRqVVQ3WjdVeW1TV0hzYll
+          description: base64 encoded keyID
+        keyType:
+          type: string
+          x-omitempty: false
+          example: "BJJ"
+          enum: [ BJJ, ETH ]
+        publicKey:
+          type: string
+          x-omitempty: false
+          example: "0x04e3e7e"
+        isAuthCoreClaim:
+          type: boolean
+          x-omitempty: false
+          example: true
+
   parameters:
     credentialStatusType:
       name: credentialStatusType
@@ -2319,6 +2496,18 @@ components:
       schema:
         type: string
 
+    pathIdentifier2:
+      name: identifier
+      in: path
+      required: true
+      description: Issuer identifier
+      schema:
+        type: string
+        x-go-type: Identity
+        x-go-type-import:
+          name: customIdentity
+          path: github.com/polygonid/sh-id-platform/internal/api
+
     pathClaim:
       name: id
       in: path
@@ -2335,6 +2524,15 @@ components:
       schema:
         type: integer
         format: int64
+
+    pathKeyID:
+      name: keyID
+      in: path
+      required: true
+      description: Key ID in base64
+      schema:
+        type: string
+
 
   responses:
     '400':

@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
@@ -65,6 +64,9 @@ var (
 
 	// ErrWrongDIDMetada - represents an error in the identity metadata
 	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
+
+	// ErrSavingAuthCoreClaim - represents an error saving the claim
+	ErrSavingAuthCoreClaim = errors.New("error saving the AuthCoreClaim. Hash already exists")
 )
 
 type identity struct {
@@ -245,15 +247,6 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		return keyID, err
 	}
 
-	entry := authClaim.CoreClaim.Get()
-	bjjClaim := entry.RawSlotsAsInts()
-
-	var publicKey babyjub.PublicKey
-	publicKey.X = bjjClaim[2]
-	publicKey.Y = bjjClaim[3]
-
-	compPubKey := publicKey.Compress()
-
 	keyIDs, err := i.kms.KeysByIdentity(ctx, *identity)
 	if err != nil {
 		return keyID, err
@@ -268,13 +261,13 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		if err != nil {
 			return keyID, err
 		}
-		if bytes.Equal(pubKeyBytes, compPubKey[:]) {
+		if authClaim.CoreClaim.HasPublicKey(pubKeyBytes) {
 			log.Info(ctx, "key found", "keyID", keyID)
 			return keyID, nil
 		}
 	}
 
-	return keyID, errors.New("private key not found")
+	return keyID, errors.New("keyID not found")
 }
 
 func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.IdentityState, error) {
@@ -809,13 +802,24 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 }
 
 // AddKey adds a new key to the identity
-func (i *identity) AddKey(ctx context.Context, did *w3c.DID) (*uint64, error) {
+func (i *identity) AddKey(ctx context.Context, did *w3c.DID, keyID string) (uuid.UUID, error) {
 	revNonce, err := common.RandInt64()
 	if err != nil {
 		log.Error(ctx, "generating revocation nonce", "err", err)
-		return nil, fmt.Errorf("can't generate revocation nonce: %w", err)
+		return uuid.Nil, fmt.Errorf("can't generate revocation nonce: %w", err)
 	}
+	var newAuthCoreClaimID uuid.UUID
 
+	var keyType kms.KeyType
+	if strings.Contains(keyID, "BJJ") {
+		keyType = kms.KeyTypeBabyJubJub
+	} else if strings.Contains(keyID, "ETH") {
+		keyType = kms.KeyTypeEthereum
+	}
+	kmsKeyID := kms.KeyID{
+		ID:   keyID,
+		Type: keyType,
+	}
 	err = i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
 			identity, err := i.identityRepository.GetByID(ctx, tx, *did)
@@ -841,13 +845,7 @@ func (i *identity) AddKey(ctx context.Context, did *w3c.DID) (*uint64, error) {
 				return err
 			}
 
-			// add bjj auth claim
-			bjjKey, err := i.kms.CreateKey(kms.KeyTypeBabyJubJub, did)
-			if err != nil {
-				return err
-			}
-
-			bjjPubKey, err := bjjPubKey(i.kms, bjjKey)
+			bjjPubKey, err := bjjPubKey(i.kms, kmsKeyID)
 			if err != nil {
 				return err
 			}
@@ -876,17 +874,20 @@ func (i *identity) AddKey(ctx context.Context, did *w3c.DID) (*uint64, error) {
 				return err
 			}
 
-			_, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
+			newAuthCoreClaimID, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
 			if err != nil {
+				if strings.Contains(err.Error(), "claims_identifier_issuer_index_hash_key") {
+					return ErrSavingAuthCoreClaim
+				}
 				return errors.Join(err, errors.New("can't save auth claim"))
 			}
 			return nil
 		})
 	if err != nil {
-		return nil, err
+		return uuid.Nil, err
 	}
 
-	return common.ToPointer(revNonce), nil
+	return newAuthCoreClaimID, nil
 }
 
 func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.IdentityMerkleTrees, key *kms.KeyID, didOptions *ports.DIDCreationOptions, tx db.Querier) (*domain.Identity, *w3c.DID, error) {

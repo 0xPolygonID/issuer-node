@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
@@ -311,32 +312,41 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 	return response, nil
 }
 
-// AddKey is the controller to add key
-func (s *Server) AddKey(ctx context.Context, request AddKeyRequestObject) (AddKeyResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
+// CreateAuthCoreClaim is the controller to create an auth core claim
+func (s *Server) CreateAuthCoreClaim(ctx context.Context, request CreateAuthCoreClaimRequestObject) (CreateAuthCoreClaimResponseObject, error) {
+	decodedKeyID, err := b64.StdEncoding.DecodeString(request.Body.KeyID)
 	if err != nil {
-		log.Error(ctx, "add key. Parsing did", "err", err)
-		return AddKey400JSONResponse{
+		log.Error(ctx, "add key. Decoding key id", "err", err)
+		return CreateAuthCoreClaim400JSONResponse{
 			N400JSONResponse{
-				Message: "invalid did",
+				Message: "invalid key id",
 			},
 		}, err
 	}
 
-	revocationNonce, err := s.identityService.AddKey(ctx, did)
+	authCoreClaimID, err := s.identityService.AddKey(ctx, request.Identifier.w3cDID, string(decodedKeyID))
 	if err != nil {
 		log.Error(ctx, "add key. Adding key", "err", err)
-		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return AddKey500JSONResponse{N500JSONResponse{Message: "If this identity has keyType=ETH you must to publish the state first"}}, nil
+		if errors.Is(err, services.ErrSavingAuthCoreClaim) {
+			message := fmt.Sprintf("%s. This means an auth core claim was already created with this key", err.Error())
+			return CreateAuthCoreClaim400JSONResponse{
+				N400JSONResponse{
+					Message: message,
+				},
+			}, nil
 		}
-		return AddKey500JSONResponse{
+
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return CreateAuthCoreClaim500JSONResponse{N500JSONResponse{Message: "If this identity has keyType=ETH you must to publish the state first"}}, nil
+		}
+		return CreateAuthCoreClaim500JSONResponse{
 			N500JSONResponse{
 				Message: err.Error(),
 			},
 		}, err
 	}
 
-	return AddKey200JSONResponse{
-		RevocationNonce: int64(*revocationNonce),
+	return CreateAuthCoreClaim201JSONResponse{
+		Id: authCoreClaimID,
 	}, nil
 }

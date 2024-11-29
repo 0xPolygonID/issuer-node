@@ -243,6 +243,7 @@ type servicex struct {
 	schema      ports.SchemaService
 	links       ports.LinkService
 	qrs         ports.QrStoreService
+	keyService  ports.KeyService
 }
 
 type infra struct {
@@ -298,7 +299,8 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
+	keyService := services.NewKeyService(keyStore, claimsService)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, keyService)
 
 	return &testServer{
 		Server: server,
@@ -309,6 +311,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 			links:       linkService,
 			qrs:         qrService,
 			schema:      schemaService,
+			keyService:  keyService,
 		},
 		Infra: infra{
 			db:     st,
