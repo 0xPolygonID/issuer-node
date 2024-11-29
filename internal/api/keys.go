@@ -100,3 +100,37 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 	}
 	return keysResponse, nil
 }
+
+// DeleteKey is the handler for the DELETE /keys/{keyID} endpoint.
+func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) (DeleteKeyResponseObject, error) {
+	decodedKeyID, err := b64.StdEncoding.DecodeString(request.KeyID)
+	if err != nil {
+		log.Error(ctx, "delete key. Decoding key id", "err", err)
+		return DeleteKey400JSONResponse{
+			N400JSONResponse{
+				Message: "invalid key id",
+			},
+		}, nil
+	}
+
+	err = s.keyService.Delete(ctx, request.Identifier.did(), string(decodedKeyID))
+	if err != nil {
+		if errors.Is(err, ports.ErrAuthCoreClaimNotRevoked) {
+			log.Error(ctx, "delete key. Auth core claim not revoked", "err", err)
+			return DeleteKey400JSONResponse{
+				N400JSONResponse{
+					Message: "associated auth core claim is not revoked",
+				},
+			}, nil
+		}
+
+		log.Error(ctx, "delete key. Deleting key", "err", err)
+		return DeleteKey500JSONResponse{
+			N500JSONResponse{
+				Message: "internal error",
+			},
+		}, nil
+	}
+
+	return DeleteKey200JSONResponse{}, nil
+}

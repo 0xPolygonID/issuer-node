@@ -151,7 +151,7 @@ func main() {
 	proofService := services.NewProver(circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
-	keyService := services.NewKeyService(keyStore, claimsService)
+	keyService := services.NewKey(keyStore, claimsService)
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)

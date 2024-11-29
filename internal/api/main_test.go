@@ -299,7 +299,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	keyService := services.NewKeyService(keyStore, claimsService)
+	keyService := services.NewKey(keyStore, claimsService)
 	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, keyService)
 
 	return &testServer{

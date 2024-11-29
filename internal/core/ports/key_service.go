@@ -10,7 +10,12 @@ import (
 )
 
 // ErrInvalidKeyType is returned when the key type is invalid
-var ErrInvalidKeyType = errors.New("invalid key type")
+var (
+	// ErrInvalidKeyType is returned when the key type is invalid
+	ErrInvalidKeyType = errors.New("invalid key type")
+	// ErrAuthCoreClaimNotRevoked is returned when the associated auth core claim is not revoked
+	ErrAuthCoreClaimNotRevoked = errors.New("associated auth core claim not revoked")
+)
 
 // KMSKey is the struct that represents a key
 type KMSKey struct {
@@ -25,4 +30,5 @@ type KeyService interface {
 	CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType) (kms.KeyID, error)
 	Get(ctx context.Context, did *w3c.DID, keyID string) (*KMSKey, error)
 	GetAll(ctx context.Context, did *w3c.DID) ([]*KMSKey, error)
+	Delete(ctx context.Context, did *w3c.DID, keyID string) error
 }

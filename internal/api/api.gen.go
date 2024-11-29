@@ -943,6 +943,9 @@ type ServerInterface interface {
 	// Create a Key
 	// (POST /v2/identities/{identifier}/keys)
 	CreateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
+	// Delete Key
+	// (DELETE /v2/identities/{identifier}/keys/{keyID})
+	DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID)
 	// Get a Key
 	// (GET /v2/identities/{identifier}/keys/{keyID})
 	GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID)
@@ -1177,6 +1180,12 @@ func (_ Unimplemented) GetKeys(w http.ResponseWriter, r *http.Request, identifie
 // Create a Key
 // (POST /v2/identities/{identifier}/keys)
 func (_ Unimplemented) CreateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete Key
+// (DELETE /v2/identities/{identifier}/keys/{keyID})
+func (_ Unimplemented) DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2471,6 +2480,46 @@ func (siw *ServerInterfaceWrapper) CreateKey(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteKey operation middleware
+func (siw *ServerInterfaceWrapper) DeleteKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier2
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "keyID" -------------
+	var keyID PathKeyID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "keyID", chi.URLParam(r, "keyID"), &keyID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "keyID", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteKey(w, r, identifier, keyID)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetKey operation middleware
 func (siw *ServerInterfaceWrapper) GetKey(w http.ResponseWriter, r *http.Request) {
 
@@ -3085,6 +3134,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/keys", wrapper.CreateKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/keys/{keyID}", wrapper.DeleteKey)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/keys/{keyID}", wrapper.GetKey)
@@ -4526,6 +4578,51 @@ func (response CreateKey500JSONResponse) VisitCreateKeyResponse(w http.ResponseW
 	return json.NewEncoder(w).Encode(response)
 }
 
+type DeleteKeyRequestObject struct {
+	Identifier PathIdentifier2 `json:"identifier"`
+	KeyID      PathKeyID       `json:"keyID"`
+}
+
+type DeleteKeyResponseObject interface {
+	VisitDeleteKeyResponse(w http.ResponseWriter) error
+}
+
+type DeleteKey200JSONResponse GenericMessage
+
+func (response DeleteKey200JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteKey400JSONResponse struct{ N400JSONResponse }
+
+func (response DeleteKey400JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteKey401JSONResponse struct{ N401JSONResponse }
+
+func (response DeleteKey401JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteKey500JSONResponse struct{ N500JSONResponse }
+
+func (response DeleteKey500JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetKeyRequestObject struct {
 	Identifier PathIdentifier2 `json:"identifier"`
 	KeyID      PathKeyID       `json:"keyID"`
@@ -5098,6 +5195,9 @@ type StrictServerInterface interface {
 	// Create a Key
 	// (POST /v2/identities/{identifier}/keys)
 	CreateKey(ctx context.Context, request CreateKeyRequestObject) (CreateKeyResponseObject, error)
+	// Delete Key
+	// (DELETE /v2/identities/{identifier}/keys/{keyID})
+	DeleteKey(ctx context.Context, request DeleteKeyRequestObject) (DeleteKeyResponseObject, error)
 	// Get a Key
 	// (GET /v2/identities/{identifier}/keys/{keyID})
 	GetKey(ctx context.Context, request GetKeyRequestObject) (GetKeyResponseObject, error)
@@ -6111,6 +6211,33 @@ func (sh *strictHandler) CreateKey(w http.ResponseWriter, r *http.Request, ident
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateKeyResponseObject); ok {
 		if err := validResponse.VisitCreateKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteKey operation middleware
+func (sh *strictHandler) DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID) {
+	var request DeleteKeyRequestObject
+
+	request.Identifier = identifier
+	request.KeyID = keyID
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteKey(ctx, request.(DeleteKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteKeyResponseObject); ok {
+		if err := validResponse.VisitDeleteKeyResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
