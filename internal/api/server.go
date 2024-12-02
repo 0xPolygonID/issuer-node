@@ -58,9 +58,36 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 
 // RegisterStatic add method to the mux that are not documented in the API.
 func RegisterStatic(mux *chi.Mux) {
-	mux.Get("/", documentation)
+	mux.Get("/docs", documentation)
 	mux.Get("/static/docs/api/api.yaml", swagger)
 	mux.Get("/favicon.ico", favicon)
+	fs := http.FileServer(http.Dir("./ui/dist/"))
+	mux.Get("/schemas", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/", http.StatusFound)
+	})
+	mux.Route("/credentials", func(r chi.Router) {
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/", http.StatusFound)
+		})
+	})
+	mux.Route("/connections", func(r chi.Router) {
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/", http.StatusFound)
+		})
+	})
+	mux.Route("/issuer-state", func(r chi.Router) {
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/", http.StatusFound)
+		})
+	})
+	mux.Route("/identities", func(r chi.Router) {
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/", http.StatusFound)
+		})
+	})
+	mux.Handle("/*", http.StripPrefix("/", fs))
+	mux.Handle("/assets/*", fs)
+	mux.Handle("/images/*", fs)
 }
 
 func documentation(w http.ResponseWriter, _ *http.Request) {
