@@ -15,6 +15,8 @@ var (
 	ErrInvalidKeyType = errors.New("invalid key type")
 	// ErrAuthCoreClaimNotRevoked is returned when the associated auth core claim is not revoked
 	ErrAuthCoreClaimNotRevoked = errors.New("associated auth core claim not revoked")
+	// ErrKeyNotFound is returned when the key is not found
+	ErrKeyNotFound = errors.New("key not found")
 )
 
 // KMSKey is the struct that represents a key

@@ -60,8 +60,15 @@ func (ls *localBJJKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 
 // PublicKey returns bytes representation for public key for specified key ID
 func (ls *localBJJKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
+	ctx := context.Background()
 	if keyID.Type != ls.keyType {
 		return nil, ErrIncorrectKeyType
+	}
+
+	_, err := ls.storageManager.getKeyMaterial(ctx, keyID)
+	if err != nil {
+		log.Error(ctx, "cannot get public key", "err", err, "keyID", keyID)
+		return nil, err
 	}
 
 	ss := ls.reAnonKeyPathHex.FindStringSubmatch(keyID.ID)
@@ -123,6 +130,10 @@ func (ls *localBJJKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, 
 	}
 	keyID.ID = identity.String()
 	return keyID, nil
+}
+
+func (ls *localBJJKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	return ls.storageManager.deleteKeyMaterial(ctx, keyID)
 }
 
 func (ls *localBJJKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]byte, error) {

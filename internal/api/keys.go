@@ -60,6 +60,14 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 			}, nil
 		}
 
+		if errors.Is(err, ports.ErrKeyNotFound) {
+			return GetKey404JSONResponse{
+				N404JSONResponse{
+					Message: "key not found",
+				},
+			}, nil
+		}
+
 		return GetKey500JSONResponse{
 			N500JSONResponse{
 				Message: "internal error",
@@ -124,6 +132,15 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 			}, nil
 		}
 
+		if errors.Is(err, ports.ErrKeyNotFound) {
+			log.Error(ctx, "delete key. Key not found", "err", err)
+			return DeleteKey404JSONResponse{
+				N404JSONResponse{
+					Message: "key not found",
+				},
+			}, nil
+		}
+
 		log.Error(ctx, "delete key. Deleting key", "err", err)
 		return DeleteKey500JSONResponse{
 			N500JSONResponse{
@@ -132,5 +149,7 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 		}, nil
 	}
 
-	return DeleteKey200JSONResponse{}, nil
+	return DeleteKey200JSONResponse{
+		Message: "key deleted",
+	}, nil
 }

@@ -280,3 +280,111 @@ func TestServer_GetKeys(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_DeleteKey(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+	ctx := context.Background()
+	server := newTestServer(t, nil)
+
+	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	did, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	keyID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+	require.NoError(t, err)
+
+	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(keyID.ID))
+
+	keyIDForAuthCoreClaimID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+	require.NoError(t, err)
+
+	encodedKeyIDForAuthCoreClaimID := b64.StdEncoding.EncodeToString([]byte(keyIDForAuthCoreClaimID.ID))
+
+	_, err = server.Services.identity.AddKey(ctx, did, keyIDForAuthCoreClaimID.ID)
+	require.NoError(t, err)
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response DeleteKeyResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		KeyID    string
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name:  "No auth header",
+			auth:  authWrong,
+			KeyID: encodedKeyID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:  "should delete a key",
+			auth:  authOk,
+			KeyID: encodedKeyID,
+			expected: expected{
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name:  "should get an error",
+			auth:  authOk,
+			KeyID: "123",
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: DeleteKey400JSONResponse{
+					N400JSONResponse: N400JSONResponse{
+						Message: "invalid key id",
+					},
+				},
+			},
+		},
+		{
+			name:  "should get an error - key is an auth core claim",
+			auth:  authOk,
+			KeyID: encodedKeyIDForAuthCoreClaimID,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: DeleteKey400JSONResponse{
+					N400JSONResponse: N400JSONResponse{
+						Message: "associated auth core claim is not revoked",
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v2/identities/%s/keys/%s", did, tc.KeyID)
+			req, err := http.NewRequest(http.MethodDelete, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusCreated:
+				var response DeleteKey200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			case http.StatusBadRequest:
+				var response DeleteKey400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.response, response)
+			}
+		})
+	}
+}

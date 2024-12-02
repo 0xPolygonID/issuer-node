@@ -161,6 +161,11 @@ func (v *vaultPluginIden3KeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	return keyID, nil
 }
 
+func (v *vaultPluginIden3KeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	_, err := v.vaultCli.Logical().Delete(v.keyPathFromID(keyID).keys())
+	return err
+}
+
 func (v *vaultPluginIden3KeyProvider) randomKeyPath() (keyPathT, error) {
 	var rnd [16]byte
 	_, err := rand.Read(rnd[:])

@@ -43,7 +43,7 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 	publicKey, err := ks.getPublicKey(ctx, keyID)
 	if err != nil {
 		log.Error(ctx, "failed to get public key", "err", err)
-		return nil, err
+		return nil, ports.ErrKeyNotFound
 	}
 
 	authCoreClaim, err := getAuthCoreClaim(ctx, ks.claimService, did, publicKey)
@@ -105,8 +105,15 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 			return ports.ErrAuthCoreClaimNotRevoked
 		}
 	}
-	log.Info(ctx, "can be deleted")
-	return nil
+	keyType, err := getKeyType(keyID)
+	if err != nil {
+		log.Error(ctx, "failed to get key type", "err", err)
+	}
+	kmsKeyID := kms.KeyID{
+		ID:   keyID,
+		Type: keyType,
+	}
+	return ks.kms.Delete(ctx, kmsKeyID)
 }
 
 // getPublicKey returns the public key for the given keyID

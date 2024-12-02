@@ -125,6 +125,10 @@ func (ls *localEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.
 	return ls.storageManager.searchByIdentity(ctx, identity, ls.keyType)
 }
 
+func (ls *localEthKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	return nil
+}
+
 // nolint
 func (ls *localEthKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]byte, error) {
 	if keyID.Type != ls.keyType {

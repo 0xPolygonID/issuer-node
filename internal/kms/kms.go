@@ -20,6 +20,8 @@ type StorageManager interface {
 	SaveKeyMaterial(ctx context.Context, keyMaterial map[string]string, id string) error
 	searchByIdentity(ctx context.Context, identity w3c.DID, keyType KeyType) ([]KeyID, error)
 	searchPrivateKey(ctx context.Context, keyID KeyID) (string, error)
+	deleteKeyMaterial(ctx context.Context, keyID KeyID) error
+	getKeyMaterial(ctx context.Context, keyID KeyID) (map[string]string, error)
 }
 
 // KMSType represents the KMS interface
@@ -31,6 +33,7 @@ type KMSType interface {
 	Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error)
 	KeysByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error)
 	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
+	Delete(ctx context.Context, keyID KeyID) error
 }
 
 // ConfigProvider is a key provider configuration
@@ -82,6 +85,8 @@ type KeyProvider interface {
 	// KeyID can be changed after linking.
 	// Returning new KeyID.
 	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
+	// Delete removes key from storage
+	Delete(ctx context.Context, keyID KeyID) error
 }
 
 // KMS stores keys and secrets
@@ -220,6 +225,15 @@ func (k *KMS) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID)
 	}
 
 	return kp.LinkToIdentity(ctx, keyID, identity)
+}
+
+// Delete removes key from storage
+func (k *KMS) Delete(ctx context.Context, keyID KeyID) error {
+	kp, ok := k.registry[keyID.Type]
+	if !ok {
+		return errors.WithStack(ErrUnknownKeyType)
+	}
+	return kp.Delete(ctx, keyID)
 }
 
 // Open returns an initialized KMS

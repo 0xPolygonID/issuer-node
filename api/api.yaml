@@ -1447,6 +1447,8 @@ paths:
                 $ref: '#/components/schemas/GenericMessage'
         '400':
           $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
         '401':
           $ref: '#/components/responses/401'
         '500':

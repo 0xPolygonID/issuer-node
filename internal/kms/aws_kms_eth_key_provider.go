@@ -228,6 +228,14 @@ func (awsKeyProv *awsKmsEthKeyProvider) ListByIdentity(ctx context.Context, iden
 	return keysToReturn, nil
 }
 
+func (awsKeyProv *awsKmsEthKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	_, err := awsKeyProv.kmsClient.ScheduleKeyDeletion(ctx, &kms.ScheduleKeyDeletionInput{
+		KeyId:               aws.String(keyID.ID),
+		PendingWindowInDays: aws.Int32(1),
+	})
+	return err
+}
+
 // createAlias creates alias for key
 func (awsKeyProv *awsKmsEthKeyProvider) createAlias(ctx context.Context, aliasName, targetKeyId string) error {
 	input := &kms.CreateAliasInput{

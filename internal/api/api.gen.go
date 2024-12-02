@@ -4614,6 +4614,15 @@ func (response DeleteKey401JSONResponse) VisitDeleteKeyResponse(w http.ResponseW
 	return json.NewEncoder(w).Encode(response)
 }
 
+type DeleteKey404JSONResponse struct{ N404JSONResponse }
+
+func (response DeleteKey404JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type DeleteKey500JSONResponse struct{ N500JSONResponse }
 
 func (response DeleteKey500JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
