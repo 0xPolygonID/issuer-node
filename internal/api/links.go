@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -13,6 +14,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // GetLinks - Returns a list of links based on a search criteria.
@@ -23,6 +25,7 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return GetLinks400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
+
 	status := ports.LinkAll
 	if request.Params.Status != nil {
 		if status, err = ports.LinkTypeReqFromString(string(*request.Params.Status)); err != nil {
@@ -30,12 +33,79 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 			return GetLinks400JSONResponse{N400JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
 		}
 	}
-	links, err := s.linkService.GetAll(ctx, *issuerDID, status, request.Params.Query, s.cfg.ServerUrl)
+
+	filter, err := getLinksFilter(request)
+	if err != nil {
+		log.Error(ctx, "getting links", "err", err, "req", request)
+		return GetLinks400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+	filter.Status = status
+
+	links, total, err := s.linkService.GetAll(ctx, *issuerDID, *filter, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "getting links", "err", err, "req", request)
 	}
 
-	return GetLinks200JSONResponse(getLinkResponses(links)), err
+	resp := GetLinks200JSONResponse{
+		Items: getLinkResponses(links),
+		Meta: PaginatedMetadata{
+			MaxResults: filter.MaxResults,
+			Page:       filter.Page,
+			Total:      total,
+		},
+	}
+	return resp, err
+}
+
+func getLinksFilter(req GetLinksRequestObject) (*ports.LinksFilter, error) {
+	const defaultMaxResults = 50
+	status := ports.LinkAll
+	filter := &ports.LinksFilter{
+		Status:     status,
+		Query:      req.Params.Query,
+		Page:       1,                 // default page
+		MaxResults: defaultMaxResults, // default max results
+	}
+	if req.Params.Page != nil {
+		filter.Page = *req.Params.Page
+	}
+	if req.Params.MaxResults != nil {
+		if *req.Params.MaxResults <= 0 {
+			filter.MaxResults = 10
+		} else {
+			filter.MaxResults = *req.Params.MaxResults
+		}
+	}
+	orderBy := sqltools.OrderByFilters{}
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetLinksParamsSort(field) {
+			case GetLinksParamsSortAccessibleUntil:
+				err = orderBy.Add(ports.LinksAccessibleUntil, desc)
+			case GetLinksParamsSortActive:
+				err = orderBy.Add(ports.LinksParamsSortLinksActive, desc)
+			case GetLinksParamsSortCreatedAt:
+				err = orderBy.Add(ports.LinksParamsSortLinksCreatedAt, desc)
+			case GetLinksParamsSortCredentialIssued:
+				err = orderBy.Add(ports.LinksParamsSortLinksCreatedAt, desc)
+			case GetLinksParamsSortMaximumIssuance:
+				err = orderBy.Add(ports.LinksParamsSortLinksMaximumIssuance, desc)
+			case GetLinksParamsSortSchemaType:
+				err = orderBy.Add(ports.LinksParamsSortLinksCreatedAt, desc)
+			case GetLinksParamsSortStatus:
+				err = orderBy.Add(ports.LinksParamsSortLinksCreatedAt, desc)
+			default:
+				return nil, errors.New("wrong sort field")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
+	filter.OrderBy = orderBy
+	return filter, nil
 }
 
 // CreateLink - creates a link for issuing a credential

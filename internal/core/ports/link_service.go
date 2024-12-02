@@ -13,6 +13,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // CreateQRCodeResponse - is the result of creating a link QRcode.
@@ -27,13 +28,30 @@ type CreateQRCodeResponse struct {
 // LinkStatus is a Link type request. All|Active|Inactive|Exceeded
 type LinkStatus string
 
+// LinksFilter - filter for links
+type LinksFilter struct {
+	Status     LinkStatus
+	Query      *string
+	MaxResults uint // Max number of results to return on each call.
+	Page       uint
+	OrderBy    sqltools.OrderByFilters
+}
+
 const (
-	LinkAll          LinkStatus = "all"                                                      // LinkAll : All links
-	LinkActive       LinkStatus = "active"                                                   // LinkActive : Active links
-	LinkInactive     LinkStatus = "inactive"                                                 // LinkInactive : Inactive links
-	LinkExceeded     LinkStatus = "exceeded"                                                 // LinkExceeded : Expired links or with more credentials issued than expected
-	AgentUrl                    = "%s/v2/agent"                                              // AgentUrl : Agent URL
-	LinksCallbackURL            = "%s/v2/identities/%s/credentials/links/callback?linkID=%s" // LinksCallbackURL : Links callback URL
+	LinkAll                              LinkStatus            = "all"                                                      // LinkAll : All links
+	LinkActive                           LinkStatus            = "active"                                                   // LinkActive : Active links
+	LinkInactive                         LinkStatus            = "inactive"                                                 // LinkInactive : Inactive links
+	LinkExceeded                         LinkStatus            = "exceeded"                                                 // LinkExceeded : Expired links or with more credentials issued than expected
+	AgentUrl                                                   = "%s/v2/agent"                                              // AgentUrl : Agent URL
+	LinksCallbackURL                                           = "%s/v2/identities/%s/credentials/links/callback?linkID=%s" // LinksCallbackURL : Links callback URL
+	LinksCreatedAt                       sqltools.SQLFieldName = "created_at"                                               // LinksCreatedAt : Created at field
+	LinksAccessibleUntil                 sqltools.SQLFieldName = "links.valid_until"                                        // LinksAccessibleUntil : Accessible until field
+	LinksParamsSortLinksActive           sqltools.SQLFieldName = "active"                                                   // LinksParamsSortLinksActive : Links active field
+	LinksParamsSortLinksCreatedAt        sqltools.SQLFieldName = "links.created_at"                                         // LinksParamsSortLinksCreatedAt : Links created at field
+	LinksParamsSortLinksCredentialIssued sqltools.SQLFieldName = "issued_claims"                                            // LinksParamsSortLinksCredentialIssued : Links credential issued field
+	LinksParamsSortLinksMaximumIssuance  sqltools.SQLFieldName = "links.max_issuance"                                       // LinksParamsSortLinksMaximumIssuance : Links maximum issuance field
+	LinksParamsSortLinksSchemaType       sqltools.SQLFieldName = "schemas.type"                                             // LinksParamsSortLinksSchemaType : Links schema type field
+	LinksParamsSortLinksStatus           sqltools.SQLFieldName = "links.active"                                             // LinksParamsSortLinksStatus : Links status field
 )
 
 // LinkTypeReqFromString constructs a LinkStatus from a string
@@ -64,7 +82,7 @@ type LinkService interface {
 	Activate(ctx context.Context, issuerID w3c.DID, linkID uuid.UUID, active bool) error
 	Delete(ctx context.Context, id uuid.UUID, did w3c.DID) error
 	GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID, serverURL string) (*domain.Link, error)
-	GetAll(ctx context.Context, issuerDID w3c.DID, status LinkStatus, query *string, serverURL string) ([]*domain.Link, error)
+	GetAll(ctx context.Context, issuerDID w3c.DID, filter LinksFilter, serverURL string) ([]*domain.Link, uint, error)
 	CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
 	IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)
 	ProcessCallBack(ctx context.Context, issuerDID w3c.DID, message string, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)

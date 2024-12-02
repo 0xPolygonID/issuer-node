@@ -131,6 +131,24 @@ const (
 	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
 )
 
+// Defines values for GetLinksParamsSort.
+const (
+	GetLinksParamsSortAccessibleUntil       GetLinksParamsSort = "accessibleUntil"
+	GetLinksParamsSortActive                GetLinksParamsSort = "active"
+	GetLinksParamsSortCreatedAt             GetLinksParamsSort = "createdAt"
+	GetLinksParamsSortCredentialIssued      GetLinksParamsSort = "credentialIssued"
+	GetLinksParamsSortMaximumIssuance       GetLinksParamsSort = "maximumIssuance"
+	GetLinksParamsSortMinusAccessibleUntil  GetLinksParamsSort = "-accessibleUntil"
+	GetLinksParamsSortMinusActive           GetLinksParamsSort = "-active"
+	GetLinksParamsSortMinusCreatedAt        GetLinksParamsSort = "-createdAt"
+	GetLinksParamsSortMinusCredentialIssued GetLinksParamsSort = "-credentialIssued"
+	GetLinksParamsSortMinusMaximumIssuance  GetLinksParamsSort = "-maximumIssuance"
+	GetLinksParamsSortMinusSchemaType       GetLinksParamsSort = "-schemaType"
+	GetLinksParamsSortMinusStatus           GetLinksParamsSort = "-status"
+	GetLinksParamsSortSchemaType            GetLinksParamsSort = "schemaType"
+	GetLinksParamsSortStatus                GetLinksParamsSort = "status"
+)
+
 // Defines values for GetCredentialOfferParamsType.
 const (
 	GetCredentialOfferParamsTypeDeepLink      GetCredentialOfferParamsType = "deepLink"
@@ -146,10 +164,10 @@ const (
 
 // Defines values for GetStateTransactionsParamsSort.
 const (
-	MinusPublishDate GetStateTransactionsParamsSort = "-publishDate"
-	MinusStatus      GetStateTransactionsParamsSort = "-status"
-	PublishDate      GetStateTransactionsParamsSort = "publishDate"
-	Status           GetStateTransactionsParamsSort = "status"
+	GetStateTransactionsParamsSortMinusPublishDate GetStateTransactionsParamsSort = "-publishDate"
+	GetStateTransactionsParamsSortMinusStatus      GetStateTransactionsParamsSort = "-status"
+	GetStateTransactionsParamsSortPublishDate      GetStateTransactionsParamsSort = "publishDate"
+	GetStateTransactionsParamsSortStatus           GetStateTransactionsParamsSort = "status"
 )
 
 // Defines values for AuthenticationParamsType.
@@ -434,6 +452,12 @@ type LinkSimple struct {
 	SchemaUrl  string    `json:"schemaUrl"`
 }
 
+// LinksPaginated defines model for LinksPaginated.
+type LinksPaginated struct {
+	Items []Link            `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
+}
+
 // NetworkData defines model for NetworkData.
 type NetworkData struct {
 	CredentialStatus []string `json:"credentialStatus"`
@@ -681,10 +705,20 @@ type GetLinksParams struct {
 	//   * `inactive` - Only deactivated links
 	//   * `exceeded` - Expired or maximum issuance exceeded
 	Status *GetLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint                 `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetLinksParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
 // GetLinksParamsStatus defines parameters for GetLinks.
 type GetLinksParamsStatus string
+
+// GetLinksParamsSort defines parameters for GetLinks.
+type GetLinksParamsSort string
 
 // CreateLinkQrCodeCallbackTextBody defines parameters for CreateLinkQrCodeCallback.
 type CreateLinkQrCodeCallbackTextBody = string
@@ -1839,6 +1873,30 @@ func (siw *ServerInterfaceWrapper) GetLinks(w http.ResponseWriter, r *http.Reque
 	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 
@@ -3646,7 +3704,7 @@ type GetLinksResponseObject interface {
 	VisitGetLinksResponse(w http.ResponseWriter) error
 }
 
-type GetLinks200JSONResponse []Link
+type GetLinks200JSONResponse LinksPaginated
 
 func (response GetLinks200JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

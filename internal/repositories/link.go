@@ -137,39 +137,44 @@ GROUP BY links.id, schemas.id
 	return &link, err
 }
 
-func (l link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.LinkStatus, query *string) ([]*domain.Link, error) {
+func (l link) GetAll(ctx context.Context, issuerDID w3c.DID, filter ports.LinksFilter) ([]*domain.Link, uint, error) {
+	fields := []string{
+		"links.id",
+		"links.issuer_id",
+		"links.created_at",
+		"links.max_issuance",
+		"links.valid_until",
+		"links.schema_id",
+		"links.credential_expiration",
+		"links.credential_signature_proof",
+		"links.credential_mtp_proof",
+		"links.credential_attributes",
+		"links.active",
+		"links.refresh_service",
+		"links.display_method",
+		"links.authorization_request_message",
+		"count(claims.id) as issued_claims",
+		"schemas.id as schema_id",
+		"schemas.issuer_id as schema_issuer_id",
+		"schemas.url",
+		"schemas.type",
+		"schemas.hash",
+		"schemas.words",
+		"schemas.created_at",
+	}
+
 	sql := `
-SELECT links.id, 
-       links.issuer_id, 
-       links.created_at, 
-       links.max_issuance, 
-       links.valid_until, 
-       links.schema_id, 
-       links.credential_expiration, 
-       links.credential_signature_proof,
-       links.credential_mtp_proof, 
-       links.credential_attributes, 
-       links.active,
-	   links.refresh_service,
-	   links.display_method,
-	   links.authorization_request_message,
-       count(claims.id) as issued_claims,
-       schemas.id as schema_id,
-       schemas.issuer_id as schema_issuer_id,
-       schemas.url,
-       schemas.type,
-       schemas.hash,
-       schemas.words, 
-       schemas.created_at
-FROM links
-LEFT JOIN schemas ON schemas.id = links.schema_id
-LEFT JOIN claims ON claims.link_id = links.id AND claims.identifier = links.issuer_id
-WHERE links.issuer_id = $1
-`
+	SELECT  ##QUERYFIELDS##
+	FROM links
+	LEFT JOIN schemas ON schemas.id = links.schema_id
+	LEFT JOIN claims ON claims.link_id = links.id AND claims.identifier = links.issuer_id
+	WHERE links.issuer_id = $1
+	`
+
 	sqlArgs := make([]interface{}, 0)
 	sqlArgs = append(sqlArgs, issuerDID.String(), time.Now())
 
-	switch status {
+	switch filter.Status {
 	case ports.LinkActive:
 		sql += " AND links.active AND coalesce(links.valid_until > $2, true) AND coalesce(links.max_issuance>(SELECT count(claims.id) FROM claims where claims.link_id = links.id), true)"
 	case ports.LinkInactive:
@@ -180,21 +185,40 @@ WHERE links.issuer_id = $1
 			"OR " +
 			"(links.max_issuance IS NOT NULL AND links.max_issuance <= (SELECT count(claims.id) FROM claims where claims.link_id = links.id))"
 	}
-	if query != nil && *query != "" {
-		terms := tokenizeQuery(*query)
+	if filter.Query != nil && *filter.Query != "" {
+		terms := tokenizeQuery(*filter.Query)
 		sql += " AND (" + buildPartialQueryLikes("schemas.words", "OR", 1+len(sqlArgs), len(terms)) + ")"
 		for _, term := range terms {
 			sqlArgs = append(sqlArgs, term)
 		}
 	}
+
 	// Dummy condition to include time in the query although not always used
 	sql += " AND (true OR $1::text IS NULL OR $2::text IS NULl)"
 	sql += " GROUP BY links.id, schemas.id"
-	sql += " ORDER BY links.created_at DESC"
+	if len(filter.OrderBy) > 0 {
+		sql += " ORDER BY " + filter.OrderBy.String()
+	} else {
+		sql += " ORDER BY links.created_at DESC" // default order
+	}
 
-	rows, err := l.conn.Pgx.Query(ctx, sql, sqlArgs...)
+	countInnerQuery := strings.Replace(sql, "##QUERYFIELDS##", "links.id", 1)
+	countQuery := `SELECT count(*) FROM (` + countInnerQuery + `) as count`
+
+	var count uint
+	if err := l.conn.Pgx.QueryRow(ctx, countQuery, sqlArgs...).Scan(&count); err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, 0, nil
+		}
+		return nil, 0, err
+	}
+
+	sql += fmt.Sprintf(" OFFSET %d LIMIT %d;", (filter.Page-1)*filter.MaxResults, filter.MaxResults)
+
+	query := strings.Replace(sql, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
+	rows, err := l.conn.Pgx.Query(ctx, query, sqlArgs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -227,22 +251,22 @@ WHERE links.issuer_id = $1
 			&schema.Words,
 			&schema.CreatedAt,
 		); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		if err := credentialAttributes.AssignTo(&link.CredentialSubject); err != nil {
-			return nil, fmt.Errorf("parsing credential attributes: %w", err)
+			return nil, 0, fmt.Errorf("parsing credential attributes: %w", err)
 		}
 
 		link.Schema, err = toSchemaDomain(&schema)
 		if err != nil {
-			return nil, fmt.Errorf("parsing link schema: %w", err)
+			return nil, 0, fmt.Errorf("parsing link schema: %w", err)
 		}
 
 		links = append(links, link)
 	}
 
-	return links, nil
+	return links, count, nil
 }
 
 func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID w3c.DID) error {

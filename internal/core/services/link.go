@@ -181,17 +181,17 @@ func (ls *Link) GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID, se
 	return link, nil
 }
 
-// GetAll returns all links from issueDID of type lType filtered by query string
-func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.LinkStatus, query *string, serverURL string) ([]*domain.Link, error) {
-	links, err := ls.linkRepository.GetAll(ctx, issuerDID, status, query)
+// GetAll - returns all links from issueDID of type lType filtered by query string
+func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, filter ports.LinksFilter, serverURL string) ([]*domain.Link, uint, error) {
+	links, total, err := ls.linkRepository.GetAll(ctx, issuerDID, filter)
 	if err != nil {
-		return links, err
+		return links, 0, err
 	}
 
 	for _, link := range links {
 		ls.addLinksToLink(link, serverURL, issuerDID)
 	}
-	return links, nil
+	return links, total, nil
 }
 
 func (ls *Link) addLinksToLink(link *domain.Link, serverURL string, issuerDID w3c.DID) {

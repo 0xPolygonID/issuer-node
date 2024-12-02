@@ -15,6 +15,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 func TestSaveLink(t *testing.T) {
@@ -230,105 +231,227 @@ func TestGetAll(t *testing.T) {
 	}
 	type expected struct {
 		count  int
+		total  int
 		active *string
 	}
 	type testConfig struct {
 		name     string
-		filter   ports.LinkStatus
 		query    *string
+		filter   ports.LinksFilter
 		expected expected
 	}
 	for _, tc := range []testConfig{
 		{
-			name:   "all",
-			filter: ports.LinkAll,
-			query:  nil,
+			name: "all",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count: 50,
+				total: 50,
 			},
 		},
 		{
-			name:   "excedeed",
-			filter: ports.LinkExceeded,
-			query:  nil,
+			name: "all first page max 10",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 10,
+				Page:       uint(1),
+			},
+			expected: expected{
+				count: 10,
+				total: 50,
+			},
+		},
+		{
+			name: "all last page max 10",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 10,
+				Page:       uint(5),
+			},
+			expected: expected{
+				count: 10,
+				total: 50,
+			},
+		},
+		{
+			name: "all last + 1 page max 10",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 10,
+				Page:       uint(6),
+			},
+			expected: expected{
+				count: 0,
+				total: 50,
+			},
+		},
+		{
+			name: "excedeed",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkExceeded,
+				Query:      nil,
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count:  20, // 10 expired + 10 over used
 				active: common.ToPointer(string(ports.LinkExceeded)),
+				total:  20,
 			},
 		},
 		{
-			name:   "inactive",
-			filter: ports.LinkInactive,
-			query:  nil,
+			name: "inactive",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkInactive,
+				Query:      nil,
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count:  10,
 				active: common.ToPointer(string(ports.LinkInactive)),
+				total:  10,
 			},
 		},
 		{
-			name:   "active",
-			filter: ports.LinkActive,
-			query:  nil,
+			name: "active",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkActive,
+				Query:      nil,
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),
+				total:  20,
 			},
 		},
 		{
-			name:   "active, with query that should not match",
-			filter: ports.LinkActive,
-			query:  common.ToPointer("NOOOOT MATCH"),
+			name: "active, with query that should not match",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkActive,
+				Query:      common.ToPointer("NOOOOT MATCH"),
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count: 0,
+				total: 0,
 			},
 		},
 		{
-			name:   "active, with query that should match",
-			filter: ports.LinkActive,
-			query:  common.ToPointer("birthday"),
+			name: "active, with query that should match",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkActive,
+				Query:      common.ToPointer("birthday"),
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),
+				total:  20,
 			},
 		},
 		{
-			name:   "active, with query that should match because of the beginning of a term",
-			filter: ports.LinkActive,
-			query:  common.ToPointer("birth"),
+			name: "active, with query that should match because of the beginning of a term",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkActive,
+				Query:      common.ToPointer("birth"),
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),
+				total:  20,
 			},
 		},
 		{
-			name:   "active, with query that should match because in the middle of a term",
-			filter: ports.LinkActive,
-			query:  common.ToPointer("thday"),
+			name: "active, with query that should match because in the middle of a term",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkActive,
+				Query:      common.ToPointer("thday"),
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),
+				total:  20,
 			},
 		},
 		{
-			name:   "inactive, with query that should match",
-			filter: ports.LinkInactive,
-			query:  common.ToPointer("birthday"),
+			name: "inactive, with query that should match",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkInactive,
+				Query:      common.ToPointer("birthday"),
+				MaxResults: 50,
+				Page:       uint(1),
+			},
 			expected: expected{
 				count:  10,
 				active: common.ToPointer(string(ports.LinkInactive)),
+				total:  10,
 			},
 		},
 		{
-			name:     "inactive, with query that should NOT match",
-			filter:   ports.LinkInactive,
-			query:    common.ToPointer("NORRR"),
-			expected: expected{count: 0},
+			name: "inactive, with query that should NOT match",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkInactive,
+				Query:      common.ToPointer("NORRR"),
+				MaxResults: 50,
+				Page:       uint(1),
+			},
+			query: common.ToPointer("NORRR"),
+			expected: expected{
+				count: 0,
+				total: 0,
+			},
+		},
+		{
+			name: "all sort y creation date desc",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 50,
+				Page:       uint(1),
+				OrderBy:    sqltools.OrderByFilters{{Field: "links.created_at", Desc: true}},
+			},
+			expected: expected{
+				count: 50,
+				total: 50,
+			},
+		},
+		{
+			name: "all sort y creation date asc",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 50,
+				Page:       uint(1),
+				OrderBy:    sqltools.OrderByFilters{{Field: "links.created_at", Desc: false}},
+			},
+			expected: expected{
+				count: 50,
+				total: 50,
+			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			all, err := linkStore.GetAll(ctx, *did, tc.filter, tc.query)
+			all, count, err := linkStore.GetAll(ctx, *did, tc.filter)
 			require.NoError(t, err)
 			require.Len(t, all, tc.expected.count)
+			assert.Equal(t, tc.expected.total, int(count))
 			for _, one := range all {
 				if tc.expected.active != nil {
 					assert.Equal(t, one.Status(), *tc.expected.active)
@@ -400,4 +523,87 @@ func TestDeleteLink(t *testing.T) {
 	err = linkStore.Delete(ctx, uuid.New(), *did)
 	assert.Error(t, err)
 	assert.Equal(t, ErrLinkDoesNotExist, err)
+}
+
+func TestGetAllWithPagination(t *testing.T) {
+	ctx := context.Background()
+	didStr := "did:iden3:polygon:amoy:xAALmKpb53Qg7M81CqWmk2Ct5vwPXPYjU3bTThw4f"
+	schemaStore := NewSchema(*storage)
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
+	require.NoError(t, err)
+	linkStore := NewLink(*storage)
+	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
+	did, err := w3c.ParseDID(didStr)
+	require.NoError(t, err)
+
+	tomorrow := time.Now().Add(24 * time.Hour)
+	nextWeek := time.Now().Add(7 * 24 * time.Hour)
+
+	actives := make([]string, 0)
+	// 10  not expired links and no max issuance
+	for i := 0; i < 10; i++ {
+		linkToSave := domain.NewLink(*did, nil, &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil)
+		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
+		require.NoError(t, err)
+		assert.NotNil(t, linkID)
+		actives = append(actives, linkID.String())
+	}
+
+	type expected struct {
+		count  int
+		total  int
+		active *string
+	}
+	type testConfig struct {
+		name     string
+		filter   ports.LinksFilter
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "all order by created at desc",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 10,
+				Page:       uint(1),
+				OrderBy:    sqltools.OrderByFilters{{Field: "links.created_at", Desc: true}},
+			},
+			expected: expected{
+				active: common.ToPointer(string(ports.LinkAll)),
+				count:  10,
+				total:  10,
+			},
+		},
+		{
+			name: "all order by created at asc",
+			filter: ports.LinksFilter{
+				Status:     ports.LinkAll,
+				Query:      nil,
+				MaxResults: 10,
+				Page:       uint(1),
+				OrderBy:    sqltools.OrderByFilters{{Field: "links.created_at", Desc: false}},
+			},
+			expected: expected{
+				active: common.ToPointer(string(ports.LinkActive)),
+				count:  10,
+				total:  10,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			all, count, err := linkStore.GetAll(ctx, *did, tc.filter)
+			require.NoError(t, err)
+			require.Len(t, all, tc.expected.count)
+			assert.Equal(t, tc.expected.total, int(count))
+
+			for i, one := range all {
+				if tc.filter.OrderBy[0].Desc {
+					assert.Equal(t, actives[len(actives)-i-1], one.ID.String())
+				} else {
+					assert.Equal(t, actives[i], one.ID.String())
+				}
+			}
+		})
+	}
 }
