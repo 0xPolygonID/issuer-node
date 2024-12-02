@@ -14,8 +14,11 @@ import {
 
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
+import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 
 import { getApiSchemas } from "src/adapters/api/schemas";
+import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { tableSorterParser } from "src/adapters/parsers/view";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
 import IconUpload from "src/assets/icons/upload-01.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -28,11 +31,17 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DEFAULT_PAGINATION_MAX_RESULTS,
+  DEFAULT_PAGINATION_PAGE,
+  DEFAULT_PAGINATION_TOTAL,
   IMPORT_SCHEMA,
+  PAGINATION_MAX_RESULTS_PARAM,
+  PAGINATION_PAGE_PARAM,
   QUERY_SEARCH_PARAM,
   SCHEMAS,
   SCHEMA_SEARCH_PARAM,
   SCHEMA_TYPE,
+  SORT_PARAM,
 } from "src/utils/constants";
 import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
@@ -44,19 +53,35 @@ export function SchemasTable() {
   const [apiSchemas, setApiSchemas] = useState<AsyncTask<ApiSchema[], AppError>>({
     status: "pending",
   });
+  const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
 
   const { sm } = Grid.useBreakpoint();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
+  const paginationPageParam = searchParams.get(PAGINATION_PAGE_PARAM);
+  const paginationMaxResultsParam = searchParams.get(PAGINATION_MAX_RESULTS_PARAM);
+  const sortParam = searchParams.get(SORT_PARAM);
+
+  const sorters = parseSorters(sortParam);
+  const paginationPageParsed = positiveIntegerFromStringParser.safeParse(paginationPageParam);
+  const paginationMaxResultsParsed =
+    positiveIntegerFromStringParser.safeParse(paginationMaxResultsParam);
+
+  const paginationPage = paginationPageParsed.success
+    ? paginationPageParsed.data
+    : DEFAULT_PAGINATION_PAGE;
+  const paginationMaxResults = paginationMaxResultsParsed.success
+    ? paginationMaxResultsParsed.data
+    : DEFAULT_PAGINATION_MAX_RESULTS;
 
   const tableColumns: TableColumnsType<ApiSchema> = [
     {
-      dataIndex: "type",
+      dataIndex: "schemaType",
       ellipsis: { showTitle: false },
       key: "type",
-      render: (type: ApiSchema["type"], { description, title }: ApiSchema) => (
+      render: (_, { description, title, type }: ApiSchema) => (
         <Tooltip
           placement="topLeft"
           title={title && description ? `${title}: ${description}` : title || description}
@@ -65,30 +90,33 @@ export function SchemasTable() {
         </Tooltip>
       ),
       sorter: {
-        compare: ({ type: a }, { type: b }) => a.localeCompare(b),
-        multiple: 2,
+        multiple: 1,
       },
+      sortOrder: sorters.find(({ field }) => field === "schemaType")?.order,
       title: SCHEMA_TYPE,
     },
     {
-      dataIndex: "version",
+      dataIndex: "schemaVersion",
       key: "version",
-      render: (version: ApiSchema["version"]) => (
+      render: (_, { version }: ApiSchema) => (
         <Typography.Text strong>{version || "-"}</Typography.Text>
       ),
       sorter: {
-        compare: ({ version: a }, { version: b }) => (a && b ? a.localeCompare(b) : 0),
-        multiple: 1,
+        multiple: 2,
       },
+      sortOrder: sorters.find(({ field }) => field === "schemaVersion")?.order,
       title: "Schema version",
     },
     {
-      dataIndex: "createdAt",
+      dataIndex: "importDate",
       key: "createdAt",
-      render: (createdAt: ApiSchema["createdAt"]) => (
+      render: (_, { createdAt }: ApiSchema) => (
         <Typography.Text>{formatDate(createdAt)}</Typography.Text>
       ),
-      sorter: ({ createdAt: a }, { createdAt: b }) => b.getTime() - a.getTime(),
+      sorter: {
+        multiple: 3,
+      },
+      sortOrder: sorters.find(({ field }) => field === "importDate")?.order,
       title: "Import date",
     },
     {
@@ -121,6 +149,31 @@ export function SchemasTable() {
     },
   ];
 
+  const updateUrlParams = useCallback(
+    ({ maxResults, page, sorters }: { maxResults?: number; page?: number; sorters?: Sorter[] }) => {
+      setSearchParams((previousParams) => {
+        const params = new URLSearchParams(previousParams);
+        params.set(
+          PAGINATION_PAGE_PARAM,
+          page !== undefined ? page.toString() : DEFAULT_PAGINATION_PAGE.toString()
+        );
+        params.set(
+          PAGINATION_MAX_RESULTS_PARAM,
+          maxResults !== undefined
+            ? maxResults.toString()
+            : DEFAULT_PAGINATION_MAX_RESULTS.toString()
+        );
+        const newSorters = sorters || parseSorters(sortParam);
+        newSorters.length > 0
+          ? params.set(SORT_PARAM, serializeSorters(newSorters))
+          : params.delete(SORT_PARAM);
+
+        return params;
+      });
+    },
+    [setSearchParams, sortParam]
+  );
+
   const onGetSchemas = useCallback(
     async (signal: AbortSignal) => {
       setApiSchemas((previousState) =>
@@ -132,20 +185,28 @@ export function SchemasTable() {
         env,
         identifier,
         params: {
+          maxResults: paginationMaxResults,
+          page: paginationPage,
           query: queryParam || undefined,
+          sorters: parseSorters(sortParam),
         },
         signal,
       });
       if (response.success) {
-        setApiSchemas({ data: response.data.successful, status: "successful" });
-        notifyParseErrors(response.data.failed);
+        setApiSchemas({ data: response.data.items.successful, status: "successful" });
+        setPaginationTotal(response.data.meta.total);
+        updateUrlParams({
+          maxResults: response.data.meta.max_results,
+          page: response.data.meta.page,
+        });
+        notifyParseErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setApiSchemas({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam, identifier]
+    [env, queryParam, identifier, paginationMaxResults, paginationPage, sortParam, updateUrlParams]
   );
 
   const onSearch = useCallback(
@@ -217,7 +278,22 @@ export function SchemasTable() {
                 <NoResults searchQuery={queryParam} />
               ),
           }}
-          pagination={false}
+          onChange={({ current, pageSize, total }, _, sorters) => {
+            setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
+            const parsedSorters = tableSorterParser.safeParse(sorters);
+            updateUrlParams({
+              maxResults: pageSize,
+              page: current,
+              sorters: parsedSorters.success ? parsedSorters.data : [],
+            });
+          }}
+          pagination={{
+            current: paginationPage,
+            hideOnSinglePage: true,
+            pageSize: paginationMaxResults,
+            position: ["bottomRight"],
+            total: paginationTotal,
+          }}
           rowKey="id"
           showSorterTooltip
           sortDirections={["ascend", "descend"]}
@@ -228,7 +304,7 @@ export function SchemasTable() {
           <Space size="middle">
             <Card.Meta title={SCHEMAS} />
 
-            <Tag>{schemaList.length}</Tag>
+            <Tag>{paginationTotal}</Tag>
           </Space>
         </Row>
       }

@@ -7,13 +7,31 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
+
+const (
+	// SchemaImportDateFilterField is the field name for the schema created_at field
+	SchemaImportDateFilterField sqltools.SQLFieldName = "created_at"
+	// SchemaTypeFilterField is the field name for the schema type field
+	SchemaTypeFilterField sqltools.SQLFieldName = "type"
+	// SchemaVersionFilterField is the field name for the schema title field
+	SchemaVersionFilterField sqltools.SQLFieldName = "version"
+)
+
+// SchemasFilter defines the filter for the schemas
+type SchemasFilter struct {
+	Query      *string
+	MaxResults uint
+	Page       uint
+	OrderBy    sqltools.OrderByFilters
+}
 
 // SchemaService defines the methods that Schema manager will expose.
 type SchemaService interface {
 	ImportSchema(ctx context.Context, issuerDID w3c.DID, req *ImportSchemaRequest) (*domain.Schema, error)
 	GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.Schema, error)
-	GetAll(ctx context.Context, issuerDID w3c.DID, query *string) ([]domain.Schema, error)
+	GetAll(ctx context.Context, issuerDID w3c.DID, filter SchemasFilter) ([]domain.Schema, uint, error)
 }
 
 // ImportSchemaRequest defines the request for importing a schema

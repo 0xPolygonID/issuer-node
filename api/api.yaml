@@ -1036,15 +1036,40 @@ paths:
           schema:
             type: string
           description: Query string to do full text search in schema types and attributes.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "importDate", "-importDate", "schemaType", "-schemaType", "schemaVersion", "-schemaVersion" ]
+              default: "-importDate"
+            description: >
+              The minus sign (-) before field means descending order.
       responses:
         '200':
           description: Schema collection
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Schema'
+                $ref: '#/components/schemas/SchemasPaginated'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -1671,6 +1696,17 @@ components:
         version:
           type: string
           example: "1.0.0"
+
+    SchemasPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Schema'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
 
     Schema:
       type: object

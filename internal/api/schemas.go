@@ -12,6 +12,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // ImportSchema is the UI endpoint to import schema metadata
@@ -60,12 +61,29 @@ func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return GetSchemas400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	col, err := s.schemaService.GetAll(ctx, *issuerDID, request.Params.Query)
+
+	filter, err := getFilter(request)
+	if err != nil {
+		log.Error(ctx, "getting filter", "err", err)
+		return GetSchemas400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+
+	col, total, err := s.schemaService.GetAll(ctx, *issuerDID, *filter)
 	if err != nil {
 		log.Error(ctx, "loading schemas", "err", err)
 		return GetSchemas500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-	return GetSchemas200JSONResponse(schemaCollectionResponse(col)), nil
+
+	response := GetSchemas200JSONResponse{
+		Items: schemaCollectionResponse(col),
+		Meta: PaginatedMetadata{
+			Total:      total,
+			Page:       filter.Page,
+			MaxResults: filter.MaxResults,
+		},
+	}
+
+	return response, nil
 }
 
 func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
@@ -82,4 +100,48 @@ func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
 		return fmt.Errorf("parsing url: %w", err)
 	}
 	return nil
+}
+
+func getFilter(req GetSchemasRequestObject) (*ports.SchemasFilter, error) {
+	filter := ports.SchemasFilter{}
+	filter.MaxResults = 50
+	if req.Params.MaxResults != nil {
+		if *req.Params.MaxResults <= 0 {
+			filter.MaxResults = 10
+		} else {
+			filter.MaxResults = *req.Params.MaxResults
+		}
+	}
+
+	if req.Params.Query != nil {
+		filter.Query = req.Params.Query
+	}
+
+	filter.Page = uint(1)
+	if req.Params.Page != nil {
+		filter.Page = *req.Params.Page
+	}
+
+	orderBy := sqltools.OrderByFilters{}
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetSchemasParamsSort(field) {
+			case ImportDate:
+				err = orderBy.Add(ports.SchemaImportDateFilterField, desc)
+			case SchemaType:
+				err = orderBy.Add(ports.SchemaTypeFilterField, desc)
+			case SchemaVersion:
+				err = orderBy.Add(ports.SchemaVersionFilterField, desc)
+			default:
+				return nil, errors.New("wrong sort field")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
+	filter.OrderBy = orderBy
+	return &filter, nil
 }

@@ -39,8 +39,8 @@ func (s *schema) GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (
 }
 
 // GetAll return all schemas in the database that matches the query string
-func (s *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) ([]domain.Schema, error) {
-	return s.repo.GetAll(ctx, issuerDID, query)
+func (s *schema) GetAll(ctx context.Context, issuerDID w3c.DID, filter ports.SchemasFilter) ([]domain.Schema, uint, error) {
+	return s.repo.GetAll(ctx, issuerDID, filter)
 }
 
 // ImportSchema process an schema url and imports into the system

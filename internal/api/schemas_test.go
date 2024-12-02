@@ -176,12 +176,20 @@ func TestServer_GetSchemas(t *testing.T) {
 	type expected struct {
 		httpCode int
 		count    int
+		response GetSchemasResponseObject
 	}
+
+	type pagination struct {
+		page       *int
+		maxResults *int
+	}
+
 	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		query    *string
-		expected expected
+		name       string
+		auth       func() (string, string)
+		query      *string
+		pagination *pagination
+		expected   expected
 	}
 	for _, tc := range []testConfig{
 		{
@@ -198,6 +206,71 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    21,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
+			},
+		},
+		{
+			name:  "Happy path. All schemas, no query - maxResults 10 - page 1",
+			auth:  authOk,
+			query: nil,
+			pagination: &pagination{
+				page:       common.ToPointer(1),
+				maxResults: common.ToPointer(10),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    10,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 10,
+					},
+				},
+			},
+		},
+		{
+			name:  "Happy path. All schemas, no query - maxResults 10 - default page 1",
+			auth:  authOk,
+			query: nil,
+			pagination: &pagination{
+				maxResults: common.ToPointer(10),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    10,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 10,
+					},
+				},
+			},
+		},
+		{
+			name:  "Happy path. All schemas, no query - default maxResults 50 - page 1",
+			auth:  authOk,
+			query: nil,
+			pagination: &pagination{
+				page: common.ToPointer(1),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    21,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 		{
@@ -207,6 +280,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    21,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 		{
@@ -216,6 +296,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    20,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      20,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 		{
@@ -225,6 +312,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    21,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      21,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 		{
@@ -234,6 +328,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    1,
+				response: GetSchemas200JSONResponse{
+					Meta: PaginatedMetadata{
+						Total:      1,
+						Page:       1,
+						MaxResults: 50,
+					},
+				},
 			},
 		},
 	} {
@@ -242,6 +343,24 @@ func TestServer_GetSchemas(t *testing.T) {
 			endpoint := fmt.Sprintf("/v2/identities/%s/schemas", issuerDID)
 			if tc.query != nil {
 				endpoint = endpoint + "?query=" + url.QueryEscape(*tc.query)
+			}
+			if tc.pagination != nil {
+				if tc.pagination.page != nil {
+					if tc.query != nil {
+						endpoint = endpoint + fmt.Sprintf("&page=%d", *tc.pagination.page)
+					} else {
+						endpoint = endpoint + fmt.Sprintf("?page=%d", *tc.pagination.page)
+					}
+					if tc.pagination.maxResults != nil {
+						endpoint = endpoint + fmt.Sprintf("&max_results=%d", *tc.pagination.maxResults)
+					}
+				} else {
+					if tc.query != nil {
+						endpoint = endpoint + fmt.Sprintf("&max_results=%d", *tc.pagination.maxResults)
+					} else {
+						endpoint = endpoint + fmt.Sprintf("?max_results=%d", *tc.pagination.maxResults)
+					}
+				}
 			}
 			req, err := http.NewRequest("GET", endpoint, nil)
 			req.SetBasicAuth(tc.auth())
@@ -253,8 +372,13 @@ func TestServer_GetSchemas(t *testing.T) {
 			switch tc.expected.httpCode {
 			case http.StatusOK:
 				var response GetSchemas200JSONResponse
+				expectedResponse, ok := tc.expected.response.(GetSchemas200JSONResponse)
+				require.True(t, ok)
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, tc.expected.count, len(response))
+				assert.Equal(t, tc.expected.count, len(response.Items))
+				assert.Equal(t, expectedResponse.Meta.Total, response.Meta.Total)
+				assert.Equal(t, expectedResponse.Meta.Page, response.Meta.Page)
+				assert.Equal(t, expectedResponse.Meta.MaxResults, response.Meta.MaxResults)
 			}
 		})
 	}
@@ -449,4 +573,190 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServer_GetSchemasWithPaginationAndSort(t *testing.T) {
+	ctx := context.Background()
+	conn := lookupPostgresURL()
+	if conn == "" {
+		conn = "postgres://postgres:postgres@localhost:5435"
+	}
+	storage, teardown, err := tests.NewTestStorage(&config.Configuration{Database: config.Database{URL: conn}})
+	require.NoError(t, err)
+	defer teardown()
+
+	server := newTestServer(t, storage)
+
+	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+	server.cfg.ServerUrl = "https://testing.env"
+	fixture := repositories.NewFixture(storage)
+	handler := getHandler(ctx, server)
+
+	s1 := &domain.Schema{
+		ID:        uuid.New(),
+		IssuerDID: *issuerDID,
+		URL:       "https://domain.org/this/is/an/SchemaA",
+		Type:      "SchemaA",
+		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+		CreatedAt: time.Now(),
+		Version:   "1",
+	}
+	s1.Hash = common.CreateSchemaHash([]byte(s1.URL + "#" + s1.Type))
+	fixture.CreateSchema(t, ctx, s1)
+
+	s2 := &domain.Schema{
+		ID:        uuid.New(),
+		IssuerDID: *issuerDID,
+		URL:       "https://domain.org/this/is/an/SchemaB",
+		Type:      "SchemaB",
+		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+		CreatedAt: time.Now(),
+		Version:   "2",
+	}
+	s2.Hash = common.CreateSchemaHash([]byte(s2.URL + "#" + s2.Type))
+	fixture.CreateSchema(t, ctx, s2)
+
+	t.Run("Happy path. All schemas, no query - maxResults 10 - page 1 - sort by created_at desc default", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 2)
+		assert.Equal(t, s2.ID.String(), response.Items[0].Id)
+		assert.Equal(t, s1.ID.String(), response.Items[1].Id)
+	})
+
+	t.Run("Happy path. All schemas, no query - maxResults 10 - page 1 - sort by created_at desc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas?sort=-importDate", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 2)
+		assert.Equal(t, s2.ID.String(), response.Items[0].Id)
+		assert.Equal(t, s1.ID.String(), response.Items[1].Id)
+	})
+
+	t.Run("Happy path. All schemas, no query - maxResults 10 - page 1 - sort by created_at asc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas?sort=importDate", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 2)
+		assert.Equal(t, s2.ID.String(), response.Items[1].Id)
+		assert.Equal(t, s1.ID.String(), response.Items[0].Id)
+	})
+
+	t.Run("Happy path. All schemas, no query - maxResults 10 - page 1 - sort by schemaType desc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas?sort=-schemaType", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 2)
+		assert.Equal(t, s2.ID.String(), response.Items[0].Id)
+		assert.Equal(t, s1.ID.String(), response.Items[1].Id)
+	})
+
+	t.Run("Happy path. All schemas, no query - maxResults 10 - page 1 - sort by schemaType asc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas?sort=schemaType", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 2)
+		assert.Equal(t, s2.ID.String(), response.Items[1].Id)
+		assert.Equal(t, s1.ID.String(), response.Items[0].Id)
+	})
+
+	t.Run("Happy path. All schemas, no query - maxResults 10 - page 1 - sort by version desc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas?sort=-schemaVersion", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 2)
+		assert.Equal(t, s2.ID.String(), response.Items[0].Id)
+		assert.Equal(t, s1.ID.String(), response.Items[1].Id)
+	})
+
+	t.Run("Happy path. All schemas, no query - maxResults 10 - page 1 - sort by version asc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas?sort=schemaVersion", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 2)
+		assert.Equal(t, s2.ID.String(), response.Items[1].Id)
+		assert.Equal(t, s1.ID.String(), response.Items[0].Id)
+	})
+
+	t.Run("Happy path. All schemas, with query - maxResults 10 - page 1 - sort by schemaType desc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas?query=SchemaA&sort=-schemaType", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 1)
+		assert.Equal(t, s1.ID.String(), response.Items[0].Id)
+	})
+
+	t.Run("Happy path. All schemas, with query2 - maxResults 10 - page 1 - sort by schemaType desc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		endpoint := fmt.Sprintf("/v2/identities/%s/schemas?query=Schema&sort=-schemaType", issuerDID)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetSchemas200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Len(t, response.Items, 2)
+		assert.Equal(t, s2.ID.String(), response.Items[0].Id)
+		assert.Equal(t, s1.ID.String(), response.Items[1].Id)
+	})
 }
