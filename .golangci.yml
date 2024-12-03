@@ -61,7 +61,7 @@ linters-settings:
   gofumpt:
 
   gocognit:
-    min-complexity: 42
+    min-complexity: 41
   gocyclo:
     min-complexity: 35
   revive:

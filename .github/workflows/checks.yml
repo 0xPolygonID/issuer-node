@@ -17,10 +17,9 @@ jobs:
         with:
           compose-file: './infrastructure/local/docker-compose-infra.yml'
           services: |
-            postgres
-            vault
-            test_local_files_apache
-            localstack
+             postgres
+             vault
+             test_local_files_apache
 
       - name: Set up Go
         uses: actions/setup-go@v3

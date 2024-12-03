@@ -1,8 +1,9 @@
-import { Avatar, Card, Dropdown, Flex, Tag, Tooltip, Typography, theme } from "antd";
+import { Avatar, Card, Dropdown, Flex, Tag, Typography, theme } from "antd";
 import { useNavigate } from "react-router-dom";
 import { formatIdentifier } from "../../utils/forms";
 import IconCheck from "src/assets/icons/check.svg?react";
 import IconChevron from "src/assets/icons/chevron-selector-vertical.svg?react";
+import IconCopy from "src/assets/icons/copy-01.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
@@ -103,11 +104,16 @@ export function UserDisplay() {
               >
                 DID
               </Tag>
-              <Tooltip title={identifier}>
-                <Typography.Text type="secondary">
-                  {formatIdentifier(identifier, { short: true })}
-                </Typography.Text>
-              </Tooltip>
+
+              <Typography.Text
+                copyable={{
+                  icon: [<IconCopy key={0} />, <IconCheck key={1} />],
+                  text: identifier,
+                }}
+                type="secondary"
+              >
+                {formatIdentifier(identifier, { short: true })}
+              </Typography.Text>
             </Flex>
           </Flex>
         </Flex>
