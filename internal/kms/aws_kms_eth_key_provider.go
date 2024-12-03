@@ -20,22 +20,23 @@ import (
 
 const aliasPrefix = "alias/"
 
-type awsEthKeyProvider struct {
+type awsKmsEthKeyProvider struct {
 	keyType                  KeyType
 	reIdenKeyPathHex         *regexp.Regexp // RE of key path bounded to identity
 	kmsClient                *kms.Client
 	issuerETHTransferKeyPath string
 }
 
-// AwEthKeyProviderConfig - configuration for AWS KMS Ethereum key provider
-type AwEthKeyProviderConfig struct {
+// AwKmsEthKeyProviderConfig - configuration for AWS KMS Ethereum key provider
+type AwKmsEthKeyProviderConfig struct {
 	AccessKey string
 	SecretKey string
 	Region    string
+	URL       string
 }
 
-// NewAwsEthKeyProvider - creates new key provider for Ethereum keys stored in AWS KMS
-func NewAwsEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransferKeyPath string, awsKmsEthKeyProviderConfig AwEthKeyProviderConfig) (KeyProvider, error) {
+// NewAwsKMSEthKeyProvider - creates new key provider for Ethereum keys stored in AWS KMS
+func NewAwsKMSEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransferKeyPath string, awsKmsEthKeyProviderConfig AwKmsEthKeyProviderConfig) (KeyProvider, error) {
 	keyTypeRE := regexp.QuoteMeta(string(keyType))
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" + keyTypeRE + ":([a-f0-9]{64})$")
 	cfg, err := config.LoadDefaultConfig(
@@ -47,8 +48,17 @@ func NewAwsEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransfe
 	if err != nil {
 		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
-	svc := kms.NewFromConfig(cfg)
-	return &awsEthKeyProvider{
+
+	var options []func(*kms.Options)
+	if strings.ToLower(awsKmsEthKeyProviderConfig.Region) == "local" {
+		options = make([]func(*kms.Options), 1)
+		options[0] = func(o *kms.Options) {
+			o.BaseEndpoint = aws.String(awsKmsEthKeyProviderConfig.URL)
+		}
+	}
+
+	svc := kms.NewFromConfig(cfg, options...)
+	return &awsKmsEthKeyProvider{
 		keyType:                  keyType,
 		reIdenKeyPathHex:         reIdenKeyPathHex,
 		kmsClient:                svc,
@@ -56,7 +66,7 @@ func NewAwsEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransfe
 	}, nil
 }
 
-func (awsKeyProv *awsEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
+func (awsKeyProv *awsKmsEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	ctx := context.Background()
 	keyID := KeyID{Type: awsKeyProv.keyType}
 
@@ -72,7 +82,7 @@ func (awsKeyProv *awsEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 		log.Error(ctx, "failed to create key: %v", err)
 		return KeyID{}, fmt.Errorf("failed to create key: %v", err)
 	}
-	log.Info(ctx, "keyArn: %v", keyArn.KeyMetadata.Arn)
+	log.Info(ctx, "keyArn:", keyArn.KeyMetadata.Arn)
 	inputPublicKey := &kms.GetPublicKeyInput{
 		KeyId: aws.String(*keyArn.KeyMetadata.Arn),
 	}
@@ -95,7 +105,7 @@ func (awsKeyProv *awsEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 }
 
 // PublicKey returns public key for given keyID
-func (awsKeyProv *awsEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
+func (awsKeyProv *awsKmsEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 	if keyID.ID == awsKeyProv.issuerETHTransferKeyPath {
 		keyID.ID = aliasPrefix + awsKeyProv.issuerETHTransferKeyPath
 	}
@@ -111,7 +121,7 @@ func (awsKeyProv *awsEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 }
 
 // Sign signs data with keyID
-func (awsKeyProv *awsEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error) {
+func (awsKeyProv *awsKmsEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error) {
 	if keyID.ID == awsKeyProv.issuerETHTransferKeyPath {
 		keyID.ID = aliasPrefix + awsKeyProv.issuerETHTransferKeyPath
 	}
@@ -154,45 +164,72 @@ func (awsKeyProv *awsEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data
 }
 
 // LinkToIdentity links key to identity
-func (awsKeyProv *awsEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
+func (awsKeyProv *awsKmsEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
 	keyMetadata, err := awsKeyProv.getKeyInfoByAlias(ctx, keyID.ID)
 	if err != nil {
-		log.Error(ctx, "failed to get key metadata: %v", err)
+		log.Error(ctx, "failed to get key metadata", "keyMetadata", keyMetadata, "err", err)
 		return KeyID{}, fmt.Errorf("failed to get key metadata: %v", err)
 	}
 
-	t := strings.Replace(identity.String(), ":", "", -1)
-	aliasName := aliasPrefix + t
-	if err := awsKeyProv.createAlias(ctx, aliasName, *keyMetadata.Arn); err != nil {
-		log.Error(ctx, "failed to create alias: %v", err)
-		return KeyID{}, fmt.Errorf("failed to create alias: %v", err)
+	tagResourceInput := &kms.TagResourceInput{
+		KeyId: keyMetadata.KeyId,
+		Tags: []types.Tag{
+			{
+				TagKey:   aws.String("keyType"),
+				TagValue: aws.String(string(keyID.Type)),
+			},
+			{
+				TagKey:   aws.String("did"),
+				TagValue: aws.String(identity.String()),
+			},
+		},
 	}
+
+	resourceOutput, err := awsKeyProv.kmsClient.TagResource(ctx, tagResourceInput)
+	if err != nil {
+		log.Error(ctx, "failed to tag resource: %v", err)
+		return KeyID{}, fmt.Errorf("failed to tag resource: %v", err)
+	}
+
+	log.Info(ctx, "resource tagged:", "resourceOutput:", resourceOutput.ResultMetadata)
 	keyID.ID = identity.String()
 	return keyID, nil
 }
 
 // ListByIdentity returns list of keyIDs for given identity
-func (awsKeyProv *awsEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
-	t := strings.Replace(identity.String(), ":", "", -1)
-	aliasName := aliasPrefix + t
-	metadata, err := awsKeyProv.getKeyInfoByAlias(ctx, aliasName)
+func (awsKeyProv *awsKmsEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
+	listKeysInput := &kms.ListKeysInput{}
+	listKeysOutput, err := awsKeyProv.kmsClient.ListKeys(ctx, listKeysInput)
 	if err != nil {
-		log.Info(ctx, "eth key not found in awsKeyProv kms", "err", err)
+		return nil, fmt.Errorf("failed to list keys: %w", err)
 	}
 
-	if metadata == nil {
-		return []KeyID{}, nil
+	keysToReturn := make([]KeyID, 0)
+	for _, key := range listKeysOutput.Keys {
+		describeInput := &kms.ListResourceTagsInput{
+			KeyId: key.KeyId,
+		}
+		tagOutput, err := awsKeyProv.kmsClient.ListResourceTags(ctx, describeInput)
+		if err != nil {
+			log.Error(ctx, "failed to list tags", "keyID", aws.ToString(key.KeyId), "err", err)
+			continue
+		}
+
+		for _, tag := range tagOutput.Tags {
+			if aws.ToString(tag.TagKey) == "did" && aws.ToString(tag.TagValue) == identity.String() {
+				keysToReturn = append(keysToReturn, KeyID{
+					Type: KeyTypeEthereum,
+					ID:   aws.ToString(key.KeyId),
+				})
+			}
+		}
 	}
 
-	keyID := KeyID{
-		Type: KeyTypeEthereum,
-		ID:   *metadata.Arn,
-	}
-	return []KeyID{keyID}, nil
+	return keysToReturn, nil
 }
 
 // createAlias creates alias for key
-func (awsKeyProv *awsEthKeyProvider) createAlias(ctx context.Context, aliasName, targetKeyId string) error {
+func (awsKeyProv *awsKmsEthKeyProvider) createAlias(ctx context.Context, aliasName, targetKeyId string) error {
 	input := &kms.CreateAliasInput{
 		AliasName:   aws.String(aliasName),
 		TargetKeyId: aws.String(targetKeyId),
@@ -207,7 +244,7 @@ func (awsKeyProv *awsEthKeyProvider) createAlias(ctx context.Context, aliasName,
 }
 
 // getKeyInfoByAlias returns key metadata by alias
-func (awsKeyProv *awsEthKeyProvider) getKeyInfoByAlias(ctx context.Context, aliasName string) (*types.KeyMetadata, error) {
+func (awsKeyProv *awsKmsEthKeyProvider) getKeyInfoByAlias(ctx context.Context, aliasName string) (*types.KeyMetadata, error) {
 	aliasInput := &kms.DescribeKeyInput{
 		KeyId: aws.String(aliasName),
 	}

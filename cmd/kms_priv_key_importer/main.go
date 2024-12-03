@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -10,12 +11,14 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awskms "github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/ethereum/go-ethereum/crypto"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/joho/godotenv"
@@ -35,9 +38,10 @@ const (
 	issuerKeyStorePluginIden3MountPath  = "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH"
 	issuerVaultUserPassAuthEnabled      = "ISSUER_VAULT_USERPASS_AUTH_ENABLED"
 	issuerVaultUserPassAuthPasword      = "ISSUER_VAULT_USERPASS_AUTH_PASSWORD"
-	aWSAccessKey                        = "ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"
-	aWSSecretKey                        = "ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"
-	aWSRegion                           = "ISSUER_KMS_ETH_PLUGIN_AWS_REGION"
+	awsAccessKey                        = "ISSUER_KMS_AWS_ACCESS_KEY"
+	awsSecretKey                        = "ISSUER_KMS_AWS_SECRET_KEY"
+	awsRegion                           = "ISSUER_KMS_AWS_REGION"
+	awsURL                              = "ISSUER_KMS_AWS_URL"
 
 	jsonKeyPath      = "key_path"
 	jsonKeyType      = "key_type"
@@ -55,32 +59,26 @@ type localStorageBJJKeyProviderFileContent struct {
 
 // This is a tool to import ethereum private key to different kms.
 func main() {
-	fPrivateKey := flag.String("privateKey", "", "metamask private key")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	flag.Parse()
-	if *fPrivateKey == "" {
-		log.Error(ctx, "private key is required")
-		return
-	}
-
-	_, err := crypto.HexToECDSA(*fPrivateKey)
-	if err != nil {
-		log.Error(ctx, "cannot convert private key to ECDSA", "err", err)
-		return
-	}
-
-	err = godotenv.Load(envFile)
+	err := godotenv.Load(envFile)
 	if err != nil {
 		log.Error(ctx, "Error loading .env-issuer file")
 	}
-
-	issuerKMSEthPluginVar := os.Getenv(issuerKMSETHProvider)
+	issuerKMSETHProviderToUse := os.Getenv(issuerKMSETHProvider)
 	issuerKmsPluginLocalStorageFilePath := os.Getenv(issuerKmsPluginLocalStorageFilePath)
 
-	if issuerKMSEthPluginVar != config.LocalStorage && issuerKMSEthPluginVar != config.Vault && issuerKMSEthPluginVar != config.AWS {
-		log.Error(ctx, "issuer kms eth provider is not set or is not localstorage or vault or aws", "plugin: ", issuerKMSEthPluginVar)
+	fPrivateKey := flag.String("privateKey", "", "private key")
+	flag.Parse()
+
+	log.Info(ctx, "eth kms provider to use:", "provider", issuerKMSETHProviderToUse)
+
+	if err := validate(issuerKMSETHProviderToUse, fPrivateKey, ctx); err != nil {
+		return
+	}
+
+	issuerPublishKeyPathVar, err := getPrivateKey(ctx)
+	if err != nil {
 		return
 	}
 
@@ -88,28 +86,21 @@ func main() {
 		issuerKmsPluginLocalStorageFilePath = pluginFolderPath
 	}
 
-	issuerPublishKeyPathVar := os.Getenv(issuerPublishKeyPath)
-	if issuerPublishKeyPathVar == "" {
-		log.Error(ctx, "ISSUER_PUBLISH_KEY_PATH is not set")
-		return
-	}
-
 	material := make(map[string]string)
 	material[jsonKeyPath] = issuerPublishKeyPathVar
 	material[jsonKeyType] = ethereum
-	material[jsonPrivateKey] = *fPrivateKey
 
-	if issuerKMSEthPluginVar == config.LocalStorage {
+	if issuerKMSETHProviderToUse == config.LocalStorage {
+		material[jsonPrivateKey] = *fPrivateKey
 		if err := saveKeyMaterialToFile(ctx, issuerKmsPluginLocalStorageFilePath, kms.LocalStorageFileName, material); err != nil {
 			log.Error(ctx, "cannot save key material to file", "err", err)
 			return
 		}
-
 		log.Info(ctx, "private key saved to file:", "path:", kms.LocalStorageFileName)
 		return
 	}
 
-	if issuerKMSEthPluginVar == config.Vault {
+	if issuerKMSETHProviderToUse == config.Vault {
 		var vaultCli *vault.Client
 		var vaultErr error
 		vaultTokenVar := os.Getenv(issuerKeyStoreToken)
@@ -161,17 +152,68 @@ func main() {
 		return
 	}
 
-	if issuerKMSEthPluginVar == config.AWS {
-		awsAccessKey := os.Getenv(aWSAccessKey)
-		awsSecretKey := os.Getenv(aWSSecretKey)
-		awsRegion := os.Getenv(aWSRegion)
+	if issuerKMSETHProviderToUse == config.AWSSM {
+		awsAccessKey := os.Getenv(awsAccessKey)
+		awsSecretKey := os.Getenv(awsSecretKey)
+		awsRegion := os.Getenv(awsRegion)
 
 		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" {
 			log.Error(ctx, "aws access key, aws secret key, or aws region is not set")
 			return
 		}
 
-		keyId, err := createEmptyKey(ctx, awsAccessKey, awsSecretKey, awsRegion, issuerPublishKeyPathVar)
+		cfg, err := awsconfig.LoadDefaultConfig(ctx,
+			awsconfig.WithRegion(awsRegion),
+			awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")),
+		)
+		if err != nil {
+			log.Error(ctx, "error loading AWSSM config", "err", err)
+			return
+		}
+
+		var options []func(*secretsmanager.Options)
+		if strings.ToLower(awsRegion) == "local" {
+			awsURLEndpoint := os.Getenv(awsURL)
+			options = make([]func(*secretsmanager.Options), 1)
+			options[0] = func(o *secretsmanager.Options) {
+				o.BaseEndpoint = aws.String(awsURLEndpoint)
+			}
+		}
+		secretManager := secretsmanager.NewFromConfig(cfg, options...)
+		secretName := base64.StdEncoding.EncodeToString([]byte(issuerPublishKeyPathVar))
+
+		material[jsonPrivateKey] = *fPrivateKey
+		secretValue, err := json.Marshal(material)
+		if err != nil {
+			log.Error(ctx, "cannot marshal secret value", "err", err)
+			return
+		}
+
+		input := &secretsmanager.CreateSecretInput{
+			Name:         aws.String(secretName),
+			SecretString: aws.String(string(secretValue)),
+		}
+		_, err = secretManager.CreateSecret(ctx, input)
+		if err != nil {
+			log.Error(ctx, "cannot save key material to aws", "err", err)
+			return
+		}
+		log.Info(ctx, "private key saved to aws:", "path:", issuerPublishKeyPathVar)
+		return
+	}
+
+	if issuerKMSETHProviderToUse == config.AWSKMS {
+		awsAccessKey := os.Getenv(awsAccessKey)
+		awsSecretKey := os.Getenv(awsSecretKey)
+		awsRegion := os.Getenv(awsRegion)
+		awsURLEndpoint := os.Getenv(awsURL)
+
+		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" {
+			log.Error(ctx, "aws access key, aws secret key, or aws region is not set")
+			return
+		}
+
+		keyId, err := createEmptyKey(ctx, awsAccessKey, awsSecretKey, awsRegion, awsURLEndpoint, issuerPublishKeyPathVar)
 		if err != nil {
 			log.Error(ctx, "cannot create empty key", "err", err)
 			return
@@ -181,7 +223,39 @@ func main() {
 	}
 }
 
-func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion string, privateKeyAlias string) (*string, error) {
+func getPrivateKey(ctx context.Context) (string, error) {
+	issuerPublishKeyPathVar := os.Getenv(issuerPublishKeyPath)
+	if issuerPublishKeyPathVar == "" {
+		log.Error(ctx, "ISSUER_PUBLISH_KEY_PATH is not set")
+		return "", errors.New("ISSUER_PUBLISH_KEY_PATH is not set")
+	}
+	return issuerPublishKeyPathVar, nil
+}
+
+func validate(issuerKMSETHProviderToUse string, fPrivateKey *string, ctx context.Context) error {
+	if issuerKMSETHProviderToUse != config.AWSKMS && *fPrivateKey == "" {
+		log.Error(ctx, "private key is required. Please provide private key: --privateKey=<private key>")
+		return errors.New("private key is required")
+	}
+
+	if issuerKMSETHProviderToUse != config.AWSKMS {
+		_, err := crypto.HexToECDSA(*fPrivateKey)
+		if err != nil {
+			log.Error(ctx, "cannot convert private key to ECDSA", "err", err)
+			return errors.New("cannot convert private key to ECDSA")
+		}
+	}
+
+	if issuerKMSETHProviderToUse != config.LocalStorage && issuerKMSETHProviderToUse != config.Vault && issuerKMSETHProviderToUse != config.AWSSM && issuerKMSETHProviderToUse != config.AWSKMS {
+		log.Error(ctx, "kms eth provider is invalid, supported values are: localstorage, vault, aws-sm and aws-kms")
+		return errors.New("kms eth provider is invalid")
+	}
+	return nil
+}
+
+//
+//nolint:unused
+func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion string, awsURL string, privateKeyAlias string) (*string, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(
 		ctx,
 		awsconfig.WithRegion(awsRegion),
@@ -192,7 +266,15 @@ func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion s
 		return nil, err
 	}
 
-	svc := awskms.NewFromConfig(cfg)
+	var options []func(*awskms.Options)
+	if strings.ToLower(awsRegion) == "local" {
+		options = make([]func(*awskms.Options), 1)
+		options[0] = func(o *awskms.Options) {
+			o.BaseEndpoint = aws.String(awsURL)
+		}
+	}
+
+	svc := awskms.NewFromConfig(cfg, options...)
 	input := &awskms.CreateKeyInput{
 		KeySpec:     types.KeySpecEccSecgP256k1,
 		KeyUsage:    types.KeyUsageTypeSignVerify,

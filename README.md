@@ -103,7 +103,7 @@ make private_key=<private-key> import-private-key-to-kms
 ```
 
 then visit:
-* https://localhost:8088/ to access the UI (default username / password are: user-ui, password-ui). You can set them using env [vars](.env-ui.sample).
+* http://localhost:8088/ to access the UI (default username / password are: user-ui, password-ui). You can set them using env [vars](.env-ui.sample).
 * <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API. (default username / password are: user-issuer, password-issuer)
   You can set them using env [vars](.env-issuer.sample).
 
