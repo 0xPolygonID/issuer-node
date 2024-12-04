@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -15,4 +16,9 @@ type PaymentRepository interface {
 	GetAllPaymentOptions(ctx context.Context, issuerDID w3c.DID) ([]domain.PaymentOption, error)
 	GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error)
 	DeletePaymentOption(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) error
+
+	SavePaymentRequest(ctx context.Context, req *domain.PaymentRequest) (uuid.UUID, error)
+	GetPaymentRequestByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error)
+	GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID) ([]domain.PaymentRequest, error)
+	GetPaymentRequestItem(ctx context.Context, issuerDID w3c.DID, nonce *big.Int) (*domain.PaymentRequestItem, error)
 }

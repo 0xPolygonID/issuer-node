@@ -3,12 +3,33 @@ package domain
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2/protocol"
 )
+
+// PaymentRequest represents a payment request
+type PaymentRequest struct {
+	ID              uuid.UUID
+	IssuerDID       w3c.DID
+	RecipientDID    w3c.DID
+	ThreadID        string
+	PaymentOptionID uuid.UUID
+	Payments        []PaymentRequestItem
+	CreatedAt       time.Time
+}
+
+// PaymentRequestItem represents a payment request item
+type PaymentRequestItem struct {
+	ID               uuid.UUID
+	Nonce            big.Int
+	PaymentRequestID uuid.UUID
+	Payment          protocol.Payment
+}
 
 // PaymentOption represents a payment option
 type PaymentOption struct {
