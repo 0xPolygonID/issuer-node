@@ -7,10 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
+	ethCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSettingsFromConfig(t *testing.T) {
@@ -20,33 +21,103 @@ func TestSettingsFromConfig(t *testing.T) {
 	require.NoError(t, err)
 	fileContentUrlBase64 := base64.StdEncoding.EncodeToString(fileContent)
 
-	expectedSettings := Settings{
-		137: {
-			MCPayment: "0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774",
-			ERC20: &ERC20{
-				USDT: Token{
-					ContractAddress: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-					Features:        []string{},
-				},
-				USDC: Token{
-					ContractAddress: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-					Features:        []string{"EIP-2612"},
-				},
+	expectedSettings := Config{
+		1: ChainConfig{
+			ChainID:      80002,
+			PaymentRails: ethCommon.HexToAddress("0xF8E49b922D5Fb00d3EdD12bd14064f275726D339"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "AmoyNative",
+				Type:            protocol.Iden3PaymentRailsRequestV1Type,
+				ContractAddress: ethCommon.HexToAddress(""),
+				Features:        nil,
 			},
 		},
-		80002: {
-			MCPayment: "0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774",
+		2: ChainConfig{
+			ChainID:      80002,
+			PaymentRails: ethCommon.HexToAddress("0xF8E49b922D5Fb00d3EdD12bd14064f275726D339"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "Amoy USDT",
+				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
+				ContractAddress: ethCommon.HexToAddress("0x2FE40749812FAC39a0F380649eF59E01bccf3a1A"),
+				Features:        nil,
+			},
 		},
-		1101: {
-			MCPayment: "0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774",
+		3: ChainConfig{
+			ChainID:      80002,
+			PaymentRails: ethCommon.HexToAddress("0xF8E49b922D5Fb00d3EdD12bd14064f275726D339"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "Amoy USDC",
+				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
+				ContractAddress: ethCommon.HexToAddress("0x2FE40749812FAC39a0F380649eF59E01bccf3a1A"),
+				Features:        []protocol.PaymentFeatures{"EIP-2612"},
+			},
+		},
+		4: ChainConfig{
+			ChainID:      59141,
+			PaymentRails: ethCommon.HexToAddress("0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "LineaSepoliaNative",
+				Type:            protocol.Iden3PaymentRailsRequestV1Type,
+				ContractAddress: ethCommon.HexToAddress(""),
+				Features:        nil,
+			},
+		},
+		5: ChainConfig{
+			ChainID:      59141,
+			PaymentRails: ethCommon.HexToAddress("0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "Linea Sepolia USDT",
+				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
+				ContractAddress: ethCommon.HexToAddress("0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C"),
+				Features:        nil,
+			},
+		},
+		6: ChainConfig{
+			ChainID:      59141,
+			PaymentRails: ethCommon.HexToAddress("0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "Linea Sepolia USDC",
+				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
+				ContractAddress: ethCommon.HexToAddress("0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C"),
+				Features:        []protocol.PaymentFeatures{"EIP-2612"},
+			},
+		},
+		7: ChainConfig{
+			ChainID:      2442,
+			PaymentRails: ethCommon.HexToAddress("0x09c269e74d8B47c98537Acd6CbEe8056806F4c70"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "ZkEvmNative",
+				Type:            protocol.Iden3PaymentRailsRequestV1Type,
+				ContractAddress: ethCommon.HexToAddress(""),
+				Features:        nil,
+			},
+		},
+		8: ChainConfig{
+			ChainID:      2442,
+			PaymentRails: ethCommon.HexToAddress("0x09c269e74d8B47c98537Acd6CbEe8056806F4c70"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "ZkEvm USDT",
+				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
+				ContractAddress: ethCommon.HexToAddress("0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db"),
+				Features:        nil,
+			},
+		},
+		9: ChainConfig{
+			ChainID:      2442,
+			PaymentRails: ethCommon.HexToAddress("0x09c269e74d8B47c98537Acd6CbEe8056806F4c70"),
+			PaymentOption: PaymentOptionConfig{
+				Name:            "ZkEvm USDC",
+				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
+				ContractAddress: ethCommon.HexToAddress("0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db"),
+				Features:        []protocol.PaymentFeatures{"EIP-2612"},
+			},
 		},
 	}
 
 	type expected struct {
 		err      error
-		settings Settings
+		settings Config
 	}
-
 	for _, tc := range []struct {
 		name     string
 		cfg      config.Payments
@@ -99,7 +170,7 @@ func TestSettingsFromConfig(t *testing.T) {
 				SettingsFile: common.ToPointer(string(fileContent)),
 			},
 			expected: expected{
-				err: errors.New("illegal base64 data at input byte 3"),
+				err: errors.New("illegal base64 data at input byte 5"),
 			},
 		},
 		{
@@ -115,7 +186,8 @@ func TestSettingsFromConfig(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			settings, err := SettingsFromConfig(ctx, &tc.cfg)
 			if tc.expected.err == nil {
-				require.EqualValues(t, &tc.expected.settings, settings)
+				require.NoError(t, err)
+				require.EqualValues(t, tc.expected.settings, settings)
 			} else {
 				require.Equal(t, tc.expected.err.Error(), err.Error())
 			}

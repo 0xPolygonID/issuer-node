@@ -1,30 +1,53 @@
 80002:
-  MCPayment: 0xF8E49b922D5Fb00d3EdD12bd14064f275726D339
-  ERC20:
-    USDT:
+  PaymentRails: 0xF8E49b922D5Fb00d3EdD12bd14064f275726D339
+  PaymentOptions:
+    - ID: 1
+      Name: AmoyNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 2
+      Name: Amoy USDT
+      Type: Iden3PaymentRailsERC20RequestV1
       ContractAddress: 0x2FE40749812FAC39a0F380649eF59E01bccf3a1A
       Features: []
-    USDC:
+    - ID: 3
+      Name: Amoy USDC
+      Type: Iden3PaymentRailsERC20RequestV1
       ContractAddress: 0x2FE40749812FAC39a0F380649eF59E01bccf3a1A
       Features:
         - EIP-2612
 59141:
-  MCPayment: 0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3
-  ERC20:
-    USDT:
+  PaymentRails: 0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3
+  PaymentOptions:
+    - ID: 4
+      Name: LineaSepoliaNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 5
+      Name: Linea Sepolia USDT
+      Type: Iden3PaymentRailsERC20RequestV1
       ContractAddress: 0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C
       Features: []
-    USDC:
+    - ID: 6
+      Name: Linea Sepolia USDC
+      Type: Iden3PaymentRailsERC20RequestV1
       ContractAddress: 0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C
       Features:
         - EIP-2612
 2442:
-  MCPayment: 0x09c269e74d8B47c98537Acd6CbEe8056806F4c70
-  ERC20:
-    USDT:
+  PaymentRails: 0x09c269e74d8B47c98537Acd6CbEe8056806F4c70
+  PaymentOptions:
+    - ID: 7
+      Name: ZkEvmNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 8
+      Name: ZkEvm USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      Currency: USDT
       ContractAddress: 0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db
       Features: []
-    USDC:
+    - ID: 9
+      Name: ZkEvm USDC
+      Type: Iden3PaymentRailsERC20RequestV1
       ContractAddress: 0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db
       Features:
         - EIP-2612
+

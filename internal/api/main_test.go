@@ -285,20 +285,58 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 
 	paymentSettings, err := payments.SettingsFromReader(common.NewMyYAMLReader([]byte(`
-137:
-  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774
-  ERC20:
-    USDT:
-      ContractAddress: 0xc2132D05D31c914a87C6611C10748AEb04B58e8F
+80002:
+  PaymentRails: 0xF8E49b922D5Fb00d3EdD12bd14064f275726D339
+  PaymentOption: 
+    - ID: 1
+      Name: AmoyNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 2
+      Name: Amoy USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x2FE40749812FAC39a0F380649eF59E01bccf3a1A
       Features: []
-    USDC:
-      ContractAddress: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359
+    - ID: 3
+      Name: Amoy USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x2FE40749812FAC39a0F380649eF59E01bccf3a1A
       Features:
         - EIP-2612
-80002:
-  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774
-1101:
-  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774`,
+59141:
+  PaymentRails: 0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3
+  PaymentOption: 
+    - ID: 4
+      Name: LineaSepoliaNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 5
+      Name: Linea Sepolia USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C
+      Features: []
+    - ID: 6
+      Name: Linea Sepolia USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C
+      Features:
+        - EIP-2612
+2442:
+  PaymentRails: 0x09c269e74d8B47c98537Acd6CbEe8056806F4c70
+  PaymentOption: 
+    - ID: 7
+      Name: ZkEvmNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 8
+      Name: ZkEvm USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db
+      Features: []
+    - ID: 9
+      Name: ZkEvm USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db
+      Features:
+        - EIP-2612
+`,
 	)))
 	require.NoError(t, err)
 
@@ -308,7 +346,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader)
-	paymentService := services.NewPaymentService(repos.payments, *networkResolver, *paymentSettings, keyStore)
+	paymentService := services.NewPaymentService(repos.payments, *networkResolver, &paymentSettings, keyStore)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
