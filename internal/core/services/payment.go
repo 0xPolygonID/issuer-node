@@ -98,8 +98,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		log.Error(ctx, "failed to get payment option", "err", err, "issuerDID", req.IssuerDID, "optionID", req.OptionID)
 		return nil, err
 	}
-
-	paymentsList := make([]protocol.PaymentRequestInfo, 0)
+	var dataArr protocol.PaymentRequestInfoData
 	for _, chainConfig := range option.Config.Chains {
 		setting, found := p.settings[chainConfig.ChainId]
 		if !found {
@@ -107,15 +106,10 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 			return nil, fmt.Errorf("chain not <%d> not found in payment settings", chainConfig.ChainId)
 		}
 
-		//nolint: mnd
-		nonce, err := rand.Int(rand.Reader, big.NewInt(0).Exp(big.NewInt(2), big.NewInt(130), nil))
-		if err != nil {
-			return nil, err
-		}
 		expirationTime := time.Now().Add(defaultExpirationDate)
-
 		var address common.Address
 		var privateKey *ecdsa.PrivateKey
+
 		if chainConfig.SigningKeyOpt == nil {
 			pubKey, err := kms.EthPubKey(ctx, p.kms, kms.KeyID{ID: chainConfig.SigningKeyId, Type: kms.KeyTypeEthereum})
 			if err != nil {
@@ -141,48 +135,38 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		}
 
 		if chainConfig.Iden3PaymentRailsRequestV1 != nil {
-			data, err := p.newIden3PaymentRailsRequestV1(ctx, chainConfig, setting, expirationTime, nonce, address, privateKey)
+			nativeToken, err := p.newIden3PaymentRailsRequestV1(ctx, chainConfig, setting, expirationTime, address, privateKey)
 			if err != nil {
 				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
 				return nil, err
 			}
 
-			paymentsList = append(paymentsList, protocol.PaymentRequestInfo{
-				Type:        string(protocol.Iden3PaymentRailsRequestV1Type),
-				Description: option.Description,
-				Credentials: req.Creds,
-				Data:        *data,
-			})
+			dataArr = append(dataArr, *nativeToken)
 		}
-		if chainConfig.Iden3PaymentRailsERC20RequestV1 != nil {
-			reqUSDT, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, nonce, address, payments.USDT, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, setting.ERC20.USDT.ContractAddress, privateKey)
-			if err != nil {
-				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
-				return nil, err
-			}
-			reqUSDC, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, nonce, address, payments.USDC, chainConfig.Iden3PaymentRailsERC20RequestV1.USDC.Amount, setting.ERC20.USDC.ContractAddress, privateKey)
-			if err != nil {
-				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
-				return nil, err
-			}
 
-			paymentsList = append(paymentsList,
-				protocol.PaymentRequestInfo{
-					Type:        string(protocol.Iden3PaymentRailsERC20RequestV1Type),
-					Description: option.Description,
-					Credentials: req.Creds,
-					Data:        *reqUSDT,
-				},
-				protocol.PaymentRequestInfo{
-					Type:        string(protocol.Iden3PaymentRailsERC20RequestV1Type),
-					Description: option.Description,
-					Credentials: req.Creds,
-					Data:        *reqUSDC,
-				},
-			)
+		if chainConfig.Iden3PaymentRailsERC20RequestV1 != nil {
+			reqUSDT, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, address, payments.USDT, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, setting.ERC20.USDT.ContractAddress, privateKey)
+			if err != nil {
+				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
+				return nil, err
+			}
+			dataArr = append(dataArr, reqUSDT)
+			reqUSDC, err := p.newIden3PaymentRailsERC20RequestV1(ctx, chainConfig, setting, expirationTime, address, payments.USDC, chainConfig.Iden3PaymentRailsERC20RequestV1.USDC.Amount, setting.ERC20.USDC.ContractAddress, privateKey)
+			if err != nil {
+				log.Error(ctx, "failed to create Iden3PaymentRailsRequestV1", "err", err)
+				return nil, err
+			}
+			dataArr = append(dataArr, reqUSDC)
 		}
 	}
 
+	payments := []protocol.PaymentRequestInfo{
+		{
+			Description: option.Description,
+			Credentials: req.Creds,
+			Data:        dataArr,
+		},
+	}
 	msgID := uuid.New()
 	message := &protocol.PaymentRequestMessage{
 		From:     req.IssuerDID.String(),
@@ -193,7 +177,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		ThreadID: msgID.String(),
 		Body: protocol.PaymentRequestMessageBody{
 			Agent:    fmt.Sprintf(ports.AgentUrl, baseURL),
-			Payments: paymentsList,
+			Payments: payments,
 		},
 	}
 
@@ -363,38 +347,47 @@ func (p *payment) newIden3PaymentRailsRequestV1(
 	chainConfig domain.PaymentOptionConfigChain,
 	setting payments.ChainSettings,
 	expirationTime time.Time,
-	nonce *big.Int,
 	address common.Address,
 	signingKeyOpt *ecdsa.PrivateKey, // Temporary solution until we have key management
-) (*protocol.PaymentRequestInfoData, error) {
+) (*protocol.Iden3PaymentRailsRequestV1, error) {
+	nonce, err := rand.Int(rand.Reader, big.NewInt(0).Exp(big.NewInt(2), big.NewInt(130), nil))
+	if err != nil {
+		log.Error(ctx, "failed to generate nonce", "err", err)
+		return nil, err
+	}
 	metadata := "0x"
-	signature, err := p.paymentRequestSignature(ctx, protocol.Iden3PaymentRailsRequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsRequestV1.Amount, expirationTime, nonce, metadata, address, chainConfig.SigningKeyId, signingKeyOpt, "")
+	signature, err := p.paymentRequestSignature(ctx, protocol.Iden3PaymentRailsRequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsRequestV1.Amount, "USDT", expirationTime, nonce, metadata, address, chainConfig.SigningKeyId, signingKeyOpt, "")
 	if err != nil {
 		log.Error(ctx, "failed to create payment request signature", "err", err)
 		return nil, err
 	}
 
-	paymentInfo := protocol.NewPaymentRequestInfoDataRails(protocol.Iden3PaymentRailsRequestV1{
+	amountString := fmt.Sprintf("%f", chainConfig.Iden3PaymentRailsRequestV1.Amount)
+	if chainConfig.Iden3PaymentRailsRequestV1.Amount == float64(int(chainConfig.Iden3PaymentRailsRequestV1.Amount)) {
+		// No decimals, convert to integer string
+		amountString = strconv.Itoa(int(chainConfig.Iden3PaymentRailsRequestV1.Amount))
+	}
+	paymentInfo := protocol.Iden3PaymentRailsRequestV1{
 		Nonce: nonce.String(),
 		Type:  protocol.Iden3PaymentRailsRequestV1Type,
-		Context: protocol.NewPaymentContextStringCol([]string{
+		Context: protocol.NewPaymentContextString(
 			"https://schema.iden3.io/core/jsonld/payment.jsonld#Iden3PaymentRailsERC20RequestV1",
 			"https://w3id.org/security/suites/eip712sig-2021/v1",
-		}),
-		Amount:         fmt.Sprintf("%f", chainConfig.Iden3PaymentRailsRequestV1.Amount),
-		ExpirationDate: fmt.Sprint(expirationTime.Unix()),
+		),
+		Amount:         amountString,
+		ExpirationDate: fmt.Sprint(expirationTime.Format(time.RFC3339)),
 		Metadata:       metadata,
 		Currency:       chainConfig.Iden3PaymentRailsRequestV1.Currency,
 		Recipient:      address.String(),
-		Proof: protocol.NewPaymentProofEip712Signature([]protocol.EthereumEip712Signature2021{
-			{
+		Proof: protocol.PaymentProof{
+			protocol.EthereumEip712Signature2021{
 				Type:               "EthereumEip712Signature2021",
 				ProofPurpose:       "assertionMethod",
-				ProofValue:         hex.EncodeToString(signature),
+				ProofValue:         fmt.Sprintf("0x%s", hex.EncodeToString(signature)),
 				VerificationMethod: fmt.Sprintf("did:pkh:eip155:%d:%s", chainConfig.ChainId, address),
 				Created:            time.Now().Format(time.RFC3339),
 				Eip712: protocol.Eip712Data{
-					Types:       "https://schema.iden3.io/core/json/Iden3PaymentRailsERC20RequestV1.json",
+					Types:       "https://schema.iden3.io/core/json/Iden3PaymentRailsRequestV1.json",
 					PrimaryType: string(protocol.Iden3PaymentRailsRequestV1Type),
 					Domain: protocol.Eip712Domain{
 						Name:              "MCPayment",
@@ -404,8 +397,8 @@ func (p *payment) newIden3PaymentRailsRequestV1(
 					},
 				},
 			},
-		}),
-	})
+		},
+	}
 	return &paymentInfo, nil
 }
 
@@ -415,37 +408,53 @@ func (p *payment) newIden3PaymentRailsERC20RequestV1(
 	chainConfig domain.PaymentOptionConfigChain,
 	setting payments.ChainSettings,
 	expirationTime time.Time,
-	nonce *big.Int,
 	address common.Address,
 	currency payments.Coin,
 	amount float64,
 	tokenAddress string,
 	signingKeyOpt *ecdsa.PrivateKey, // Temporary solution until we have key management
-) (*protocol.PaymentRequestInfoData, error) {
+) (*protocol.Iden3PaymentRailsERC20RequestV1, error) {
+	nonce, err := rand.Int(rand.Reader, big.NewInt(0).Exp(big.NewInt(2), big.NewInt(130), nil))
+	if err != nil {
+		log.Error(ctx, "failed to generate nonce", "err", err)
+		return nil, err
+	}
 	metadata := "0x"
-	signature, err := p.paymentRequestSignature(ctx, protocol.Iden3PaymentRailsERC20RequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, expirationTime, nonce, metadata, address, chainConfig.SigningKeyId, signingKeyOpt, tokenAddress)
+	signature, err := p.paymentRequestSignature(ctx, protocol.Iden3PaymentRailsERC20RequestV1Type, chainConfig.ChainId, setting.MCPayment, chainConfig.Iden3PaymentRailsERC20RequestV1.USDT.Amount, "USDT", expirationTime, nonce, metadata, address, chainConfig.SigningKeyId, signingKeyOpt, tokenAddress)
 	if err != nil {
 		log.Error(ctx, "failed to create payment request signature", "err", err)
 		return nil, err
 	}
-
-	paymentInfo := protocol.NewPaymentRequestInfoDataRailsERC20(protocol.Iden3PaymentRailsERC20RequestV1{
+	amountString := fmt.Sprintf("%f", amount)
+	if amount == float64(int(amount)) {
+		// No decimals, convert to integer string
+		amountString = strconv.Itoa(int(amount))
+	}
+	var features []protocol.PaymentFeatures = []protocol.PaymentFeatures{}
+	if currency == payments.USDC {
+		features = []protocol.PaymentFeatures{
+			"EIP-2612",
+		}
+	}
+	paymentInfo := protocol.Iden3PaymentRailsERC20RequestV1{
 		Nonce: nonce.String(),
 		Type:  protocol.Iden3PaymentRailsERC20RequestV1Type,
-		Context: protocol.NewPaymentContextStringCol([]string{
+		Context: protocol.NewPaymentContextString(
 			"https://schema.iden3.io/core/jsonld/payment.jsonld#Iden3PaymentRailsERC20RequestV1",
 			"https://w3id.org/security/suites/eip712sig-2021/v1",
-		}),
-		Amount:         fmt.Sprintf("%f", amount),
-		ExpirationDate: fmt.Sprint(expirationTime.Unix()),
+		),
+		Amount:         amountString,
+		ExpirationDate: fmt.Sprint(expirationTime.Format(time.RFC3339)),
 		Metadata:       metadata,
 		Currency:       string(currency),
 		Recipient:      address.String(),
-		Proof: protocol.NewPaymentProofEip712Signature([]protocol.EthereumEip712Signature2021{
-			{
+		Features:       features,
+		TokenAddress:   tokenAddress,
+		Proof: protocol.PaymentProof{
+			protocol.EthereumEip712Signature2021{
 				Type:               "EthereumEip712Signature2021",
 				ProofPurpose:       "assertionMethod",
-				ProofValue:         hex.EncodeToString(signature),
+				ProofValue:         fmt.Sprintf("0x%s", hex.EncodeToString(signature)),
 				VerificationMethod: fmt.Sprintf("did:pkh:eip155:%d:%s", chainConfig.ChainId, address),
 				Created:            time.Now().Format(time.RFC3339),
 				Eip712: protocol.Eip712Data{
@@ -459,8 +468,8 @@ func (p *payment) newIden3PaymentRailsERC20RequestV1(
 					},
 				},
 			},
-		}),
-	})
+		},
+	}
 	return &paymentInfo, nil
 }
 
@@ -470,6 +479,7 @@ func (p *payment) paymentRequestSignature(
 	chainID int,
 	verifContract string,
 	amount float64,
+	currency string,
 	expTime time.Time,
 	nonce *big.Int,
 	metadata string,
@@ -487,18 +497,18 @@ func (p *payment) paymentRequestSignature(
 		ID:   signingKeyId,
 	}
 
-	typedData, err := typedDataForHashing(paymentType, chainID, verifContract, addr, amount, expTime, nonce, metadata, tokenAddr)
+	typedData, err := typedDataForHashing(paymentType, chainID, verifContract, addr, amount, currency, expTime, nonce, metadata, tokenAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, typedData.Message)
+	typedDataBytes, _, err := apitypes.TypedDataAndHash(*typedData)
 	if err != nil {
 		return nil, err
 	}
 
 	if signingKeyOpt == nil {
-		signature, err := p.kms.Sign(ctx, keyID, typedDataHash[:])
+		signature, err := p.kms.Sign(ctx, keyID, typedDataBytes)
 		if err != nil {
 			log.Error(ctx, "failed to sign typed data hash", "err", err, "keyId", signingKeyId)
 			return nil, err
@@ -506,7 +516,8 @@ func (p *payment) paymentRequestSignature(
 
 		return signature, nil
 	} else { // Temporary solution until we have key management. We use SigningKeyOpt as a private key if present
-		signature, err := crypto.Sign(typedDataHash[:], signingKeyOpt)
+		signature, err := crypto.Sign(typedDataBytes, signingKeyOpt)
+		signature[64] += 27
 		if err != nil {
 			return nil, err
 		}
@@ -514,7 +525,7 @@ func (p *payment) paymentRequestSignature(
 	}
 }
 
-func typedDataForHashing(paymentType protocol.PaymentRequestType, chainID int, verifyContract string, address common.Address, amount float64, expTime time.Time, nonce *big.Int, metadata string, tokenAddress string) (*apitypes.TypedData, error) {
+func typedDataForHashing(paymentType protocol.PaymentRequestType, chainID int, verifyContract string, address common.Address, amount float64, _ string, expTime time.Time, nonce *big.Int, metadata string, tokenAddress string) (*apitypes.TypedData, error) {
 	data := apitypes.TypedData{
 		Types: apitypes.Types{
 			"EIP712Domain": []apitypes.Type{
@@ -555,7 +566,7 @@ func typedDataForHashing(paymentType protocol.PaymentRequestType, chainID int, v
 		},
 		Message: apitypes.TypedDataMessage{
 			"recipient":      address.String(),
-			"amount":         eth.ToWei(amount),
+			"amount":         int(amount),
 			"expirationDate": fmt.Sprint(expTime.Unix()),
 			"nonce":          nonce.String(),
 			"metadata":       metadata,
