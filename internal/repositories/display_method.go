@@ -36,11 +36,11 @@ func NewDisplayMethod(conn db.Storage) ports.DisplayMethodRepository {
 // Save stores in the database the given display method and updates the modified at in case already exists
 func (d DisplayMethod) Save(ctx context.Context, displayMethod domain.DisplayMethod) (*uuid.UUID, error) {
 	var id uuid.UUID
-	sql := `INSERT INTO display_methods (id, name, url, issuer_did)
-			VALUES($1, $2, $3, $4) ON CONFLICT (id) DO
-			UPDATE SET name=$2, url=$3, issuer_did=$4
+	sql := `INSERT INTO display_methods (id, name, url, issuer_did, type)
+			VALUES($1, $2, $3, $4, $5) ON CONFLICT (id) DO
+			UPDATE SET name=$2, url=$3, issuer_did=$4, type=$5
 			RETURNING id`
-	err := d.conn.Pgx.QueryRow(ctx, sql, displayMethod.ID, displayMethod.Name, displayMethod.URL, displayMethod.IssuerCoreDID().String()).Scan(&id)
+	err := d.conn.Pgx.QueryRow(ctx, sql, displayMethod.ID, displayMethod.Name, displayMethod.URL, displayMethod.IssuerCoreDID().String(), displayMethod.Type).Scan(&id)
 	if err != nil {
 		if strings.Contains(err.Error(), "violates unique constraint") {
 			return nil, DisplayMethodDuplicateNameError
@@ -53,7 +53,7 @@ func (d DisplayMethod) Save(ctx context.Context, displayMethod domain.DisplayMet
 // GetAll returns all display methods for the given identity
 func (d DisplayMethod) GetAll(ctx context.Context, identityDID w3c.DID, filter ports.DisplayMethodFilter) ([]domain.DisplayMethod, uint, error) {
 	var displayMethods []domain.DisplayMethod
-	sql := `SELECT id, name, url, issuer_did FROM display_methods WHERE issuer_did=$1`
+	sql := `SELECT id, name, url, issuer_did, type FROM display_methods WHERE issuer_did=$1`
 
 	orderStr := " ORDER BY created_at DESC"
 	if len(filter.OrderBy) > 0 {
@@ -79,7 +79,7 @@ func (d DisplayMethod) GetAll(ctx context.Context, identityDID w3c.DID, filter p
 	}
 	for rows.Next() {
 		var displayMethod domain.DisplayMethod
-		err = rows.Scan(&displayMethod.ID, &displayMethod.Name, &displayMethod.URL, &displayMethod.IssuerDID)
+		err = rows.Scan(&displayMethod.ID, &displayMethod.Name, &displayMethod.URL, &displayMethod.IssuerDID, &displayMethod.Type)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -91,8 +91,8 @@ func (d DisplayMethod) GetAll(ctx context.Context, identityDID w3c.DID, filter p
 // GetByID returns the display method with the given id
 func (d DisplayMethod) GetByID(ctx context.Context, identityDID w3c.DID, id uuid.UUID) (*domain.DisplayMethod, error) {
 	var displayMethod domain.DisplayMethod
-	sql := `SELECT id, name, url, issuer_did FROM display_methods WHERE issuer_did=$1 and id=$2`
-	err := d.conn.Pgx.QueryRow(ctx, sql, identityDID.String(), id).Scan(&displayMethod.ID, &displayMethod.Name, &displayMethod.URL, &displayMethod.IssuerDID)
+	sql := `SELECT id, name, url, issuer_did, type FROM display_methods WHERE issuer_did=$1 and id=$2`
+	err := d.conn.Pgx.QueryRow(ctx, sql, identityDID.String(), id).Scan(&displayMethod.ID, &displayMethod.Name, &displayMethod.URL, &displayMethod.IssuerDID, &displayMethod.Type)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
 			return nil, DisplayMethodNotFoundErr

@@ -68,6 +68,19 @@ func TestServer_CreateDisplayMethod(t *testing.T) {
 			},
 		},
 		{
+			name: "Happy path with type",
+			auth: authOk,
+			body: CreateDisplayMethodRequest{
+				Name: "test with type",
+				Url:  "http://test.com",
+				Type: common.ToPointer("Iden3BasicDisplayMethodV1"),
+			},
+			expected: expected{
+				response: CreateDisplayMethod201JSONResponse{},
+				httpCode: http.StatusCreated,
+			},
+		},
+		{
 			name: "missing name",
 			auth: authOk,
 			body: CreateDisplayMethodRequest{
@@ -148,10 +161,10 @@ func TestServer_UpdateDisplayMethod(t *testing.T) {
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	displayMethodToUpdateID, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com")
+	displayMethodToUpdateID, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 	require.NoError(t, err)
 
-	_, err = server.Services.displayMethod.Save(ctx, *did, "test-duplicated", "http://test-duplicated.com")
+	_, err = server.Services.displayMethod.Save(ctx, *did, "test-duplicated", "http://test-duplicated.com", common.ToPointer("Iden3BasicDisplayMethodV2"))
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -246,6 +259,18 @@ func TestServer_UpdateDisplayMethod(t *testing.T) {
 				httpCode: http.StatusNotFound,
 			},
 		},
+		{
+			name:            "update type",
+			auth:            authOk,
+			displayMethodID: displayMethodToUpdateID,
+			body: UpdateDisplayMethodJSONRequestBody{
+				Type: common.ToPointer("tes2"),
+			},
+			expected: expected{
+				response: UpdateDisplayMethod200JSONResponse{},
+				httpCode: http.StatusOK,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -281,7 +306,7 @@ func TestServer_GetDisplayMethodByID(t *testing.T) {
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	displayMethodToGetID, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com")
+	displayMethodToGetID, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 	require.NoError(t, err)
 
 	displayMethodToGet, err := server.Services.displayMethod.GetByID(ctx, *did, *displayMethodToGetID)
@@ -319,6 +344,7 @@ func TestServer_GetDisplayMethodByID(t *testing.T) {
 					Id:   displayMethodToGet.ID,
 					Name: displayMethodToGet.Name,
 					Url:  displayMethodToGet.URL,
+					Type: displayMethodToGet.Type,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -373,10 +399,10 @@ func TestServer_GetAllDisplayMethods(t *testing.T) {
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	displayMethodID1, err := server.Services.displayMethod.Save(ctx, *did, "test1", "http://test1.com")
+	displayMethodID1, err := server.Services.displayMethod.Save(ctx, *did, "test1", "http://test1.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 	require.NoError(t, err)
 
-	displayMethodID2, err := server.Services.displayMethod.Save(ctx, *did, "test2", "http://test2com")
+	displayMethodID2, err := server.Services.displayMethod.Save(ctx, *did, "test2", "http://test2com", common.ToPointer("Iden3BasicDisplayMethodV2"))
 	require.NoError(t, err)
 
 	displayMethod1, err := server.Services.displayMethod.GetByID(ctx, *did, *displayMethodID1)
@@ -412,11 +438,13 @@ func TestServer_GetAllDisplayMethods(t *testing.T) {
 					Id:   displayMethod1.ID,
 					Name: displayMethod1.Name,
 					Url:  displayMethod1.URL,
+					Type: displayMethod1.Type,
 				},
 				{
 					Id:   displayMethod2.ID,
 					Name: displayMethod2.Name,
 					Url:  displayMethod2.URL,
+					Type: displayMethod2.Type,
 				},
 			},
 			Meta: PaginatedMetadata{
@@ -445,11 +473,13 @@ func TestServer_GetAllDisplayMethods(t *testing.T) {
 					Id:   displayMethod2.ID,
 					Name: displayMethod2.Name,
 					Url:  displayMethod2.URL,
+					Type: displayMethod2.Type,
 				},
 				{
 					Id:   displayMethod1.ID,
 					Name: displayMethod1.Name,
 					Url:  displayMethod1.URL,
+					Type: displayMethod1.Type,
 				},
 			},
 			Meta: PaginatedMetadata{
@@ -478,6 +508,7 @@ func TestServer_GetAllDisplayMethods(t *testing.T) {
 					Id:   displayMethod2.ID,
 					Name: displayMethod2.Name,
 					Url:  displayMethod2.URL,
+					Type: displayMethod2.Type,
 				},
 			},
 			Meta: PaginatedMetadata{
@@ -506,11 +537,13 @@ func TestServer_GetAllDisplayMethods(t *testing.T) {
 					Id:   displayMethod1.ID,
 					Name: displayMethod1.Name,
 					Url:  displayMethod1.URL,
+					Type: displayMethod1.Type,
 				},
 				{
 					Id:   displayMethod2.ID,
 					Name: displayMethod2.Name,
 					Url:  displayMethod2.URL,
+					Type: displayMethod2.Type,
 				},
 			},
 			Meta: PaginatedMetadata{
@@ -538,11 +571,83 @@ func TestServer_GetAllDisplayMethods(t *testing.T) {
 					Id:   displayMethod2.ID,
 					Name: displayMethod2.Name,
 					Url:  displayMethod2.URL,
+					Type: displayMethod2.Type,
 				},
 				{
 					Id:   displayMethod1.ID,
 					Name: displayMethod1.Name,
 					Url:  displayMethod1.URL,
+					Type: displayMethod1.Type,
+				},
+			},
+			Meta: PaginatedMetadata{
+				Total:      2,
+				Page:       1,
+				MaxResults: 50,
+			},
+		}
+		var response GetAllDisplayMethods200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.EqualValues(t, expectedResponse, response)
+	})
+
+	t.Run("GetAllDisplayMethod - type asc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/display-method?sort=type", did)
+		req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		expectedResponse := GetAllDisplayMethods200JSONResponse{
+			Items: []DisplayMethodEntity{
+				{
+					Id:   displayMethod1.ID,
+					Name: displayMethod1.Name,
+					Url:  displayMethod1.URL,
+					Type: displayMethod1.Type,
+				},
+				{
+					Id:   displayMethod2.ID,
+					Name: displayMethod2.Name,
+					Url:  displayMethod2.URL,
+					Type: displayMethod2.Type,
+				},
+			},
+			Meta: PaginatedMetadata{
+				Total:      2,
+				Page:       1,
+				MaxResults: 50,
+			},
+		}
+		var response GetAllDisplayMethods200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.EqualValues(t, expectedResponse, response)
+	})
+
+	t.Run("GetAllDisplayMethod - type desc", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/display-method?sort=-type", did)
+		req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		expectedResponse := GetAllDisplayMethods200JSONResponse{
+			Items: []DisplayMethodEntity{
+				{
+					Id:   displayMethod2.ID,
+					Name: displayMethod2.Name,
+					Url:  displayMethod2.URL,
+					Type: displayMethod2.Type,
+				},
+				{
+					Id:   displayMethod1.ID,
+					Name: displayMethod1.Name,
+					Url:  displayMethod1.URL,
+					Type: displayMethod1.Type,
 				},
 			},
 			Meta: PaginatedMetadata{
@@ -572,7 +677,7 @@ func TestServer_DeleteDisplayMethodByID(t *testing.T) {
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	displayMethodToDeleteID, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com")
+	displayMethodToDeleteID, err := server.Services.displayMethod.Save(ctx, *did, "test", "http://test.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 	require.NoError(t, err)
 	handler := getHandler(ctx, server)
 

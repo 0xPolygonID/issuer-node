@@ -17,16 +17,23 @@ type DisplayMethod struct {
 	ID        uuid.UUID
 	Name      string
 	URL       string
+	Type      string
 	IssuerDID DisplayMethodCoreDID
 }
 
 // NewDisplayMethod creates a new display method
-func NewDisplayMethod(id uuid.UUID, issuerDID w3c.DID, name, url string) DisplayMethod {
+func NewDisplayMethod(id uuid.UUID, issuerDID w3c.DID, name, url string, dtype *string) DisplayMethod {
+	displayMethodType := "Iden3BasicDisplayMethodV1"
+	if dtype != nil {
+		displayMethodType = *dtype
+	}
+
 	return DisplayMethod{
 		ID:        id,
 		IssuerDID: DisplayMethodCoreDID(issuerDID),
 		Name:      name,
 		URL:       url,
+		Type:      displayMethodType,
 	}
 }
 

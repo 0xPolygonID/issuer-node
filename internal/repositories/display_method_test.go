@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
@@ -22,7 +23,7 @@ func TestSaveDisplayMethod(t *testing.T) {
 	require.NoError(t, err)
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com")
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 
 	t.Run("Save display method", func(t *testing.T) {
 		id, err := displayMethodRepository.Save(ctx, displayMethod)
@@ -52,7 +53,7 @@ func TestGetDisplayMethod(t *testing.T) {
 	require.NoError(t, err)
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com")
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 
 	t.Run("should return a display method", func(t *testing.T) {
 		id, err := displayMethodRepository.Save(ctx, displayMethod)
@@ -64,6 +65,7 @@ func TestGetDisplayMethod(t *testing.T) {
 		assert.Equal(t, displayMethod.Name, displayMethodToGet.Name)
 		assert.Equal(t, displayMethod.URL, displayMethodToGet.URL)
 		assert.Equal(t, displayMethod.IssuerDID, displayMethodToGet.IssuerDID)
+		assert.Equal(t, displayMethod.Type, displayMethodToGet.Type)
 	})
 
 	t.Run("should return an error", func(t *testing.T) {
@@ -88,9 +90,9 @@ func TestGetAllDisplayMethod(t *testing.T) {
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr2, "BJJ")
 	require.NoError(t, err)
 
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod1", "http://test1.com")
-	displayMethod2 := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod2", "http://test2.com")
-	displayMethod3 := domain.NewDisplayMethod(uuid.New(), *issuerDID2, "test", "http://test.com")
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod1", "http://test1.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
+	displayMethod2 := domain.NewDisplayMethod(uuid.New(), *issuerDID, "displayMethod2", "http://test2.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
+	displayMethod3 := domain.NewDisplayMethod(uuid.New(), *issuerDID2, "test", "http://test.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 
 	_, err = displayMethodRepository.Save(ctx, displayMethod)
 	require.NoError(t, err)
@@ -113,6 +115,8 @@ func TestGetAllDisplayMethod(t *testing.T) {
 
 		assert.Equal(t, displayMethod2.ID, displayMethods[0].ID)
 		assert.Equal(t, displayMethod.ID, displayMethods[1].ID)
+		assert.Equal(t, displayMethod2.Name, displayMethods[0].Name)
+		assert.Equal(t, displayMethod.Name, displayMethods[1].Name)
 	})
 
 	t.Run("should return two display method - created at asc", func(t *testing.T) {
@@ -155,9 +159,9 @@ func TestUpdateDisplayMethod(t *testing.T) {
 	require.NoError(t, err)
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com")
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 
-	t.Run("should return a display method", func(t *testing.T) {
+	t.Run("should update a display method", func(t *testing.T) {
 		id, err := displayMethodRepository.Save(ctx, displayMethod)
 		require.NoError(t, err)
 		displayMethodToGet, err := displayMethodRepository.GetByID(ctx, *issuerDID, *id)
@@ -170,6 +174,7 @@ func TestUpdateDisplayMethod(t *testing.T) {
 
 		displayMethod.URL = "http://test2.com"
 		displayMethod.Name = "test2"
+		displayMethod.Type = "Iden3BasicDisplayMethodV2"
 		id, err = displayMethodRepository.Save(ctx, displayMethod)
 		require.NoError(t, err)
 
@@ -180,6 +185,7 @@ func TestUpdateDisplayMethod(t *testing.T) {
 		assert.Equal(t, displayMethod.Name, displayMethodAfterUpdate.Name)
 		assert.Equal(t, displayMethod.URL, displayMethodAfterUpdate.URL)
 		assert.Equal(t, displayMethod.IssuerDID, displayMethodAfterUpdate.IssuerDID)
+		assert.Equal(t, displayMethod.Type, displayMethodAfterUpdate.Type)
 	})
 }
 
@@ -191,7 +197,7 @@ func TestDeleteDisplayMethod(t *testing.T) {
 	require.NoError(t, err)
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
-	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com")
+	displayMethod := domain.NewDisplayMethod(uuid.New(), *issuerDID, "test", "http://test.com", common.ToPointer("Iden3BasicDisplayMethodV1"))
 
 	t.Run("should return a display method", func(t *testing.T) {
 		id, err := displayMethodRepository.Save(ctx, displayMethod)

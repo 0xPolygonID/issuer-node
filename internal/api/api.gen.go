@@ -59,7 +59,7 @@ const (
 
 // Defines values for DisplayMethodType.
 const (
-	Iden3BasicDisplayMethodv2 DisplayMethodType = "Iden3BasicDisplayMethodv2"
+	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
 )
 
 // Defines values for GetIdentitiesResponseCredentialStatusType.
@@ -143,7 +143,9 @@ const (
 	CreatedAt      GetAllDisplayMethodsParamsSort = "created_at"
 	MinusCreatedAt GetAllDisplayMethodsParamsSort = "-created_at"
 	MinusName      GetAllDisplayMethodsParamsSort = "-name"
+	MinusType      GetAllDisplayMethodsParamsSort = "-type"
 	Name           GetAllDisplayMethodsParamsSort = "name"
+	Type           GetAllDisplayMethodsParamsSort = "type"
 )
 
 // Defines values for GetStateTransactionsParamsFilter.
@@ -236,7 +238,10 @@ type CreateCredentialResponse struct {
 // CreateDisplayMethodRequest defines model for CreateDisplayMethodRequest.
 type CreateDisplayMethodRequest struct {
 	Name string `json:"name"`
-	Url  string `json:"url"`
+
+	// Type Display method type (Iden3BasicDisplayMethodV1 is default value)
+	Type *string `json:"type,omitempty"`
+	Url  string  `json:"url"`
 }
 
 // CreateIdentityRequest defines model for CreateIdentityRequest.
@@ -330,6 +335,7 @@ type DisplayMethodType string
 type DisplayMethodEntity struct {
 	Id   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
+	Type string    `json:"type"`
 	Url  string    `json:"url"`
 }
 
@@ -754,6 +760,7 @@ type GetAllDisplayMethodsParamsSort string
 // UpdateDisplayMethodJSONBody defines parameters for UpdateDisplayMethod.
 type UpdateDisplayMethodJSONBody struct {
 	Name *string `json:"name,omitempty"`
+	Type *string `json:"type,omitempty"`
 	Url  *string `json:"url,omitempty"`
 }
 

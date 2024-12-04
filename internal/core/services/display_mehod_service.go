@@ -25,13 +25,13 @@ func NewDisplayMethod(displayMethodRepository ports.DisplayMethodRepository) *Di
 }
 
 // Save stores the display method
-func (dm *DisplayMethod) Save(ctx context.Context, identityDID w3c.DID, name, url string) (*uuid.UUID, error) {
-	displayMethod := domain.NewDisplayMethod(uuid.New(), identityDID, name, url)
+func (dm *DisplayMethod) Save(ctx context.Context, identityDID w3c.DID, name, url string, dtype *string) (*uuid.UUID, error) {
+	displayMethod := domain.NewDisplayMethod(uuid.New(), identityDID, name, url, dtype)
 	return dm.displayMethodRepository.Save(ctx, displayMethod)
 }
 
 // Update updates the display method with the given id
-func (dm *DisplayMethod) Update(ctx context.Context, identityDID w3c.DID, id uuid.UUID, name, url *string) (*uuid.UUID, error) {
+func (dm *DisplayMethod) Update(ctx context.Context, identityDID w3c.DID, id uuid.UUID, name, url, dtype *string) (*uuid.UUID, error) {
 	displayMethodToUpdate, err := dm.GetByID(ctx, identityDID, id)
 	if err != nil {
 		return nil, err
@@ -44,6 +44,11 @@ func (dm *DisplayMethod) Update(ctx context.Context, identityDID w3c.DID, id uui
 	if url != nil {
 		displayMethodToUpdate.URL = *url
 	}
+
+	if dtype != nil {
+		displayMethodToUpdate.Type = *dtype
+	}
+
 	return dm.displayMethodRepository.Save(ctx, *displayMethodToUpdate)
 }
 

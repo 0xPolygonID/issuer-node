@@ -1356,7 +1356,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [ "created_at", "-created_at", "name", "-name"]
+              enum: [ "created_at", "-created_at", "name", "-name", "type", "-type" ]
               default: "-created_at"
             description: >
               The minus sign (-) before field means descending order.
@@ -1426,6 +1426,10 @@ paths:
                 url:
                   type: string
                   example: "https://new-display-method.com"
+                type:
+                  type: string
+                  example: "Iden3BasicDisplayMethodV1"
+
       responses:
         '200':
           description: Display Method updated
@@ -1907,7 +1911,7 @@ components:
           type: string
           x-omitempty: false
           enum:
-            - "Iden3BasicDisplayMethodv2"
+            - "Iden3BasicDisplayMethodV1"
 
     #Credentials
     CreateCredentialRequest:
@@ -2248,6 +2252,7 @@ components:
         - id
         - name
         - url
+        - type
       properties:
         id:
           type: string
@@ -2262,6 +2267,9 @@ components:
         url:
           type: string
           example: "https://someValidURL.com"
+        type:
+          type: string
+          example: "Iden3BasicDisplayMethodV1"
 
     DisplayMethodPaginated:
       type: object
@@ -2450,6 +2458,10 @@ components:
           url:
             type: string
             example: "https://my-display-method.com"
+          type:
+            type: string
+            example: "Iden3BasicDisplayMethodV1"
+            description: "Display method type (Iden3BasicDisplayMethodV1 is default value)"
 
 
   parameters:

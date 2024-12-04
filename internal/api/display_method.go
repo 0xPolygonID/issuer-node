@@ -32,7 +32,7 @@ func (s *Server) CreateDisplayMethod(ctx context.Context, request CreateDisplayM
 		return CreateDisplayMethod400JSONResponse{N400JSONResponse{Message: "url is required"}}, nil
 	}
 
-	id, err := s.displayMethodService.Save(ctx, *identityDID, request.Body.Name, request.Body.Url)
+	id, err := s.displayMethodService.Save(ctx, *identityDID, request.Body.Name, request.Body.Url, request.Body.Type)
 	if err != nil {
 		log.Error(ctx, "Error saving display method", "err", err)
 		if errors.Is(err, repositories.DisplayMethodDuplicateNameError) {
@@ -65,6 +65,7 @@ func (s *Server) GetDisplayMethod(ctx context.Context, request GetDisplayMethodR
 		Id:   displayMethod.ID,
 		Name: displayMethod.Name,
 		Url:  displayMethod.URL,
+		Type: displayMethod.Type,
 	}, nil
 }
 
@@ -121,7 +122,7 @@ func (s *Server) UpdateDisplayMethod(ctx context.Context, request UpdateDisplayM
 		return UpdateDisplayMethod400JSONResponse{N400JSONResponse{Message: "url cannot be empty"}}, nil
 	}
 
-	_, err = s.displayMethodService.Update(ctx, *identityDID, request.Id, request.Body.Name, request.Body.Url)
+	_, err = s.displayMethodService.Update(ctx, *identityDID, request.Id, request.Body.Name, request.Body.Url, request.Body.Type)
 	if err != nil {
 		log.Error(ctx, "Error updating display method", "err", err)
 		if errors.Is(err, repositories.DisplayMethodNotFoundErr) {
@@ -169,6 +170,7 @@ func getDisplayMethodResponseObject(displayMethod *domain.DisplayMethod) Display
 		Id:   displayMethod.ID,
 		Name: displayMethod.Name,
 		Url:  displayMethod.URL,
+		Type: displayMethod.Type,
 	}
 }
 
@@ -198,6 +200,8 @@ func getDisplayMethodFilter(req GetAllDisplayMethodsRequestObject) (*ports.Displ
 				err = orderBy.Add(ports.DisplayMethodCreatedAtFilterField, desc)
 			case Name:
 				err = orderBy.Add(ports.DisplayMethodNameFilterField, desc)
+			case Type:
+				err = orderBy.Add(ports.DisplayMethodTypeFilterField, desc)
 			default:
 				return nil, errors.New("wrong sort field")
 			}
