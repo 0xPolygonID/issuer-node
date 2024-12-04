@@ -8,7 +8,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { AppError, DisplayMethodMetadata } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { VALUE_REQUIRED } from "src/utils/constants";
-import { buildAppError } from "src/utils/error";
+import { buildAppError, notifyError } from "src/utils/error";
 
 export function DisplayMethodForm({
   initialValues,
@@ -28,7 +28,7 @@ export function DisplayMethodForm({
 
   const fetchMetadata = (formValues: UpsertDisplayMethod) => {
     const { url } = formValues;
-    const parsedUrl = z.string().safeParse(url);
+    const parsedUrl = z.string().url().safeParse(url);
 
     if (parsedUrl.success) {
       void getDisplayMethodMetadata({ env, url: parsedUrl.data }).then((response) => {
@@ -39,10 +39,7 @@ export function DisplayMethodForm({
         }
       });
     } else {
-      setDisplayMethodMetadata({
-        error: buildAppError(`"${url}" is not a valid URL`),
-        status: "failed",
-      });
+      notifyError(buildAppError(`"${url}" is not a valid URL`));
     }
   };
 

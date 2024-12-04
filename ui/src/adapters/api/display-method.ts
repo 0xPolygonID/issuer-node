@@ -22,20 +22,20 @@ export const displayMethodParser = getStrictParser<DisplayMethod>()(
     id: z.string(),
     name: z.string(),
     type: z.nativeEnum(DisplayMethodType),
-    url: z.string(),
+    url: z.string().url(),
   })
 );
 
 export const displayMethodMetadataParser = getStrictParser<DisplayMethodMetadata>()(
   z.object({
-    backgroundImageUrl: z.string(),
+    backgroundImageUrl: z.string().url(),
     description: z.string(),
     descriptionTextColor: z.string(),
     issuerName: z.string(),
     issuerTextColor: z.string(),
     logo: z.object({
       alt: z.string(),
-      uri: z.string(),
+      uri: z.string().url(),
     }),
     title: z.string(),
     titleTextColor: z.string(),
