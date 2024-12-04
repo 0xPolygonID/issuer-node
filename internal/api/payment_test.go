@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -553,10 +552,9 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 	configUnsecure := domain.PaymentOptionConfig{
 		Chains: []domain.PaymentOptionConfigChain{
 			{
-				ChainId:       1101,
-				Recipient:     "0x..",
-				SigningKeyId:  signingKeyID.ID,
-				SigningKeyOpt: common.ToPointer("d1f13a3d23b8a3c5b76fbd62c29e86a3b1cd0e3ef564d11a5e55aab544ce33a4"),
+				ChainId:      1101,
+				Recipient:    "0x..",
+				SigningKeyId: signingKeyID.ID,
 				Iden3PaymentRailsRequestV1: &domain.PaymentOptionConfigChainIden3PaymentRailsRequestV1{
 					Amount:   0.5,
 					Currency: "ETH",
@@ -564,10 +562,9 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 				Iden3PaymentRailsERC20RequestV1: nil,
 			},
 			{
-				ChainId:       137,
-				Recipient:     "0x..",
-				SigningKeyId:  signingKeyID.ID,
-				SigningKeyOpt: common.ToPointer("d1f13a3d23b8a3c5b76fbd62c29e86a3b1cd0e3ef564d11a5e55aab544ce33a4"),
+				ChainId:      137,
+				Recipient:    "0x..",
+				SigningKeyId: signingKeyID.ID,
 				Iden3PaymentRailsRequestV1: &domain.PaymentOptionConfigChainIden3PaymentRailsRequestV1{
 					Amount:   0.01,
 					Currency: "POL",

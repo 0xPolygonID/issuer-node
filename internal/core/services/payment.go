@@ -110,29 +110,12 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		var address common.Address
 		var privateKey *ecdsa.PrivateKey
 
-		if chainConfig.SigningKeyOpt == nil {
-			pubKey, err := kms.EthPubKey(ctx, p.kms, kms.KeyID{ID: chainConfig.SigningKeyId, Type: kms.KeyTypeEthereum})
-			if err != nil {
-				log.Error(ctx, "failed to get kms signing key", "err", err, "keyId", chainConfig.SigningKeyId)
-				return nil, fmt.Errorf("kms signing key not found: %w", err)
-			}
-			address = crypto.PubkeyToAddress(*pubKey)
-		} else { // Temporary solution until we have key management. We use SigningKeyOpt as a private key if present
-			privateKeyBytes, err := hex.DecodeString(*chainConfig.SigningKeyOpt)
-			if err != nil {
-				return nil, err
-			}
-			privateKey, err = crypto.ToECDSA(privateKeyBytes)
-			if err != nil {
-				return nil, err
-			}
-			publicKey := privateKey.Public()
-			publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-			if !ok {
-				return nil, fmt.Errorf("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-			}
-			address = crypto.PubkeyToAddress(*publicKeyECDSA)
+		pubKey, err := kms.EthPubKey(ctx, p.kms, kms.KeyID{ID: chainConfig.SigningKeyId, Type: kms.KeyTypeEthereum})
+		if err != nil {
+			log.Error(ctx, "failed to get kms signing key", "err", err, "keyId", chainConfig.SigningKeyId)
+			return nil, fmt.Errorf("kms signing key not found: %w", err)
 		}
+		address = crypto.PubkeyToAddress(*pubKey)
 
 		if chainConfig.Iden3PaymentRailsRequestV1 != nil {
 			nativeToken, err := p.newIden3PaymentRailsRequestV1(ctx, chainConfig, setting, expirationTime, address, privateKey)
