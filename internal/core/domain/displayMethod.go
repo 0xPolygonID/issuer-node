@@ -9,6 +9,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
 
+const defaultType = "Iden3BasicDisplayMethodV1"
+
 // DisplayMethodCoreDID is a type alias for w3c.DID
 type DisplayMethodCoreDID w3c.DID
 
@@ -23,7 +25,7 @@ type DisplayMethod struct {
 
 // NewDisplayMethod creates a new display method
 func NewDisplayMethod(id uuid.UUID, issuerDID w3c.DID, name, url string, dtype *string) DisplayMethod {
-	displayMethodType := "Iden3BasicDisplayMethodV1"
+	displayMethodType := defaultType
 	if dtype != nil {
 		displayMethodType = *dtype
 	}
