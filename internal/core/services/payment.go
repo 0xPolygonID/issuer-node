@@ -566,7 +566,7 @@ func typedDataForHashing(paymentType protocol.PaymentRequestType, chainID int, v
 		},
 		Message: apitypes.TypedDataMessage{
 			"recipient":      address.String(),
-			"amount":         int(amount),
+			"amount":         big.NewInt(int64(amount)),
 			"expirationDate": fmt.Sprint(expTime.Unix()),
 			"nonce":          nonce.String(),
 			"metadata":       metadata,
