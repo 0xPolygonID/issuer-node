@@ -13,7 +13,7 @@ import {
 } from "src/adapters/api";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getResourceParser, getStrictParser } from "src/adapters/parsers";
-import { DisplayMethod, DisplayMethodMetadata, Env } from "src/domain";
+import { DisplayMethod, DisplayMethodMetadata, DisplayMethodType, Env } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
 import { Resource } from "src/utils/types";
 
@@ -21,6 +21,7 @@ export const displayMethodParser = getStrictParser<DisplayMethod>()(
   z.object({
     id: z.string(),
     name: z.string(),
+    type: z.nativeEnum(DisplayMethodType),
     url: z.string(),
   })
 );

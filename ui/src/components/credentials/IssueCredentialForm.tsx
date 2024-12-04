@@ -23,6 +23,7 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath } from "react-router-dom";
 import { z } from "zod";
 
+import { getDisplayMethods } from "src/adapters/api/display-method";
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import {
@@ -38,7 +39,15 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
-import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute, ProofType } from "src/domain";
+import {
+  ApiSchema,
+  AppError,
+  Attribute,
+  DisplayMethod,
+  JsonSchema,
+  ObjectAttribute,
+  ProofType,
+} from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -107,6 +116,10 @@ export function IssueCredentialForm({
   });
 
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, AppError>>({
+    status: "pending",
+  });
+
+  const [displayMethods, setDisplayMethods] = useState<AsyncTask<DisplayMethod[], AppError>>({
     status: "pending",
   });
 
@@ -335,11 +348,45 @@ export function IssueCredentialForm({
     [env, fetchJsonSchema, initialValues.schemaID, message, identifier]
   );
 
+  const fetchDisplayMethods = useCallback(
+    async (signal?: AbortSignal) => {
+      setDisplayMethods((previousDisplayMethods) =>
+        isAsyncTaskDataAvailable(previousDisplayMethods)
+          ? { data: previousDisplayMethods.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
+      const response = await getDisplayMethods({
+        env,
+        identifier,
+        params: {},
+        signal,
+      });
+      if (response.success) {
+        setDisplayMethods({
+          data: response.data.items.successful,
+          status: "successful",
+        });
+      } else {
+        if (!isAbortedError(response.error)) {
+          setDisplayMethods({ error: response.error, status: "failed" });
+        }
+      }
+    },
+    [env, identifier]
+  );
+
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchSchemas);
 
     return aborter;
   }, [fetchSchemas]);
+
+  useEffect(() => {
+    const { aborter } = makeRequestAbortable(fetchDisplayMethods);
+
+    return aborter;
+  }, [fetchDisplayMethods]);
 
   return (
     <Form
@@ -363,7 +410,23 @@ export function IssueCredentialForm({
           void message.error("Error validating the data against the schema");
         }
       }}
-      onValuesChange={(_, values: IssueCredentialFormData) => {
+      onValuesChange={(
+        updatedValue: Partial<IssueCredentialFormData>,
+        values: IssueCredentialFormData
+      ) => {
+        if (updatedValue.displayMethod?.url && isAsyncTaskDataAvailable(displayMethods)) {
+          const displayMethod = displayMethods.data.find(
+            ({ url }) => url === updatedValue.displayMethod?.url
+          );
+          if (displayMethod) {
+            form.setFieldValue("displayMethod", {
+              ...values.displayMethod,
+              type: displayMethod.type,
+              url: displayMethod.url,
+            });
+          }
+        }
+
         const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
         const credentialSubjectAttributeWithoutId =
           jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
@@ -548,20 +611,22 @@ export function IssueCredentialForm({
                             Display Method
                           </Checkbox>
                         </Form.Item>
-                        <Form.Item
-                          hidden={!displayMethodChecked}
-                          name={["displayMethod", "url"]}
-                          rules={[
-                            {
-                              message: URL_FIELD_ERROR_MESSAGE,
-                              validator: (_, value) =>
-                                displayMethodChecked
-                                  ? z.string().url().parseAsync(value)
-                                  : Promise.resolve(true),
-                            },
-                          ]}
-                        >
-                          <Input placeholder="Valid URL of the display method" />
+                        <Form.Item hidden={!displayMethodChecked} name={["displayMethod", "url"]}>
+                          <Select
+                            className="full-width"
+                            loading={isAsyncTaskStarting(displayMethods)}
+                            placeholder="Valid URL of the display method"
+                          >
+                            {isAsyncTaskDataAvailable(displayMethods) &&
+                              displayMethods.data.map(({ id, name, url }) => (
+                                <Select.Option key={id} value={url}>
+                                  {name}
+                                </Select.Option>
+                              ))}
+                          </Select>
+                        </Form.Item>
+                        <Form.Item hidden name={["displayMethod", "type"]}>
+                          <Input />
                         </Form.Item>
                       </Space>
                     </Form.Item>

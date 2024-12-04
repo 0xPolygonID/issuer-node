@@ -23,12 +23,13 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
-function Details({ name, url }: Omit<DisplayMethod, "id">) {
+function Details({ name, type, url }: Omit<DisplayMethod, "id">) {
   return (
     <Space direction="vertical">
       <Typography.Text type="secondary">DISPLAY METHOD DETAILS</Typography.Text>
       <Detail label="Name" text={name} />
       <Detail copyable href={url} label="URL" text={url} />
+      <Detail label="Type" text={type} />
     </Space>
   );
 }
@@ -146,7 +147,7 @@ export function DisplayMethodDetails() {
             <Card className="centered">
               {isAsyncTaskDataAvailable(displayMethod) && (
                 <>
-                  <Details name={displayMethod.data.name} url={displayMethod.data.url} />
+                  <Details {...displayMethod.data} />
                   <Divider />
                 </>
               )}
@@ -180,7 +181,7 @@ export function DisplayMethodDetails() {
         } else {
           return (
             <Card className="centered">
-              <Details name={displayMethod.data.name} url={displayMethod.data.url} />
+              <Details {...displayMethod.data} />
 
               <Divider />
 

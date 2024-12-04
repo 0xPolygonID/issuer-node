@@ -135,6 +135,13 @@ export function SiderMenu({
                 title: "",
               },
               {
+                icon: <IconIdentities />,
+                key: displayMethodsPath,
+                label: DISPLAY_METHODS,
+                onClick: () => onMenuClick(displayMethodsPath),
+                title: "",
+              },
+              {
                 icon: <IconCredentials />,
                 key: credentialsPath,
                 label: CREDENTIALS,
@@ -173,13 +180,6 @@ export function SiderMenu({
                 key: identitiesPath,
                 label: IDENTITIES,
                 onClick: () => onMenuClick(identitiesPath),
-                title: "",
-              },
-              {
-                icon: <IconIdentities />,
-                key: displayMethodsPath,
-                label: DISPLAY_METHODS,
-                onClick: () => onMenuClick(displayMethodsPath),
                 title: "",
               },
             ]}
