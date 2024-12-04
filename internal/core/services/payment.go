@@ -573,10 +573,32 @@ func typedDataForHashing(paymentType protocol.PaymentRequestType, chainID int, v
 		},
 	}
 	if paymentType == protocol.Iden3PaymentRailsERC20RequestV1Type {
-		data.Types[string(paymentType)] = append(data.Types[string(paymentType)], apitypes.Type{
-			Name: "tokenAddress",
-			Type: "address",
-		})
+		data.Types[string(paymentType)] = []apitypes.Type{
+			{
+				Name: "tokenAddress",
+				Type: "address",
+			},
+			{
+				Name: "recipient",
+				Type: "address",
+			},
+			{
+				Name: "amount",
+				Type: "uint256",
+			},
+			{
+				Name: "expirationDate",
+				Type: "uint256",
+			},
+			{
+				Name: "nonce",
+				Type: "uint256",
+			},
+			{
+				Name: "metadata",
+				Type: "bytes",
+			},
+		}
 		data.Message["tokenAddress"] = tokenAddress
 	}
 	return &data, nil
