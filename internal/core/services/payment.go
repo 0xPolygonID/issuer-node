@@ -377,7 +377,6 @@ func (p *payment) newIden3PaymentRailsRequestV1(
 		Amount:         amountString,
 		ExpirationDate: fmt.Sprint(expirationTime.Format(time.RFC3339)),
 		Metadata:       metadata,
-		Currency:       chainConfig.Iden3PaymentRailsRequestV1.Currency,
 		Recipient:      address.String(),
 		Proof: protocol.PaymentProof{
 			protocol.EthereumEip712Signature2021{
@@ -446,7 +445,6 @@ func (p *payment) newIden3PaymentRailsERC20RequestV1(
 		Amount:         amountString,
 		ExpirationDate: fmt.Sprint(expirationTime.Format(time.RFC3339)),
 		Metadata:       metadata,
-		Currency:       string(currency),
 		Recipient:      address.String(),
 		Features:       features,
 		TokenAddress:   tokenAddress,
