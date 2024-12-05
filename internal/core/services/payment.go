@@ -363,7 +363,6 @@ func (p *payment) newIden3PaymentRailsRequestV1(
 		Amount:         amountString,
 		ExpirationDate: fmt.Sprint(expirationTime.Format(time.RFC3339)),
 		Metadata:       metadata,
-		Currency:       chainConfig.Iden3PaymentRailsRequestV1.Currency,
 		Recipient:      address.String(),
 		Proof: protocol.PaymentProof{
 			protocol.EthereumEip712Signature2021{
@@ -433,7 +432,6 @@ func (p *payment) newIden3PaymentRailsERC20RequestV1(
 		Amount:         amountString,
 		ExpirationDate: fmt.Sprint(expirationTime.Format(time.RFC3339)),
 		Metadata:       metadata,
-		Currency:       string(currency),
 		Recipient:      address.String(),
 		Features:       features,
 		TokenAddress:   tokenAddress,
@@ -566,10 +564,32 @@ func typedDataForHashing(paymentType protocol.PaymentRequestType, chainID int, v
 		},
 	}
 	if paymentType == protocol.Iden3PaymentRailsERC20RequestV1Type {
-		data.Types[string(paymentType)] = append(data.Types[string(paymentType)], apitypes.Type{
-			Name: "tokenAddress",
-			Type: "address",
-		})
+		data.Types[string(paymentType)] = []apitypes.Type{
+			{
+				Name: "tokenAddress",
+				Type: "address",
+			},
+			{
+				Name: "recipient",
+				Type: "address",
+			},
+			{
+				Name: "amount",
+				Type: "uint256",
+			},
+			{
+				Name: "expirationDate",
+				Type: "uint256",
+			},
+			{
+				Name: "nonce",
+				Type: "uint256",
+			},
+			{
+				Name: "metadata",
+				Type: "bytes",
+			},
+		}
 		data.Message["tokenAddress"] = tokenAddress
 	}
 	return &data, nil
