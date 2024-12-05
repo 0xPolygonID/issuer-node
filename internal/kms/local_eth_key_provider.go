@@ -130,7 +130,13 @@ func (ls *localEthKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
 }
 
 func (ls *localEthKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
-	return false, errors.New("not implemented")
+	_, err := ls.storageManager.getKeyMaterial(ctx, keyID)
+	if err != nil {
+		if errors.Is(err, ErrKeyNotFound) {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // nolint

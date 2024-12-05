@@ -27,8 +27,21 @@ func NewKey(kms *kms.KMS, claimService ports.ClaimService) ports.KeyService {
 }
 
 // CreateKey creates a new key for the given DID
-func (ks *Key) CreateKey(_ context.Context, did *w3c.DID, keyType kms.KeyType) (kms.KeyID, error) {
-	return ks.kms.CreateKey(keyType, did)
+func (ks *Key) CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType) (kms.KeyID, error) {
+
+	keyID, err := ks.kms.CreateKey(keyType, did)
+	if err != nil {
+		log.Error(context.Background(), "failed to create key", "err", err)
+		return kms.KeyID{}, err
+	}
+	if keyType == kms.KeyTypeEthereum {
+		_, err := ks.kms.LinkToIdentity(ctx, keyID, *did)
+		if err != nil {
+			log.Error(ctx, "failed to link key to identity", "err", err)
+			return kms.KeyID{}, err
+		}
+	}
+	return keyID, nil
 }
 
 // Get returns the public key for the given keyID
