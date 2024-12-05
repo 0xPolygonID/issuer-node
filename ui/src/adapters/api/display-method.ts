@@ -116,7 +116,11 @@ export async function getDisplayMethodMetadata({
 }): Promise<Response<DisplayMethodMetadata>> {
   try {
     const json = await getJsonFromUrl({ env, signal, url });
-    return buildSuccessResponse(displayMethodMetadataParser.parse(json));
+    if (json.success) {
+      return buildSuccessResponse(displayMethodMetadataParser.parse(json.data));
+    } else {
+      return json;
+    }
   } catch (error) {
     return buildErrorResponse(error);
   }
