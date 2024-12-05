@@ -48,7 +48,7 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 
 	authCoreClaim, err := getAuthCoreClaim(ctx, ks.claimService, did, publicKey)
 	if err != nil {
-		log.Error(ctx, "failed to check if key has associated auth core claim", "err", err)
+		log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 		return nil, err
 	}
 	return &ports.KMSKey{
@@ -57,6 +57,22 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 		PublicKey:                  hexutil.Encode(publicKey),
 		HasAssociatedAuthCoreClaim: authCoreClaim != nil,
 	}, nil
+}
+
+// getAuthCoreClaim returns the keyID for the given DID and keyType
+func getAuthCoreClaim(ctx context.Context, claimService ports.ClaimService, did *w3c.DID, publicKey []byte) (*domain.Claim, error) {
+	authCoreClaims, err := claimService.GetAuthCredentials(ctx, did)
+	if err != nil {
+		log.Error(ctx, "failed to get auth core claims", "err", err)
+		return nil, err
+	}
+	for _, authCoreClaim := range authCoreClaims {
+		if authCoreClaim.GetPublicKey().Equal(publicKey) {
+			return authCoreClaim, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // GetAll returns all the keys for the given DID
@@ -86,23 +102,23 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 		log.Error(ctx, "failed to get public key", "err", err)
 		return err
 	}
-	authCoreClaim, err := getAuthCoreClaim(ctx, ks.claimService, did, publicKey)
+	authCredential, err := ks.claimService.GetAuthCredentialWithPublicKey(ctx, did, publicKey)
 	if err != nil {
-		log.Error(ctx, "failed to check if key has associated auth core claim", "err", err)
+		log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 		return err
 	}
 
-	if authCoreClaim != nil {
-		log.Info(ctx, "can not be deleted because it has an associated auth core claim. Have to check revocation status")
-		revStatus, err := ks.claimService.GetRevocationStatus(ctx, *did, uint64(authCoreClaim.RevNonce))
+	if authCredential != nil {
+		log.Info(ctx, "can not be deleted because it has an associated auth credential. Have to check revocation status")
+		revStatus, err := ks.claimService.GetRevocationStatus(ctx, *did, uint64(authCredential.RevNonce))
 		if err != nil {
 			log.Error(ctx, "failed to get revocation status", "err", err)
 			return err
 		}
 
 		if revStatus != nil && !revStatus.MTP.Existence {
-			log.Info(ctx, "Auth core claim is non revoked. Can not be deleted")
-			return ports.ErrAuthCoreClaimNotRevoked
+			log.Info(ctx, "auth credential is non revoked. Can not be deleted")
+			return ports.ErrAuthCredentialNotRevoked
 		}
 	}
 	keyType, err := getKeyType(keyID)
@@ -143,20 +159,4 @@ func getKeyType(keyID string) (kms.KeyType, error) {
 	}
 
 	return keyType, nil
-}
-
-// getAuthCoreClaim returns the keyID for the given DID and keyType
-func getAuthCoreClaim(ctx context.Context, claimService ports.ClaimService, did *w3c.DID, publicKey []byte) (*domain.Claim, error) {
-	authCoreClaims, err := claimService.GetAuthCoreClaims(ctx, did)
-	if err != nil {
-		log.Error(ctx, "failed to get auth core claims", "err", err)
-		return nil, err
-	}
-	for _, authCoreClaim := range authCoreClaims {
-		if authCoreClaim.CoreClaim.HasPublicKey(publicKey) {
-			return authCoreClaim, nil
-		}
-	}
-
-	return nil, nil
 }

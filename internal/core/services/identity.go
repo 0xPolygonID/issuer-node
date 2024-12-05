@@ -65,8 +65,11 @@ var (
 	// ErrWrongDIDMetada - represents an error in the identity metadata
 	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
 
-	// ErrSavingAuthCoreClaim - represents an error saving the claim
-	ErrSavingAuthCoreClaim = errors.New("error saving the AuthCoreClaim. Hash already exists")
+	// ErrDuplicatedHash - represents an error saving the claim
+	ErrDuplicatedHash = errors.New("hash already exists")
+
+	// ErrInvalidKeyType - represents an error in the key type
+	ErrInvalidKeyType = errors.New("invalid key type. Only BJJ keys are supported")
 )
 
 type identity struct {
@@ -261,7 +264,8 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		if err != nil {
 			return keyID, err
 		}
-		if authClaim.CoreClaim.HasPublicKey(pubKeyBytes) {
+
+		if authClaim.GetPublicKey().Equal(pubKeyBytes) {
 			log.Info(ctx, "key found", "keyID", keyID)
 			return keyID, nil
 		}
@@ -801,8 +805,8 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 	return did, identity.State.TreeState().State.BigInt(), nil
 }
 
-// AddKey adds a new key to the identity
-func (i *identity) AddKey(ctx context.Context, did *w3c.DID, keyID string) (uuid.UUID, error) {
+// CreateAuthCredential creates a new auth credential
+func (i *identity) CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID string) (uuid.UUID, error) {
 	revNonce, err := common.RandInt64()
 	if err != nil {
 		log.Error(ctx, "generating revocation nonce", "err", err)
@@ -813,9 +817,10 @@ func (i *identity) AddKey(ctx context.Context, did *w3c.DID, keyID string) (uuid
 	var keyType kms.KeyType
 	if strings.Contains(keyID, "BJJ") {
 		keyType = kms.KeyTypeBabyJubJub
-	} else if strings.Contains(keyID, "ETH") {
-		keyType = kms.KeyTypeEthereum
+	} else {
+		return uuid.Nil, ErrInvalidKeyType
 	}
+
 	kmsKeyID := kms.KeyID{
 		ID:   keyID,
 		Type: keyType,
@@ -877,7 +882,7 @@ func (i *identity) AddKey(ctx context.Context, did *w3c.DID, keyID string) (uuid
 			newAuthCoreClaimID, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
 			if err != nil {
 				if strings.Contains(err.Error(), "claims_identifier_issuer_index_hash_key") {
-					return ErrSavingAuthCoreClaim
+					return ErrDuplicatedHash
 				}
 				return errors.Join(err, errors.New("can't save auth claim"))
 			}

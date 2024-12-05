@@ -689,8 +689,8 @@ type DeleteConnectionParams struct {
 	DeleteCredentials *bool `form:"deleteCredentials,omitempty" json:"deleteCredentials,omitempty"`
 }
 
-// CreateAuthCoreClaimJSONBody defines parameters for CreateAuthCoreClaim.
-type CreateAuthCoreClaimJSONBody struct {
+// CreateAuthCredentialJSONBody defines parameters for CreateAuthCredential.
+type CreateAuthCredentialJSONBody struct {
 	KeyID string `json:"keyID"`
 }
 
@@ -821,8 +821,8 @@ type UpdateIdentityJSONRequestBody UpdateIdentityJSONBody
 // CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
 type CreateConnectionJSONRequestBody = CreateConnectionRequest
 
-// CreateAuthCoreClaimJSONRequestBody defines body for CreateAuthCoreClaim for application/json ContentType.
-type CreateAuthCoreClaimJSONRequestBody CreateAuthCoreClaimJSONBody
+// CreateAuthCredentialJSONRequestBody defines body for CreateAuthCredential for application/json ContentType.
+type CreateAuthCredentialJSONRequestBody CreateAuthCredentialJSONBody
 
 // CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
 type CreateCredentialJSONRequestBody = CreateCredentialRequest
@@ -893,8 +893,8 @@ type ServerInterface interface {
 	// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Add a new key to the identity
-	// (POST /v2/identities/{identifier}/create-auth-core-claim)
-	CreateAuthCoreClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
+	// (POST /v2/identities/{identifier}/create-auth-credential)
+	CreateAuthCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
 	// Get Credentials
 	// (GET /v2/identities/{identifier}/credentials)
 	GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams)
@@ -1082,8 +1082,8 @@ func (_ Unimplemented) RevokeConnectionCredentials(w http.ResponseWriter, r *htt
 }
 
 // Add a new key to the identity
-// (POST /v2/identities/{identifier}/create-auth-core-claim)
-func (_ Unimplemented) CreateAuthCoreClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+// (POST /v2/identities/{identifier}/create-auth-credential)
+func (_ Unimplemented) CreateAuthCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1791,8 +1791,8 @@ func (siw *ServerInterfaceWrapper) RevokeConnectionCredentials(w http.ResponseWr
 	handler.ServeHTTP(w, r)
 }
 
-// CreateAuthCoreClaim operation middleware
-func (siw *ServerInterfaceWrapper) CreateAuthCoreClaim(w http.ResponseWriter, r *http.Request) {
+// CreateAuthCredential operation middleware
+func (siw *ServerInterfaceWrapper) CreateAuthCredential(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -1812,7 +1812,7 @@ func (siw *ServerInterfaceWrapper) CreateAuthCoreClaim(w http.ResponseWriter, r 
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateAuthCoreClaim(w, r, identifier)
+		siw.Handler.CreateAuthCredential(w, r, identifier)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3085,7 +3085,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/connections/{id}/credentials/revoke", wrapper.RevokeConnectionCredentials)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v2/identities/{identifier}/create-auth-core-claim", wrapper.CreateAuthCoreClaim)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/create-auth-credential", wrapper.CreateAuthCredential)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials", wrapper.GetCredentials)
@@ -3827,38 +3827,38 @@ func (response RevokeConnectionCredentials500JSONResponse) VisitRevokeConnection
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateAuthCoreClaimRequestObject struct {
+type CreateAuthCredentialRequestObject struct {
 	Identifier PathIdentifier2 `json:"identifier"`
-	Body       *CreateAuthCoreClaimJSONRequestBody
+	Body       *CreateAuthCredentialJSONRequestBody
 }
 
-type CreateAuthCoreClaimResponseObject interface {
-	VisitCreateAuthCoreClaimResponse(w http.ResponseWriter) error
+type CreateAuthCredentialResponseObject interface {
+	VisitCreateAuthCredentialResponse(w http.ResponseWriter) error
 }
 
-type CreateAuthCoreClaim201JSONResponse struct {
+type CreateAuthCredential201JSONResponse struct {
 	Id uuid.UUID `json:"id"`
 }
 
-func (response CreateAuthCoreClaim201JSONResponse) VisitCreateAuthCoreClaimResponse(w http.ResponseWriter) error {
+func (response CreateAuthCredential201JSONResponse) VisitCreateAuthCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateAuthCoreClaim400JSONResponse struct{ N400JSONResponse }
+type CreateAuthCredential400JSONResponse struct{ N400JSONResponse }
 
-func (response CreateAuthCoreClaim400JSONResponse) VisitCreateAuthCoreClaimResponse(w http.ResponseWriter) error {
+func (response CreateAuthCredential400JSONResponse) VisitCreateAuthCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateAuthCoreClaim500JSONResponse struct{ N500JSONResponse }
+type CreateAuthCredential500JSONResponse struct{ N500JSONResponse }
 
-func (response CreateAuthCoreClaim500JSONResponse) VisitCreateAuthCoreClaimResponse(w http.ResponseWriter) error {
+func (response CreateAuthCredential500JSONResponse) VisitCreateAuthCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -5154,8 +5154,8 @@ type StrictServerInterface interface {
 	// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error)
 	// Add a new key to the identity
-	// (POST /v2/identities/{identifier}/create-auth-core-claim)
-	CreateAuthCoreClaim(ctx context.Context, request CreateAuthCoreClaimRequestObject) (CreateAuthCoreClaimResponseObject, error)
+	// (POST /v2/identities/{identifier}/create-auth-credential)
+	CreateAuthCredential(ctx context.Context, request CreateAuthCredentialRequestObject) (CreateAuthCredentialResponseObject, error)
 	// Get Credentials
 	// (GET /v2/identities/{identifier}/credentials)
 	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
@@ -5729,13 +5729,13 @@ func (sh *strictHandler) RevokeConnectionCredentials(w http.ResponseWriter, r *h
 	}
 }
 
-// CreateAuthCoreClaim operation middleware
-func (sh *strictHandler) CreateAuthCoreClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
-	var request CreateAuthCoreClaimRequestObject
+// CreateAuthCredential operation middleware
+func (sh *strictHandler) CreateAuthCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+	var request CreateAuthCredentialRequestObject
 
 	request.Identifier = identifier
 
-	var body CreateAuthCoreClaimJSONRequestBody
+	var body CreateAuthCredentialJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -5743,18 +5743,18 @@ func (sh *strictHandler) CreateAuthCoreClaim(w http.ResponseWriter, r *http.Requ
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateAuthCoreClaim(ctx, request.(CreateAuthCoreClaimRequestObject))
+		return sh.ssi.CreateAuthCredential(ctx, request.(CreateAuthCredentialRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateAuthCoreClaim")
+		handler = middleware(handler, "CreateAuthCredential")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CreateAuthCoreClaimResponseObject); ok {
-		if err := validResponse.VisitCreateAuthCoreClaimResponse(w); err != nil {
+	} else if validResponse, ok := response.(CreateAuthCredentialResponseObject); ok {
+		if err := validResponse.VisitCreateAuthCredentialResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

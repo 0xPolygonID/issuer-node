@@ -227,5 +227,6 @@ type ClaimService interface {
 	UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByStateIDWithMTPProof(ctx context.Context, did *w3c.DID, state string) ([]*domain.Claim, error)
-	GetAuthCoreClaims(ctx context.Context, identifier *w3c.DID) ([]*domain.Claim, error)
+	GetAuthCredentials(ctx context.Context, identifier *w3c.DID) ([]*domain.Claim, error)
+	GetAuthCredentialWithPublicKey(ctx context.Context, identifier *w3c.DID, pubKey []byte) (*domain.Claim, error)
 }

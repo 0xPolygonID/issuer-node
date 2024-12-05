@@ -427,11 +427,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/identities/{identifier}/create-auth-core-claim:
+  /v2/identities/{identifier}/create-auth-credential:
     post:
       summary: Add a new key to the identity
-      operationId: CreateAuthCoreClaim
-      description: Endpoint to create a new Auth Core Claim
+      operationId: CreateAuthCredential
+      description: Endpoint to create a new Auth Credential
       security:
         - basicAuth: [ ]
       parameters:

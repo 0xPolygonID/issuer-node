@@ -75,7 +75,7 @@ func TestServer_CreateKey(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 				response: CreateKey400JSONResponse{
 					N400JSONResponse: N400JSONResponse{
-						Message: "Invalid key type. BJJ Keys are supported",
+						Message: "invalid key type. BJJ and ETH Keys are supported",
 					},
 				},
 			},
@@ -163,7 +163,7 @@ func TestServer_GetKey(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 				response: GetKey400JSONResponse{
 					N400JSONResponse: N400JSONResponse{
-						Message: "invalid key id",
+						Message: "the key id can not be decoded from base64",
 					},
 				},
 			},
@@ -306,7 +306,7 @@ func TestServer_DeleteKey(t *testing.T) {
 
 	encodedKeyIDForAuthCoreClaimID := b64.StdEncoding.EncodeToString([]byte(keyIDForAuthCoreClaimID.ID))
 
-	_, err = server.Services.identity.AddKey(ctx, did, keyIDForAuthCoreClaimID.ID)
+	_, err = server.Services.identity.CreateAuthCredential(ctx, did, keyIDForAuthCoreClaimID.ID)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -348,20 +348,20 @@ func TestServer_DeleteKey(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 				response: DeleteKey400JSONResponse{
 					N400JSONResponse: N400JSONResponse{
-						Message: "invalid key id",
+						Message: "the key id can not be decoded from base64",
 					},
 				},
 			},
 		},
 		{
-			name:  "should get an error - key is an auth core claim",
+			name:  "should get an error - associated auth credential is not revoked",
 			auth:  authOk,
 			KeyID: encodedKeyIDForAuthCoreClaimID,
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				response: DeleteKey400JSONResponse{
 					N400JSONResponse: N400JSONResponse{
-						Message: "associated auth core claim is not revoked",
+						Message: "associated auth credential is not revoked",
 					},
 				},
 			},

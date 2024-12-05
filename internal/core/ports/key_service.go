@@ -13,8 +13,8 @@ import (
 var (
 	// ErrInvalidKeyType is returned when the key type is invalid
 	ErrInvalidKeyType = errors.New("invalid key type")
-	// ErrAuthCoreClaimNotRevoked is returned when the associated auth core claim is not revoked
-	ErrAuthCoreClaimNotRevoked = errors.New("associated auth core claim not revoked")
+	// ErrAuthCredentialNotRevoked is returned when the associated auth core claim is not revoked
+	ErrAuthCredentialNotRevoked = errors.New("associated auth core claim not revoked")
 	// ErrKeyNotFound is returned when the key is not found
 	ErrKeyNotFound = errors.New("key not found")
 )

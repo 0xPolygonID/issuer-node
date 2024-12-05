@@ -12,23 +12,23 @@ import (
 
 // CreateKey is the handler for the POST /keys endpoint.
 func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) (CreateKeyResponseObject, error) {
-	if string(request.Body.KeyType) != string(BJJ) {
-		log.Error(ctx, "create key. Invalid key type. BJJ and ETH Keys are supported")
+	if string(request.Body.KeyType) != string(BJJ) && string(request.Body.KeyType) != string(ETH) {
+		log.Error(ctx, "invalid key type. BJJ and ETH Keys are supported")
 		return CreateKey400JSONResponse{
 			N400JSONResponse{
-				Message: "Invalid key type. BJJ Keys are supported",
+				Message: "invalid key type. BJJ and ETH Keys are supported",
 			},
 		}, nil
 	}
 
 	keyID, err := s.keyService.CreateKey(ctx, request.Identifier.did(), kms.KeyType(request.Body.KeyType))
 	if err != nil {
-		log.Error(ctx, "add key. Creating key", "err", err)
+		log.Error(ctx, "creating key", "err", err)
 		return CreateKey500JSONResponse{
 			N500JSONResponse{
-				Message: "internal error",
+				Message: err.Error(),
 			},
-		}, err
+		}, nil
 	}
 
 	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(keyID.ID))
@@ -41,17 +41,17 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKeyResponseObject, error) {
 	decodedKeyID, err := b64.StdEncoding.DecodeString(request.KeyID)
 	if err != nil {
-		log.Error(ctx, "get key. Decoding key id", "err", err)
+		log.Error(ctx, "the key id can not be decoded from base64", "err", err)
 		return GetKey400JSONResponse{
 			N400JSONResponse{
-				Message: "invalid key id",
+				Message: "the key id can not be decoded from base64",
 			},
 		}, nil
 	}
 
 	key, err := s.keyService.Get(ctx, request.Identifier.did(), string(decodedKeyID))
 	if err != nil {
-		log.Error(ctx, "get key. Getting key", "err", err)
+		log.Error(ctx, "error getting the key", "err", err)
 		if errors.Is(err, ports.ErrInvalidKeyType) {
 			return GetKey400JSONResponse{
 				N400JSONResponse{
@@ -70,7 +70,7 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 
 		return GetKey500JSONResponse{
 			N500JSONResponse{
-				Message: "internal error",
+				Message: err.Error(),
 			},
 		}, nil
 	}
@@ -88,10 +88,10 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (GetKeysResponseObject, error) {
 	keys, err := s.keyService.GetAll(ctx, request.Identifier.did())
 	if err != nil {
-		log.Error(ctx, "get keys. Getting keys", "err", err)
+		log.Error(ctx, "getting keys", "err", err)
 		return GetKeys500JSONResponse{
 			N500JSONResponse{
-				Message: "internal error",
+				Message: err.Error(),
 			},
 		}, nil
 	}
@@ -113,27 +113,27 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) (DeleteKeyResponseObject, error) {
 	decodedKeyID, err := b64.StdEncoding.DecodeString(request.KeyID)
 	if err != nil {
-		log.Error(ctx, "delete key. Decoding key id", "err", err)
+		log.Error(ctx, "the key id can not be decoded from base64", "err", err)
 		return DeleteKey400JSONResponse{
 			N400JSONResponse{
-				Message: "invalid key id",
+				Message: "the key id can not be decoded from base64",
 			},
 		}, nil
 	}
 
 	err = s.keyService.Delete(ctx, request.Identifier.did(), string(decodedKeyID))
 	if err != nil {
-		if errors.Is(err, ports.ErrAuthCoreClaimNotRevoked) {
+		if errors.Is(err, ports.ErrAuthCredentialNotRevoked) {
 			log.Error(ctx, "delete key. Auth core claim not revoked", "err", err)
 			return DeleteKey400JSONResponse{
 				N400JSONResponse{
-					Message: "associated auth core claim is not revoked",
+					Message: "associated auth credential is not revoked",
 				},
 			}, nil
 		}
 
 		if errors.Is(err, ports.ErrKeyNotFound) {
-			log.Error(ctx, "delete key. Key not found", "err", err)
+			log.Error(ctx, "key not found", "err", err)
 			return DeleteKey404JSONResponse{
 				N404JSONResponse{
 					Message: "key not found",
@@ -141,10 +141,10 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 			}, nil
 		}
 
-		log.Error(ctx, "delete key. Deleting key", "err", err)
+		log.Error(ctx, "deleting key", "err", err)
 		return DeleteKey500JSONResponse{
 			N500JSONResponse{
-				Message: "internal error",
+				Message: err.Error(),
 			},
 		}, nil
 	}

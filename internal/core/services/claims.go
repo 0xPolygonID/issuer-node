@@ -587,12 +587,27 @@ func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, did *w3c.DID, stat
 	return c.icRepo.GetByStateIDWithMTPProof(ctx, c.storage.Pgx, did, state)
 }
 
-func (c *claim) GetAuthCoreClaims(ctx context.Context, identifier *w3c.DID) ([]*domain.Claim, error) {
+func (c *claim) GetAuthCredentials(ctx context.Context, identifier *w3c.DID) ([]*domain.Claim, error) {
 	authHash, err := core.AuthSchemaHash.MarshalText()
 	if err != nil {
 		return nil, err
 	}
 	return c.icRepo.GetAuthCoreClaims(ctx, c.storage.Pgx, identifier, string(authHash))
+}
+
+// GetAuthCredentialWithPublicKey returns the auth credential with the given public key
+func (c *claim) GetAuthCredentialWithPublicKey(ctx context.Context, identifier *w3c.DID, publicKey []byte) (*domain.Claim, error) {
+	authCredentials, err := c.GetAuthCredentials(ctx, identifier)
+	if err != nil {
+		log.Error(ctx, "failed to get auth credentials", "err", err)
+		return nil, err
+	}
+	for _, authCredential := range authCredentials {
+		if authCredential.GetPublicKey().Equal(publicKey) {
+			return authCredential, nil
+		}
+	}
+	return nil, errors.New("auth credential not found")
 }
 
 func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, description string, querier db.Querier) error {

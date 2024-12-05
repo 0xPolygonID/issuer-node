@@ -312,41 +312,46 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 	return response, nil
 }
 
-// CreateAuthCoreClaim is the controller to create an auth core claim
-func (s *Server) CreateAuthCoreClaim(ctx context.Context, request CreateAuthCoreClaimRequestObject) (CreateAuthCoreClaimResponseObject, error) {
+// CreateAuthCredential is the controller to create an auth credential
+func (s *Server) CreateAuthCredential(ctx context.Context, request CreateAuthCredentialRequestObject) (CreateAuthCredentialResponseObject, error) {
 	decodedKeyID, err := b64.StdEncoding.DecodeString(request.Body.KeyID)
 	if err != nil {
-		log.Error(ctx, "add key. Decoding key id", "err", err)
-		return CreateAuthCoreClaim400JSONResponse{
+		log.Error(ctx, "decoding base64 key id", "err", err)
+		return CreateAuthCredential400JSONResponse{
 			N400JSONResponse{
-				Message: "invalid key id",
+				Message: "error decoding base64 key id",
 			},
-		}, err
+		}, nil
 	}
 
-	authCoreClaimID, err := s.identityService.AddKey(ctx, request.Identifier.w3cDID, string(decodedKeyID))
+	autCredentialID, err := s.identityService.CreateAuthCredential(ctx, request.Identifier.w3cDID, string(decodedKeyID))
 	if err != nil {
-		log.Error(ctx, "add key. Adding key", "err", err)
-		if errors.Is(err, services.ErrSavingAuthCoreClaim) {
-			message := fmt.Sprintf("%s. This means an auth core claim was already created with this key", err.Error())
-			return CreateAuthCoreClaim400JSONResponse{
+		log.Error(ctx, "creating auth credential", "err", err)
+		if errors.Is(err, services.ErrDuplicatedHash) {
+			message := fmt.Sprintf("%s. This means an auth credential was already created with this key", err.Error())
+			return CreateAuthCredential400JSONResponse{
 				N400JSONResponse{
 					Message: message,
 				},
 			}, nil
 		}
 
-		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return CreateAuthCoreClaim500JSONResponse{N500JSONResponse{Message: "If this identity has keyType=ETH you must to publish the state first"}}, nil
+		if errors.Is(err, services.ErrInvalidKeyType) {
+			return CreateAuthCredential400JSONResponse{
+				N400JSONResponse{
+					Message: "invalid key type. Only BJJ keys are supported",
+				},
+			}, nil
 		}
-		return CreateAuthCoreClaim500JSONResponse{
+
+		return CreateAuthCredential500JSONResponse{
 			N500JSONResponse{
 				Message: err.Error(),
 			},
-		}, err
+		}, nil
 	}
 
-	return CreateAuthCoreClaim201JSONResponse{
-		Id: authCoreClaimID,
+	return CreateAuthCredential201JSONResponse{
+		Id: autCredentialID,
 	}, nil
 }
