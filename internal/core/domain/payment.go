@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2/protocol"
@@ -37,7 +38,7 @@ type PaymentOption struct {
 	IssuerDID   w3c.DID
 	Name        string
 	Description string
-	Config      *PaymentOptionConfig
+	Config      PaymentOptionConfig
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -49,23 +50,30 @@ func NewPaymentOption(issuerDID w3c.DID, name string, description string, config
 		IssuerDID:   issuerDID,
 		Name:        name,
 		Description: description,
-		Config:      config,
+		Config:      *config,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
 }
 
 // PaymentOptionConfig represents the configuration of a payment option
-// TODO: Refactor this with new format!!!!!
 type PaymentOptionConfig struct {
-	Chains []PaymentOptionConfigChain `json:"Chains"`
+	Config []PaymentOptionConfigItem `json:"Config"`
+}
+
+// PaymentOptionConfigItem is an item in Payment option config
+type PaymentOptionConfigItem struct {
+	PaymentOptionID int            `json:"paymentOptionId"`
+	Amount          string         `json:"amount"`
+	Recipient       common.Address `json:"Recipient"`
+	SigningKeyID    string         `json:"SigningKeyID"`
 }
 
 // PaymentOptionConfigChain represents the configuration of a payment option chain
 type PaymentOptionConfigChain struct {
 	ChainId                         int                                                      `json:"ChainId"`
 	Recipient                       string                                                   `json:"Recipient"`
-	SigningKeyId                    string                                                   `json:"SigningKeyId"`
+	SigningKeyId                    string                                                   `json:"SigningKeyID"`
 	Iden3PaymentRailsRequestV1      *PaymentOptionConfigChainIden3PaymentRailsRequestV1      `json:"Iden3PaymentRailsRequestV1"`
 	Iden3PaymentRailsERC20RequestV1 *PaymentOptionConfigChainIden3PaymentRailsERC20RequestV1 `json:"Iden3PaymentRailsERC20RequestV1"`
 }

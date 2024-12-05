@@ -17,8 +17,6 @@ import (
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
-	domain "github.com/polygonid/sh-id-platform/internal/core/domain"
-	payments "github.com/polygonid/sh-id-platform/internal/payments"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
@@ -479,20 +477,33 @@ type PaymentMessage = protocol.PaymentMessage
 
 // PaymentOption defines model for PaymentOption.
 type PaymentOption struct {
-	Config      domain.PaymentOptionConfig `json:"config"`
-	CreatedAt   TimeUTC                    `json:"createdAt"`
-	Description string                     `json:"description"`
-	Id          uuid.UUID                  `json:"id"`
-	IssuerID    string                     `json:"issuerID"`
-	ModifiedAt  TimeUTC                    `json:"modifiedAt"`
-	Name        string                     `json:"name"`
+	Config      PaymentOptionConfig `json:"config"`
+	CreatedAt   TimeUTC             `json:"createdAt"`
+	Description string              `json:"description"`
+	Id          uuid.UUID           `json:"id"`
+	IssuerDID   string              `json:"issuerDID"`
+	ModifiedAt  TimeUTC             `json:"modifiedAt"`
+	Name        string              `json:"name"`
+}
+
+// PaymentOptionConfig defines model for PaymentOptionConfig.
+type PaymentOptionConfig struct {
+	Config []PaymentOptionConfigItem `json:"config"`
+}
+
+// PaymentOptionConfigItem defines model for PaymentOptionConfigItem.
+type PaymentOptionConfigItem struct {
+	Recipient       string `json:"Recipient"`
+	SigningKeyId    string `json:"SigningKeyId"`
+	Amount          string `json:"amount"`
+	PaymentOptionId int    `json:"paymentOptionId"`
 }
 
 // PaymentOptionRequest defines model for PaymentOptionRequest.
 type PaymentOptionRequest struct {
-	Config      domain.PaymentOptionConfig `json:"config"`
-	Description string                     `json:"description"`
-	Name        string                     `json:"name"`
+	Config      PaymentOptionConfig `json:"config"`
+	Description string              `json:"description"`
+	Name        string              `json:"name"`
 }
 
 // PaymentOptions defines model for PaymentOptions.
@@ -503,9 +514,6 @@ type PaymentOptionsPaginated struct {
 	Items PaymentOptions    `json:"items"`
 	Meta  PaginatedMetadata `json:"meta"`
 }
-
-// PaymentSettings defines model for PaymentSettings.
-type PaymentSettings = payments.Settings
 
 // PaymentStatus defines model for PaymentStatus.
 type PaymentStatus struct {
@@ -5042,7 +5050,7 @@ type GetPaymentSettingsResponseObject interface {
 	VisitGetPaymentSettingsResponse(w http.ResponseWriter) error
 }
 
-type GetPaymentSettings200JSONResponse PaymentSettings
+type GetPaymentSettings200JSONResponse PaymentOptionConfig
 
 func (response GetPaymentSettings200JSONResponse) VisitGetPaymentSettingsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

@@ -1338,7 +1338,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentSettings'
+                $ref: '#/components/schemas/PaymentOptionConfig'
 
   /v2/identities/{identifier}/payment/options:
     get:
@@ -2184,13 +2184,6 @@ components:
     AgentResponse:
       $ref: '#/components/schemas/BasicMessage'
 
-    PaymentSettings:
-      type: object
-      x-go-type: payments.Settings
-      x-go-type-import:
-        name: payments
-        path: "github.com/polygonid/sh-id-platform/internal/payments"
-
     PaymentOptionsPaginated:
       type: object
       required: [ items, meta ]
@@ -2218,7 +2211,7 @@ components:
       type: object
       required:
         - id
-        - issuerID
+        - issuerDID
         - name
         - description
         - config
@@ -2231,23 +2224,45 @@ components:
           x-go-type-import:
             name: uuid
             path: github.com/google/uuid
-        issuerID:
+        issuerDID:
           type: string
         name:
           type: string
         description:
           type: string
-        # TODO: Convert config into a DTO object when format is more clear.
         config:
-          type: object
-          x-go-type: domain.PaymentOptionConfig
-          x-go-type-import:
-            name: domain
-            path: "github.com/polygonid/sh-id-platform/internal/core/domain"
+          $ref: '#/components/schemas/PaymentOptionConfig'
         modifiedAt:
           $ref: '#/components/schemas/TimeUTC'
         createdAt:
           $ref: '#/components/schemas/TimeUTC'
+
+    PaymentOptionConfig:
+      type: object
+      required:
+        - config
+      properties:
+        config:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentOptionConfigItem'
+
+    PaymentOptionConfigItem:
+      type: object
+      required:
+        - paymentOptionId
+        - amount
+        - Recipient
+        - SigningKeyId
+      properties:
+        paymentOptionId:
+         type: integer
+        amount:
+          type: string
+        Recipient:
+          type: string
+        SigningKeyId:
+          type: string
 
     PaymentOptionRequest:
       type: object
@@ -2264,13 +2279,8 @@ components:
           type: string
         description:
           type: string
-        # TODO: Convert config into a DTO object when format is more clear.
         config:
-          type: object
-          x-go-type: domain.PaymentOptionConfig
-          x-go-type-import:
-            name: domain
-            path: "github.com/polygonid/sh-id-platform/internal/core/domain"
+          $ref: '#/components/schemas/PaymentOptionConfig'
 
     CreatePaymentRequest:
       type: object
@@ -2300,6 +2310,19 @@ components:
         userDID:
           type: string
           example: "<user did>"
+
+    # TODO: Add more fields!!!
+    CreatePaymentRequestResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
 
     TimeUTC:
       type: string

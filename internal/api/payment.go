@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2/protocol"
 
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -48,7 +50,7 @@ func (s *Server) CreatePaymentOption(ctx context.Context, request CreatePaymentO
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	id, err := s.paymentService.CreatePaymentOption(ctx, issuerDID, request.Body.Name, request.Body.Description, &request.Body.Config)
+	id, err := s.paymentService.CreatePaymentOption(ctx, issuerDID, request.Body.Name, request.Body.Description, newPaymentOptionConfig(&request.Body.Config))
 	if err != nil {
 		log.Error(ctx, "creating payment option", "err", err, "issuer", issuerDID, "request", request.Body)
 		if errors.Is(err, repositories.ErrIdentityNotFound) {
@@ -149,7 +151,9 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 
 // GetPaymentSettings is the controller to get payment settings
 func (s *Server) GetPaymentSettings(_ context.Context, _ GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error) {
-	return GetPaymentSettings200JSONResponse(s.paymentService.GetSettings()), nil
+	// TODO: Implement
+	// return GetPaymentSettings200JSONResponse(s.paymentService.GetSettings()), nil
+	return GetPaymentSettings200JSONResponse{}, nil
 }
 
 // VerifyPayment is the controller to verify payment
@@ -163,4 +167,19 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusPending}, nil
 	}
 	return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess}, nil
+}
+
+func newPaymentOptionConfig(config *PaymentOptionConfig) *domain.PaymentOptionConfig {
+	cfg := &domain.PaymentOptionConfig{
+		Config: make([]domain.PaymentOptionConfigItem, len(config.Config)),
+	}
+	for i, item := range config.Config {
+		cfg.Config[i] = domain.PaymentOptionConfigItem{
+			PaymentOptionID: item.PaymentOptionId,
+			Amount:          item.Amount,
+			Recipient:       common.HexToAddress(item.Recipient),
+			SigningKeyID:    item.SigningKeyId,
+		}
+	}
+	return cfg
 }

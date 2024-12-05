@@ -71,7 +71,7 @@ func newConfigDecoder(r io.Reader) *configDecoder {
 // a Config object with curated data
 // Config object is created from the yaml using the configDTO struct.
 // Information is the same but formatted in a more usable way
-func (d *configDecoder) Decode() (Config, error) {
+func (d *configDecoder) Decode() (*Config, error) {
 	var dto configDTO
 	var cfg Config
 
@@ -111,13 +111,13 @@ func (d *configDecoder) Decode() (Config, error) {
 			}
 		}
 	}
-	return cfg, nil
+	return &cfg, nil
 }
 
 // SettingsFromConfig returns the settings from the configuration
 // It reads the settings from the file if the path is provided or from the base64 encoded file injected
 // into the configuration via an environment variable
-func SettingsFromConfig(ctx context.Context, cfg *config.Payments) (Config, error) {
+func SettingsFromConfig(ctx context.Context, cfg *config.Payments) (*Config, error) {
 	var reader io.Reader
 	var err error
 	if cfg.SettingsPath != "" {
@@ -144,7 +144,7 @@ func settingsFileHasContent(cfg *config.Payments) bool {
 }
 
 // SettingsFromReader reads the settings from a reader
-func SettingsFromReader(reader io.Reader) (Config, error) {
+func SettingsFromReader(reader io.Reader) (*Config, error) {
 	return newConfigDecoder(reader).Decode()
 }
 

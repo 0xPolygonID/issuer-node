@@ -99,7 +99,7 @@ func TestPayment_GetAllPaymentOptions(t *testing.T) {
 			IssuerDID:   *issuerID,
 			Name:        fmt.Sprintf("name %d", i),
 			Description: fmt.Sprintf("description %d", i),
-			Config:      &paymentOptionConfig,
+			Config:      paymentOptionConfig,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		})
@@ -116,7 +116,7 @@ func TestPayment_GetAllPaymentOptions(t *testing.T) {
 			assert.Equal(t, ids[i], opt.ID)
 			assert.Equal(t, fmt.Sprintf("name %d", len(opts)-i-1), opt.Name)
 			assert.Equal(t, fmt.Sprintf("description %d", len(opts)-i-1), opt.Description)
-			assert.Equal(t, paymentOptionConfig, *opt.Config)
+			assert.Equal(t, paymentOptionConfig, opt.Config)
 		}
 	})
 	t.Run("Get all payment options linked to non existing issuer", func(t *testing.T) {
@@ -149,7 +149,7 @@ func TestPayment_GetPaymentOptionByID(t *testing.T) {
 		assert.Equal(t, id, opt.ID)
 		assert.Equal(t, "name", opt.Name)
 		assert.Equal(t, "description", opt.Description)
-		assert.Equal(t, paymentOptionConfig, *opt.Config)
+		assert.Equal(t, paymentOptionConfig, opt.Config)
 	})
 	t.Run("Get payment option linked to non existing issuer", func(t *testing.T) {
 		opt, err := repo.GetPaymentOptionByID(ctx, issuerDIDOther, id)

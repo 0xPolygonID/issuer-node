@@ -305,11 +305,26 @@ func toPaymentOption(opt *domain.PaymentOption) (PaymentOption, error) {
 	}
 	return PaymentOption{
 		Id:          opt.ID,
-		IssuerID:    opt.IssuerDID.String(),
+		IssuerDID:   opt.IssuerDID.String(),
 		Name:        opt.Name,
 		Description: opt.Description,
-		Config:      *opt.Config,
+		Config:      toPaymentOptionConfig(opt.Config),
 		CreatedAt:   TimeUTC(opt.CreatedAt),
 		ModifiedAt:  TimeUTC(opt.UpdatedAt),
 	}, nil
+}
+
+func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfig {
+	cfg := PaymentOptionConfig{
+		Config: make([]PaymentOptionConfigItem, len(config.Config)),
+	}
+	for i, item := range config.Config {
+		cfg.Config[i] = PaymentOptionConfigItem{
+			PaymentOptionId: item.PaymentOptionID,
+			Amount:          item.Amount,
+			Recipient:       item.Recipient.String(),
+			SigningKeyId:    item.SigningKeyID,
+		}
+	}
+	return cfg
 }

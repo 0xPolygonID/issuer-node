@@ -9,9 +9,10 @@ import (
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/iden3comm/v2/protocol"
+	"github.com/stretchr/testify/require"
+
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSettingsFromConfig(t *testing.T) {
@@ -187,7 +188,7 @@ func TestSettingsFromConfig(t *testing.T) {
 			settings, err := SettingsFromConfig(ctx, &tc.cfg)
 			if tc.expected.err == nil {
 				require.NoError(t, err)
-				require.EqualValues(t, tc.expected.settings, settings)
+				require.EqualValues(t, tc.expected.settings, *settings)
 			} else {
 				require.Equal(t, tc.expected.err.Error(), err.Error())
 			}
