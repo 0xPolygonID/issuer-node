@@ -248,5 +248,5 @@ func (c *Claim) GetPublicKey() PublicKey {
 	if c.SchemaURL == bjjAuthSchemaURL {
 		return newBJJPublicKey(*c)
 	}
-	return unSupportedPublicKeyType{}
+	return &unSupportedPublicKeyType{}
 }

@@ -148,5 +148,5 @@ func (ls *fileStorageManager) getKeyMaterial(ctx context.Context, keyID KeyID) (
 			}, nil
 		}
 	}
-	return nil, errors.New("key not found")
+	return nil, ErrKeyNotFound
 }

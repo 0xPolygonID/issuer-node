@@ -138,6 +138,10 @@ func (v *vaultBJJKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
 	return nil
 }
 
+func (v *vaultBJJKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	return false, errors.New("not implemented")
+}
+
 func (v *vaultBJJKeyProvider) privateKey(keyID KeyID) ([]byte, error) {
 	if keyID.Type != v.keyType {
 		return nil, ErrIncorrectKeyType

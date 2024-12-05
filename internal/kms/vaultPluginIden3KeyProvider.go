@@ -166,6 +166,17 @@ func (v *vaultPluginIden3KeyProvider) Delete(ctx context.Context, keyID KeyID) e
 	return err
 }
 
+func (v *vaultPluginIden3KeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	_, err := publicKey(v.vaultCli, v.keyPathFromID(keyID))
+	if err != nil {
+		if strings.Contains(err.Error(), "secret is nil") {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func (v *vaultPluginIden3KeyProvider) randomKeyPath() (keyPathT, error) {
 	var rnd [16]byte
 	_, err := rand.Read(rnd[:])

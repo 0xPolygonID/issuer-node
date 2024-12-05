@@ -34,6 +34,7 @@ type KMSType interface {
 	KeysByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error)
 	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
 	Delete(ctx context.Context, keyID KeyID) error
+	Exists(ctx context.Context, keyID KeyID) (bool, error)
 }
 
 // ConfigProvider is a key provider configuration
@@ -87,6 +88,8 @@ type KeyProvider interface {
 	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
 	// Delete removes key from storage
 	Delete(ctx context.Context, keyID KeyID) error
+	// Exists checks if key exists
+	Exists(ctx context.Context, keyID KeyID) (bool, error)
 }
 
 // KMS stores keys and secrets
@@ -115,6 +118,9 @@ var ErrKeyTypeConflict = stderr.New("key type already registered")
 
 // ErrPermissionDenied raises when we register new key provider with key type
 var ErrPermissionDenied = stderr.New("permission denied")
+
+// ErrKeyNotFound raises when key is not found
+var ErrKeyNotFound = stderr.New("key not found")
 
 // KeyID is a key unique identifier
 type KeyID struct {
@@ -234,6 +240,15 @@ func (k *KMS) Delete(ctx context.Context, keyID KeyID) error {
 		return errors.WithStack(ErrUnknownKeyType)
 	}
 	return kp.Delete(ctx, keyID)
+}
+
+// Exists checks if key exists
+func (k *KMS) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	kp, ok := k.registry[keyID.Type]
+	if !ok {
+		return false, errors.WithStack(ErrUnknownKeyType)
+	}
+	return kp.Exists(ctx, keyID)
 }
 
 // Open returns an initialized KMS

@@ -126,7 +126,11 @@ func (ls *localEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.
 }
 
 func (ls *localEthKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
-	return nil
+	return errors.New("not implemented")
+}
+
+func (ls *localEthKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	return false, errors.New("not implemented")
 }
 
 // nolint

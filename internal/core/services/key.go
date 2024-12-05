@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -40,13 +39,28 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 		return nil, err
 	}
 
+	kmsKeyID := kms.KeyID{
+		ID:   keyID,
+		Type: keyType,
+	}
+
+	exists, err := ks.kms.Exists(ctx, kmsKeyID)
+	if err != nil {
+		log.Error(ctx, "failed to check if key exists", "err", err)
+		return nil, err
+	}
+
+	if !exists {
+		return nil, ports.ErrKeyNotFound
+	}
+
 	publicKey, err := ks.getPublicKey(ctx, keyID)
 	if err != nil {
 		log.Error(ctx, "failed to get public key", "err", err)
 		return nil, ports.ErrKeyNotFound
 	}
 
-	authCoreClaim, err := getAuthCoreClaim(ctx, ks.claimService, did, publicKey)
+	authCoreClaim, err := ks.claimService.GetAuthCredentialWithPublicKey(ctx, did, publicKey)
 	if err != nil {
 		log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 		return nil, err
@@ -57,22 +71,6 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 		PublicKey:                  hexutil.Encode(publicKey),
 		HasAssociatedAuthCoreClaim: authCoreClaim != nil,
 	}, nil
-}
-
-// getAuthCoreClaim returns the keyID for the given DID and keyType
-func getAuthCoreClaim(ctx context.Context, claimService ports.ClaimService, did *w3c.DID, publicKey []byte) (*domain.Claim, error) {
-	authCoreClaims, err := claimService.GetAuthCredentials(ctx, did)
-	if err != nil {
-		log.Error(ctx, "failed to get auth core claims", "err", err)
-		return nil, err
-	}
-	for _, authCoreClaim := range authCoreClaims {
-		if authCoreClaim.GetPublicKey().Equal(publicKey) {
-			return authCoreClaim, nil
-		}
-	}
-
-	return nil, nil
 }
 
 // GetAll returns all the keys for the given DID

@@ -185,6 +185,9 @@ func (a *awsSecretStorageProvider) getKeyMaterial(ctx context.Context, keyID Key
 	result, err := a.secretManager.GetSecretValue(ctx, input)
 	if err != nil {
 		log.Error(ctx, "error getting secret value", "err", err)
+		if strings.Contains(err.Error(), "ResourceNotFoundException") {
+			return nil, ErrKeyNotFound
+		}
 		return nil, errors.New("error getting secret value from AWS")
 	}
 

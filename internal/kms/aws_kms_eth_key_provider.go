@@ -236,6 +236,11 @@ func (awsKeyProv *awsKmsEthKeyProvider) Delete(ctx context.Context, keyID KeyID)
 	return err
 }
 
+func (awsKeyProv *awsKmsEthKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	// TODO: Implement
+	return false, nil
+}
+
 // createAlias creates alias for key
 func (awsKeyProv *awsKmsEthKeyProvider) createAlias(ctx context.Context, aliasName, targetKeyId string) error {
 	input := &kms.CreateAliasInput{

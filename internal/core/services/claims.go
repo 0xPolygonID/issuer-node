@@ -607,7 +607,7 @@ func (c *claim) GetAuthCredentialWithPublicKey(ctx context.Context, identifier *
 			return authCredential, nil
 		}
 	}
-	return nil, errors.New("auth credential not found")
+	return nil, nil
 }
 
 func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, description string, querier db.Querier) error {
