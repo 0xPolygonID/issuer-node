@@ -30,10 +30,8 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 			},
 		}, nil
 	}
-
-	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(keyID.ID))
 	return CreateKey201JSONResponse{
-		KeyID: encodedKeyID,
+		KeyID: keyID.ID,
 	}, nil
 }
 

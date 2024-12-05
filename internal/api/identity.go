@@ -344,6 +344,14 @@ func (s *Server) CreateAuthCredential(ctx context.Context, request CreateAuthCre
 			}, nil
 		}
 
+		if errors.Is(err, services.ErrKeyNotFound) {
+			return CreateAuthCredential400JSONResponse{
+				N400JSONResponse{
+					Message: "key not found",
+				},
+			}, nil
+		}
+
 		return CreateAuthCredential500JSONResponse{
 			N500JSONResponse{
 				Message: err.Error(),

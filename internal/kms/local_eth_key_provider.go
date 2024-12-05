@@ -116,7 +116,7 @@ func (ls *localEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, 
 		return KeyID{}, err
 	}
 
-	keyID.ID = identity.String()
+	keyID.ID = identity.String() + "/" + keyID.ID
 	return keyID, nil
 }
 
@@ -126,7 +126,7 @@ func (ls *localEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.
 }
 
 func (ls *localEthKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
-	return errors.New("not implemented")
+	return ls.storageManager.deleteKeyMaterial(ctx, keyID)
 }
 
 func (ls *localEthKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {

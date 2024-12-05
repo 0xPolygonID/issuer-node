@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -28,19 +29,32 @@ func NewKey(kms *kms.KMS, claimService ports.ClaimService) ports.KeyService {
 
 // CreateKey creates a new key for the given DID
 func (ks *Key) CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType) (kms.KeyID, error) {
-
-	keyID, err := ks.kms.CreateKey(keyType, did)
-	if err != nil {
-		log.Error(context.Background(), "failed to create key", "err", err)
-		return kms.KeyID{}, err
+	var keyID kms.KeyID
+	var err error
+	if keyType == kms.KeyTypeBabyJubJub {
+		keyID, err = ks.kms.CreateKey(keyType, did)
+		if err != nil {
+			log.Error(ctx, "failed to create key", "err", err)
+			return kms.KeyID{}, err
+		}
 	}
+
 	if keyType == kms.KeyTypeEthereum {
-		_, err := ks.kms.LinkToIdentity(ctx, keyID, *did)
+		keyID, err = ks.kms.CreateKey(keyType, nil)
+		if err != nil {
+			log.Error(ctx, "failed to create key", "err", err)
+			return kms.KeyID{}, err
+		}
+		keyID, err = ks.kms.LinkToIdentity(ctx, keyID, *did)
 		if err != nil {
 			log.Error(ctx, "failed to link key to identity", "err", err)
 			return kms.KeyID{}, err
 		}
 	}
+
+	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(keyID.ID))
+	log.Info(ctx, "key created successfully", "keyID", encodedKeyID)
+	keyID.ID = encodedKeyID
 	return keyID, nil
 }
 

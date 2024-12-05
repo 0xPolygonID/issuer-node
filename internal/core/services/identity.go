@@ -70,6 +70,9 @@ var (
 
 	// ErrInvalidKeyType - represents an error in the key type
 	ErrInvalidKeyType = errors.New("invalid key type. Only BJJ keys are supported")
+
+	// ErrKeyNotFound - represents an error when the key is not found
+	ErrKeyNotFound = errors.New("key not found")
 )
 
 type identity struct {
@@ -848,6 +851,14 @@ func (i *identity) CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID
 			if err := json.Unmarshal(currentAuthClaim.CredentialStatus.Bytes, &authCoreClaimRevocationStatus); err != nil {
 				log.Error(ctx, "unmarshalling auth core claim revocation status", "err", err)
 				return err
+			}
+
+			exists, err := i.kms.Exists(ctx, kmsKeyID)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return ErrKeyNotFound
 			}
 
 			bjjPubKey, err := bjjPubKey(i.kms, kmsKeyID)

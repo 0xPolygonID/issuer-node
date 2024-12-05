@@ -49,7 +49,7 @@ func TestServer_CreateKey(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
+			name: "no auth header",
 			auth: authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -122,8 +122,6 @@ func TestServer_GetKey(t *testing.T) {
 	keyID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
 	require.NoError(t, err)
 
-	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(keyID.ID))
-
 	handler := getHandler(ctx, server)
 
 	type expected struct {
@@ -140,9 +138,9 @@ func TestServer_GetKey(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name:  "No auth header",
+			name:  "no auth header",
 			auth:  authWrong,
-			KeyID: encodedKeyID,
+			KeyID: keyID.ID,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
 			},
@@ -150,7 +148,7 @@ func TestServer_GetKey(t *testing.T) {
 		{
 			name:  "should get a key",
 			auth:  authOk,
-			KeyID: encodedKeyID,
+			KeyID: keyID.ID,
 			expected: expected{
 				httpCode: http.StatusOK,
 			},
@@ -235,7 +233,7 @@ func TestServer_GetKeys(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
+			name: "no auth header",
 			auth: authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -299,14 +297,13 @@ func TestServer_DeleteKey(t *testing.T) {
 	keyID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
 	require.NoError(t, err)
 
-	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(keyID.ID))
-
 	keyIDForAuthCoreClaimID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
 	require.NoError(t, err)
 
-	encodedKeyIDForAuthCoreClaimID := b64.StdEncoding.EncodeToString([]byte(keyIDForAuthCoreClaimID.ID))
+	keyIDForAuthCoreClaimIDASByteArr, err := b64.StdEncoding.DecodeString(keyIDForAuthCoreClaimID.ID)
+	require.NoError(t, err)
 
-	_, err = server.Services.identity.CreateAuthCredential(ctx, did, keyIDForAuthCoreClaimID.ID)
+	_, err = server.Services.identity.CreateAuthCredential(ctx, did, string(keyIDForAuthCoreClaimIDASByteArr))
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -325,9 +322,9 @@ func TestServer_DeleteKey(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name:  "No auth header",
+			name:  "no auth header",
 			auth:  authWrong,
-			KeyID: encodedKeyID,
+			KeyID: keyID.ID,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
 			},
@@ -335,13 +332,13 @@ func TestServer_DeleteKey(t *testing.T) {
 		{
 			name:  "should delete a key",
 			auth:  authOk,
-			KeyID: encodedKeyID,
+			KeyID: keyID.ID,
 			expected: expected{
 				httpCode: http.StatusOK,
 			},
 		},
 		{
-			name:  "should get an error",
+			name:  "should get an error - wrong keyID",
 			auth:  authOk,
 			KeyID: "123",
 			expected: expected{
@@ -356,7 +353,7 @@ func TestServer_DeleteKey(t *testing.T) {
 		{
 			name:  "should get an error - associated auth credential is not revoked",
 			auth:  authOk,
-			KeyID: encodedKeyIDForAuthCoreClaimID,
+			KeyID: keyIDForAuthCoreClaimID.ID,
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				response: DeleteKey400JSONResponse{
