@@ -27,6 +27,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -232,6 +233,7 @@ type repos struct {
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
 	links          ports.LinkRepository
+	payments       ports.PaymentRepository
 	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
@@ -242,6 +244,7 @@ type servicex struct {
 	identity    ports.IdentityService
 	schema      ports.SchemaService
 	links       ports.LinkService
+	payments    ports.PaymentService
 	qrs         ports.QrStoreService
 }
 
@@ -269,6 +272,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
 		identityState:  repositories.NewIdentityState(),
 		links:          repositories.NewLink(*st),
+		payments:       repositories.NewPayment(*st),
 		sessions:       repositories.NewSessionCached(cachex),
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
@@ -280,12 +284,31 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	require.NoError(t, err)
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 
+	paymentSettings, err := payments.SettingsFromReader(common.NewMyYAMLReader([]byte(`
+137:
+  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774
+  ERC20:
+    USDT:
+      ContractAddress: 0xc2132D05D31c914a87C6611C10748AEb04B58e8F
+      Features: []
+    USDC:
+      ContractAddress: 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359
+      Features:
+        - EIP-2612
+80002:
+  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774
+1101:
+  MCPayment: 0x380dd90852d3Fe75B4f08D0c47416D6c4E0dC774`,
+	)))
+	require.NoError(t, err)
+
 	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
 	qrService := services.NewQrStoreService(cachex)
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader)
+	paymentService := services.NewPaymentService(repos.payments, *networkResolver, *paymentSettings, keyStore)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
@@ -298,7 +321,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, paymentService)
 
 	return &testServer{
 		Server: server,
@@ -307,6 +330,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 			credentials: claimsService,
 			identity:    identityService,
 			links:       linkService,
+			payments:    paymentService,
 			qrs:         qrService,
 			schema:      schemaService,
 		},
