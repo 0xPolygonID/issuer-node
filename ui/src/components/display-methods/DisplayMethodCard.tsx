@@ -1,7 +1,9 @@
 import { Flex, Image, Typography } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { getIPFSGatewayUrl } from "src/adapters/api/schemas";
 
 import IconMore from "src/assets/icons/more.svg?react";
+import { useEnvContext } from "src/contexts/Env";
 import { DisplayMethodMetadata } from "src/domain";
 
 export const DISPLAY_METHOD_CARD_WIDTH = 500;
@@ -14,9 +16,20 @@ function getEmSize(size: number) {
 
 export function DisplayMethodCard({ metadata }: { metadata: DisplayMethodMetadata }) {
   const elementRef = useRef(null);
+  const env = useEnvContext();
   const [dimensions, setDimensions] = useState({ left: 0, right: 0 });
 
   const fontSize = (dimensions.left + dimensions.right) / DIMENSIONS_TO_FONT_RATIO;
+
+  const backgroundImageUrlIpfs = getIPFSGatewayUrl(env, metadata.backgroundImageUrl);
+  const logoImageUrlIpfs = getIPFSGatewayUrl(env, metadata.logo.uri);
+
+  const formattedBackgroundImageUrl = backgroundImageUrlIpfs.success
+    ? backgroundImageUrlIpfs.data
+    : metadata.backgroundImageUrl;
+  const formattedLogoImageUrl = logoImageUrlIpfs.success
+    ? logoImageUrlIpfs.data
+    : metadata.logo.uri;
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((entries) => {
@@ -39,7 +52,7 @@ export function DisplayMethodCard({ metadata }: { metadata: DisplayMethodMetadat
       ref={elementRef}
       style={{
         aspectRatio: 1.586,
-        backgroundImage: `url(${metadata.backgroundImageUrl})`,
+        backgroundImage: `url(${formattedBackgroundImageUrl})`,
         backgroundSize: "cover",
         borderRadius: getEmSize(14),
         fontSize,
@@ -73,7 +86,7 @@ export function DisplayMethodCard({ metadata }: { metadata: DisplayMethodMetadat
         <Image
           alt={metadata.logo.alt}
           preview={false}
-          src={metadata.logo.uri}
+          src={formattedLogoImageUrl}
           style={{ fontSize, width: getEmSize(44) }}
         />
         <Flex vertical>
