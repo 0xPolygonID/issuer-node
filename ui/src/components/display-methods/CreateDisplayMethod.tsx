@@ -1,4 +1,4 @@
-import { App, Card, Space } from "antd";
+import { App, Card, Space, Typography } from "antd";
 import { useNavigate } from "react-router-dom";
 
 import { UpsertDisplayMethod, createDisplayMethod } from "src/adapters/api/display-method";
@@ -32,7 +32,15 @@ export function CreateDisplayMethod() {
 
   return (
     <SiderLayoutContent
-      description="Create and customize a new display method"
+      description={
+        <Typography.Text>
+          Create and customize a new display method effortlessly. Get started with the{" "}
+          <Typography.Link href={env.displayMethodBuilderUrl} target="_blank">
+            Display Method Editor
+          </Typography.Link>
+          .
+        </Typography.Text>
+      }
       showBackButton
       showDivider
       title={DISPLAY_METHOD_ADD_NEW}

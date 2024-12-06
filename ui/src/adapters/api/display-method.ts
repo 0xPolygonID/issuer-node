@@ -13,7 +13,7 @@ import {
 } from "src/adapters/api";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getResourceParser, getStrictParser } from "src/adapters/parsers";
-import { DisplayMethod, DisplayMethodMetadata, Env } from "src/domain";
+import { DisplayMethod, DisplayMethodMetadata, DisplayMethodType, Env } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
 import { Resource } from "src/utils/types";
 
@@ -21,20 +21,21 @@ export const displayMethodParser = getStrictParser<DisplayMethod>()(
   z.object({
     id: z.string(),
     name: z.string(),
-    url: z.string(),
+    type: z.nativeEnum(DisplayMethodType),
+    url: z.string().url(),
   })
 );
 
 export const displayMethodMetadataParser = getStrictParser<DisplayMethodMetadata>()(
   z.object({
-    backgroundImageUrl: z.string(),
+    backgroundImageUrl: z.string().url(),
     description: z.string(),
     descriptionTextColor: z.string(),
     issuerName: z.string(),
     issuerTextColor: z.string(),
     logo: z.object({
       alt: z.string(),
-      uri: z.string(),
+      uri: z.string().url(),
     }),
     title: z.string(),
     titleTextColor: z.string(),
@@ -115,7 +116,11 @@ export async function getDisplayMethodMetadata({
 }): Promise<Response<DisplayMethodMetadata>> {
   try {
     const json = await getJsonFromUrl({ env, signal, url });
-    return buildSuccessResponse(displayMethodMetadataParser.parse(json));
+    if (json.success) {
+      return buildSuccessResponse(displayMethodMetadataParser.parse(json.data));
+    } else {
+      return json;
+    }
   } catch (error) {
     return buildErrorResponse(error);
   }
