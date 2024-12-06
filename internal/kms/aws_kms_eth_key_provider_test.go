@@ -71,12 +71,10 @@ func Test_LinkToIdentityInAWSKMS(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, keyID.ID)
 		assert.Equal(t, ethereum, string(keyID.Type))
-
 		identity := randomDID(t)
-
-		keyID, err = awsStorageProvider.LinkToIdentity(ctx, keyID, identity)
+		newKeyID, err := awsStorageProvider.LinkToIdentity(ctx, keyID, identity)
 		assert.NoError(t, err)
-		assert.Equal(t, identity.String(), keyID.ID)
+		assert.Equal(t, keyID.ID, newKeyID.ID)
 	})
 
 	t.Run("should get an error", func(t *testing.T) {
