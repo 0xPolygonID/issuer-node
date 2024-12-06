@@ -1,4 +1,4 @@
-import { DisplayMethodType } from "src/domain";
+import { DisplayMethodType } from "src/domain/display-method";
 
 export type CredentialsTabIDs = "issued" | "links";
 

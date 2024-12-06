@@ -1,18 +1,27 @@
-import { Button, Space } from "antd";
+import { Button, Space, Typography } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 
 import IconPlus from "src/assets/icons/plus.svg?react";
 import { DisplayMethodsTable } from "src/components/display-methods/DisplayMethodsTable";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { ROUTES } from "src/routes";
-import { DISPLAY_METHODS, DISPLAY_METHOD_ADD } from "src/utils/constants";
+import { DISPLAY_METHODS, DISPLAY_METHOD_ADD, DISPLAY_METHOD_DOCS_URL } from "src/utils/constants";
 
 export function DisplayMethods() {
   const navigate = useNavigate();
 
   return (
     <SiderLayoutContent
-      description="Add new display methods and view details of existing display methods"
+      description={
+        <Typography.Text>
+          Add new display methods or view detailed information about existing ones. For more
+          guidance, refer to our{" "}
+          <Typography.Link href={DISPLAY_METHOD_DOCS_URL} target="_blank">
+            documentation
+          </Typography.Link>
+          .
+        </Typography.Text>
+      }
       extra={
         <Button
           icon={<IconPlus />}

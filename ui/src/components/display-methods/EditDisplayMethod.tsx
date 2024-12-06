@@ -1,4 +1,4 @@
-import { App, Card, Space } from "antd";
+import { App, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -96,7 +96,15 @@ export function EditDisplayMethod() {
 
   return (
     <SiderLayoutContent
-      description="Modify and update the settings of an existing display method"
+      description={
+        <Typography.Text>
+          Easily modify and fine-tune the settings of your display method. Use the{" "}
+          <Typography.Link href={env.displayMethodBuilderUrl} target="_blank">
+            Display Method Editor
+          </Typography.Link>
+          .
+        </Typography.Text>
+      }
       showBackButton
       showDivider
       title={DISPLAY_METHOD_EDIT}
