@@ -122,6 +122,27 @@ func (ks *Key) GetAll(ctx context.Context, did *w3c.DID) ([]*ports.KMSKey, error
 
 // Delete deletes the key with the given keyID
 func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
+	keyType, err := getKeyType(keyID)
+	if err != nil {
+		log.Error(ctx, "failed to get key type", "err", err)
+		return err
+	}
+
+	kmsKeyID := kms.KeyID{
+		ID:   keyID,
+		Type: keyType,
+	}
+
+	exists, err := ks.kms.Exists(ctx, kmsKeyID)
+	if err != nil {
+		log.Error(ctx, "failed to check if key exists", "err", err)
+		return err
+	}
+
+	if !exists {
+		return ports.ErrKeyNotFound
+	}
+
 	publicKey, err := ks.getPublicKey(ctx, keyID)
 	if err != nil {
 		log.Error(ctx, "failed to get public key", "err", err)
@@ -145,14 +166,6 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 			log.Info(ctx, "auth credential is non revoked. Can not be deleted")
 			return ports.ErrAuthCredentialNotRevoked
 		}
-	}
-	keyType, err := getKeyType(keyID)
-	if err != nil {
-		log.Error(ctx, "failed to get key type", "err", err)
-	}
-	kmsKeyID := kms.KeyID{
-		ID:   keyID,
-		Type: keyType,
 	}
 	return ks.kms.Delete(ctx, kmsKeyID)
 }

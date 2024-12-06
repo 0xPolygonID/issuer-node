@@ -94,7 +94,8 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 		}, nil
 	}
 
-	var keysResponse GetKeys200JSONResponse
+	keysResponse := make(GetKeys200JSONResponse, 0)
+
 	for _, key := range keys {
 		encodedKeyID := b64.StdEncoding.EncodeToString([]byte(key.KeyID))
 		keysResponse = append(keysResponse, Key{

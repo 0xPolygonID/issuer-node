@@ -128,6 +128,9 @@ func (v *vaultPluginIden3KeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 
 	publicKeyStr, err := publicKey(v.vaultCli, v.keyPathFromID(keyID))
 	if err != nil {
+		if strings.Contains(err.Error(), "secret is nil") {
+			return nil, ErrKeyNotFound
+		}
 		return nil, err
 	}
 

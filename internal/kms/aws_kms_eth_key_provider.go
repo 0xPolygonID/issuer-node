@@ -86,26 +86,6 @@ func (awsKeyProv *awsKmsEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 		return KeyID{}, fmt.Errorf("failed to create key: %v", err)
 	}
 	log.Info(ctx, "keyArn", "keyArn", keyArn.KeyMetadata.Arn)
-
-	//inputPublicKey := &kms.GetPublicKeyInput{
-	//	KeyId: aws.String(*keyArn.KeyMetadata.Arn),
-	//}
-
-	//publicKeyResult, err := awsKeyProv.kmsClient.GetPublicKey(ctx, inputPublicKey)
-	//if err != nil {
-	//	return KeyID{}, fmt.Errorf("failed to get public key: %v", err)
-	//}
-	//pubKeyHex := hex.EncodeToString(publicKeyResult.PublicKey)
-	//keyID.ID = keyPathForAws(identity, awsKeyProv.keyType, pubKeyHex)
-	//base64ID := base64.StdEncoding.EncodeToString([]byte(keyID.ID))
-	//
-	//aliasName := aliasPrefix + base64ID
-	//err = awsKeyProv.createAlias(ctx, aliasName, *keyArn.KeyMetadata.KeyId)
-	//
-	//if err != nil {
-	//	log.Error(ctx, "failed to create alias: %v", err)
-	//	return KeyID{}, fmt.Errorf("failed to create alias: %v", err)
-	//}
 	keyID.ID = awsKmdKeyIDPrefix + *keyArn.KeyMetadata.KeyId
 	return keyID, nil
 }
@@ -184,14 +164,6 @@ func (awsKeyProv *awsKmsEthKeyProvider) Sign(ctx context.Context, keyID KeyID, d
 
 // LinkToIdentity links key to identity
 func (awsKeyProv *awsKmsEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
-	//base64ID := base64.StdEncoding.EncodeToString([]byte(keyID.ID))
-	//alias := aliasPrefix + base64ID
-	//keyMetadata, err := awsKeyProv.getKeyInfoByAlias(ctx, alias)
-	//if err != nil {
-	//	log.Error(ctx, "failed to get key metadata", "keyMetadata", keyMetadata, "err", err)
-	//	return KeyID{}, fmt.Errorf("failed to get key metadata: %v", err)
-	//}
-
 	keyIDParts := strings.Split(keyID.ID, awsKmdKeyIDPrefix)
 	if len(keyIDParts) != awsKmsKeyIDParts {
 		return KeyID{}, fmt.Errorf("invalid keyID: %v", keyID.ID)
@@ -275,8 +247,12 @@ func (awsKeyProv *awsKmsEthKeyProvider) Exists(ctx context.Context, keyID KeyID)
 	if len(keyIDParts) != awsKmsKeyIDParts {
 		return false, fmt.Errorf("invalid keyID: %v", keyID.ID)
 	}
-	_, err := awsKeyProv.getKeyInfoByAlias(ctx, keyIDParts[1])
+	keyInfo, err := awsKeyProv.getKeyInfoByAlias(ctx, keyIDParts[1])
 	if err != nil {
+		return false, nil
+	}
+
+	if keyInfo != nil && keyInfo.DeletionDate != nil {
 		return false, nil
 	}
 	return true, nil
