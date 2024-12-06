@@ -38,7 +38,7 @@ func (d DisplayMethod) Save(ctx context.Context, displayMethod domain.DisplayMet
 	var id uuid.UUID
 	sql := `INSERT INTO display_methods (id, name, url, issuer_did, type)
 			VALUES($1, $2, $3, $4, $5) ON CONFLICT (id) DO
-			UPDATE SET name=$2, url=$3, issuer_did=$4, type=$5
+			UPDATE SET name=$2, url=$3, issuer_did=$4, type=$5, updated_at=NOW()
 			RETURNING id`
 	err := d.conn.Pgx.QueryRow(ctx, sql, displayMethod.ID, displayMethod.Name, displayMethod.URL, displayMethod.IssuerCoreDID().String(), displayMethod.Type).Scan(&id)
 	if err != nil {
