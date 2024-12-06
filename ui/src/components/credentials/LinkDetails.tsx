@@ -174,7 +174,9 @@ export function LinkDetails() {
             createdAt,
             credentialExpiration,
             deepLink,
+            displayMethod,
             proofTypes,
+            refreshService,
             schemaHash,
             schemaType,
             status,
@@ -219,6 +221,17 @@ export function LinkDetails() {
                     <Detail
                       label="Credential expiration date"
                       text={credentialExpiration ? formatDate(credentialExpiration, "date") : "-"}
+                    />
+
+                    <Detail
+                      label="Refresh Service"
+                      text={refreshService ? refreshService.id : "-"}
+                    />
+
+                    <Detail
+                      copyable
+                      label="Display Method"
+                      text={displayMethod ? displayMethod.id : "-"}
                     />
 
                     <Detail copyable label="Schema hash" text={schemaHash} />

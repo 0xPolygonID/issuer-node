@@ -16,11 +16,10 @@ const keysPathPrefix = "keys/"
 const kvStoragePath = "secret"
 
 const (
-	jsonKeyType    = "key_type"
-	jsonKeyData    = "key_data"
-	jsonPrivateKey = "private_key"
-	defaultLength  = 32
-	partsNumber    = 2
+	jsonKeyType   = "key_type"
+	jsonKeyData   = "key_data"
+	defaultLength = 32
+	partsNumber   = 2
 	// LocalStorageFileName is the name of the file where the keys are stored
 	LocalStorageFileName = "kms_localstorage_keys.json"
 )

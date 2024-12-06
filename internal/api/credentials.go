@@ -109,7 +109,6 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 			services.ErrDisplayMethodLacksURL,
 			services.ErrUnsupportedDisplayMethodType,
 			services.ErrWrongCredentialSubjectID,
-			&schema.ParseClaimError{},
 		}
 		for _, e := range errs {
 			if errors.Is(err, e) {

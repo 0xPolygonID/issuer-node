@@ -265,7 +265,11 @@ export function CredentialDetails() {
                       text={refreshService ? refreshService.id : "-"}
                     />
 
-                    <Detail label="Display Method" text={displayMethod ? displayMethod.id : "-"} />
+                    <Detail
+                      copyable
+                      label="Display Method"
+                      text={displayMethod ? displayMethod.id : "-"}
+                    />
 
                     <Detail
                       copyable
