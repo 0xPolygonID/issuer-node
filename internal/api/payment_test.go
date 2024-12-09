@@ -301,7 +301,6 @@ func TestServer_GetPaymentOptions(t *testing.T) {
 		BJJ        = "BJJ"
 	)
 
-	var config domain.PaymentOptionConfig
 	ctx := context.Background()
 
 	server := newTestServer(t, nil)
@@ -315,7 +314,22 @@ func TestServer_GetPaymentOptions(t *testing.T) {
 	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
 	require.NoError(t, err)
 
-	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
+	config := domain.PaymentOptionConfig{
+		Config: []domain.PaymentOptionConfigItem{
+			{
+				PaymentOptionID: 1,
+				Amount:          *big.NewInt(500000000000000000),
+				Recipient:       common.HexToAddress("0x742d35Cc6634C0532925a3b844Bc454e4438f44e"),
+				SigningKeyID:    "pubId",
+			},
+			{
+				PaymentOptionID: 2,
+				Amount:          *big.NewInt(1500000000000000000),
+				Recipient:       common.HexToAddress("0x53d284357ec70cE289D6D64134DfAc8E511c8a3D"),
+				SigningKeyID:    "pubId",
+			},
+		},
+	}
 
 	for i := 0; i < 10; i++ {
 		_, err = server.Services.payments.CreatePaymentOption(ctx, issuerDID, fmt.Sprintf("Payment Option %d", i+1), "Payment Option explanation", &config)
