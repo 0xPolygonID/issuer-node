@@ -73,22 +73,6 @@ type RhsSettings struct {
 	SingleIssuer         bool
 }
 
-// PaymentSettings holds the payment settings
-type PaymentSettings struct {
-	MCPaymentContract string               `yaml:"mcPaymentContract"`
-	Recipient         string               `yaml:"recipient"`
-	Amount            uint                 `yaml:"amount"`
-	Erc20Tokens       []ERC20TokenSettings `yaml:"Erc20Tokens"`
-}
-
-// ERC20TokenSettings holds the ERC20 payment settings
-type ERC20TokenSettings struct {
-	TokenAddress string `yaml:"TokenAddress"`
-	TokenSymbol  string `yaml:"TokenSymbol"`
-	TokenName    string `yaml:"TokenName"`
-	TokenAmount  uint   `yaml:"TokenAmount"`
-}
-
 // ResolverSettings holds the resolver settings
 type ResolverSettings map[string]map[string]struct {
 	ContractAddress        string        `yaml:"contractAddress"`
