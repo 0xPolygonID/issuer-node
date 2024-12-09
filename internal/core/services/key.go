@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	b64 "encoding/base64"
+	"sort"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -125,7 +126,6 @@ func (ks *Key) GetAll(ctx context.Context, did *w3c.DID, filter ports.KeyFilter)
 	}
 
 	total := uint(len(keyIDs))
-
 	start := (int(filter.Page) - 1) * int(filter.MaxResults)
 	end := start + int(filter.MaxResults)
 
@@ -136,6 +136,10 @@ func (ks *Key) GetAll(ctx context.Context, did *w3c.DID, filter ports.KeyFilter)
 	if end > len(keyIDs) {
 		end = len(keyIDs)
 	}
+
+	sort.Slice(keyIDs, func(i, j int) bool {
+		return keyIDs[i].ID < keyIDs[j].ID
+	})
 
 	keyIDs = keyIDs[start:end]
 	keys := make([]*ports.KMSKey, len(keyIDs))

@@ -210,12 +210,6 @@ func TestServer_GetKeys(t *testing.T) {
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
-	require.NoError(t, err)
-
-	_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
-	require.NoError(t, err)
-
 	idenETH, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
 	require.NoError(t, err)
 	didETH, err := w3c.ParseDID(idenETH.Identifier)
@@ -244,9 +238,48 @@ func TestServer_GetKeys(t *testing.T) {
 
 		var response GetKeys200JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-		assert.Equal(t, uint(3), response.Meta.Total)
+		assert.Equal(t, uint(1), response.Meta.Total)
 		assert.Equal(t, uint(50), response.Meta.MaxResults)
 		assert.Equal(t, uint(1), response.Meta.Page)
+		assert.Equal(t, 1, countAuthCredentials(t, response.Items))
+	})
+
+	t.Run("should get the keys for bjj identity with pagination", func(t *testing.T) {
+		for i := 0; i < 20; i++ {
+			_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+			require.NoError(t, err)
+		}
+
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys?max_results=11&page=1", did)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetKeys200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, uint(21), response.Meta.Total)
+		assert.Equal(t, uint(11), response.Meta.MaxResults)
+		assert.Equal(t, uint(1), response.Meta.Page)
+
+		rr = httptest.NewRecorder()
+		url = fmt.Sprintf("/v2/identities/%s/keys?max_results=11&page=2", did)
+		req, err = http.NewRequest(http.MethodGet, url, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response1 GetKeys200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response1))
+		assert.Equal(t, uint(21), response1.Meta.Total)
+		assert.Equal(t, uint(11), response1.Meta.MaxResults)
+		assert.Equal(t, uint(2), response1.Meta.Page)
+
+		all := append(response.Items, response1.Items...)
+		assert.Equal(t, 1, countAuthCredentials(t, all))
 	})
 
 	t.Run("should get the keys for eth identity", func(t *testing.T) {
@@ -263,7 +296,58 @@ func TestServer_GetKeys(t *testing.T) {
 		assert.Equal(t, uint(2), response.Meta.Total)
 		assert.Equal(t, uint(50), response.Meta.MaxResults)
 		assert.Equal(t, uint(1), response.Meta.Page)
+
+		assert.Equal(t, 2, countAuthCredentials(t, response.Items))
 	})
+
+	t.Run("should get the keys for eth identity with pagination", func(t *testing.T) {
+		for i := 0; i < 20; i++ {
+			_, err = server.keyService.CreateKey(ctx, didETH, kms.KeyTypeBabyJubJub)
+			require.NoError(t, err)
+		}
+
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys?max_results=10&page=1", didETH)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetKeys200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, uint(22), response.Meta.Total)
+		assert.Equal(t, uint(10), response.Meta.MaxResults)
+		assert.Equal(t, uint(1), response.Meta.Page)
+
+		rr = httptest.NewRecorder()
+		url = fmt.Sprintf("/v2/identities/%s/keys?max_results=15&page=2", didETH)
+		req, err = http.NewRequest(http.MethodGet, url, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response1 GetKeys200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response1))
+		assert.Equal(t, uint(22), response1.Meta.Total)
+		assert.Equal(t, uint(15), response1.Meta.MaxResults)
+		assert.Equal(t, uint(2), response1.Meta.Page)
+
+		all := append(response.Items, response1.Items...)
+		assert.Equal(t, 2, countAuthCredentials(t, all))
+	})
+}
+
+func countAuthCredentials(t *testing.T, keys []Key) int {
+	t.Helper()
+	count := 0
+	for _, key := range keys {
+		if key.IsAuthCredential {
+			count++
+		}
+	}
+	return count
 }
 
 func TestServer_DeleteKey(t *testing.T) {
