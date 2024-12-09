@@ -307,7 +307,7 @@ func TestServer_GetKeys(t *testing.T) {
 		}
 
 		rr := httptest.NewRecorder()
-		url := fmt.Sprintf("/v2/identities/%s/keys?max_results=10&page=1", didETH)
+		url := fmt.Sprintf("/v2/identities/%s/keys?max_results=15&page=1", didETH)
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		req.SetBasicAuth(authOk())
 		require.NoError(t, err)
@@ -317,7 +317,7 @@ func TestServer_GetKeys(t *testing.T) {
 		var response GetKeys200JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.Equal(t, uint(22), response.Meta.Total)
-		assert.Equal(t, uint(10), response.Meta.MaxResults)
+		assert.Equal(t, uint(15), response.Meta.MaxResults)
 		assert.Equal(t, uint(1), response.Meta.Page)
 
 		rr = httptest.NewRecorder()
