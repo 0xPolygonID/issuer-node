@@ -73,14 +73,6 @@ func keyPath(identity *w3c.DID, keyType KeyType, keyID string) string {
 	return basePath + string(keyType) + ":" + keyID
 }
 
-func keyPathForAws(identity *w3c.DID, keyType KeyType, keyID string) string {
-	basePath := ""
-	if identity != nil {
-		basePath = identityPath(identity) + "/"
-	}
-	return basePath + string(keyType) + keyID
-}
-
 func absVaultSecretPath(path string) string {
 	return kvStoragePath + "/data/" + strings.TrimPrefix(path, "/")
 }

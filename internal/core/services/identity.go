@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
@@ -52,7 +51,6 @@ const (
 	authReason      = "authentication"
 )
 
-// ErrWrongDIDMetada - represents an error in the identity metadata
 var (
 	// ErrAssigningMTPProof - represents an error in the identity metadata
 	ErrAssigningMTPProof = errors.New("error assigning the MTP Proof from Auth Claim. If this identity has keyType=ETH you must to publish the state first")
@@ -65,6 +63,15 @@ var (
 
 	// ErrWrongDIDMetada - represents an error in the identity metadata
 	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
+
+	// ErrDuplicatedHash - represents an error saving the claim
+	ErrDuplicatedHash = errors.New("hash already exists")
+
+	// ErrInvalidKeyType - represents an error in the key type
+	ErrInvalidKeyType = errors.New("invalid key type. Only BJJ keys are supported")
+
+	// ErrKeyNotFound - represents an error when the key is not found
+	ErrKeyNotFound = errors.New("key not found")
 )
 
 type identity struct {
@@ -152,7 +159,7 @@ func (i *identity) Create(ctx context.Context, hostURL string, didOptions *ports
 }
 
 func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, claimEntry *core.Claim) (*verifiable.BJJSignatureProof2021, error) {
-	keyID, err := i.getKeyIDFromAuthClaim(ctx, authClaim)
+	keyID, err := i.GetKeyIDFromAuthClaim(ctx, authClaim)
 	if err != nil {
 		return nil, err
 	}
@@ -209,50 +216,6 @@ func (i *identity) Exists(ctx context.Context, identifier w3c.DID) (bool, error)
 	return identity != nil, nil
 }
 
-// getKeyIDFromAuthClaim finds BJJ KeyID of auth claim
-// in registered key providers
-func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
-	var keyID kms.KeyID
-
-	if authClaim.Identifier == nil {
-		return keyID, errors.New("identifier is empty in auth claim")
-	}
-
-	identity, err := w3c.ParseDID(*authClaim.Identifier)
-	if err != nil {
-		return keyID, err
-	}
-
-	entry := authClaim.CoreClaim.Get()
-	bjjClaim := entry.RawSlotsAsInts()
-
-	var publicKey babyjub.PublicKey
-	publicKey.X, publicKey.Y = bjjClaim[2], bjjClaim[3]
-
-	compPubKey := publicKey.Compress()
-
-	keyIDs, err := i.kms.KeysByIdentity(ctx, *identity)
-	if err != nil {
-		return keyID, err
-	}
-
-	for _, keyID = range keyIDs {
-		if keyID.Type != kms.KeyTypeBabyJubJub {
-			continue
-		}
-
-		pubKeyBytes, err := i.kms.PublicKey(keyID)
-		if err != nil {
-			return keyID, err
-		}
-		if bytes.Equal(pubKeyBytes, compPubKey[:]) {
-			return keyID, nil
-		}
-	}
-
-	return keyID, errors.New("private key not found")
-}
-
 // Get - returns all the identities
 func (i *identity) Get(ctx context.Context) (identities []domain.IdentityDisplayName, err error) {
 	return i.identityRepository.Get(ctx, i.storage.Pgx)
@@ -289,15 +252,6 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		return keyID, err
 	}
 
-	entry := authClaim.CoreClaim.Get()
-	bjjClaim := entry.RawSlotsAsInts()
-
-	var publicKey babyjub.PublicKey
-	publicKey.X = bjjClaim[2]
-	publicKey.Y = bjjClaim[3]
-
-	compPubKey := publicKey.Compress()
-
 	keyIDs, err := i.kms.KeysByIdentity(ctx, *identity)
 	if err != nil {
 		return keyID, err
@@ -312,12 +266,14 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		if err != nil {
 			return keyID, err
 		}
-		if bytes.Equal(pubKeyBytes, compPubKey[:]) {
+
+		if authClaim.GetPublicKey().Equal(pubKeyBytes) {
+			log.Info(ctx, "key found", "keyID", keyID)
 			return keyID, nil
 		}
 	}
 
-	return keyID, errors.New("private key not found")
+	return keyID, errors.New("keyID not found")
 }
 
 func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.IdentityState, error) {
@@ -719,7 +675,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthCredentialStatus, false)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, didOptions.AuthCredentialStatus, false)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -781,7 +737,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthCredentialStatus, true)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, didOptions.AuthCredentialStatus, true)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -849,6 +805,104 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 	}
 
 	return did, identity.State.TreeState().State.BigInt(), nil
+}
+
+// CreateAuthCredential creates a new auth credential
+func (i *identity) CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID string) (uuid.UUID, error) {
+	revNonce, err := common.RandInt64()
+	if err != nil {
+		log.Error(ctx, "generating revocation nonce", "err", err)
+		return uuid.Nil, fmt.Errorf("can't generate revocation nonce: %w", err)
+	}
+	var newAuthCoreClaimID uuid.UUID
+
+	var keyType kms.KeyType
+	if strings.Contains(keyID, "BJJ") {
+		keyType = kms.KeyTypeBabyJubJub
+	} else {
+		return uuid.Nil, ErrInvalidKeyType
+	}
+
+	kmsKeyID := kms.KeyID{
+		ID:   keyID,
+		Type: keyType,
+	}
+	err = i.storage.Pgx.BeginFunc(ctx,
+		func(tx pgx.Tx) error {
+			identity, err := i.identityRepository.GetByID(ctx, tx, *did)
+			if err != nil {
+				return err
+			}
+
+			// get current auth core claim
+			authHash, err := core.AuthSchemaHash.MarshalText()
+			if err != nil {
+				log.Error(ctx, "marshaling auth schema hash", "err", err)
+				return err
+			}
+			currentAuthClaim, err := i.claimsRepository.FindOneClaimBySchemaHash(ctx, tx, did, string(authHash))
+			if err != nil {
+				log.Error(ctx, "finding auth claim by schema hash", "err", err)
+				return err
+			}
+
+			var authCoreClaimRevocationStatus domain.AuthCoreClaimRevocationStatus
+			if err := json.Unmarshal(currentAuthClaim.CredentialStatus.Bytes, &authCoreClaimRevocationStatus); err != nil {
+				log.Error(ctx, "unmarshalling auth core claim revocation status", "err", err)
+				return err
+			}
+
+			exists, err := i.kms.Exists(ctx, kmsKeyID)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return ErrKeyNotFound
+			}
+
+			bjjPubKey, err := bjjPubKey(i.kms, kmsKeyID)
+			if err != nil {
+				return err
+			}
+
+			authClaim, err := newAuthClaim(bjjPubKey)
+			if err != nil {
+				return errors.Join(err, errors.New("can't create auth claim"))
+			}
+
+			authClaim.SetRevocationNonce(revNonce)
+
+			// get identity merkle trees
+			mts, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, did)
+			if err != nil {
+				return fmt.Errorf("can't create identity markle tree: %w", err)
+			}
+
+			claimsTree, err := mts.ClaimsTree()
+			if err != nil {
+				return err
+			}
+
+			authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, verifiable.CredentialStatusType(authCoreClaimRevocationStatus.Type), false)
+			if err != nil {
+				log.Error(ctx, "auth claim to model", "err", err)
+				return err
+			}
+
+			newAuthCoreClaimID, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
+			if err != nil {
+				if strings.Contains(err.Error(), "claims_identifier_issuer_index_hash_key") {
+					return ErrDuplicatedHash
+				}
+				return errors.Join(err, errors.New("can't save auth claim"))
+			}
+			return nil
+		})
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return newAuthCoreClaimID, nil
 }
 
 func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.IdentityMerkleTrees, key *kms.KeyID, didOptions *ports.DIDCreationOptions, tx db.Querier) (*domain.Identity, *w3c.DID, error) {
@@ -995,6 +1049,7 @@ func (i *identity) GetFailedState(ctx context.Context, identifier w3c.DID) (*dom
 	return nil, nil
 }
 
+// TODO: remove this method. is not used
 func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error {
 	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, *did)
 	if err != nil {
@@ -1125,7 +1180,7 @@ func (i *identity) addGenesisClaimsToTree(ctx context.Context,
 	return identity, did, nil
 }
 
-func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity *domain.Identity, authClaim *core.Claim, claimsTree *merkletree.MerkleTree, pubKey *babyjub.PublicKey, hostURL string, status verifiable.CredentialStatusType, isAuthInGenesis bool) (*domain.Claim, error) {
+func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity *domain.Identity, authClaim *core.Claim, claimsTree *merkletree.MerkleTree, pubKey *babyjub.PublicKey, status verifiable.CredentialStatusType, isAuthInGenesis bool) (*domain.Claim, error) {
 	authClaimData := make(map[string]interface{})
 	authClaimData["x"] = pubKey.X.String()
 	authClaimData["y"] = pubKey.Y.String()
