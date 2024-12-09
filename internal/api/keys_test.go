@@ -94,7 +94,7 @@ func TestServer_CreateKey(t *testing.T) {
 			case http.StatusCreated:
 				var response CreateKey201JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.NotNil(t, response.KeyID)
+				assert.NotNil(t, response.Id)
 			case http.StatusBadRequest:
 				var response CreateKey400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -180,8 +180,8 @@ func TestServer_GetKey(t *testing.T) {
 			case http.StatusCreated:
 				var response GetKey200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.NotNil(t, response.KeyID)
-				assert.Equal(t, keyID, response.KeyID)
+				assert.NotNil(t, response.Id)
+				assert.Equal(t, keyID, response.Id)
 				assert.NotNil(t, response.PublicKey)
 				assert.Equal(t, BJJ, response.KeyType)
 				assert.False(t, response.IsAuthCoreClaim)
@@ -260,13 +260,13 @@ func TestServer_GetKeys(t *testing.T) {
 			case http.StatusCreated:
 				var response GetKeys200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.NotNil(t, response[0].KeyID)
-				assert.Equal(t, encodedKeyID1, response[0].KeyID)
+				assert.NotNil(t, response[0].Id)
+				assert.Equal(t, encodedKeyID1, response[0].Id)
 				assert.NotNil(t, response[0].PublicKey)
 				assert.Equal(t, BJJ, response[0].KeyType)
 				assert.False(t, response[0].IsAuthCoreClaim)
-				assert.NotNil(t, response[1].KeyID)
-				assert.Equal(t, encodedKeyID2, response[1].KeyID)
+				assert.NotNil(t, response[1].Id)
+				assert.Equal(t, encodedKeyID2, response[1].Id)
 				assert.NotNil(t, response[1].PublicKey)
 				assert.Equal(t, BJJ, response[1].KeyType)
 				assert.False(t, response[1].IsAuthCoreClaim)

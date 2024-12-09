@@ -429,7 +429,7 @@ paths:
 
   /v2/identities/{identifier}/create-auth-credential:
     post:
-      summary: Add a new key to the identity
+      summary: Create Auth Credential
       operationId: CreateAuthCredential
       description: Endpoint to create a new Auth Credential
       security:
@@ -464,6 +464,7 @@ paths:
                 properties:
                   id:
                     type: string
+                    description: The ID of the created Auth Credential
                     x-go-type: uuid.UUID
                     x-go-type-import:
                       name: uuid
@@ -1400,7 +1401,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/identities/{identifier}/keys/{keyID}:
+  /v2/identities/{identifier}/keys/{id}:
     get:
       summary: Get a Key
       operationId: GetKey
@@ -2409,9 +2410,9 @@ components:
     CreateKeyResponse:
       type: object
       required:
-        - keyID
+        - id
       properties:
-        keyID:
+        id:
           type: string
           x-omitempty: false
           description: base64 encoded keyID
@@ -2420,12 +2421,12 @@ components:
     Key:
       type: object
       required:
-        - keyID
+        - id
         - keyType
         - publicKey
         - isAuthCoreClaim
       properties:
-        keyID:
+        id:
           type: string
           x-omitempty: false
           example: ZGlkOnBvbHlnb25pZDpwb2x5Z29uOmFtb3k6MnFRNjhKa1JjZjN5cXBYanRqVVQ3WjdVeW1TV0hzYll
@@ -2531,7 +2532,7 @@ components:
         format: int64
 
     pathKeyID:
-      name: keyID
+      name: id
       in: path
       required: true
       description: Key ID in base64

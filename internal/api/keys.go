@@ -31,13 +31,13 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 		}, nil
 	}
 	return CreateKey201JSONResponse{
-		KeyID: keyID.ID,
+		Id: keyID.ID,
 	}, nil
 }
 
 // GetKey is the handler for the GET /keys/{keyID} endpoint.
 func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKeyResponseObject, error) {
-	decodedKeyID, err := b64.StdEncoding.DecodeString(request.KeyID)
+	decodedKeyID, err := b64.StdEncoding.DecodeString(request.Id)
 	if err != nil {
 		log.Error(ctx, "the key id can not be decoded from base64", "err", err)
 		return GetKey400JSONResponse{
@@ -75,7 +75,7 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 
 	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(key.KeyID))
 	return GetKey200JSONResponse{
-		KeyID:           encodedKeyID,
+		Id:              encodedKeyID,
 		KeyType:         KeyKeyType(key.KeyType),
 		PublicKey:       key.PublicKey,
 		IsAuthCoreClaim: key.HasAssociatedAuthCoreClaim,
@@ -99,7 +99,7 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 	for _, key := range keys {
 		encodedKeyID := b64.StdEncoding.EncodeToString([]byte(key.KeyID))
 		keysResponse = append(keysResponse, Key{
-			KeyID:           encodedKeyID,
+			Id:              encodedKeyID,
 			KeyType:         KeyKeyType(key.KeyType),
 			PublicKey:       key.PublicKey,
 			IsAuthCoreClaim: key.HasAssociatedAuthCoreClaim,
@@ -110,7 +110,7 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 
 // DeleteKey is the handler for the DELETE /keys/{keyID} endpoint.
 func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) (DeleteKeyResponseObject, error) {
-	decodedKeyID, err := b64.StdEncoding.DecodeString(request.KeyID)
+	decodedKeyID, err := b64.StdEncoding.DecodeString(request.Id)
 	if err != nil {
 		log.Error(ctx, "the key id can not be decoded from base64", "err", err)
 		return DeleteKey400JSONResponse{

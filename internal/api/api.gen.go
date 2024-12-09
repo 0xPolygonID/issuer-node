@@ -279,8 +279,8 @@ type CreateKeyRequestKeyType string
 
 // CreateKeyResponse defines model for CreateKeyResponse.
 type CreateKeyResponse struct {
-	// KeyID base64 encoded keyID
-	KeyID string `json:"keyID"`
+	// Id base64 encoded keyID
+	Id string `json:"id"`
 }
 
 // CreateLinkRequest defines model for CreateLinkRequest.
@@ -429,12 +429,11 @@ type IssuerDescription struct {
 
 // Key defines model for Key.
 type Key struct {
-	IsAuthCoreClaim bool `json:"isAuthCoreClaim"`
-
-	// KeyID base64 encoded keyID
-	KeyID     string     `json:"keyID"`
-	KeyType   KeyKeyType `json:"keyType"`
-	PublicKey string     `json:"publicKey"`
+	// Id base64 encoded keyID
+	Id              string     `json:"id"`
+	IsAuthCoreClaim bool       `json:"isAuthCoreClaim"`
+	KeyType         KeyKeyType `json:"keyType"`
+	PublicKey       string     `json:"publicKey"`
 }
 
 // KeyKeyType defines model for Key.KeyType.
@@ -892,7 +891,7 @@ type ServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Add a new key to the identity
+	// Create Auth Credential
 	// (POST /v2/identities/{identifier}/create-auth-credential)
 	CreateAuthCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
 	// Get Credentials
@@ -944,11 +943,11 @@ type ServerInterface interface {
 	// (POST /v2/identities/{identifier}/keys)
 	CreateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
 	// Delete Key
-	// (DELETE /v2/identities/{identifier}/keys/{keyID})
-	DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID)
+	// (DELETE /v2/identities/{identifier}/keys/{id})
+	DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
 	// Get a Key
-	// (GET /v2/identities/{identifier}/keys/{keyID})
-	GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID)
+	// (GET /v2/identities/{identifier}/keys/{id})
+	GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -1081,7 +1080,7 @@ func (_ Unimplemented) RevokeConnectionCredentials(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Add a new key to the identity
+// Create Auth Credential
 // (POST /v2/identities/{identifier}/create-auth-credential)
 func (_ Unimplemented) CreateAuthCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -1184,14 +1183,14 @@ func (_ Unimplemented) CreateKey(w http.ResponseWriter, r *http.Request, identif
 }
 
 // Delete Key
-// (DELETE /v2/identities/{identifier}/keys/{keyID})
-func (_ Unimplemented) DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID) {
+// (DELETE /v2/identities/{identifier}/keys/{id})
+func (_ Unimplemented) DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get a Key
-// (GET /v2/identities/{identifier}/keys/{keyID})
-func (_ Unimplemented) GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID) {
+// (GET /v2/identities/{identifier}/keys/{id})
+func (_ Unimplemented) GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2494,12 +2493,12 @@ func (siw *ServerInterfaceWrapper) DeleteKey(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// ------------- Path parameter "keyID" -------------
-	var keyID PathKeyID
+	// ------------- Path parameter "id" -------------
+	var id PathKeyID
 
-	err = runtime.BindStyledParameterWithOptions("simple", "keyID", chi.URLParam(r, "keyID"), &keyID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "keyID", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
 		return
 	}
 
@@ -2510,7 +2509,7 @@ func (siw *ServerInterfaceWrapper) DeleteKey(w http.ResponseWriter, r *http.Requ
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteKey(w, r, identifier, keyID)
+		siw.Handler.DeleteKey(w, r, identifier, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2534,12 +2533,12 @@ func (siw *ServerInterfaceWrapper) GetKey(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// ------------- Path parameter "keyID" -------------
-	var keyID PathKeyID
+	// ------------- Path parameter "id" -------------
+	var id PathKeyID
 
-	err = runtime.BindStyledParameterWithOptions("simple", "keyID", chi.URLParam(r, "keyID"), &keyID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "keyID", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
 		return
 	}
 
@@ -2550,7 +2549,7 @@ func (siw *ServerInterfaceWrapper) GetKey(w http.ResponseWriter, r *http.Request
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetKey(w, r, identifier, keyID)
+		siw.Handler.GetKey(w, r, identifier, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3136,10 +3135,10 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/keys", wrapper.CreateKey)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/v2/identities/{identifier}/keys/{keyID}", wrapper.DeleteKey)
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/keys/{id}", wrapper.DeleteKey)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v2/identities/{identifier}/keys/{keyID}", wrapper.GetKey)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/keys/{id}", wrapper.GetKey)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
@@ -3837,6 +3836,7 @@ type CreateAuthCredentialResponseObject interface {
 }
 
 type CreateAuthCredential201JSONResponse struct {
+	// Id The ID of the created Auth Credential
 	Id uuid.UUID `json:"id"`
 }
 
@@ -4580,7 +4580,7 @@ func (response CreateKey500JSONResponse) VisitCreateKeyResponse(w http.ResponseW
 
 type DeleteKeyRequestObject struct {
 	Identifier PathIdentifier2 `json:"identifier"`
-	KeyID      PathKeyID       `json:"keyID"`
+	Id         PathKeyID       `json:"id"`
 }
 
 type DeleteKeyResponseObject interface {
@@ -4634,7 +4634,7 @@ func (response DeleteKey500JSONResponse) VisitDeleteKeyResponse(w http.ResponseW
 
 type GetKeyRequestObject struct {
 	Identifier PathIdentifier2 `json:"identifier"`
-	KeyID      PathKeyID       `json:"keyID"`
+	Id         PathKeyID       `json:"id"`
 }
 
 type GetKeyResponseObject interface {
@@ -5153,7 +5153,7 @@ type StrictServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error)
-	// Add a new key to the identity
+	// Create Auth Credential
 	// (POST /v2/identities/{identifier}/create-auth-credential)
 	CreateAuthCredential(ctx context.Context, request CreateAuthCredentialRequestObject) (CreateAuthCredentialResponseObject, error)
 	// Get Credentials
@@ -5205,10 +5205,10 @@ type StrictServerInterface interface {
 	// (POST /v2/identities/{identifier}/keys)
 	CreateKey(ctx context.Context, request CreateKeyRequestObject) (CreateKeyResponseObject, error)
 	// Delete Key
-	// (DELETE /v2/identities/{identifier}/keys/{keyID})
+	// (DELETE /v2/identities/{identifier}/keys/{id})
 	DeleteKey(ctx context.Context, request DeleteKeyRequestObject) (DeleteKeyResponseObject, error)
 	// Get a Key
-	// (GET /v2/identities/{identifier}/keys/{keyID})
+	// (GET /v2/identities/{identifier}/keys/{id})
 	GetKey(ctx context.Context, request GetKeyRequestObject) (GetKeyResponseObject, error)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
@@ -6228,11 +6228,11 @@ func (sh *strictHandler) CreateKey(w http.ResponseWriter, r *http.Request, ident
 }
 
 // DeleteKey operation middleware
-func (sh *strictHandler) DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID) {
+func (sh *strictHandler) DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
 	var request DeleteKeyRequestObject
 
 	request.Identifier = identifier
-	request.KeyID = keyID
+	request.Id = id
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.DeleteKey(ctx, request.(DeleteKeyRequestObject))
@@ -6255,11 +6255,11 @@ func (sh *strictHandler) DeleteKey(w http.ResponseWriter, r *http.Request, ident
 }
 
 // GetKey operation middleware
-func (sh *strictHandler) GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, keyID PathKeyID) {
+func (sh *strictHandler) GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
 	var request GetKeyRequestObject
 
 	request.Identifier = identifier
-	request.KeyID = keyID
+	request.Id = id
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetKey(ctx, request.(GetKeyRequestObject))
