@@ -101,6 +101,7 @@ func (ls *localStorageEthKeyProvider) Sign(ctx context.Context, keyID KeyID, dat
 	}
 
 	sig, err := crypto.Sign(data, privKey)
+	sig[64] += 27
 	return sig, err
 }
 

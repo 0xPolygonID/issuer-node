@@ -101,6 +101,7 @@ func (v *vaultETHKeyProvider) Sign(_ context.Context, keyID KeyID, data []byte) 
 	}
 
 	sig, err := crypto.Sign(data, privKey)
+	sig[64] += 27
 	return sig, errors.WithStack(err)
 }
 

@@ -2,8 +2,10 @@ package services
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -12,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/google/uuid"
@@ -319,6 +322,14 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 		return nil, err
 	}
 
+	signerAddress, err := p.getAddress(kms.KeyID{
+		Type: kms.KeyTypeEthereum,
+		ID:   chainConfig.SigningKeyID,
+	})
+	if err != nil {
+		log.Error(ctx, "failed to retrieve signer address", "err", err)
+		return nil, err
+	}
 	switch setting.PaymentOption.Type {
 	case protocol.Iden3PaymentRailsRequestV1Type:
 		return &protocol.Iden3PaymentRailsRequestV1{
@@ -332,7 +343,7 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			ExpirationDate: fmt.Sprint(expirationTime.Format(time.RFC3339)),
 			Metadata:       metadata,
 			Recipient:      chainConfig.Recipient.String(),
-			Proof:          paymentProof(&setting, signature),
+			Proof:          paymentProof(&setting, signature, signerAddress),
 		}, nil
 
 	case protocol.Iden3PaymentRailsERC20RequestV1Type:
@@ -349,7 +360,7 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			Recipient:      chainConfig.Recipient.String(),
 			Features:       setting.PaymentOption.Features,
 			TokenAddress:   setting.PaymentOption.ContractAddress.String(),
-			Proof:          paymentProof(&setting, signature),
+			Proof:          paymentProof(&setting, signature, signerAddress),
 		}, nil
 
 	case protocol.Iden3PaymentRequestCryptoV1Type:
@@ -359,7 +370,7 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 	}
 }
 
-func paymentProof(setting *payments.ChainConfig, signature []byte) protocol.PaymentProof {
+func paymentProof(setting *payments.ChainConfig, signature []byte, signerAddress common.Address) protocol.PaymentProof {
 	var eip712DataTypes string
 	if setting.PaymentOption.Type == protocol.Iden3PaymentRailsRequestV1Type {
 		eip712DataTypes = "https://schema.iden3.io/core/json/Iden3PaymentRailsRequestV1.json"
@@ -372,7 +383,7 @@ func paymentProof(setting *payments.ChainConfig, signature []byte) protocol.Paym
 			Type:               "EthereumEip712Signature2021",
 			ProofPurpose:       "assertionMethod",
 			ProofValue:         fmt.Sprintf("0x%s", hex.EncodeToString(signature)),
-			VerificationMethod: fmt.Sprintf("did:pkh:eip155:%d:%s", setting.ChainID, setting.PaymentRails),
+			VerificationMethod: fmt.Sprintf("did:pkh:eip155:%d:%s", setting.ChainID, signerAddress),
 			Created:            time.Now().Format(time.RFC3339),
 			Eip712: protocol.Eip712Data{
 				Types:       eip712DataTypes,
@@ -489,4 +500,31 @@ func (p *payment) paymentRequestSignature(
 		return nil, err
 	}
 	return signature, nil
+}
+
+func (p *payment) getAddress(k kms.KeyID) (common.Address, error) {
+	if p.kms == nil {
+		return common.Address{}, errors.Join(errors.New("the signer is read-only"))
+	}
+	bytesPubKey, err := p.kms.PublicKey(k)
+	if err != nil {
+		return common.Address{}, err
+	}
+	var pubKey *ecdsa.PublicKey
+	switch len(bytesPubKey) {
+	case eth.CompressedPublicKeyLength:
+		pubKey, err = crypto.DecompressPubkey(bytesPubKey)
+	case eth.AwsKmsPublicKeyLength:
+		pubKey, err = kms.DecodeAWSETHPubKey(context.Background(), bytesPubKey)
+		if err != nil {
+			return common.Address{}, err
+		}
+	default:
+		pubKey, err = crypto.UnmarshalPubkey(bytesPubKey)
+	}
+	if err != nil {
+		return common.Address{}, err
+	}
+	fromAddress := crypto.PubkeyToAddress(*pubKey)
+	return fromAddress, nil
 }
