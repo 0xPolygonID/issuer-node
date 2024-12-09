@@ -75,10 +75,10 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 
 	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(key.KeyID))
 	return GetKey200JSONResponse{
-		Id:              encodedKeyID,
-		KeyType:         KeyKeyType(key.KeyType),
-		PublicKey:       key.PublicKey,
-		IsAuthCoreClaim: key.HasAssociatedAuthCoreClaim,
+		Id:               encodedKeyID,
+		KeyType:          KeyKeyType(key.KeyType),
+		PublicKey:        key.PublicKey,
+		IsAuthCredential: key.HasAssociatedAuthCredential,
 	}, nil
 }
 
@@ -120,10 +120,10 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 	for _, key := range keys {
 		encodedKeyID := b64.StdEncoding.EncodeToString([]byte(key.KeyID))
 		items = append(items, Key{
-			Id:              encodedKeyID,
-			KeyType:         KeyKeyType(key.KeyType),
-			PublicKey:       key.PublicKey,
-			IsAuthCoreClaim: key.HasAssociatedAuthCoreClaim,
+			Id:               encodedKeyID,
+			KeyType:          KeyKeyType(key.KeyType),
+			PublicKey:        key.PublicKey,
+			IsAuthCredential: key.HasAssociatedAuthCredential,
 		})
 	}
 	return GetKeys200JSONResponse{
@@ -151,10 +151,19 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 	err = s.keyService.Delete(ctx, request.Identifier.did(), string(decodedKeyID))
 	if err != nil {
 		if errors.Is(err, ports.ErrAuthCredentialNotRevoked) {
-			log.Error(ctx, "delete key. Auth core claim not revoked", "err", err)
+			log.Error(ctx, "delete key. Auth credential not revoked", "err", err)
 			return DeleteKey400JSONResponse{
 				N400JSONResponse{
 					Message: "associated auth credential is not revoked",
+				},
+			}, nil
+		}
+
+		if errors.Is(err, ports.ErrKeyAssociatedWithIdentity) {
+			log.Error(ctx, "delete key. Key associated with identity", "err", err)
+			return DeleteKey400JSONResponse{
+				N400JSONResponse{
+					Message: "key is associated with an identity",
 				},
 			}, nil
 		}

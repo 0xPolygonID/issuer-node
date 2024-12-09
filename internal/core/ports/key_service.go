@@ -16,14 +16,16 @@ var (
 	ErrAuthCredentialNotRevoked = errors.New("associated auth core claim not revoked")
 	// ErrKeyNotFound is returned when the key is not found
 	ErrKeyNotFound = errors.New("key not found")
+	// ErrKeyAssociatedWithIdentity is returned when the key is associated with an identity
+	ErrKeyAssociatedWithIdentity = errors.New("key is associated with an identity")
 )
 
 // KMSKey is the struct that represents a key
 type KMSKey struct {
-	KeyID                      string
-	KeyType                    kms.KeyType
-	PublicKey                  string
-	HasAssociatedAuthCoreClaim bool
+	KeyID                       string
+	KeyType                     kms.KeyType
+	PublicKey                   string
+	HasAssociatedAuthCredential bool
 }
 
 // KeyFilter is the filter to use when getting keys

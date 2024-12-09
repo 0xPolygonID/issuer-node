@@ -184,7 +184,7 @@ func TestServer_GetKey(t *testing.T) {
 				assert.Equal(t, keyID, response.Id)
 				assert.NotNil(t, response.PublicKey)
 				assert.Equal(t, BJJ, response.KeyType)
-				assert.False(t, response.IsAuthCoreClaim)
+				assert.False(t, response.IsAuthCredential)
 			case http.StatusBadRequest:
 				var response GetKey400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -200,6 +200,7 @@ func TestServer_GetKeys(t *testing.T) {
 		blockchain = "polygon"
 		network    = "amoy"
 		BJJ        = "BJJ"
+		ETH        = "ETH"
 	)
 	ctx := context.Background()
 	server := newTestServer(t, nil)
@@ -209,77 +210,60 @@ func TestServer_GetKeys(t *testing.T) {
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	keyID1, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+	_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
 	require.NoError(t, err)
 
-	keyID2, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+	_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
 	require.NoError(t, err)
 
-	encodedKeyID1 := b64.StdEncoding.EncodeToString([]byte(keyID1.ID))
-	encodedKeyID2 := b64.StdEncoding.EncodeToString([]byte(keyID2.ID))
+	idenETH, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
+	require.NoError(t, err)
+	didETH, err := w3c.ParseDID(idenETH.Identifier)
+	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
 
-	type expected struct {
-		response GetKeysResponseObject
-		httpCode int
-	}
+	t.Run("should get an error", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys", did)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req.SetBasicAuth(authWrong())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
 
-	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		expected expected
-	}
+	t.Run("should get the keys for bjj identity", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys", did)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
 
-	for _, tc := range []testConfig{
-		{
-			name: "no auth header",
-			auth: authWrong,
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
-			name: "should get the keys",
-			auth: authOk,
-			expected: expected{
-				httpCode: http.StatusOK,
-			},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v2/identities/%s/keys", did)
-			req, err := http.NewRequest(http.MethodGet, url, nil)
-			req.SetBasicAuth(tc.auth())
-			require.NoError(t, err)
-			handler.ServeHTTP(rr, req)
-			require.Equal(t, tc.expected.httpCode, rr.Code)
+		var response GetKeys200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, uint(3), response.Meta.Total)
+		assert.Equal(t, uint(50), response.Meta.MaxResults)
+		assert.Equal(t, uint(1), response.Meta.Page)
+	})
 
-			switch tc.expected.httpCode {
-			case http.StatusCreated:
-				var response GetKeys200JSONResponse
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.NotNil(t, response.Items[0].Id)
-				assert.Equal(t, encodedKeyID1, response.Items[0].Id)
-				assert.NotNil(t, response.Items[0].PublicKey)
-				assert.Equal(t, BJJ, response.Items[0].KeyType)
-				assert.False(t, response.Items[0].IsAuthCoreClaim)
-				assert.NotNil(t, response.Items[1].Id)
-				assert.Equal(t, encodedKeyID2, response.Items[1].Id)
-				assert.NotNil(t, response.Items[1].PublicKey)
-				assert.Equal(t, BJJ, response.Items[1].KeyType)
-				assert.False(t, response.Items[1].IsAuthCoreClaim)
-				assert.Equal(t, uint(2), response.Meta.Total)
-				assert.Equal(t, uint(10), response.Meta.MaxResults)
-				assert.Equal(t, uint(1), response.Meta.Page)
-			case http.StatusBadRequest:
-				var response GetKeys400JSONResponse
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.EqualValues(t, tc.expected.response, response)
-			}
-		})
-	}
+	t.Run("should get the keys for eth identity", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys", didETH)
+		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+
+		var response GetKeys200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, uint(2), response.Meta.Total)
+		assert.Equal(t, uint(50), response.Meta.MaxResults)
+		assert.Equal(t, uint(1), response.Meta.Page)
+	})
 }
 
 func TestServer_DeleteKey(t *testing.T) {
@@ -288,6 +272,7 @@ func TestServer_DeleteKey(t *testing.T) {
 		blockchain = "polygon"
 		network    = "amoy"
 		BJJ        = "BJJ"
+		ETH        = "ETH"
 	)
 	ctx := context.Background()
 	server := newTestServer(t, nil)
@@ -295,6 +280,28 @@ func TestServer_DeleteKey(t *testing.T) {
 	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	idenETH, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
+	require.NoError(t, err)
+	didETH, err := w3c.ParseDID(idenETH.Identifier)
+	require.NoError(t, err)
+
+	idenETHKeys, _, err := server.keyService.GetAll(ctx, didETH, ports.KeyFilter{MaxResults: 10, Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, len(idenETHKeys), 2)
+
+	idenETHBJJKey := ""
+	idenETHETHKey := ""
+	if idenETHKeys[0].KeyType == kms.KeyTypeBabyJubJub {
+		idenETHBJJKey = idenETHKeys[0].KeyID
+		idenETHETHKey = idenETHKeys[1].KeyID
+	} else {
+		idenETHBJJKey = idenETHKeys[1].KeyID
+		idenETHETHKey = idenETHKeys[0].KeyID
+	}
+
+	keyETHIDToDelete, err := server.keyService.CreateKey(ctx, didETH, kms.KeyTypeEthereum)
 	require.NoError(t, err)
 
 	keyID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
@@ -318,6 +325,7 @@ func TestServer_DeleteKey(t *testing.T) {
 
 	type testConfig struct {
 		name     string
+		did      string
 		auth     func() (string, string)
 		KeyID    string
 		expected expected
@@ -327,15 +335,26 @@ func TestServer_DeleteKey(t *testing.T) {
 		{
 			name:  "no auth header",
 			auth:  authWrong,
+			did:   did.String(),
 			KeyID: keyID.ID,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
 			},
 		},
 		{
-			name:  "should delete a key",
+			name:  "should delete the bjj key",
 			auth:  authOk,
+			did:   did.String(),
 			KeyID: keyID.ID,
+			expected: expected{
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name:  "should delete the eth key",
+			auth:  authOk,
+			did:   didETH.String(),
+			KeyID: keyETHIDToDelete.ID,
 			expected: expected{
 				httpCode: http.StatusOK,
 			},
@@ -343,6 +362,7 @@ func TestServer_DeleteKey(t *testing.T) {
 		{
 			name:  "should get an error - wrong keyID",
 			auth:  authOk,
+			did:   did.String(),
 			KeyID: "123",
 			expected: expected{
 				httpCode: http.StatusBadRequest,
@@ -356,7 +376,36 @@ func TestServer_DeleteKey(t *testing.T) {
 		{
 			name:  "should get an error - associated auth credential is not revoked",
 			auth:  authOk,
+			did:   did.String(),
 			KeyID: keyIDForAuthCoreClaimID.ID,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: DeleteKey400JSONResponse{
+					N400JSONResponse: N400JSONResponse{
+						Message: "associated auth credential is not revoked",
+					},
+				},
+			},
+		},
+		{
+			name:  "should get an error key is associated with an identity",
+			auth:  authOk,
+			did:   didETH.String(),
+			KeyID: b64.StdEncoding.EncodeToString([]byte(idenETHETHKey)),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: DeleteKey400JSONResponse{
+					N400JSONResponse: N400JSONResponse{
+						Message: "key is associated with an identity",
+					},
+				},
+			},
+		},
+		{
+			name:  "should get an error associated auth credential is not revoked ",
+			auth:  authOk,
+			did:   didETH.String(),
+			KeyID: b64.StdEncoding.EncodeToString([]byte(idenETHBJJKey)),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				response: DeleteKey400JSONResponse{
@@ -369,7 +418,7 @@ func TestServer_DeleteKey(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v2/identities/%s/keys/%s", did, tc.KeyID)
+			url := fmt.Sprintf("/v2/identities/%s/keys/%s", tc.did, tc.KeyID)
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)

@@ -430,10 +430,10 @@ type IssuerDescription struct {
 // Key defines model for Key.
 type Key struct {
 	// Id base64 encoded keyID
-	Id              string     `json:"id"`
-	IsAuthCoreClaim bool       `json:"isAuthCoreClaim"`
-	KeyType         KeyKeyType `json:"keyType"`
-	PublicKey       string     `json:"publicKey"`
+	Id               string     `json:"id"`
+	IsAuthCredential bool       `json:"isAuthCredential"`
+	KeyType          KeyKeyType `json:"keyType"`
+	PublicKey        string     `json:"publicKey"`
 }
 
 // KeyKeyType defines model for Key.KeyType.
@@ -772,7 +772,7 @@ type GetKeysParams struct {
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
 	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
 
-	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	// Page Page to fetch. First is one. If omitted, page 1 will be returned.
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 }
 

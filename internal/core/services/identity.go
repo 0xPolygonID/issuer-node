@@ -51,7 +51,6 @@ const (
 	authReason      = "authentication"
 )
 
-// ErrWrongDIDMetada - represents an error in the identity metadata
 var (
 	// ErrAssigningMTPProof - represents an error in the identity metadata
 	ErrAssigningMTPProof = errors.New("error assigning the MTP Proof from Auth Claim. If this identity has keyType=ETH you must to publish the state first")
