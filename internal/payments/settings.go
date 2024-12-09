@@ -18,11 +18,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-// PaymentOptionConfigID is a custom type to represent the payment option id
-type PaymentOptionConfigID int
+// OptionConfigIDType is a custom type to represent the payment option id
+type OptionConfigIDType int
 
 // Config is a map of payment option id and chain config
-type Config map[PaymentOptionConfigID]ChainConfig
+type Config map[OptionConfigIDType]ChainConfig
 
 // ChainConfig is the configuration for a chain
 type ChainConfig struct {
@@ -86,7 +86,7 @@ func (d *configDecoder) Decode() (*Config, error) {
 			return nil, fmt.Errorf("invalid payment rails address: %s", chainConfig.PaymentRails)
 		}
 		for _, option := range chainConfig.PaymentOptions {
-			if _, found := cfg[PaymentOptionConfigID(id)]; found {
+			if _, found := cfg[OptionConfigIDType(id)]; found {
 				return nil, fmt.Errorf("duplicate payment option id: %d", id)
 			}
 			if !common.IsHexAddress(option.ContractAddress) && strings.TrimSpace(option.ContractAddress) != "" {
@@ -99,7 +99,7 @@ func (d *configDecoder) Decode() (*Config, error) {
 					features[i] = protocol.PaymentFeatures(feature)
 				}
 			}
-			cfg[PaymentOptionConfigID(option.ID)] = ChainConfig{
+			cfg[OptionConfigIDType(option.ID)] = ChainConfig{
 				ChainID:      id,
 				PaymentRails: common.HexToAddress(chainConfig.PaymentRails),
 				PaymentOption: PaymentOptionConfig{

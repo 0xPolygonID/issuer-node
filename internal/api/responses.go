@@ -320,11 +320,46 @@ func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfi
 	}
 	for i, item := range config.Config {
 		cfg.Config[i] = PaymentOptionConfigItem{
-			PaymentOptionId: item.PaymentOptionID,
-			Amount:          item.Amount,
+			PaymentOptionId: int(item.PaymentOptionID),
+			Amount:          item.Amount.String(),
 			Recipient:       item.Recipient.String(),
 			SigningKeyId:    item.SigningKeyID,
 		}
 	}
 	return cfg
+}
+
+func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePaymentRequestResponse {
+	creds := make([]struct {
+		Context string `json:"context"`
+		Type    string `json:"type"`
+	}, len(payReq.Credentials))
+	for i, cred := range payReq.Credentials {
+		creds[i] = struct {
+			Context string `json:"context"`
+			Type    string `json:"type"`
+		}{
+			Context: cred.Context,
+			Type:    cred.Type,
+		}
+	}
+	payments := make([]PaymentRequestItem, len(payReq.Payments))
+	for i, payment := range payReq.Payments {
+		payments[i] = PaymentRequestItem{
+			Id:               payment.ID,
+			Nonce:            payment.Nonce.String(),
+			PaymentRequestID: payment.PaymentRequestID,
+			Payment:          payment.Payment,
+		}
+	}
+	return CreatePaymentRequestResponse{
+		CreatedAt:       payReq.CreatedAt,
+		Credentials:     creds,
+		Description:     payReq.Description,
+		Id:              payReq.ID,
+		IssuerDID:       payReq.IssuerDID.String(),
+		RecipientDID:    payReq.RecipientDID.String(),
+		PaymentOptionID: payReq.PaymentOptionID,
+		Payments:        payments,
+	}
 }

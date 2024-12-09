@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -12,6 +13,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -50,7 +52,12 @@ func (s *Server) CreatePaymentOption(ctx context.Context, request CreatePaymentO
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	id, err := s.paymentService.CreatePaymentOption(ctx, issuerDID, request.Body.Name, request.Body.Description, newPaymentOptionConfig(&request.Body.Config))
+	payOptConf, err := newPaymentOptionConfig(&request.Body.Config)
+	if err != nil {
+		log.Error(ctx, "creating payment option config", "err", err)
+		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid config: %s", err)}}, nil
+	}
+	id, err := s.paymentService.CreatePaymentOption(ctx, issuerDID, request.Body.Name, request.Body.Description, payOptConf)
 	if err != nil {
 		log.Error(ctx, "creating payment option", "err", err, "issuer", issuerDID, "request", request.Body)
 		if errors.Is(err, repositories.ErrIdentityNotFound) {
@@ -122,31 +129,22 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 	}
 
 	req := &ports.CreatePaymentRequestReq{
-		IssuerDID: *issuerDID,
-		UserDID:   *userDID,
-		OptionID:  request.Body.Option,
+		IssuerDID:   *issuerDID,
+		UserDID:     *userDID,
+		OptionID:    request.Body.Option,
+		Description: request.Body.Description,
 	}
-	req.Creds = make([]protocol.PaymentRequestInfoCredentials, len(request.Body.Credentials))
+	req.Credentials = make([]protocol.PaymentRequestInfoCredentials, len(request.Body.Credentials))
 	for i, cred := range request.Body.Credentials {
-		req.Creds[i] = protocol.PaymentRequestInfoCredentials{Type: cred.Type, Context: cred.Context}
+		req.Credentials[i] = protocol.PaymentRequestInfoCredentials{Type: cred.Type, Context: cred.Context}
 	}
 
-	paymentRequest, err := s.paymentService.CreatePaymentRequest(ctx, req, s.cfg.ServerUrl)
+	payReq, err := s.paymentService.CreatePaymentRequest(ctx, req)
 	if err != nil {
 		log.Error(ctx, "creating payment request", "err", err)
 		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("can't create payment-request: %s", err)}}, nil
 	}
-
-	basicMessage := BasicMessage{
-		From:     paymentRequest.From,
-		To:       paymentRequest.To,
-		ThreadID: paymentRequest.ThreadID,
-		Id:       paymentRequest.ID,
-		Typ:      string(paymentRequest.Typ),
-		Type:     string(paymentRequest.Type),
-		Body:     paymentRequest.Body,
-	}
-	return CreatePaymentRequest201JSONResponse(basicMessage), nil
+	return CreatePaymentRequest201JSONResponse(toCreatePaymentRequestResponse(payReq)), nil
 }
 
 // GetPaymentSettings is the controller to get payment settings
@@ -169,17 +167,26 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 	return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess}, nil
 }
 
-func newPaymentOptionConfig(config *PaymentOptionConfig) *domain.PaymentOptionConfig {
+func newPaymentOptionConfig(config *PaymentOptionConfig) (*domain.PaymentOptionConfig, error) {
+	const base10 = 10
 	cfg := &domain.PaymentOptionConfig{
 		Config: make([]domain.PaymentOptionConfigItem, len(config.Config)),
 	}
 	for i, item := range config.Config {
+		if !common.IsHexAddress(item.Recipient) {
+			return nil, fmt.Errorf("invalid recipient address: %s", item.Recipient)
+		}
+		amount, ok := new(big.Int).SetString(item.Amount, base10)
+		if !ok {
+			return nil, fmt.Errorf("could not parse amount: %s", item.Amount)
+		}
+
 		cfg.Config[i] = domain.PaymentOptionConfigItem{
-			PaymentOptionID: item.PaymentOptionId,
-			Amount:          item.Amount,
+			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionId),
+			Amount:          *amount,
 			Recipient:       common.HexToAddress(item.Recipient),
 			SigningKeyID:    item.SigningKeyId,
 		}
 	}
-	return cfg
+	return cfg, nil
 }

@@ -18,9 +18,10 @@ CREATE INDEX payment_options_issuer_did ON payment_options (issuer_did);
 CREATE TABLE payment_requests
 (
     id                UUID PRIMARY KEY NOT NULL,
+    credentials       jsonb            NOT NULL, /* []protocol.PaymentRequestCredentials */
+    description       text             NOT NULL,
     issuer_did        text             NOT NULL REFERENCES identities (identifier),
     recipient_did     text             NOT NULL,
-    thread_id         text             NOT NULL,
     payment_option_id UUID REFERENCES payment_options (id),
     created_at        timestamptz      NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

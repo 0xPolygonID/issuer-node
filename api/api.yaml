@@ -1315,7 +1315,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BasicMessage'
+                $ref: '#/components/schemas/CreatePaymentRequestResponse'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -2287,6 +2287,7 @@ components:
       required:
         - option
         - credentials
+        - description
         - userDID
       properties:
         option:
@@ -2307,22 +2308,75 @@ components:
               context:
                 type: string
                 example: "<context url>"
+        description:
+          type: string
+          example: "Payment for AML"
         userDID:
           type: string
           example: "<user did>"
 
-    # TODO: Add more fields!!!
     CreatePaymentRequestResponse:
       type: object
       required:
         - id
+        - credentials
+        - description
+        - issuerDID
+        - recipientDID
+        - paymentOptionID
+        - payments
+        - CreatedAt
       properties:
         id:
           type: string
-          x-go-type: uuid.UUID
-          x-go-type-import:
-            name: uuid
-            path: github.com/google/uuid
+          format: uuid
+        credentials:
+          type: array
+          items:
+            type: object
+            required: [ type, context ]
+            properties:
+              type:
+                type: string
+                example: "AML"
+              context:
+                type: string
+                example: "<context url>"
+        description:
+          type: string
+        issuerDID:
+          type: string
+        recipientDID:
+          type: string
+        paymentOptionID:
+          type: string
+          format: uuid
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentRequestItem'
+        CreatedAt:
+          type: string
+          format: date-time
+
+    PaymentRequestItem:
+      type: object
+      required:
+        - id
+        - nonce
+        - paymentRequestID
+        - payment
+      properties:
+        id:
+          type: string
+          format: uuid
+        nonce:
+          type: string
+        paymentRequestID:
+          type: string
+          format: uuid
+        payment:
+          type: null
 
     TimeUTC:
       type: string

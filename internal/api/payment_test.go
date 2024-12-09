@@ -5,35 +5,38 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2/protocol"
-	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
 const paymentOptionConfigurationTesting = `
 {
   "Config": [
     {
-      "paymentOptionId": "1",
+      "paymentOptionId": 1,
       "amount": "500000000000000000",
-      "Recipient": "0x1..",
+      "Recipient": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
       "SigningKeyId": "pubId"
     },
     {
-      "paymentOptionId": "2",
+      "paymentOptionId": 2,
       "amount": "1500000000000000000",
-      "Recipient": "0x2..",
+      "Recipient": "0x53d284357ec70cE289D6D64134DfAc8E511c8a3D",
       "SigningKeyId": "pubId"
     }
   ]
@@ -168,9 +171,6 @@ func TestServer_GetPaymentOption(t *testing.T) {
 		BJJ        = "BJJ"
 	)
 
-	var config PaymentOptionConfig
-	var domainConfig domain.PaymentOptionConfig
-
 	ctx := context.Background()
 
 	server := newTestServer(t, nil)
@@ -184,10 +184,25 @@ func TestServer_GetPaymentOption(t *testing.T) {
 	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
 	require.NoError(t, err)
 
+	var config PaymentOptionConfig
 	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
-	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &domainConfig))
-
-	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "1 POL Payment", "Payment Option explanation", &domainConfig)
+	domainConfig := domain.PaymentOptionConfig{}
+	for _, item := range config.Config {
+		amount, ok := new(big.Int).SetString(item.Amount, 10)
+		require.True(t, ok)
+		domainConfig.Config = append(domainConfig.Config, domain.PaymentOptionConfigItem{
+			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionId),
+			Amount:          *amount,
+			Recipient:       common.HexToAddress(item.Recipient),
+			SigningKeyID:    item.SigningKeyId,
+		})
+	}
+	optionID, err := server.Services.payments.CreatePaymentOption(
+		ctx,
+		issuerDID,
+		"1 POL Payment",
+		"Payment Option explanation",
+		&domainConfig)
 	require.NoError(t, err)
 
 	type expected struct {
@@ -266,6 +281,7 @@ func TestServer_GetPaymentOption(t *testing.T) {
 				assert.Equal(t, tc.optionID, response.Id)
 				assert.Equal(t, tc.expected.option.Name, response.Name)
 				assert.Equal(t, tc.expected.option.Description, response.Description)
+				assert.Equal(t, tc.expected.option.IssuerDID, response.IssuerDID)
 				assert.Equal(t, tc.expected.option.Config, response.Config)
 
 			case http.StatusNotFound:
@@ -305,13 +321,11 @@ func TestServer_GetPaymentOptions(t *testing.T) {
 		_, err = server.Services.payments.CreatePaymentOption(ctx, issuerDID, fmt.Sprintf("Payment Option %d", i+1), "Payment Option explanation", &config)
 		require.NoError(t, err)
 	}
-
 	type expected struct {
 		httpCode int
 		msg      string
 		count    int
 	}
-
 	for _, tc := range []struct {
 		name      string
 		issuerDID w3c.DID
@@ -395,12 +409,10 @@ func TestServer_DeletePaymentOption(t *testing.T) {
 
 	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "1 POL Payment", "Payment Option explanation", &config)
 	require.NoError(t, err)
-
 	type expected struct {
 		httpCode int
 		msg      string
 	}
-
 	for _, tc := range []struct {
 		name      string
 		issuerDID w3c.DID
@@ -501,11 +513,12 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 	signingKeyID, err := keyStore.CreateKey(kms.KeyTypeEthereum, issuerDID)
 	require.NoError(t, err)
 
+	amount := new(big.Int).SetUint64(500000000000000000)
 	config := domain.PaymentOptionConfig{
 		Config: []domain.PaymentOptionConfigItem{
 			{
 				PaymentOptionID: 1,
-				Amount:          "333",
+				Amount:          *amount,
 				Recipient:       common.Address{},
 				SigningKeyID:    signingKeyID.ID,
 			},
@@ -514,13 +527,11 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 
 	paymentOptionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "Cinema ticket single", "Payment Option explanation", &config)
 	require.NoError(t, err)
-
 	type expected struct {
 		httpCode int
 		msg      string
-		count    int
+		resp     CreatePaymentRequestResponse
 	}
-
 	for _, tc := range []struct {
 		name      string
 		issuerDID w3c.DID
@@ -574,8 +585,9 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			auth:      authOk,
 			issuerDID: *issuerDID,
 			body: CreatePaymentRequestJSONRequestBody{
-				UserDID: receiverDID.String(),
-				Option:  paymentOptionID,
+				UserDID:     receiverDID.String(),
+				Option:      paymentOptionID,
+				Description: "Payment Request",
 				Credentials: []struct {
 					Context string `json:"context"`
 					Type    string `json:"type"`
@@ -588,7 +600,25 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: http.StatusCreated,
-				count:    10,
+				resp: CreatePaymentRequestResponse{
+					IssuerDID:    issuerDID.String(),
+					RecipientDID: receiverDID.String(),
+					Credentials: []struct {
+						Context string `json:"context"`
+						Type    string `json:"type"`
+					}{
+						{
+							Context: "context",
+							Type:    "type",
+						},
+					},
+					Description: "Payment Request",
+					Payments: []PaymentRequestItem{
+						{
+							Payment: protocol.Iden3PaymentRailsERC20RequestV1{},
+						},
+					},
+				},
 			},
 		},
 	} {
@@ -608,15 +638,19 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			case http.StatusCreated:
 				var response CreatePaymentRequest201JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				raw, err := json.Marshal(response)
-				require.NoError(t, err)
-
-				var requestMessage protocol.PaymentRequestMessage
-				require.NoError(t, json.Unmarshal(raw, &requestMessage))
-				assert.Equal(t, issuerDID.String(), requestMessage.From)
-				assert.Equal(t, receiverDID.String(), requestMessage.To)
-				assert.Len(t, requestMessage.Body.Payments, 4)
-
+				assert.NotEqual(t, uuid.Nil, response.Id)
+				assert.Equal(t, tc.expected.resp.IssuerDID, response.IssuerDID)
+				assert.Equal(t, tc.expected.resp.RecipientDID, response.RecipientDID)
+				assert.InDelta(t, time.Now().UnixMilli(), response.CreatedAt.UnixMilli(), 10)
+				assert.Equal(t, tc.expected.resp.Description, response.Description)
+				assert.Equal(t, tc.expected.resp.Credentials, response.Credentials)
+				assert.Equal(t, len(tc.expected.resp.Payments), len(response.Payments))
+				for i := range tc.expected.resp.Payments {
+					assert.NotEqual(t, big.Int{}, response.Payments[i].Nonce)
+					assert.NotEqual(t, uuid.Nil, response.Payments[i].PaymentRequestID)
+					assert.NotEqual(t, uuid.Nil, response.Payments[i].Id)
+					// TODO: Fix it assert.Equal(t, tc.expected.resp.Payments[i].Payment, response.Payments[i].Payment)
+				}
 			case http.StatusBadRequest:
 				var response CreatePaymentRequest400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))

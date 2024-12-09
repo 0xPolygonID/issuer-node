@@ -208,6 +208,7 @@ func DecodeETHPubKey(key []byte) (*ecdsa.PublicKey, error) {
 
 // EthPubKey returns the ethereum public key from the key manager service.
 // the public key is either uncompressed or compressed, so we need to handle both cases.
+// TODO: Move out of this package
 func EthPubKey(ctx context.Context, keyMS KMSType, keyID KeyID) (*ecdsa.PublicKey, error) {
 	const (
 		uncompressedKeyLength = 65

@@ -60,15 +60,16 @@ func NewAgentProposalRequest(basicMessage *comm.BasicMessage) (*protocol.Credent
 
 // CreatePaymentRequestReq is the request for PaymentService.CreatePaymentRequest
 type CreatePaymentRequestReq struct {
-	IssuerDID w3c.DID
-	UserDID   w3c.DID
-	OptionID  uuid.UUID
-	Creds     []protocol.PaymentRequestInfoCredentials
+	IssuerDID   w3c.DID
+	UserDID     w3c.DID
+	OptionID    uuid.UUID
+	Description string
+	Credentials []protocol.PaymentRequestInfoCredentials
 }
 
 // PaymentService is the interface implemented by the payment service
 type PaymentService interface {
-	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq, baseURL string) (*protocol.PaymentRequestMessage, error)
+	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq) (*domain.PaymentRequest, error)
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
 	GetSettings() payments.Config
 	VerifyPayment(ctx context.Context, paymentOptionID uuid.UUID, message *protocol.PaymentMessage) (bool, error)

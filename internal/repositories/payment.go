@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -33,8 +35,8 @@ func (p *payment) SavePaymentRequest(ctx context.Context, req *domain.PaymentReq
 	const (
 		insertPaymentRequest = `
 INSERT 
-INTO payment_requests (id, issuer_did, recipient_did, thread_id, payment_option_id, created_at)
-VALUES ($1, $2, $3, $4, $5, $6);`
+INTO payment_requests (id, credentials, description, issuer_did, recipient_did, payment_option_id, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7);`
 		insertPaymentRequestItem = `
 INSERT
 INTO payment_request_items (id, nonce, payment_request_id, payment_request_info)
@@ -47,7 +49,7 @@ VALUES ($1, $2, $3, $4);`
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	_, err = tx.Exec(ctx, insertPaymentRequest, req.ID, req.IssuerDID.String(), req.RecipientDID.String(), req.ThreadID, req.PaymentOptionID, req.CreatedAt)
+	_, err = tx.Exec(ctx, insertPaymentRequest, req.ID, req.Credentials, req.Description, req.IssuerDID.String(), req.RecipientDID.String(), req.PaymentOptionID, req.CreatedAt)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("could not insert payment request: %w", err)
 	}
@@ -66,7 +68,7 @@ VALUES ($1, $2, $3, $4);`
 // GetPaymentRequestByID returns a payment request by ID
 func (p *payment) GetPaymentRequestByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error) {
 	const query = `
-SELECT pr.id, pr.issuer_did, pr.recipient_did, pr.thread_id, pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info
+SELECT pr.id, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
 WHERE pr.issuer_did = $1 AND pr.id = $2;`
@@ -81,20 +83,26 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 		var strIssuerDID, strRecipientDID string
 		var sNonce string
 		var did *w3c.DID
+		var paymentRequestInfoBytes []byte
 		if err := rows.Scan(
 			&pr.ID,
 			&strIssuerDID,
 			&strRecipientDID,
-			&pr.ThreadID,
 			&pr.PaymentOptionID,
 			&pr.CreatedAt,
 			&item.ID,
 			&sNonce,
 			&item.PaymentRequestID,
-			&item.Payment,
+			&paymentRequestInfoBytes,
 		); err != nil {
 			return nil, fmt.Errorf("could not scan payment request: %w", err)
 		}
+
+		item.Payment, err = p.paymentRequestItem(paymentRequestInfoBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal payment request info: %w", err)
+		}
+
 		const base10 = 10
 		nonce, ok := new(big.Int).SetString(sNonce, base10)
 		if !ok {
@@ -228,4 +236,19 @@ func (p *payment) DeletePaymentOption(ctx context.Context, issuerDID w3c.DID, id
 		return ErrPaymentOptionDoesNotExists
 	}
 	return nil
+}
+
+// paymentRequestItem extracts the payment request item from the payload
+// It uses an intermediate structure of type protocol.PaymentRequestInfoData
+// to unmarshal the payment request info.
+// This is necessary because PaymentRequestInfoDataItem is an interface and the unmarshal fails
+func (p *payment) paymentRequestItem(payload []byte) (protocol.PaymentRequestInfoDataItem, error) {
+	var data protocol.PaymentRequestInfoData
+	if err := json.Unmarshal(payload, &data); err != nil {
+		return nil, fmt.Errorf("could not unmarshal payment request info: %w", err)
+	}
+	if len(data) == 0 {
+		return nil, errors.New("payment request info is empty")
+	}
+	return data[0], nil
 }

@@ -17,6 +17,7 @@ import (
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
@@ -287,8 +288,24 @@ type CreatePaymentRequest struct {
 		Context string `json:"context"`
 		Type    string `json:"type"`
 	} `json:"credentials"`
-	Option  uuid.UUID `json:"option"`
-	UserDID string    `json:"userDID"`
+	Description string    `json:"description"`
+	Option      uuid.UUID `json:"option"`
+	UserDID     string    `json:"userDID"`
+}
+
+// CreatePaymentRequestResponse defines model for CreatePaymentRequestResponse.
+type CreatePaymentRequestResponse struct {
+	CreatedAt   time.Time `json:"CreatedAt"`
+	Credentials []struct {
+		Context string `json:"context"`
+		Type    string `json:"type"`
+	} `json:"credentials"`
+	Description     string               `json:"description"`
+	Id              openapi_types.UUID   `json:"id"`
+	IssuerDID       string               `json:"issuerDID"`
+	PaymentOptionID openapi_types.UUID   `json:"paymentOptionID"`
+	Payments        []PaymentRequestItem `json:"payments"`
+	RecipientDID    string               `json:"recipientDID"`
 }
 
 // Credential defines model for Credential.
@@ -513,6 +530,14 @@ type PaymentOptions = []PaymentOption
 type PaymentOptionsPaginated struct {
 	Items PaymentOptions    `json:"items"`
 	Meta  PaginatedMetadata `json:"meta"`
+}
+
+// PaymentRequestItem defines model for PaymentRequestItem.
+type PaymentRequestItem struct {
+	Id               openapi_types.UUID `json:"id"`
+	Nonce            string             `json:"nonce"`
+	Payment          interface{}        `json:"payment"`
+	PaymentRequestID openapi_types.UUID `json:"paymentRequestID"`
 }
 
 // PaymentStatus defines model for PaymentStatus.
@@ -4561,7 +4586,7 @@ type CreatePaymentRequestResponseObject interface {
 	VisitCreatePaymentRequestResponse(w http.ResponseWriter) error
 }
 
-type CreatePaymentRequest201JSONResponse BasicMessage
+type CreatePaymentRequest201JSONResponse CreatePaymentRequestResponse
 
 func (response CreatePaymentRequest201JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

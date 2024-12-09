@@ -287,7 +287,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	paymentSettings, err := payments.SettingsFromReader(common.NewMyYAMLReader([]byte(`
 80002:
   PaymentRails: 0xF8E49b922D5Fb00d3EdD12bd14064f275726D339
-  PaymentOption: 
+  PaymentOptions: 
     - ID: 1
       Name: AmoyNative
       Type: Iden3PaymentRailsRequestV1
@@ -304,7 +304,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
         - EIP-2612
 59141:
   PaymentRails: 0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3
-  PaymentOption: 
+  PaymentOptions: 
     - ID: 4
       Name: LineaSepoliaNative
       Type: Iden3PaymentRailsRequestV1
@@ -321,7 +321,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
         - EIP-2612
 2442:
   PaymentRails: 0x09c269e74d8B47c98537Acd6CbEe8056806F4c70
-  PaymentOption: 
+  PaymentOptions: 
     - ID: 7
       Name: ZkEvmNative
       Type: Iden3PaymentRailsRequestV1

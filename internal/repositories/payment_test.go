@@ -198,7 +198,8 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 			ID:              uuid.New(),
 			IssuerDID:       *issuerID,
 			RecipientDID:    *issuerID,
-			ThreadID:        "thread-id",
+			Description:     "this is a payment for cinema",
+			Credentials:     []protocol.PaymentRequestInfoCredentials{{Context: "context", Type: "type"}},
 			PaymentOptionID: uuid.New(),
 			Payments:        []domain.PaymentRequestItem{},
 			CreatedAt:       time.Now(),
@@ -211,7 +212,8 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 			ID:              uuid.New(),
 			IssuerDID:       *issuerID,
 			RecipientDID:    *issuerID,
-			ThreadID:        "thread-id",
+			Description:     "this is a payment for cinema",
+			Credentials:     []protocol.PaymentRequestInfoCredentials{{Context: "context", Type: "type"}},
 			PaymentOptionID: payymentOptionID,
 			Payments:        nil,
 			CreatedAt:       time.Now(),
@@ -228,25 +230,23 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 				ID:               uuid.New(),
 				Nonce:            *nonce,
 				PaymentRequestID: paymentRequestID,
-				Payment: protocol.NewPaymentRails(protocol.Iden3PaymentRailsV1{
-					Nonce:   nonce.String(),
-					Type:    "Iden3PaymentRailsV1",
-					Context: protocol.NewPaymentContextString("https://schema.iden3.io/core/jsonld/payment.jsonld"),
-					PaymentData: struct {
-						TxID    string `json:"txId"`
-						ChainID string `json:"chainId"`
-					}{
-						TxID:    "0x123",
-						ChainID: "137",
-					},
-				}),
-			})
+				Payment: protocol.Iden3PaymentRailsERC20RequestV1{
+					Nonce:     "123",
+					Type:      protocol.Iden3PaymentRailsERC20RequestV1Type,
+					Context:   protocol.NewPaymentContextString("https://schema.iden3.io/core/jsonld/payment.jsonld"),
+					Recipient: "did1",
+					Amount:    "11",
+					// etc...
+				},
+			},
+			)
 		}
 		id, err := repo.SavePaymentRequest(ctx, &domain.PaymentRequest{
 			ID:              paymentRequestID,
 			IssuerDID:       *issuerID,
 			RecipientDID:    *issuerID,
-			ThreadID:        "thread-id",
+			Description:     "this is a payment for cinema",
+			Credentials:     []protocol.PaymentRequestInfoCredentials{{Context: "context", Type: "type"}},
 			PaymentOptionID: payymentOptionID,
 			Payments:        payments,
 			CreatedAt:       time.Now(),
@@ -275,7 +275,6 @@ func TestPayment_GetPaymentRequestByID(t *testing.T) {
 		assert.Equal(t, expected.ID, paymentRequest.ID)
 		assert.Equal(t, expected.IssuerDID, paymentRequest.IssuerDID)
 		assert.Equal(t, expected.RecipientDID, paymentRequest.RecipientDID)
-		assert.Equal(t, expected.ThreadID, paymentRequest.ThreadID)
 		assert.Equal(t, expected.PaymentOptionID, paymentRequest.PaymentOptionID)
 		assert.InDelta(t, expected.CreatedAt.UnixMilli(), paymentRequest.CreatedAt.UnixMilli(), 1)
 		assert.Len(t, expected.Payments, len(paymentRequest.Payments))
