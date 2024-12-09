@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -851,7 +852,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 }
 
 func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.IdentityMerkleTrees, key *kms.KeyID, didOptions *ports.DIDCreationOptions, tx db.Querier) (*domain.Identity, *w3c.DID, error) {
-	pubKey, err := kms.EthPubKey(ctx, i.kms, *key)
+	pubKey, err := ethPubKey(ctx, i.kms, *key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1256,4 +1257,41 @@ func newDIDDocument(serverURL string, issuerDID w3c.DID) verifiable.DIDDocument 
 func sanitizeIssuerDoc(issDoc []byte) []byte {
 	str := strings.Replace(string(issDoc), "\\u0000", "", -1)
 	return []byte(str)
+}
+
+// EthPubKey returns the ethereum public key from the key manager service.
+// the public key is either uncompressed or compressed, so we need to handle both cases.
+func ethPubKey(ctx context.Context, keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
+	const (
+		uncompressedKeyLength = 65
+		awsKeyLength          = 88
+		defaultKeyLength      = 33
+	)
+
+	if keyID.Type != kms.KeyTypeEthereum {
+		return nil, errors.New("key type is not ethereum")
+	}
+
+	keyBytes, err := keyMS.PublicKey(keyID)
+	if err != nil {
+		log.Error(ctx, "can't get bytes from public key", "err", err)
+		return nil, err
+	}
+
+	// public key is uncompressed. It's 65 bytes long.
+	if len(keyBytes) == uncompressedKeyLength {
+		return crypto.UnmarshalPubkey(keyBytes)
+	}
+
+	// public key is AWS format. It's 88 bytes long.
+	if len(keyBytes) == awsKeyLength {
+		return kms.DecodeAWSETHPubKey(ctx, keyBytes)
+	}
+
+	// public key is compressed. It's 33 bytes long.
+	if len(keyBytes) == defaultKeyLength {
+		return kms.DecodeETHPubKey(keyBytes)
+	}
+
+	return nil, errors.New("unsupported public key format")
 }
