@@ -322,7 +322,7 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 		return nil, err
 	}
 
-	signerAddress, err := p.getAddress(kms.KeyID{
+	signerAddress, err := p.getAddress(ctx, kms.KeyID{
 		Type: kms.KeyTypeEthereum,
 		ID:   chainConfig.SigningKeyID,
 	})
@@ -502,7 +502,7 @@ func (p *payment) paymentRequestSignature(
 	return signature, nil
 }
 
-func (p *payment) getAddress(k kms.KeyID) (common.Address, error) {
+func (p *payment) getAddress(ctx context.Context, k kms.KeyID) (common.Address, error) {
 	if p.kms == nil {
 		return common.Address{}, errors.Join(errors.New("the signer is read-only"))
 	}
@@ -515,7 +515,7 @@ func (p *payment) getAddress(k kms.KeyID) (common.Address, error) {
 	case eth.CompressedPublicKeyLength:
 		pubKey, err = crypto.DecompressPubkey(bytesPubKey)
 	case eth.AwsKmsPublicKeyLength:
-		pubKey, err = kms.DecodeAWSETHPubKey(context.Background(), bytesPubKey)
+		pubKey, err = kms.DecodeAWSETHPubKey(ctx, bytesPubKey)
 		if err != nil {
 			return common.Address{}, err
 		}
