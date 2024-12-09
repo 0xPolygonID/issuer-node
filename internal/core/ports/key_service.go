@@ -9,7 +9,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
-// ErrInvalidKeyType is returned when the key type is invalid
 var (
 	// ErrInvalidKeyType is returned when the key type is invalid
 	ErrInvalidKeyType = errors.New("invalid key type")
@@ -27,10 +26,16 @@ type KMSKey struct {
 	HasAssociatedAuthCoreClaim bool
 }
 
+// KeyFilter is the filter to use when getting keys
+type KeyFilter struct {
+	MaxResults uint // Max number of results to return on each call.
+	Page       uint // Page number to return. First is 1.
+}
+
 // KeyService is the service that manages keys
 type KeyService interface {
 	CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType) (kms.KeyID, error)
 	Get(ctx context.Context, did *w3c.DID, keyID string) (*KMSKey, error)
-	GetAll(ctx context.Context, did *w3c.DID) ([]*KMSKey, error)
+	GetAll(ctx context.Context, did *w3c.DID, filter KeyFilter) ([]*KMSKey, uint, error)
 	Delete(ctx context.Context, did *w3c.DID, keyID string) error
 }

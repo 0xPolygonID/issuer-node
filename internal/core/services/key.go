@@ -101,23 +101,37 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 }
 
 // GetAll returns all the keys for the given DID
-func (ks *Key) GetAll(ctx context.Context, did *w3c.DID) ([]*ports.KMSKey, error) {
+func (ks *Key) GetAll(ctx context.Context, did *w3c.DID, filter ports.KeyFilter) ([]*ports.KMSKey, uint, error) {
 	keyIDs, err := ks.kms.KeysByIdentity(ctx, *did)
 	if err != nil {
 		log.Error(ctx, "failed to get keys", "err", err)
-		return nil, err
+		return nil, 0, err
 	}
 
+	total := uint(len(keyIDs))
+
+	start := (int(filter.Page) - 1) * int(filter.MaxResults)
+	end := start + int(filter.MaxResults)
+
+	if start >= len(keyIDs) {
+		return []*ports.KMSKey{}, 0, nil
+	}
+
+	if end > len(keyIDs) {
+		end = len(keyIDs)
+	}
+
+	keyIDs = keyIDs[start:end]
 	keys := make([]*ports.KMSKey, len(keyIDs))
 	for i, keyID := range keyIDs {
 		key, err := ks.Get(ctx, did, keyID.ID)
 		if err != nil {
 			log.Error(ctx, "failed to get key", "err", err)
-			return nil, err
+			return nil, 0, err
 		}
 		keys[i] = key
 	}
-	return keys, nil
+	return keys, total, nil
 }
 
 // Delete deletes the key with the given keyID

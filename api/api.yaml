@@ -1385,15 +1385,29 @@ paths:
         - Key Management
       parameters:
         - $ref: '#/components/parameters/pathIdentifier2'
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, page 1 will be returned.
       responses:
         '200':
           description: Keys collection
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Key'
+                $ref: '#/components/schemas/KeysPaginated'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -2444,6 +2458,18 @@ components:
           type: boolean
           x-omitempty: false
           example: true
+
+    KeysPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Key'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
 
   parameters:
     credentialStatusType:

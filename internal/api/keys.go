@@ -84,7 +84,29 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 
 // GetKeys is the handler for the GET /keys endpoint.
 func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (GetKeysResponseObject, error) {
-	keys, err := s.keyService.GetAll(ctx, request.Identifier.did())
+	const (
+		defaultMaxResults = 50
+		defaultPage       = 1
+		minimumMaxResults = 10
+	)
+	filter := ports.KeyFilter{
+		MaxResults: defaultMaxResults,
+		Page:       defaultPage,
+	}
+
+	if request.Params.MaxResults != nil {
+		if *request.Params.MaxResults < minimumMaxResults {
+			filter.MaxResults = minimumMaxResults
+		} else {
+			filter.MaxResults = *request.Params.MaxResults
+		}
+	}
+
+	if request.Params.Page != nil {
+		filter.Page = *request.Params.Page
+	}
+
+	keys, total, err := s.keyService.GetAll(ctx, request.Identifier.did(), filter)
 	if err != nil {
 		log.Error(ctx, "getting keys", "err", err)
 		return GetKeys500JSONResponse{
@@ -94,18 +116,24 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 		}, nil
 	}
 
-	keysResponse := make(GetKeys200JSONResponse, 0)
-
+	items := make([]Key, 0)
 	for _, key := range keys {
 		encodedKeyID := b64.StdEncoding.EncodeToString([]byte(key.KeyID))
-		keysResponse = append(keysResponse, Key{
+		items = append(items, Key{
 			Id:              encodedKeyID,
 			KeyType:         KeyKeyType(key.KeyType),
 			PublicKey:       key.PublicKey,
 			IsAuthCoreClaim: key.HasAssociatedAuthCoreClaim,
 		})
 	}
-	return keysResponse, nil
+	return GetKeys200JSONResponse{
+		Items: items,
+		Meta: PaginatedMetadata{
+			Page:       filter.Page,
+			MaxResults: filter.MaxResults,
+			Total:      total,
+		},
+	}, nil
 }
 
 // DeleteKey is the handler for the DELETE /keys/{keyID} endpoint.

@@ -439,6 +439,12 @@ type Key struct {
 // KeyKeyType defines model for Key.KeyType.
 type KeyKeyType string
 
+// KeysPaginated defines model for KeysPaginated.
+type KeysPaginated struct {
+	Items []Key             `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
+}
+
 // Link defines model for Link.
 type Link struct {
 	Active               bool              `json:"active"`
@@ -761,6 +767,15 @@ type GetCredentialOfferParams struct {
 // GetCredentialOfferParamsType defines parameters for GetCredentialOffer.
 type GetCredentialOfferParamsType string
 
+// GetKeysParams defines parameters for GetKeys.
+type GetKeysParams struct {
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
+
+	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+}
+
 // GetSchemasParams defines parameters for GetSchemas.
 type GetSchemasParams struct {
 	// Query Query string to do full text search in schema types and attributes.
@@ -938,7 +953,7 @@ type ServerInterface interface {
 	GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams)
 	// Get Keys
 	// (GET /v2/identities/{identifier}/keys)
-	GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
+	GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, params GetKeysParams)
 	// Create a Key
 	// (POST /v2/identities/{identifier}/keys)
 	CreateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
@@ -1172,7 +1187,7 @@ func (_ Unimplemented) GetCredentialOffer(w http.ResponseWriter, r *http.Request
 
 // Get Keys
 // (GET /v2/identities/{identifier}/keys)
-func (_ Unimplemented) GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+func (_ Unimplemented) GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, params GetKeysParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2437,8 +2452,27 @@ func (siw *ServerInterfaceWrapper) GetKeys(w http.ResponseWriter, r *http.Reques
 
 	r = r.WithContext(ctx)
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetKeysParams
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetKeys(w, r, identifier)
+		siw.Handler.GetKeys(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4491,13 +4525,14 @@ func (response GetCredentialOffer500JSONResponse) VisitGetCredentialOfferRespons
 
 type GetKeysRequestObject struct {
 	Identifier PathIdentifier2 `json:"identifier"`
+	Params     GetKeysParams
 }
 
 type GetKeysResponseObject interface {
 	VisitGetKeysResponse(w http.ResponseWriter) error
 }
 
-type GetKeys200JSONResponse []Key
+type GetKeys200JSONResponse KeysPaginated
 
 func (response GetKeys200JSONResponse) VisitGetKeysResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -6169,10 +6204,11 @@ func (sh *strictHandler) GetCredentialOffer(w http.ResponseWriter, r *http.Reque
 }
 
 // GetKeys operation middleware
-func (sh *strictHandler) GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+func (sh *strictHandler) GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, params GetKeysParams) {
 	var request GetKeysRequestObject
 
 	request.Identifier = identifier
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetKeys(ctx, request.(GetKeysRequestObject))
