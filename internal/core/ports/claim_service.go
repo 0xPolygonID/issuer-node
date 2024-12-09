@@ -186,10 +186,6 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 		return nil, fmt.Errorf("invalid type")
 	}
 
-	if basicMessage.ID == "" {
-		return nil, fmt.Errorf("'id' field cannot be empty")
-	}
-
 	return &AgentRequest{
 		Body:      basicMessage.Body,
 		UserDID:   fromDID,

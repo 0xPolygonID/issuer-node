@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
@@ -278,5 +279,87 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 		return "published"
 	default:
 		return "failed"
+	}
+}
+
+func toGetPaymentOptionsResponse(opts []domain.PaymentOption) (PaymentOptions, error) {
+	var err error
+	res := make([]PaymentOption, len(opts))
+	for i, opt := range opts {
+		res[i], err = toPaymentOption(&opt)
+		if err != nil {
+			return PaymentOptions{}, err
+		}
+	}
+	return res, nil
+}
+
+func toPaymentOption(opt *domain.PaymentOption) (PaymentOption, error) {
+	var config map[string]interface{}
+	raw, err := json.Marshal(opt.Config)
+	if err != nil {
+		return PaymentOption{}, err
+	}
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return PaymentOption{}, err
+	}
+	return PaymentOption{
+		Id:          opt.ID,
+		IssuerDID:   opt.IssuerDID.String(),
+		Name:        opt.Name,
+		Description: opt.Description,
+		Config:      toPaymentOptionConfig(opt.Config),
+		CreatedAt:   TimeUTC(opt.CreatedAt),
+		ModifiedAt:  TimeUTC(opt.UpdatedAt),
+	}, nil
+}
+
+func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfig {
+	cfg := PaymentOptionConfig{
+		Config: make([]PaymentOptionConfigItem, len(config.Config)),
+	}
+	for i, item := range config.Config {
+		cfg.Config[i] = PaymentOptionConfigItem{
+			PaymentOptionId: int(item.PaymentOptionID),
+			Amount:          item.Amount.String(),
+			Recipient:       item.Recipient.String(),
+			SigningKeyId:    item.SigningKeyID,
+		}
+	}
+	return cfg
+}
+
+func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePaymentRequestResponse {
+	creds := make([]struct {
+		Context string `json:"context"`
+		Type    string `json:"type"`
+	}, len(payReq.Credentials))
+	for i, cred := range payReq.Credentials {
+		creds[i] = struct {
+			Context string `json:"context"`
+			Type    string `json:"type"`
+		}{
+			Context: cred.Context,
+			Type:    cred.Type,
+		}
+	}
+	payments := make([]PaymentRequestItem, len(payReq.Payments))
+	for i, payment := range payReq.Payments {
+		payments[i] = PaymentRequestItem{
+			Id:               payment.ID,
+			Nonce:            payment.Nonce.String(),
+			PaymentRequestID: payment.PaymentRequestID,
+			Payment:          payment.Payment,
+		}
+	}
+	return CreatePaymentRequestResponse{
+		CreatedAt:       payReq.CreatedAt,
+		Credentials:     creds,
+		Description:     payReq.Description,
+		Id:              payReq.ID,
+		IssuerDID:       payReq.IssuerDID.String(),
+		RecipientDID:    payReq.RecipientDID.String(),
+		PaymentOptionID: payReq.PaymentOptionID,
+		Payments:        payments,
 	}
 }

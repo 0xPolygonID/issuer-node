@@ -141,6 +141,7 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "123HHUBUuO5", cfg.KeyStore.AWSSecretKey)
 	assert.Equal(t, "eu-west-1", cfg.KeyStore.AWSRegion)
 	assert.Equal(t, "./resolvers_settings.yaml", cfg.NetworkResolverPath)
+	assert.Equal(t, "./payment_settings.yaml", cfg.Payments.SettingsPath)
 	assert.Equal(t, "hvs.NK8jrOU4XNY", cfg.KeyStore.Token)
 	assert.Equal(t, "123", *cfg.NetworkResolverFile)
 	assert.Equal(t, "./pkg/credentials/circuits", cfg.Circuit.Path)
