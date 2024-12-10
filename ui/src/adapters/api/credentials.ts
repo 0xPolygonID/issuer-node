@@ -19,7 +19,8 @@ import {
 } from "src/adapters/parsers";
 import {
   Credential,
-  DisplayMethod,
+  CredentialDisplayMethod,
+  DisplayMethodType,
   Env,
   IssuedMessage,
   Json,
@@ -43,7 +44,7 @@ type CredentialInput = Pick<Credential, "id" | "revoked" | "schemaHash"> & {
       revocationNonce: number;
     } & Record<string, unknown>;
     credentialSubject: Record<string, unknown>;
-    displayMethod?: DisplayMethod | null;
+    displayMethod?: CredentialDisplayMethod | null;
     expirationDate?: string | null;
     issuanceDate: string;
     issuer: string;
@@ -72,7 +73,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
           .and(z.record(z.unknown())),
         credentialSubject: z.record(z.unknown()),
         displayMethod: z
-          .object({ id: z.string(), type: z.literal("Iden3BasicDisplayMethodv2") })
+          .object({ id: z.string(), type: z.nativeEnum(DisplayMethodType) })
           .nullable()
           .default(null),
         expirationDate: datetimeParser.nullable().default(null),
@@ -204,7 +205,7 @@ export async function getCredentials({
 export type CreateCredential = {
   credentialSchema: string;
   credentialSubject: Json;
-  displayMethod: DisplayMethod | null;
+  displayMethod: CredentialDisplayMethod | null;
   expiration: number | null;
   proofs: ProofType[];
   refreshService: RefreshService | null;
@@ -290,11 +291,21 @@ export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
-type LinkInput = Omit<Link, "proofTypes" | "createdAt" | "credentialExpiration" | "expiration"> & {
+type LinkInput = Omit<
+  Link,
+  | "proofTypes"
+  | "createdAt"
+  | "credentialExpiration"
+  | "expiration"
+  | "displayMethod"
+  | "refreshService"
+> & {
   createdAt: string;
   credentialExpiration: string | null;
+  displayMethod?: CredentialDisplayMethod | null;
   expiration: string | null;
   proofTypes: ProofType[];
+  refreshService?: RefreshService | null;
 };
 
 const linkParser = getStrictParser<LinkInput, Link>()(
@@ -304,11 +315,19 @@ const linkParser = getStrictParser<LinkInput, Link>()(
     credentialExpiration: datetimeParser.nullable(),
     credentialSubject: z.record(z.unknown()),
     deepLink: z.string(),
+    displayMethod: z
+      .object({ id: z.string(), type: z.nativeEnum(DisplayMethodType) })
+      .nullable()
+      .default(null),
     expiration: datetimeParser.nullable(),
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().nullable(),
     proofTypes: z.array(z.nativeEnum(ProofType)),
+    refreshService: z
+      .object({ id: z.string(), type: z.literal("Iden3RefreshService2023") })
+      .nullable()
+      .default(null),
     schemaHash: z.string(),
     schemaType: z.string(),
     schemaUrl: z.string(),
@@ -441,7 +460,7 @@ export async function deleteLink({
 export type CreateLink = {
   credentialExpiration: string | null;
   credentialSubject: Json;
-  displayMethod: DisplayMethod | null;
+  displayMethod: CredentialDisplayMethod | null;
   expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;

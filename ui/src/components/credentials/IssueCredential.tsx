@@ -36,7 +36,7 @@ const defaultCredentialFormInput: CredentialFormInput = {
     type: "directIssue",
   },
   issueCredential: {
-    displayMethod: { enabled: false, url: "" },
+    displayMethod: { enabled: false, type: "", url: "" },
     proofTypes: [ProofType.BJJSignature2021],
     refreshService: { enabled: false, url: "" },
   },
@@ -231,6 +231,7 @@ export function IssueCredential() {
               <Card className="issue-credential-card" title="Credential details">
                 <Space direction="vertical">
                   <IssueCredentialForm
+                    did={did}
                     initialValues={credentialFormInput.issueCredential}
                     isLoading={isLoading}
                     onBack={() => {

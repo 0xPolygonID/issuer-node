@@ -10,6 +10,7 @@ import {
   Attribute,
   AttributeValue,
   CredentialStatusType,
+  DisplayMethodType,
   IdentityType,
   Json,
   JsonLiteral,
@@ -27,7 +28,7 @@ type FormLiteralInput = FormLiteral | dayjs.Dayjs;
 type FormInput = { [key: string]: FormLiteralInput | FormInput };
 
 type CredentialIssuance = {
-  credentialDisplayMethod: string | undefined;
+  credentialDisplayMethod: { type: DisplayMethodType; url: string } | undefined;
   credentialExpiration: Date | undefined;
   credentialRefreshService: string | undefined;
   credentialSubject: Record<string, unknown> | undefined;
@@ -197,7 +198,7 @@ export const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormDa
 export type IssueCredentialFormData = {
   credentialExpiration?: dayjs.Dayjs | null;
   credentialSubject?: Record<string, unknown>;
-  displayMethod: { enabled: boolean; url: string };
+  displayMethod: { enabled: boolean; type: DisplayMethodType | ""; url: string };
   proofTypes: ProofType[];
   refreshService: { enabled: boolean; url: string };
   schemaID?: string;
@@ -209,6 +210,7 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     credentialSubject: z.record(z.unknown()).optional(),
     displayMethod: z.object({
       enabled: z.boolean(),
+      type: z.union([z.nativeEnum(DisplayMethodType), z.literal("")]),
       url: z.union([z.string().url(), z.literal("")]),
     }),
     proofTypes: z.array(z.nativeEnum(ProofType)).min(1, "At least one proof type is required"),
@@ -240,7 +242,10 @@ export const credentialFormParser = getStrictParser<
       const { type } = issuanceMethod;
 
       const baseIssuance = {
-        credentialDisplayMethod: displayMethod.enabled ? displayMethod.url : undefined,
+        credentialDisplayMethod:
+          displayMethod.enabled && displayMethod.type !== ""
+            ? { type: displayMethod.type, url: displayMethod.url }
+            : undefined,
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
         credentialRefreshService: refreshService.enabled ? refreshService.url : undefined,
         credentialSubject,
@@ -420,8 +425,8 @@ export function serializeCredentialLinkIssuance({
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         displayMethod: credentialDisplayMethod
           ? {
-              id: credentialDisplayMethod,
-              type: "Iden3BasicDisplayMethodv2",
+              id: credentialDisplayMethod.url,
+              type: credentialDisplayMethod.type,
             }
           : null,
         expiration: linkAccessibleUntil ? serializeDate(linkAccessibleUntil, "date-time") : null,
@@ -476,8 +481,8 @@ export function serializeCredentialIssuance({
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         displayMethod: credentialDisplayMethod
           ? {
-              id: credentialDisplayMethod,
-              type: "Iden3BasicDisplayMethodv2",
+              id: credentialDisplayMethod.url,
+              type: credentialDisplayMethod.type,
             }
           : null,
         expiration: credentialExpiration ? dayjs(credentialExpiration).unix() : null,
