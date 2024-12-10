@@ -1443,28 +1443,32 @@ paths:
           $ref: '#/components/responses/500'
 
 
-  /v2/payment/verify/{paymentOptionID}:
+  /v2/identities/{identifier}/payment/verify/{nonce}:
     post:
       summary: Verify Payment
       operationId: VerifyPayment
-      description: Verify a payment.
+      description: Verify a payment by nonce.
       tags:
         - Payment
       security:
         - basicAuth: [ ]
       parameters:
-        - name: paymentOptionID
+        - name: identifier
           schema:
             type: string
-            x-go-type: uuid.UUID
           required: true
           in: path
+        - name: nonce
+          schema:
+            type: string
+          in: path
+          required: true
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PaymentMessage'
+              $ref: '#/components/schemas/PaymentVerifyRequest'
       responses:
         '200':
           description: Payment verified
@@ -2145,15 +2149,14 @@ components:
                 value:
                   type: string
 
-    PaymentMessage:
+    PaymentVerifyRequest:
       type: object
-      x-go-type: protocol.PaymentMessage
-      x-go-type-import:
-        name: protocol
-        path: "github.com/iden3/iden3comm/v2/protocol"
-      description: |
-        // protocol.PaymentMessage
-        // https://iden3-communication.io/credentials/0.1/payment/
+      required:
+        - txHash
+      properties:
+        txHash:
+          type: string
+          example: "0x8f271174b45ba7892d83..."
 
     BasicMessage:
       type: object

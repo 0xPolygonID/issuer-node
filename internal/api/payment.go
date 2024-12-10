@@ -156,7 +156,18 @@ func (s *Server) GetPaymentSettings(_ context.Context, _ GetPaymentSettingsReque
 
 // VerifyPayment is the controller to verify payment
 func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error) {
-	isPaid, err := s.paymentService.VerifyPayment(ctx, request.PaymentOptionID, request.Body)
+	const base10 = 10
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return VerifyPayment400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	nonce, ok := new(big.Int).SetString(request.Nonce, base10)
+	if !ok {
+		log.Error(ctx, "parsing nonce on verify payment", "err", err, "nonce", request.Nonce)
+		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid nonce: <%s>", request.Nonce)}}, nil
+	}
+	isPaid, err := s.paymentService.VerifyPayment(ctx, *issuerDID, nonce, request.Body.TxHash)
 	if err != nil {
 		log.Error(ctx, "can't process payment message", "err", err)
 		return VerifyPayment400JSONResponse{N400JSONResponse{Message: "can't process payment message"}}, nil

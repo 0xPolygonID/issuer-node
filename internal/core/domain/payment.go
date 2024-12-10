@@ -29,6 +29,7 @@ type PaymentRequestItem struct {
 	ID               uuid.UUID
 	Nonce            big.Int
 	PaymentRequestID uuid.UUID
+	PaymentOptionID  payments.OptionConfigIDType // The numeric id that identify a payment option in payments config file.
 	Payment          protocol.PaymentRequestInfoDataItem
 }
 

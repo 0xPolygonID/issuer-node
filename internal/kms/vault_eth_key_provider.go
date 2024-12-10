@@ -101,8 +101,13 @@ func (v *vaultETHKeyProvider) Sign(_ context.Context, keyID KeyID, data []byte) 
 	}
 
 	sig, err := crypto.Sign(data, privKey)
-	sig[64] += 27
-	return sig, errors.WithStack(err)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if len(sig) > 65 { // nolint:mnd  // Checking for safe signature length
+		sig[64] += 27
+	}
+	return sig, nil
 }
 
 func (v *vaultETHKeyProvider) ListByIdentity(_ context.Context, identity w3c.DID) ([]KeyID, error) {

@@ -238,6 +238,7 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 					Amount:    "11",
 					// etc...
 				},
+				PaymentOptionID: 6,
 			},
 			)
 		}
@@ -283,6 +284,7 @@ func TestPayment_GetPaymentRequestByID(t *testing.T) {
 			assert.Equal(t, expectedPayment.Nonce, paymentRequest.Payments[i].Nonce)
 			assert.Equal(t, expectedPayment.PaymentRequestID, paymentRequest.Payments[i].PaymentRequestID)
 			assert.Equal(t, expectedPayment.Payment, paymentRequest.Payments[i].Payment)
+			assert.NotZero(t, paymentRequest.Payments[i].PaymentOptionID)
 		}
 	})
 }

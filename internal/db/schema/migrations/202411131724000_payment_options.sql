@@ -32,6 +32,7 @@ CREATE TABLE payment_request_items
     id                   UUID PRIMARY KEY NOT NULL,
     nonce                numeric          NOT NULL,
     payment_request_id   UUID             NOT NULL REFERENCES payment_requests (id),
+    payment_option_id    int              NOT NULL,
     payment_request_info jsonb            NOT NULL /* protocol.PaymentRequestInfo */
 );
 

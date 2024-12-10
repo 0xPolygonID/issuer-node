@@ -14,20 +14,22 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
 // CreatePaymentRequest creates a new payment request fixture to be used on tests
 func (f *Fixture) CreatePaymentRequest(t *testing.T, issuerDID, recipientDID w3c.DID, paymentOptionID uuid.UUID, nPayments int) *domain.PaymentRequest {
 	t.Helper()
 
-	var payments []domain.PaymentRequestItem
+	var paymentList []domain.PaymentRequestItem
 	paymentRequestID := uuid.New()
 	for i := 0; i < nPayments; i++ {
 		nonce := big.NewInt(rand.Int63())
-		payments = append(payments, domain.PaymentRequestItem{
+		paymentList = append(paymentList, domain.PaymentRequestItem{
 			ID:               uuid.New(),
 			Nonce:            *nonce,
 			PaymentRequestID: paymentRequestID,
+			PaymentOptionID:  payments.OptionConfigIDType(i + 1),
 			Payment: protocol.Iden3PaymentRailsRequestV1{
 				Nonce: "25",
 				Type:  protocol.Iden3PaymentRailsRequestV1Type,
@@ -66,7 +68,7 @@ func (f *Fixture) CreatePaymentRequest(t *testing.T, issuerDID, recipientDID w3c
 		IssuerDID:       issuerDID,
 		RecipientDID:    recipientDID,
 		PaymentOptionID: paymentOptionID,
-		Payments:        payments,
+		Payments:        paymentList,
 		CreatedAt:       time.Now(),
 	}
 

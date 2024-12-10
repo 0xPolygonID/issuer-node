@@ -101,8 +101,13 @@ func (ls *localStorageEthKeyProvider) Sign(ctx context.Context, keyID KeyID, dat
 	}
 
 	sig, err := crypto.Sign(data, privKey)
-	sig[64] += 27
-	return sig, err
+	if err != nil {
+		return nil, err
+	}
+	if len(sig) > 65 { // nolint:mnd  // Checking for safe signature length
+		sig[64] += 27
+	}
+	return sig, nil
 }
 
 func (ls *localStorageEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {

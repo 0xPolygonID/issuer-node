@@ -488,10 +488,6 @@ type PaginatedMetadata struct {
 	Total      uint `json:"total"`
 }
 
-// PaymentMessage // protocol.PaymentMessage
-// // https://iden3-communication.io/credentials/0.1/payment/
-type PaymentMessage = protocol.PaymentMessage
-
 // PaymentOption defines model for PaymentOption.
 type PaymentOption struct {
 	Config      PaymentOptionConfig `json:"config"`
@@ -547,6 +543,11 @@ type PaymentStatus struct {
 
 // PaymentStatusStatus defines model for PaymentStatus.Status.
 type PaymentStatusStatus string
+
+// PaymentVerifyRequest defines model for PaymentVerifyRequest.
+type PaymentVerifyRequest struct {
+	TxHash string `json:"txHash"`
+}
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {
@@ -887,11 +888,11 @@ type CreatePaymentRequestJSONRequestBody = CreatePaymentRequest
 // CreatePaymentOptionJSONRequestBody defines body for CreatePaymentOption for application/json ContentType.
 type CreatePaymentOptionJSONRequestBody = PaymentOptionRequest
 
+// VerifyPaymentJSONRequestBody defines body for VerifyPayment for application/json ContentType.
+type VerifyPaymentJSONRequestBody = PaymentVerifyRequest
+
 // ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
-
-// VerifyPaymentJSONRequestBody defines body for VerifyPayment for application/json ContentType.
-type VerifyPaymentJSONRequestBody = PaymentMessage
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1000,6 +1001,9 @@ type ServerInterface interface {
 	// Get Payment Option
 	// (GET /v2/identities/{identifier}/payment/options/{id})
 	GetPaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Verify Payment
+	// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+	VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -1024,9 +1028,6 @@ type ServerInterface interface {
 	// Return payment settings
 	// (GET /v2/payment/settings)
 	GetPaymentSettings(w http.ResponseWriter, r *http.Request)
-	// Verify Payment
-	// (POST /v2/payment/verify/{paymentOptionID})
-	VerifyPayment(w http.ResponseWriter, r *http.Request, paymentOptionID uuid.UUID)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
@@ -1252,6 +1253,12 @@ func (_ Unimplemented) GetPaymentOption(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Verify Payment
+// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+func (_ Unimplemented) VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get Schemas
 // (GET /v2/identities/{identifier}/schemas)
 func (_ Unimplemented) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
@@ -1297,12 +1304,6 @@ func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Reque
 // Return payment settings
 // (GET /v2/payment/settings)
 func (_ Unimplemented) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Verify Payment
-// (POST /v2/payment/verify/{paymentOptionID})
-func (_ Unimplemented) VerifyPayment(w http.ResponseWriter, r *http.Request, paymentOptionID uuid.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2629,6 +2630,46 @@ func (siw *ServerInterfaceWrapper) GetPaymentOption(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// VerifyPayment operation middleware
+func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VerifyPayment(w, r, identifier, nonce)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSchemas operation middleware
 func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
 
@@ -2912,37 +2953,6 @@ func (siw *ServerInterfaceWrapper) GetPaymentSettings(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetPaymentSettings(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// VerifyPayment operation middleware
-func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "paymentOptionID" -------------
-	var paymentOptionID uuid.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "paymentOptionID", chi.URLParam(r, "paymentOptionID"), &paymentOptionID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "paymentOptionID", Err: err})
-		return
-	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.VerifyPayment(w, r, paymentOptionID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3262,6 +3272,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/payment/options/{id}", wrapper.GetPaymentOption)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/payment/verify/{nonce}", wrapper.VerifyPayment)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
 	})
 	r.Group(func(r chi.Router) {
@@ -3284,9 +3297,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/payment/settings", wrapper.GetPaymentSettings)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v2/payment/verify/{paymentOptionID}", wrapper.VerifyPayment)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/qr-store", wrapper.GetQrFromStore)
@@ -4792,6 +4802,52 @@ func (response GetPaymentOption500JSONResponse) VisitGetPaymentOptionResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
+type VerifyPaymentRequestObject struct {
+	Identifier string `json:"identifier"`
+	Nonce      string `json:"nonce"`
+	Body       *VerifyPaymentJSONRequestBody
+}
+
+type VerifyPaymentResponseObject interface {
+	VisitVerifyPaymentResponse(w http.ResponseWriter) error
+}
+
+type VerifyPayment200JSONResponse PaymentStatus
+
+func (response VerifyPayment200JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment400JSONResponse struct{ N400JSONResponse }
+
+func (response VerifyPayment400JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment401JSONResponse struct{ N401JSONResponse }
+
+func (response VerifyPayment401JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment500JSONResponse struct{ N500JSONResponse }
+
+func (response VerifyPayment500JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetSchemasRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Params     GetSchemasParams
@@ -5084,51 +5140,6 @@ func (response GetPaymentSettings200JSONResponse) VisitGetPaymentSettingsRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
-type VerifyPaymentRequestObject struct {
-	PaymentOptionID uuid.UUID `json:"paymentOptionID"`
-	Body            *VerifyPaymentJSONRequestBody
-}
-
-type VerifyPaymentResponseObject interface {
-	VisitVerifyPaymentResponse(w http.ResponseWriter) error
-}
-
-type VerifyPayment200JSONResponse PaymentStatus
-
-func (response VerifyPayment200JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type VerifyPayment400JSONResponse struct{ N400JSONResponse }
-
-func (response VerifyPayment400JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type VerifyPayment401JSONResponse struct{ N401JSONResponse }
-
-func (response VerifyPayment401JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type VerifyPayment500JSONResponse struct{ N500JSONResponse }
-
-func (response VerifyPayment500JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type GetQrFromStoreRequestObject struct {
 	Params GetQrFromStoreParams
 }
@@ -5377,6 +5388,9 @@ type StrictServerInterface interface {
 	// Get Payment Option
 	// (GET /v2/identities/{identifier}/payment/options/{id})
 	GetPaymentOption(ctx context.Context, request GetPaymentOptionRequestObject) (GetPaymentOptionResponseObject, error)
+	// Verify Payment
+	// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+	VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
@@ -5401,9 +5415,6 @@ type StrictServerInterface interface {
 	// Return payment settings
 	// (GET /v2/payment/settings)
 	GetPaymentSettings(ctx context.Context, request GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error)
-	// Verify Payment
-	// (POST /v2/payment/verify/{paymentOptionID})
-	VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
@@ -6454,6 +6465,40 @@ func (sh *strictHandler) GetPaymentOption(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// VerifyPayment operation middleware
+func (sh *strictHandler) VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string) {
+	var request VerifyPaymentRequestObject
+
+	request.Identifier = identifier
+	request.Nonce = nonce
+
+	var body VerifyPaymentJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifyPayment(ctx, request.(VerifyPaymentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyPayment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VerifyPaymentResponseObject); ok {
+		if err := validResponse.VisitVerifyPaymentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetSchemas operation middleware
 func (sh *strictHandler) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
 	var request GetSchemasRequestObject
@@ -6663,39 +6708,6 @@ func (sh *strictHandler) GetPaymentSettings(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetPaymentSettingsResponseObject); ok {
 		if err := validResponse.VisitGetPaymentSettingsResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// VerifyPayment operation middleware
-func (sh *strictHandler) VerifyPayment(w http.ResponseWriter, r *http.Request, paymentOptionID uuid.UUID) {
-	var request VerifyPaymentRequestObject
-
-	request.PaymentOptionID = paymentOptionID
-
-	var body VerifyPaymentJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.VerifyPayment(ctx, request.(VerifyPaymentRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "VerifyPayment")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(VerifyPaymentResponseObject); ok {
-		if err := validResponse.VisitVerifyPaymentResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

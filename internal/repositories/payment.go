@@ -39,8 +39,8 @@ INTO payment_requests (id, credentials, description, issuer_did, recipient_did, 
 VALUES ($1, $2, $3, $4, $5, $6, $7);`
 		insertPaymentRequestItem = `
 INSERT
-INTO payment_request_items (id, nonce, payment_request_id, payment_request_info)
-VALUES ($1, $2, $3, $4);`
+INTO payment_request_items (id, nonce, payment_request_id, payment_option_id, payment_request_info)
+VALUES ($1, $2, $3, $4, $5);`
 	)
 
 	tx, err := p.conn.Pgx.Begin(ctx)
@@ -54,7 +54,7 @@ VALUES ($1, $2, $3, $4);`
 		return uuid.Nil, fmt.Errorf("could not insert payment request: %w", err)
 	}
 	for _, item := range req.Payments {
-		_, err = tx.Exec(ctx, insertPaymentRequestItem, item.ID, item.Nonce.String(), item.PaymentRequestID, item.Payment)
+		_, err = tx.Exec(ctx, insertPaymentRequestItem, item.ID, item.Nonce.String(), item.PaymentRequestID, item.PaymentOptionID, item.Payment)
 		if err != nil {
 			return uuid.Nil, fmt.Errorf("could not insert payment request item: %w", err)
 		}
@@ -68,7 +68,7 @@ VALUES ($1, $2, $3, $4);`
 // GetPaymentRequestByID returns a payment request by ID
 func (p *payment) GetPaymentRequestByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error) {
 	const query = `
-SELECT pr.id, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info
+SELECT pr.id, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
 WHERE pr.issuer_did = $1 AND pr.id = $2;`
@@ -94,6 +94,7 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 			&sNonce,
 			&item.PaymentRequestID,
 			&paymentRequestInfoBytes,
+			&item.PaymentOptionID,
 		); err != nil {
 			return nil, fmt.Errorf("could not scan payment request: %w", err)
 		}
@@ -132,12 +133,12 @@ func (p *payment) GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID) 
 // GetPaymentRequestItem returns a payment request item
 func (p *payment) GetPaymentRequestItem(ctx context.Context, issuerDID w3c.DID, nonce *big.Int) (*domain.PaymentRequestItem, error) {
 	const query = `
-SELECT id, nonce, payment_request_id, payment_request_info
+SELECT id, nonce, payment_request_id, payment_request_info, payment_option_id
 FROM payment_request_items
 LEFT JOIN payment_requests ON payment_requests.id = payment_request_items.payment_request_id
 WHERE payment_requests.issuer_did = $1 AND nonce = $2;`
 	var item domain.PaymentRequestItem
-	err := p.conn.Pgx.QueryRow(ctx, query, issuerDID.String(), nonce).Scan(&item.ID, &item.Nonce, &item.PaymentRequestID, &item.Payment)
+	err := p.conn.Pgx.QueryRow(ctx, query, issuerDID.String(), nonce).Scan(&item.ID, &item.Nonce, &item.PaymentRequestID, &item.Payment, &item.PaymentOptionID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get payment request item: %w", err)
 	}
