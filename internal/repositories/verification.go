@@ -106,13 +106,13 @@ func (r *VerificationRepository) AddResponse(ctx context.Context, queryID uuid.U
 }
 
 // GetVerificationResponse returns a verification response by scopeID and userDID
-func (r *VerificationRepository) GetVerificationResponse(ctx context.Context, queryID uuid.UUID, userDID string) (*domain.VerificationResponse, error) {
+func (r *VerificationRepository) GetVerificationResponse(ctx context.Context, queryID uuid.UUID) (*domain.VerificationResponse, error) {
 	sql := `SELECT id, verification_query_id, user_did, response, pass, created_at
             FROM verification_responses
-            WHERE verification_query_id = $1 AND user_did = $2`
+            WHERE verification_query_id = $1`
 
 	var response domain.VerificationResponse
-	err := r.conn.Pgx.QueryRow(ctx, sql, queryID, userDID).Scan(
+	err := r.conn.Pgx.QueryRow(ctx, sql, queryID).Scan(
 		&response.ID,
 		&response.VerificationQueryID,
 		&response.UserDID,
