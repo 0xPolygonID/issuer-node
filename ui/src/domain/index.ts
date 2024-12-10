@@ -9,6 +9,7 @@ export type {
   Link,
   LinkStatus,
   RefreshService,
+  DisplayMethod,
 } from "src/domain/credential";
 
 export { ProofType } from "src/domain/credential";

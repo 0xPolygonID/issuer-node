@@ -54,5 +54,3 @@ RUN if [ -n "$ISSUER_KMS_ETH_PROVIDER_AWS_REGION" ]; then \
     else \
       echo "ISSUER_KMS_ETH_PROVIDER_AWS_REGION is not set"; \
     fi
-
-
