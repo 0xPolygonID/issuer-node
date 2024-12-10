@@ -10,6 +10,6 @@ import (
 
 // VerificationService interface.
 type VerificationService interface {
-	CheckVerification(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID, userDID string) (*domain.VerificationResponse, *domain.VerificationQuery, error)
-	SubmitVerificationResponse(ctx context.Context, verificationScopeID uuid.UUID, userDID string, response domain.VerificationResponse) (*domain.VerificationResponse, error)
+	CheckVerification(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error)
+	SubmitVerificationResponse(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error)
 }
