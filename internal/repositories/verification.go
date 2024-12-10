@@ -17,7 +17,8 @@ const foreignKeyViolationErrorCode = "23503"
 
 var (
 	// VerificationQueryNotFoundError is returned when a verification query is not found
-	VerificationQueryNotFoundError    = errors.New("verification query not found")
+	VerificationQueryNotFoundError = errors.New("verification query not found")
+	// VerificationResponseNotFoundError is returned when a verification query is not found
 	VerificationResponseNotFoundError = errors.New("verification response not found")
 )
 

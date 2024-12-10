@@ -20,6 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
+// Scope is a property of VerificationQuery, and it's required for the authRequest
 type Scope struct {
 	CircuitId       string                  `json:"circuitId"`
 	Id              uint32                  `json:"id"`
@@ -28,6 +29,7 @@ type Scope struct {
 	TransactionData *TransactionData        `json:"transactionData,omitempty"`
 }
 
+// TransactionData is a property of Scope, and it's required for the authRequest
 type TransactionData struct {
 	ChainID         int    `json:"chainID"`
 	ContractAddress string `json:"contractAddress"`
@@ -41,6 +43,7 @@ const (
 	defaultBigIntBase    = 10
 )
 
+// VerificationService can verify responses to verification queries
 type VerificationService struct {
 	verifier *auth.Verifier
 	repo     ports.VerificationRepository
@@ -70,6 +73,7 @@ func (vs *VerificationService) CheckVerification(ctx context.Context, issuerID w
 	return nil, query, nil
 }
 
+// SubmitVerificationResponse checks if a verification response passes a verify check and saves result
 func (vs *VerificationService) SubmitVerificationResponse(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error) {
 	// check db for existing verification query
 	var authRequest = protocol.AuthorizationRequestMessage{}

@@ -8,7 +8,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
-// VerificationService interface.
+// VerificationService interface
 type VerificationService interface {
 	CheckVerification(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error)
 	SubmitVerificationResponse(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error)
