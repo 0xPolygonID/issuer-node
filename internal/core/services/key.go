@@ -252,19 +252,21 @@ func getKeyType(keyID string) (kms.KeyType, error) {
 	return keyType, nil
 }
 
+// hasAssociatedAuthCredential checks if the bbj key has an associated auth credential
 func (ks *Key) hasAssociatedAuthCredential(ctx context.Context, did *w3c.DID, publicKey []byte) (bool, *domain.Claim, error) {
-	hasAssociatedAuthCoreClaim := false
-	authCoreClaim, err := ks.claimService.GetAuthCredentialWithPublicKey(ctx, did, publicKey)
+	hasAssociatedAuthCredential := false
+	authCredential, err := ks.claimService.GetAuthCredentialWithPublicKey(ctx, did, publicKey)
 	if err != nil {
 		log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 		return false, nil, err
 	}
-	hasAssociatedAuthCoreClaim = authCoreClaim != nil
-	return hasAssociatedAuthCoreClaim, authCoreClaim, nil
+	hasAssociatedAuthCredential = authCredential != nil
+	return hasAssociatedAuthCredential, authCredential, nil
 }
 
+// isAssociatedWithIdentity checks if the eth key is associated with the identity
 func (ks *Key) isAssociatedWithIdentity(ctx context.Context, did *w3c.DID, publicKey []byte) (bool, error) {
-	hasAssociatedAuthCoreClaim := false
+	hasAssociatedAuthCredential := false
 	pubKey, err := crypto.DecompressPubkey(publicKey)
 	if err != nil {
 		log.Error(ctx, "failed to decompress public key", "err", err)
@@ -280,10 +282,8 @@ func (ks *Key) isAssociatedWithIdentity(ctx context.Context, did *w3c.DID, publi
 
 	identityAddressToBeChecked := strings.ToUpper("0x" + identityAddress)
 	if isEthAddress {
-		hasAssociatedAuthCoreClaim = identityAddressToBeChecked == strings.ToUpper(keyETHAddress.Hex())
-	} else {
-		hasAssociatedAuthCoreClaim = false
+		hasAssociatedAuthCredential = identityAddressToBeChecked == strings.ToUpper(keyETHAddress.Hex())
 	}
 
-	return hasAssociatedAuthCoreClaim, nil
+	return hasAssociatedAuthCredential, nil
 }

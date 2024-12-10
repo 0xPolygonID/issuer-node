@@ -20,17 +20,23 @@ import (
 
 func TestServer_CreateKey(t *testing.T) {
 	const (
-		method     = "polygonid"
-		blockchain = "polygon"
-		network    = "amoy"
+		method     = "iden3"
+		blockchain = "privado"
+		network    = "main"
 		BJJ        = "BJJ"
+		ETH        = "ETH"
 	)
 	ctx := context.Background()
 	server := newTestServer(t, nil)
 
-	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	iden, err := server.Services.identity.Create(ctx, "http://issuer-node", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	idenETH, err := server.Services.identity.Create(ctx, "http://issuer-node", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
+	require.NoError(t, err)
+	didETH, err := w3c.ParseDID(idenETH.Identifier)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -43,6 +49,7 @@ func TestServer_CreateKey(t *testing.T) {
 	type testConfig struct {
 		name     string
 		auth     func() (string, string)
+		did      string
 		body     CreateKeyRequest
 		expected expected
 	}
@@ -50,14 +57,16 @@ func TestServer_CreateKey(t *testing.T) {
 	for _, tc := range []testConfig{
 		{
 			name: "no auth header",
+			did:  did.String(),
 			auth: authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
 			},
 		},
 		{
-			name: "should create a key",
+			name: "should create a bjj key",
 			auth: authOk,
+			did:  did.String(),
 			body: CreateKeyRequest{
 				KeyType: BJJ,
 			},
@@ -68,6 +77,7 @@ func TestServer_CreateKey(t *testing.T) {
 		{
 			name: "should get an error",
 			auth: authOk,
+			did:  did.String(),
 			body: CreateKeyRequest{
 				KeyType: "wrong type",
 			},
@@ -80,10 +90,21 @@ func TestServer_CreateKey(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "should create a eth key",
+			auth: authOk,
+			did:  didETH.String(),
+			body: CreateKeyRequest{
+				KeyType: BJJ,
+			},
+			expected: expected{
+				httpCode: http.StatusCreated,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v2/identities/%s/keys", did)
+			url := fmt.Sprintf("/v2/identities/%s/keys", tc.did)
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -106,9 +127,9 @@ func TestServer_CreateKey(t *testing.T) {
 
 func TestServer_GetKey(t *testing.T) {
 	const (
-		method     = "polygonid"
-		blockchain = "polygon"
-		network    = "amoy"
+		method     = "iden3"
+		blockchain = "privado"
+		network    = "main"
 		BJJ        = "BJJ"
 	)
 	ctx := context.Background()
@@ -196,21 +217,21 @@ func TestServer_GetKey(t *testing.T) {
 
 func TestServer_GetKeys(t *testing.T) {
 	const (
-		method     = "polygonid"
-		blockchain = "polygon"
-		network    = "amoy"
+		method     = "iden3"
+		blockchain = "privado"
+		network    = "main"
 		BJJ        = "BJJ"
 		ETH        = "ETH"
 	)
 	ctx := context.Background()
 	server := newTestServer(t, nil)
 
-	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	iden, err := server.Services.identity.Create(ctx, "http://issuer-node", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	idenETH, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
+	idenETH, err := server.Services.identity.Create(ctx, "http://issuer-node", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
 	require.NoError(t, err)
 	didETH, err := w3c.ParseDID(idenETH.Identifier)
 	require.NoError(t, err)
@@ -352,9 +373,9 @@ func countAuthCredentials(t *testing.T, keys []Key) int {
 
 func TestServer_DeleteKey(t *testing.T) {
 	const (
-		method     = "polygonid"
-		blockchain = "polygon"
-		network    = "amoy"
+		method     = "iden3"
+		blockchain = "privado"
+		network    = "main"
 		BJJ        = "BJJ"
 		ETH        = "ETH"
 	)
