@@ -288,3 +288,23 @@ func TestPayment_GetPaymentRequestByID(t *testing.T) {
 		}
 	})
 }
+
+func TestPayment_GetPaymentRequestItem(t *testing.T) {
+	ctx := context.Background()
+	fixture := NewFixture(storage)
+	issuerID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qQHtVzfwjywqosK24XT7um3R1Ym5L1GJTbijjcxMq")
+	require.NoError(t, err)
+
+	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
+	repo := NewPayment(*storage)
+
+	payymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &domain.PaymentOptionConfig{}))
+	require.NoError(t, err)
+	expected := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, payymentOptionID, 10)
+
+	t.Run("Get payment request item", func(t *testing.T) {
+		paymentRequestItem, err := repo.GetPaymentRequestItem(ctx, *issuerID, &expected.Payments[0].Nonce)
+		require.NoError(t, err)
+		assert.Equal(t, expected.Payments[0].ID, paymentRequestItem.ID)
+	})
+}
