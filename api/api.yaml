@@ -2024,7 +2024,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/verification/{identifier}/callback:
+  /v2/identities/{identifier}/verification/callback:
     post:
       summary: Submit Verification Response
       operationId: SubmitVerificationResponse
@@ -2040,12 +2040,14 @@ paths:
           description: User's DID identifier
           schema:
             type: string
+        - $ref: '#/components/parameters/verificationQueryId'
       requestBody:
         required: true
         content:
-          application/json:
+          text/plain:
             schema:
-              $ref: '#/components/schemas/VerificationResponseRequest'
+              type: string
+              example: jwz-token
       responses:
         '200':
           description: Verification response submitted successfully
@@ -3269,7 +3271,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VerificationScope'
-      
+
+
     VerificationScope:
       type: object
       required:
@@ -3296,6 +3299,10 @@ components:
       properties:
         verification_scope_id:
           type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
           description: Scope ID of the verification query.
         user_did:
           type: string
@@ -3308,11 +3315,15 @@ components:
       type: object
       required:
         - status
+        - pass
       properties:
         status:
           type: string
           enum: [ submitted, validated, error ]
           description: The status of the submitted verification response.
+        pass:
+          type: boolean
+          description: Whether the query response passed the check
 
     CreateDisplayMethodRequest:
       type: object
@@ -3518,7 +3529,7 @@ components:
         type: string
 
     verificationQueryId:
-      name: verificationQueryId
+      name: id
       in: query
       required: true
       description: The verification query ID to check for a response
