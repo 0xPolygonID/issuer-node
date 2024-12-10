@@ -104,7 +104,7 @@ func (v *vaultETHKeyProvider) Sign(_ context.Context, keyID KeyID, data []byte) 
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	if len(sig) > 65 { // nolint:mnd  // Checking for safe signature length
+	if len(sig) >= 65 { // nolint:mnd  // Checking for safe signature length
 		sig[64] += 27
 	}
 	return sig, nil

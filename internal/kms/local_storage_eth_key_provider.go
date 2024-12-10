@@ -104,7 +104,7 @@ func (ls *localStorageEthKeyProvider) Sign(ctx context.Context, keyID KeyID, dat
 	if err != nil {
 		return nil, err
 	}
-	if len(sig) > 65 { // nolint:mnd  // Checking for safe signature length
+	if len(sig) >= 65 { // nolint:mnd  // Checking for safe signature length
 		sig[64] += 27
 	}
 	return sig, nil
