@@ -100,6 +100,17 @@ func Test_identity_CreateIdentity(t *testing.T) {
 				} else {
 					t.Errorf("invalid key type")
 				}
+
+				DID, err := w3c.ParseDID(identity.Identifier)
+				require.NoError(t, err)
+				isEthID, address, err := common.CheckEthIdentityByDID(DID)
+				require.NoError(t, err)
+				if tc.options.KeyType == ETH {
+					assert.True(t, isEthID)
+					assert.Equal(t, address, *identity.Address)
+				} else {
+					assert.False(t, isEthID)
+				}
 			}
 		})
 	}

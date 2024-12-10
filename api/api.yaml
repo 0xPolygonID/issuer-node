@@ -2438,7 +2438,7 @@ components:
         - id
         - keyType
         - publicKey
-        - isAuthCoreClaim
+        - isAuthCredential
       properties:
         id:
           type: string
@@ -2454,7 +2454,7 @@ components:
           type: string
           x-omitempty: false
           example: "0x04e3e7e"
-        isAuthCoreClaim:
+        isAuthCredential:
           type: boolean
           x-omitempty: false
           example: true

@@ -3,11 +3,15 @@ package services
 import (
 	"context"
 	b64 "encoding/base64"
+	"sort"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -87,16 +91,29 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 		return nil, ports.ErrKeyNotFound
 	}
 
-	authCoreClaim, err := ks.claimService.GetAuthCredentialWithPublicKey(ctx, did, publicKey)
-	if err != nil {
-		log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
-		return nil, err
+	hasAssociatedAuthCredential := false
+	switch keyType {
+	case kms.KeyTypeBabyJubJub:
+		hasAssociatedAuthCredential, _, err = ks.hasAssociatedAuthCredential(ctx, did, publicKey)
+		if err != nil {
+			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
+			return nil, err
+		}
+	case kms.KeyTypeEthereum:
+		hasAssociatedAuthCredential, err = ks.isAssociatedWithIdentity(ctx, did, publicKey)
+		if err != nil {
+			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
+			return nil, err
+		}
+	default:
+		return nil, ports.ErrInvalidKeyType
 	}
+
 	return &ports.KMSKey{
-		KeyID:                      keyID,
-		KeyType:                    keyType,
-		PublicKey:                  hexutil.Encode(publicKey),
-		HasAssociatedAuthCoreClaim: authCoreClaim != nil,
+		KeyID:                       keyID,
+		KeyType:                     keyType,
+		PublicKey:                   hexutil.Encode(publicKey),
+		HasAssociatedAuthCredential: hasAssociatedAuthCredential,
 	}, nil
 }
 
@@ -109,7 +126,6 @@ func (ks *Key) GetAll(ctx context.Context, did *w3c.DID, filter ports.KeyFilter)
 	}
 
 	total := uint(len(keyIDs))
-
 	start := (int(filter.Page) - 1) * int(filter.MaxResults)
 	end := start + int(filter.MaxResults)
 
@@ -120,6 +136,10 @@ func (ks *Key) GetAll(ctx context.Context, did *w3c.DID, filter ports.KeyFilter)
 	if end > len(keyIDs) {
 		end = len(keyIDs)
 	}
+
+	sort.Slice(keyIDs, func(i, j int) bool {
+		return keyIDs[i].ID < keyIDs[j].ID
+	})
 
 	keyIDs = keyIDs[start:end]
 	keys := make([]*ports.KMSKey, len(keyIDs))
@@ -162,25 +182,44 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 		log.Error(ctx, "failed to get public key", "err", err)
 		return err
 	}
-	authCredential, err := ks.claimService.GetAuthCredentialWithPublicKey(ctx, did, publicKey)
-	if err != nil {
-		log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
-		return err
-	}
 
-	if authCredential != nil {
-		log.Info(ctx, "can not be deleted because it has an associated auth credential. Have to check revocation status")
-		revStatus, err := ks.claimService.GetRevocationStatus(ctx, *did, uint64(authCredential.RevNonce))
+	hasAssociatedAuthCoreCredential := false
+	var authCredential *domain.Claim
+	switch keyType {
+	case kms.KeyTypeBabyJubJub:
+		hasAssociatedAuthCoreCredential, authCredential, err = ks.hasAssociatedAuthCredential(ctx, did, publicKey)
 		if err != nil {
-			log.Error(ctx, "failed to get revocation status", "err", err)
+			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 			return err
 		}
 
-		if revStatus != nil && !revStatus.MTP.Existence {
-			log.Info(ctx, "auth credential is non revoked. Can not be deleted")
-			return ports.ErrAuthCredentialNotRevoked
+		if hasAssociatedAuthCoreCredential {
+			log.Info(ctx, "can not be deleted because it has an associated auth credential. Have to check revocation status")
+			revStatus, err := ks.claimService.GetRevocationStatus(ctx, *did, uint64(authCredential.RevNonce))
+			if err != nil {
+				log.Error(ctx, "failed to get revocation status", "err", err)
+				return err
+			}
+
+			if revStatus != nil && !revStatus.MTP.Existence {
+				log.Info(ctx, "auth credential is non revoked. Can not be deleted")
+				return ports.ErrAuthCredentialNotRevoked
+			}
 		}
+	case kms.KeyTypeEthereum:
+		hasAssociatedAuthCoreCredential, err = ks.isAssociatedWithIdentity(ctx, did, publicKey)
+		if err != nil {
+			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
+			return err
+		}
+		if hasAssociatedAuthCoreCredential {
+			log.Info(ctx, "can not be deleted because it is associated with the identity")
+			return ports.ErrKeyAssociatedWithIdentity
+		}
+	default:
+		return ports.ErrInvalidKeyType
 	}
+
 	return ks.kms.Delete(ctx, kmsKeyID)
 }
 
@@ -211,4 +250,40 @@ func getKeyType(keyID string) (kms.KeyType, error) {
 	}
 
 	return keyType, nil
+}
+
+func (ks *Key) hasAssociatedAuthCredential(ctx context.Context, did *w3c.DID, publicKey []byte) (bool, *domain.Claim, error) {
+	hasAssociatedAuthCoreClaim := false
+	authCoreClaim, err := ks.claimService.GetAuthCredentialWithPublicKey(ctx, did, publicKey)
+	if err != nil {
+		log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
+		return false, nil, err
+	}
+	hasAssociatedAuthCoreClaim = authCoreClaim != nil
+	return hasAssociatedAuthCoreClaim, authCoreClaim, nil
+}
+
+func (ks *Key) isAssociatedWithIdentity(ctx context.Context, did *w3c.DID, publicKey []byte) (bool, error) {
+	hasAssociatedAuthCoreClaim := false
+	pubKey, err := crypto.DecompressPubkey(publicKey)
+	if err != nil {
+		log.Error(ctx, "failed to decompress public key", "err", err)
+		return false, err
+	}
+
+	keyETHAddress := crypto.PubkeyToAddress(*pubKey)
+	isEthAddress, identityAddress, err := common.CheckEthIdentityByDID(did)
+	if err != nil {
+		log.Error(ctx, "failed to check if DID is ETH identity", "err", err)
+		return false, err
+	}
+
+	identityAddressToBeChecked := strings.ToUpper("0x" + identityAddress)
+	if isEthAddress {
+		hasAssociatedAuthCoreClaim = identityAddressToBeChecked == strings.ToUpper(keyETHAddress.Hex())
+	} else {
+		hasAssociatedAuthCoreClaim = false
+	}
+
+	return hasAssociatedAuthCoreClaim, nil
 }
