@@ -174,6 +174,24 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 	}
 	contractAddress := setting.PaymentRails
 
+	options, err := p.paymentsStore.GetAllPaymentOptions(ctx, issuerDID)
+	if err != nil {
+		return false, err
+	}
+
+	var paymentOptionConfigItem *domain.PaymentOptionConfigItem
+	for _, option := range options {
+		for _, item := range option.Config.Config {
+			if item.PaymentOptionID == paymentReqItem.PaymentOptionID {
+				paymentOptionConfigItem = &item
+				break
+			}
+		}
+	}
+	if paymentOptionConfigItem == nil {
+		return false, fmt.Errorf("payment option config item not found")
+	}
+
 	// TODO: Load rpc from network resolvers
 	client, err := ethclient.Dial("https://polygon-amoy.g.alchemy.com/v2/DHvucvBBzrBhaHzmjrMp24PGbl7vwee6")
 	if err != nil {
@@ -186,7 +204,7 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 	}
 
 	// TODO: pending, canceled, success, failed
-	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: ctx}, setting.PaymentOption.ContractAddress, nonce)
+	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: ctx}, paymentOptionConfigItem.Recipient, nonce)
 	if err != nil {
 		return false, err
 	}
