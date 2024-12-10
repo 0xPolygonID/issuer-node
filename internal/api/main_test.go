@@ -235,6 +235,7 @@ type repos struct {
 	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
+	keyRepository  ports.KeyRepository
 }
 
 type servicex struct {
@@ -273,6 +274,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		sessions:       repositories.NewSessionCached(cachex),
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
+		keyRepository:  repositories.NewKey(*st),
 	}
 
 	pubSub := pubsub.NewMock()
@@ -284,7 +286,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
 	qrService := services.NewQrStoreService(cachex)
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
-	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver, repos.keyRepository)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader)
 
@@ -299,7 +301,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	keyService := services.NewKey(keyStore, claimsService)
+	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
 	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, keyService)
 
 	return &testServer{

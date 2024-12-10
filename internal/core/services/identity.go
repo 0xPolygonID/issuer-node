@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	auth "github.com/iden3/go-iden3-auth/v2"
@@ -46,9 +47,11 @@ import (
 )
 
 const (
-	transitionDelay = time.Minute * 5
-	serviceContext  = "https://www.w3.org/ns/did/v1"
-	authReason      = "authentication"
+	transitionDelay   = time.Minute * 5
+	serviceContext    = "https://www.w3.org/ns/did/v1"
+	authReason        = "authentication"
+	defaultBJJKeyName = "default-bjj"
+	defaultETHKeyName = "default-eth"
 )
 
 var (
@@ -93,11 +96,12 @@ type identity struct {
 	revocationStatusResolver *revocationstatus.Resolver
 	networkResolver          network.Resolver
 	rhsFactory               reversehash.Factory
+	keyRepository            ports.KeyRepository
 }
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, networkResolver network.Resolver, rhsFactory reversehash.Factory, revocationStatusResolver *revocationstatus.Resolver) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, networkResolver network.Resolver, rhsFactory reversehash.Factory, revocationStatusResolver *revocationstatus.Resolver, keyRepository ports.KeyRepository) ports.IdentityService {
 	return &identity{
 		identityRepository:       identityRepository,
 		imtRepository:            imtRepository,
@@ -116,6 +120,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		networkResolver:          networkResolver,
 		rhsFactory:               rhsFactory,
 		revocationStatusResolver: revocationStatusResolver,
+		keyRepository:            keyRepository,
 	}
 }
 
@@ -630,6 +635,12 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
+	ethPublicKey, err := i.kms.PublicKey(key)
+	if err != nil {
+		log.Error(ctx, "getting eth public key", "err", err)
+		return nil, nil, err
+	}
+
 	identity, did, err := i.createEthIdentityFromKeyID(ctx, mts, &key, didOptions, tx)
 	if err != nil {
 		return nil, nil, err
@@ -684,6 +695,19 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 	_, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
 	if err != nil {
 		return nil, nil, errors.Join(err, errors.New("can't save auth claim"))
+	}
+
+	defaultBJJKey := domain.NewKey(*did, authClaimModel.GetPublicKey().String(), defaultBJJKeyName)
+	_, err = i.keyRepository.Save(ctx, tx, defaultBJJKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't save default key: %w", err)
+	}
+
+	defaultETHKey := domain.NewKey(*did, hexutil.Encode(ethPublicKey), defaultETHKeyName)
+	_, err = i.keyRepository.Save(ctx, tx, defaultETHKey)
+	if err != nil {
+		log.Error(ctx, "saving default eth key", "err", err)
+		return nil, nil, fmt.Errorf("can't save default eth key: %w", err)
 	}
 
 	return did, identity.State.TreeState().State.BigInt(), nil
@@ -753,6 +777,12 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 			return nil, nil, ErrIdentityDisplayNameDuplicated
 		}
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
+	}
+
+	defaultKey := domain.NewKey(*did, authClaimModel.GetPublicKey().String(), defaultBJJKeyName)
+	_, err = i.keyRepository.Save(ctx, tx, defaultKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't save default key: %w", err)
 	}
 
 	resolverPrefix, err := common.ResolverPrefix(did)

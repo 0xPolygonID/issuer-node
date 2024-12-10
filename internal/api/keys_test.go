@@ -69,6 +69,7 @@ func TestServer_CreateKey(t *testing.T) {
 			did:  did.String(),
 			body: CreateKeyRequest{
 				KeyType: BJJ,
+				Name:    "my-bjj-key",
 			},
 			expected: expected{
 				httpCode: http.StatusCreated,
@@ -95,7 +96,8 @@ func TestServer_CreateKey(t *testing.T) {
 			auth: authOk,
 			did:  didETH.String(),
 			body: CreateKeyRequest{
-				KeyType: BJJ,
+				KeyType: ETH,
+				Name:    "my-eth-key",
 			},
 			expected: expected{
 				httpCode: http.StatusCreated,
@@ -140,7 +142,7 @@ func TestServer_GetKey(t *testing.T) {
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	keyID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+	keyID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub, "my-key")
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -206,6 +208,7 @@ func TestServer_GetKey(t *testing.T) {
 				assert.NotNil(t, response.PublicKey)
 				assert.Equal(t, BJJ, response.KeyType)
 				assert.False(t, response.IsAuthCredential)
+				assert.True(t, "my-key" == response.Name)
 			case http.StatusBadRequest:
 				var response GetKey400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -267,7 +270,8 @@ func TestServer_GetKeys(t *testing.T) {
 
 	t.Run("should get the keys for bjj identity with pagination", func(t *testing.T) {
 		for i := 0; i < 20; i++ {
-			_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+			name := fmt.Sprintf("my-key-%d", i)
+			_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub, name)
 			require.NoError(t, err)
 		}
 
@@ -323,7 +327,7 @@ func TestServer_GetKeys(t *testing.T) {
 
 	t.Run("should get the keys for eth identity with pagination", func(t *testing.T) {
 		for i := 0; i < 20; i++ {
-			_, err = server.keyService.CreateKey(ctx, didETH, kms.KeyTypeBabyJubJub)
+			_, err = server.keyService.CreateKey(ctx, didETH, kms.KeyTypeBabyJubJub, fmt.Sprintf("my-key-%d", i))
 			require.NoError(t, err)
 		}
 
@@ -406,13 +410,13 @@ func TestServer_DeleteKey(t *testing.T) {
 		idenETHETHKey = idenETHKeys[0].KeyID
 	}
 
-	keyETHIDToDelete, err := server.keyService.CreateKey(ctx, didETH, kms.KeyTypeEthereum)
+	keyETHIDToDelete, err := server.keyService.CreateKey(ctx, didETH, kms.KeyTypeEthereum, "key-eth-to-delete")
 	require.NoError(t, err)
 
-	keyID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+	keyID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub, "key-bjj-to-delete")
 	require.NoError(t, err)
 
-	keyIDForAuthCoreClaimID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub)
+	keyIDForAuthCoreClaimID, err := server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub, "key-bjj-for-auth-core-claim-id")
 	require.NoError(t, err)
 
 	keyIDForAuthCoreClaimIDASByteArr, err := b64.StdEncoding.DecodeString(keyIDForAuthCoreClaimID.ID)

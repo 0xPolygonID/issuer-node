@@ -21,7 +21,16 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 		}, nil
 	}
 
-	keyID, err := s.keyService.CreateKey(ctx, request.Identifier.did(), kms.KeyType(request.Body.KeyType))
+	if request.Body.Name == "" {
+		log.Error(ctx, "name is required")
+		return CreateKey400JSONResponse{
+			N400JSONResponse{
+				Message: "name is required",
+			},
+		}, nil
+	}
+
+	keyID, err := s.keyService.CreateKey(ctx, request.Identifier.did(), kms.KeyType(request.Body.KeyType), request.Body.Name)
 	if err != nil {
 		log.Error(ctx, "creating key", "err", err)
 		return CreateKey500JSONResponse{
@@ -79,6 +88,7 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 		KeyType:          KeyKeyType(key.KeyType),
 		PublicKey:        key.PublicKey,
 		IsAuthCredential: key.HasAssociatedAuthCredential,
+		Name:             key.Name,
 	}, nil
 }
 
@@ -124,6 +134,7 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 			KeyType:          KeyKeyType(key.KeyType),
 			PublicKey:        key.PublicKey,
 			IsAuthCredential: key.HasAssociatedAuthCredential,
+			Name:             key.Name,
 		})
 	}
 	return GetKeys200JSONResponse{

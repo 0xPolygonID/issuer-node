@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	b64 "encoding/base64"
+	"errors"
 	"sort"
 	"strings"
 
@@ -15,24 +16,27 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // Key is the service that manages keys
 type Key struct {
-	kms          *kms.KMS
-	claimService ports.ClaimService
+	kms           *kms.KMS
+	claimService  ports.ClaimService
+	keyRepository ports.KeyRepository
 }
 
 // NewKey creates a new Key
-func NewKey(kms *kms.KMS, claimService ports.ClaimService) ports.KeyService {
+func NewKey(kms *kms.KMS, claimService ports.ClaimService, keyRepository ports.KeyRepository) ports.KeyService {
 	return &Key{
-		kms:          kms,
-		claimService: claimService,
+		kms:           kms,
+		claimService:  claimService,
+		keyRepository: keyRepository,
 	}
 }
 
 // CreateKey creates a new key for the given DID
-func (ks *Key) CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType) (kms.KeyID, error) {
+func (ks *Key) CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType, name string) (kms.KeyID, error) {
 	var keyID kms.KeyID
 	var err error
 	if keyType == kms.KeyTypeBabyJubJub {
@@ -54,6 +58,20 @@ func (ks *Key) CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType)
 			log.Error(ctx, "failed to link key to identity", "err", err)
 			return kms.KeyID{}, err
 		}
+	}
+
+	publicKeyAsBytes, err := ks.kms.PublicKey(keyID)
+	if err != nil {
+		log.Error(ctx, "failed to get public key", "err", err)
+		return kms.KeyID{}, err
+	}
+
+	publicKey := hexutil.Encode(publicKeyAsBytes)
+	keyToSave := domain.NewKey(*did, publicKey, name)
+	_, err = ks.keyRepository.Save(ctx, nil, keyToSave)
+	if err != nil {
+		log.Error(ctx, "failed to save key", "err", err)
+		return kms.KeyID{}, err
 	}
 
 	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(keyID.ID))
@@ -92,6 +110,7 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 	}
 
 	hasAssociatedAuthCredential := false
+	defaultKeyName := ""
 	switch keyType {
 	case kms.KeyTypeBabyJubJub:
 		hasAssociatedAuthCredential, _, err = ks.hasAssociatedAuthCredential(ctx, did, publicKey)
@@ -99,14 +118,26 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 			return nil, err
 		}
+		defaultKeyName = defaultBJJKeyName
 	case kms.KeyTypeEthereum:
 		hasAssociatedAuthCredential, err = ks.isAssociatedWithIdentity(ctx, did, publicKey)
 		if err != nil {
 			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 			return nil, err
 		}
+		defaultKeyName = defaultETHKeyName
 	default:
 		return nil, ports.ErrInvalidKeyType
+	}
+
+	keyInfo, err := ks.keyRepository.GetByPublicKey(ctx, *did, hexutil.Encode(publicKey))
+	if err != nil {
+		if !errors.Is(err, repositories.ErrKeyNotFound) {
+			return nil, err
+		}
+		keyInfo = &domain.Key{
+			Name: defaultKeyName,
+		}
 	}
 
 	return &ports.KMSKey{
@@ -114,6 +145,7 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 		KeyType:                     keyType,
 		PublicKey:                   hexutil.Encode(publicKey),
 		HasAssociatedAuthCredential: hasAssociatedAuthCredential,
+		Name:                        keyInfo.Name,
 	}, nil
 }
 
@@ -220,6 +252,10 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 		return ports.ErrInvalidKeyType
 	}
 
+	if err := ks.keyRepository.Delete(ctx, *did, hexutil.Encode(publicKey)); err != nil {
+		log.Error(ctx, "failed to delete key", "err", err)
+		return err
+	}
 	return ks.kms.Delete(ctx, kmsKeyID)
 }
 

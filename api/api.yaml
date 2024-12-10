@@ -2414,12 +2414,16 @@ components:
       type: object
       required:
         - keyType
+        - name
       properties:
         keyType:
           type: string
           x-omitempty: false
           example: "BJJ"
           enum: [ BJJ, ETH ]
+        name:
+          type: string
+          example: "my key"
 
     CreateKeyResponse:
       type: object
@@ -2439,6 +2443,7 @@ components:
         - keyType
         - publicKey
         - isAuthCredential
+        - Name
       properties:
         id:
           type: string
@@ -2458,6 +2463,10 @@ components:
           type: boolean
           x-omitempty: false
           example: true
+        Name:
+          type: string
+          x-omitempty: false
+          example: "my key"
 
     KeysPaginated:
       type: object

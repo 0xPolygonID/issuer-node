@@ -272,6 +272,7 @@ type CreateIdentityResponseCredentialStatusType string
 // CreateKeyRequest defines model for CreateKeyRequest.
 type CreateKeyRequest struct {
 	KeyType CreateKeyRequestKeyType `json:"keyType"`
+	Name    string                  `json:"name"`
 }
 
 // CreateKeyRequestKeyType defines model for CreateKeyRequest.KeyType.
@@ -429,6 +430,8 @@ type IssuerDescription struct {
 
 // Key defines model for Key.
 type Key struct {
+	Name string `json:"Name"`
+
 	// Id base64 encoded keyID
 	Id               string     `json:"id"`
 	IsAuthCredential bool       `json:"isAuthCredential"`

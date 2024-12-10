@@ -13,6 +13,7 @@ const (
 // PublicKey - defines the interface for public keys
 type PublicKey interface {
 	Equal([]byte) bool
+	String() string
 }
 
 type bjjPublicKey struct {
@@ -34,8 +35,16 @@ func (b *bjjPublicKey) Equal(pubKey []byte) bool {
 	return bytes.Equal(pubKey, compPubKey[:])
 }
 
+func (b *bjjPublicKey) String() string {
+	return "0x" + b.publicKey.String()
+}
+
 type unSupportedPublicKeyType struct{}
 
 func (u *unSupportedPublicKeyType) Equal([]byte) bool {
 	return false
+}
+
+func (u *unSupportedPublicKeyType) String() string {
+	return ""
 }

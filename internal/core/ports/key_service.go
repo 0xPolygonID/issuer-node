@@ -26,6 +26,7 @@ type KMSKey struct {
 	KeyType                     kms.KeyType
 	PublicKey                   string
 	HasAssociatedAuthCredential bool
+	Name                        string
 }
 
 // KeyFilter is the filter to use when getting keys
@@ -36,7 +37,7 @@ type KeyFilter struct {
 
 // KeyService is the service that manages keys
 type KeyService interface {
-	CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType) (kms.KeyID, error)
+	CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType, name string) (kms.KeyID, error)
 	Get(ctx context.Context, did *w3c.DID, keyID string) (*KMSKey, error)
 	GetAll(ctx context.Context, did *w3c.DID, filter KeyFilter) ([]*KMSKey, uint, error)
 	Delete(ctx context.Context, did *w3c.DID, keyID string) error
