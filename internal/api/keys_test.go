@@ -68,7 +68,7 @@ func TestServer_CreateKey(t *testing.T) {
 			auth: authOk,
 			did:  did.String(),
 			body: CreateKeyRequest{
-				KeyType: BJJ,
+				KeyType: CreateKeyRequestKeyType(KeyKeyTypeBabyjujJub),
 				Name:    "my-bjj-key",
 			},
 			expected: expected{
@@ -86,7 +86,7 @@ func TestServer_CreateKey(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 				response: CreateKey400JSONResponse{
 					N400JSONResponse: N400JSONResponse{
-						Message: "invalid key type. BJJ and ETH Keys are supported",
+						Message: "invalid key type. babyjujJub and secp256k1 keys are supported are supported",
 					},
 				},
 			},
@@ -96,7 +96,7 @@ func TestServer_CreateKey(t *testing.T) {
 			auth: authOk,
 			did:  did.String(),
 			body: CreateKeyRequest{
-				KeyType: "BJJ",
+				KeyType: CreateKeyRequestKeyType(KeyKeyTypeBabyjujJub),
 				Name:    "",
 			},
 			expected: expected{
@@ -113,7 +113,7 @@ func TestServer_CreateKey(t *testing.T) {
 			auth: authOk,
 			did:  didETH.String(),
 			body: CreateKeyRequest{
-				KeyType: ETH,
+				KeyType: CreateKeyRequestKeyType(KeyKeyTypeSecp256k1),
 				Name:    "my-eth-key",
 			},
 			expected: expected{
@@ -223,7 +223,7 @@ func TestServer_GetKey(t *testing.T) {
 				assert.NotNil(t, response.Id)
 				assert.Equal(t, keyID, response.Id)
 				assert.NotNil(t, response.PublicKey)
-				assert.Equal(t, BJJ, response.KeyType)
+				assert.Equal(t, KeyKeyTypeBabyjujJub, response.KeyType)
 				assert.False(t, response.IsAuthCredential)
 				assert.True(t, "my-key" == response.Name)
 			case http.StatusBadRequest:
@@ -287,7 +287,7 @@ func TestServer_GetKeys(t *testing.T) {
 
 	t.Run("should get the keys for bjj identity with pagination", func(t *testing.T) {
 		for i := 0; i < 20; i++ {
-			name := fmt.Sprintf("my-key-%s", string('A'+rune(i+1)))
+			name := fmt.Sprintf("z-key-%s", string('A'+rune(i+1)))
 			_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub, name)
 			require.NoError(t, err)
 		}
@@ -325,11 +325,11 @@ func TestServer_GetKeys(t *testing.T) {
 
 		// Check that the keys are sorted by name
 		for i, key := range all {
-			assert.Equal(t, BJJ, string(key.KeyType))
+			assert.Equal(t, string(KeyKeyTypeBabyjujJub), string(key.KeyType))
 			if i == 0 {
-				assert.Equal(t, "default-bjj", key.Name)
+				assert.Equal(t, "pubkey-bjj", key.Name)
 			} else {
-				assert.Equal(t, fmt.Sprintf("my-key-%s", string('A'+rune(i))), key.Name)
+				assert.Equal(t, fmt.Sprintf("z-key-%s", string('A'+rune(i))), key.Name)
 			}
 		}
 	})

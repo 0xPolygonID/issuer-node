@@ -50,8 +50,8 @@ const (
 	transitionDelay   = time.Minute * 5
 	serviceContext    = "https://www.w3.org/ns/did/v1"
 	authReason        = "authentication"
-	defaultBJJKeyName = "default-bjj"
-	defaultETHKeyName = "default-eth"
+	defaultBJJKeyName = "pubkey-bjj"
+	defaultETHKeyName = "pubkey-eth"
 )
 
 var (

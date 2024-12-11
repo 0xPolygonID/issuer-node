@@ -12,11 +12,11 @@ import (
 
 // CreateKey is the handler for the POST /keys endpoint.
 func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) (CreateKeyResponseObject, error) {
-	if string(request.Body.KeyType) != string(BJJ) && string(request.Body.KeyType) != string(ETH) {
-		log.Error(ctx, "invalid key type. BJJ and ETH Keys are supported")
+	if string(request.Body.KeyType) != string(KeyKeyTypeBabyjujJub) && string(request.Body.KeyType) != string(KeyKeyTypeSecp256k1) {
+		log.Error(ctx, "invalid key type. babyjujJub and secp256k1 keys are supported")
 		return CreateKey400JSONResponse{
 			N400JSONResponse{
-				Message: "invalid key type. BJJ and ETH Keys are supported",
+				Message: "invalid key type. babyjujJub and secp256k1 keys are supported are supported",
 			},
 		}, nil
 	}
@@ -30,7 +30,7 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 		}, nil
 	}
 
-	keyID, err := s.keyService.CreateKey(ctx, request.Identifier.did(), kms.KeyType(request.Body.KeyType), request.Body.Name)
+	keyID, err := s.keyService.CreateKey(ctx, request.Identifier.did(), convertKeyTypeFromRequest(request.Body.KeyType), request.Body.Name)
 	if err != nil {
 		log.Error(ctx, "creating key", "err", err)
 		return CreateKey500JSONResponse{
@@ -81,11 +81,10 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 			},
 		}, nil
 	}
-
 	encodedKeyID := b64.StdEncoding.EncodeToString([]byte(key.KeyID))
 	return GetKey200JSONResponse{
 		Id:               encodedKeyID,
-		KeyType:          KeyKeyType(key.KeyType),
+		KeyType:          convertKeyTypeToResponse(key.KeyType),
 		PublicKey:        key.PublicKey,
 		IsAuthCredential: key.HasAssociatedAuthCredential,
 		Name:             key.Name,
@@ -131,7 +130,7 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 		encodedKeyID := b64.StdEncoding.EncodeToString([]byte(key.KeyID))
 		items = append(items, Key{
 			Id:               encodedKeyID,
-			KeyType:          KeyKeyType(key.KeyType),
+			KeyType:          convertKeyTypeToResponse(key.KeyType),
 			PublicKey:        key.PublicKey,
 			IsAuthCredential: key.HasAssociatedAuthCredential,
 			Name:             key.Name,
@@ -199,4 +198,18 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 	return DeleteKey200JSONResponse{
 		Message: "key deleted",
 	}, nil
+}
+
+func convertKeyTypeToResponse(keyType kms.KeyType) KeyKeyType {
+	if keyType == "BJJ" {
+		return KeyKeyTypeBabyjujJub
+	}
+	return KeyKeyTypeSecp256k1
+}
+
+func convertKeyTypeFromRequest(keyType CreateKeyRequestKeyType) kms.KeyType {
+	if string(keyType) == string(KeyKeyTypeBabyjujJub) {
+		return "BJJ"
+	}
+	return "ETH"
 }

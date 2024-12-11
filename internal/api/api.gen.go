@@ -46,8 +46,8 @@ const (
 
 // Defines values for CreateIdentityRequestDidMetadataType.
 const (
-	CreateIdentityRequestDidMetadataTypeBJJ CreateIdentityRequestDidMetadataType = "BJJ"
-	CreateIdentityRequestDidMetadataTypeETH CreateIdentityRequestDidMetadataType = "ETH"
+	BJJ CreateIdentityRequestDidMetadataType = "BJJ"
+	ETH CreateIdentityRequestDidMetadataType = "ETH"
 )
 
 // Defines values for CreateIdentityResponseCredentialStatusType.
@@ -59,8 +59,8 @@ const (
 
 // Defines values for CreateKeyRequestKeyType.
 const (
-	CreateKeyRequestKeyTypeBJJ CreateKeyRequestKeyType = "BJJ"
-	CreateKeyRequestKeyTypeETH CreateKeyRequestKeyType = "ETH"
+	CreateKeyRequestKeyTypeBabyjujJub CreateKeyRequestKeyType = "babyjujJub"
+	CreateKeyRequestKeyTypeSecp256k1  CreateKeyRequestKeyType = "secp256k1"
 )
 
 // Defines values for DisplayMethodType.
@@ -84,8 +84,8 @@ const (
 
 // Defines values for KeyKeyType.
 const (
-	BJJ KeyKeyType = "BJJ"
-	ETH KeyKeyType = "ETH"
+	KeyKeyTypeBabyjujJub KeyKeyType = "babyjujJub"
+	KeyKeyTypeSecp256k1  KeyKeyType = "secp256k1"
 )
 
 // Defines values for LinkStatus.
