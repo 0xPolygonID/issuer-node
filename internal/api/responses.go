@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
@@ -9,6 +10,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/pagination"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
 )
@@ -361,5 +363,20 @@ func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePayment
 		RecipientDID:    payReq.RecipientDID.String(),
 		PaymentOptionID: payReq.PaymentOptionID,
 		Payments:        payments,
+	}
+}
+
+func toVerifyPaymentResponse(status ports.BlockchainPaymentStatus) (VerifyPaymentResponseObject, error) {
+	switch status {
+	case ports.BlockchainPaymentStatusPending:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusPending}, nil
+	case ports.BlockchainPaymentStatusSuccess:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess}, nil
+	case ports.BlockchainPaymentStatusCancelled:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusCanceled}, nil
+	case ports.BlockchainPaymentStatusFailed:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusFailed}, nil
+	default:
+		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unknown blockchain payment status <%d>", status)}}, nil
 	}
 }

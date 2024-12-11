@@ -160,41 +160,76 @@ func (p *payment) GetSettings() payments.Config {
 }
 
 // VerifyPayment verifies a payment
-func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash string) (bool, error) {
+func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash string) (ports.BlockchainPaymentStatus, error) {
 	paymentReqItem, err := p.paymentsStore.GetPaymentRequestItem(ctx, issuerDID, nonce)
 	if err != nil {
-		return false, fmt.Errorf("failed to get payment request: %w", err)
+		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment request: %w", err)
 	}
 
 	setting, found := p.settings[paymentReqItem.PaymentOptionID]
 	if !found {
 		log.Error(ctx, "chain not found in configuration", "paymentOptionID", paymentReqItem.PaymentOptionID)
-		return false, fmt.Errorf("payment Option <%d> not found in payment configuration", paymentReqItem.PaymentOptionID)
+		return ports.BlockchainPaymentStatusPending, fmt.Errorf("payment Option <%d> not found in payment configuration", paymentReqItem.PaymentOptionID)
 	}
 
 	payOptConfItem, err := p.paymentOptionConfigItem(ctx, issuerDID, paymentReqItem)
 	if err != nil {
 		log.Error(ctx, "failed to get payment option config", "err", err)
-		return false, fmt.Errorf("failed to get payment option config: %w", err)
+		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment option config: %w", err)
 	}
 
 	client, err := p.networkResolver.GetEthClientByChainID(setting.ChainID)
 	if err != nil {
 		log.Error(ctx, "failed to get ethereum client from resolvers", "err", err, "key", paymentReqItem.SigningKeyID)
-		return false, fmt.Errorf("failed to get ethereum client from resolvers settings for key <%s>", paymentReqItem.SigningKeyID)
+		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get ethereum client from resolvers settings for key <%s>", paymentReqItem.SigningKeyID)
 	}
 
 	instance, err := eth.NewPaymentContract(setting.PaymentRails, client.GetEthereumClient())
 	if err != nil {
-		return false, err
+		return ports.BlockchainPaymentStatusPending, err
 	}
 
-	// TODO: pending, canceled, success, failed
-	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: ctx}, payOptConfItem.Recipient, nonce)
+	status, err := p.verifyPaymentOnBlockchain(ctx, client, instance, payOptConfItem.Recipient, nonce, txHash)
 	if err != nil {
-		return false, err
+		log.Error(ctx, "failed to verify payment on blockchain", "err", err, "txHash", txHash, "nonce", nonce)
+		return ports.BlockchainPaymentStatusPending, err
 	}
-	return isPaid, nil
+	return status, nil
+}
+
+func (p *payment) verifyPaymentOnBlockchain(
+	ctx context.Context,
+	client *eth.Client,
+	contract *eth.PaymentContract,
+	recipient common.Address,
+	nonce *big.Int,
+	txID string,
+) (ports.BlockchainPaymentStatus, error) {
+	_, isPending, err := client.GetTransactionByID(ctx, txID)
+	if err != nil {
+		if err.Error() == "not found" {
+			return ports.BlockchainPaymentStatusCancelled, nil
+		}
+		return ports.BlockchainPaymentStatusUnknown, err
+	}
+	if isPending {
+		return ports.BlockchainPaymentStatusPending, nil
+	}
+	receipt, err := client.GetTransactionReceiptByID(ctx, txID)
+	if err != nil {
+		return ports.BlockchainPaymentStatusUnknown, err
+	}
+	if receipt.Status == 1 {
+		isPaid, err := contract.IsPaymentDone(&bind.CallOpts{Context: ctx}, recipient, nonce)
+		if err != nil {
+			return ports.BlockchainPaymentStatusPending, nil
+		}
+		if isPaid {
+			return ports.BlockchainPaymentStatusSuccess, nil
+		}
+		return ports.BlockchainPaymentStatusPending, nil
+	}
+	return ports.BlockchainPaymentStatusFailed, nil
 }
 
 // paymentOptionConfigItem finds the payment option config item used to pay using the payment id stored in PaymentRequest database

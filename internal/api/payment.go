@@ -167,15 +167,12 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 		log.Error(ctx, "parsing nonce on verify payment", "err", err, "nonce", request.Nonce)
 		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid nonce: <%s>", request.Nonce)}}, nil
 	}
-	isPaid, err := s.paymentService.VerifyPayment(ctx, *issuerDID, nonce, request.Body.TxHash)
+	status, err := s.paymentService.VerifyPayment(ctx, *issuerDID, nonce, request.Body.TxHash)
 	if err != nil {
-		log.Error(ctx, "can't process payment message", "err", err)
-		return VerifyPayment400JSONResponse{N400JSONResponse{Message: "can't process payment message"}}, nil
+		log.Error(ctx, "can't verify payment", "err", err, "nonce", request.Nonce, "txID", request.Body.TxHash)
+		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("can't verify payment: <%s>", err.Error())}}, nil
 	}
-	if !isPaid {
-		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusPending}, nil
-	}
-	return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess}, nil
+	return toVerifyPaymentResponse(status)
 }
 
 func newPaymentOptionConfig(config *PaymentOptionConfig) (*domain.PaymentOptionConfig, error) {

@@ -13,6 +13,22 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
+// BlockchainPaymentStatus represents the status of a payment
+type BlockchainPaymentStatus int
+
+const (
+	// BlockchainPaymentStatusPending - Payment is still pending
+	BlockchainPaymentStatusPending BlockchainPaymentStatus = iota
+	// BlockchainPaymentStatusCancelled - Payment was cancelled
+	BlockchainPaymentStatusCancelled
+	// BlockchainPaymentStatusSuccess - Payment was successful
+	BlockchainPaymentStatusSuccess
+	// BlockchainPaymentStatusFailed - Payment has failed
+	BlockchainPaymentStatusFailed
+	// BlockchainPaymentStatusUnknown - Payment status is unknown. Something went wrong
+	BlockchainPaymentStatusUnknown
+)
+
 // CreatePaymentRequestReq is the request for PaymentService.CreatePaymentRequest
 type CreatePaymentRequestReq struct {
 	IssuerDID   w3c.DID
@@ -27,8 +43,7 @@ type PaymentService interface {
 	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq) (*domain.PaymentRequest, error)
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
 	GetSettings() payments.Config
-	VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash string) (bool, error)
-
+	VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash string) (BlockchainPaymentStatus, error)
 	CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config *domain.PaymentOptionConfig) (uuid.UUID, error)
 	GetPaymentOptions(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentOption, error)
 	GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error)
