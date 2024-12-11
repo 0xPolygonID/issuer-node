@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -15,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -129,6 +127,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 			Nonce:            *nonce,
 			PaymentRequestID: paymentRequest.ID,
 			PaymentOptionID:  chainConfig.PaymentOptionID,
+			SigningKeyID:     chainConfig.SigningKeyID,
 			Payment:          data,
 		}
 		paymentRequest.Payments = append(paymentRequest.Payments, item)
@@ -172,43 +171,49 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 		log.Error(ctx, "chain not found in configuration", "paymentOptionID", paymentReqItem.PaymentOptionID)
 		return false, fmt.Errorf("payment Option <%d> not found in payment configuration", paymentReqItem.PaymentOptionID)
 	}
-	contractAddress := setting.PaymentRails
 
-	options, err := p.paymentsStore.GetAllPaymentOptions(ctx, issuerDID)
+	payOptConfItem, err := p.paymentOptionConfigItem(ctx, issuerDID, paymentReqItem)
 	if err != nil {
-		return false, err
+		log.Error(ctx, "failed to get payment option config", "err", err)
+		return false, fmt.Errorf("failed to get payment option config: %w", err)
 	}
 
-	var paymentOptionConfigItem *domain.PaymentOptionConfigItem
-	for _, option := range options {
-		for _, item := range option.Config.Config {
-			if item.PaymentOptionID == paymentReqItem.PaymentOptionID {
-				paymentOptionConfigItem = &item
-				break
-			}
-		}
-	}
-	if paymentOptionConfigItem == nil {
-		return false, fmt.Errorf("payment option config item not found")
-	}
-
-	// TODO: Load rpc from network resolvers
-	client, err := ethclient.Dial("https://polygon-amoy.g.alchemy.com/v2/DHvucvBBzrBhaHzmjrMp24PGbl7vwee6")
+	client, err := p.networkResolver.GetEthClientByChainID(setting.ChainID)
 	if err != nil {
-		return false, fmt.Errorf("failed to connect to ethereum client: %w", err)
+		log.Error(ctx, "failed to get ethereum client from resolvers", "err", err, "key", paymentReqItem.SigningKeyID)
+		return false, fmt.Errorf("failed to get ethereum client from resolvers settings for key <%s>", paymentReqItem.SigningKeyID)
 	}
 
-	instance, err := eth.NewPaymentContract(contractAddress, client)
+	instance, err := eth.NewPaymentContract(setting.PaymentRails, client.GetEthereumClient())
 	if err != nil {
 		return false, err
 	}
 
 	// TODO: pending, canceled, success, failed
-	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: ctx}, paymentOptionConfigItem.Recipient, nonce)
+	isPaid, err := instance.IsPaymentDone(&bind.CallOpts{Context: ctx}, payOptConfItem.Recipient, nonce)
 	if err != nil {
 		return false, err
 	}
 	return isPaid, nil
+}
+
+// paymentOptionConfigItem finds the payment option config item used to pay using the payment id stored in PaymentRequest database
+func (p *payment) paymentOptionConfigItem(ctx context.Context, issuerDID w3c.DID, item *domain.PaymentRequestItem) (*domain.PaymentOptionConfigItem, error) {
+	paymentReq, err := p.paymentsStore.GetPaymentRequestByID(ctx, issuerDID, item.PaymentRequestID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment request: %w", err)
+	}
+
+	option, err := p.paymentsStore.GetPaymentOptionByID(ctx, &issuerDID, paymentReq.PaymentOptionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment option: %w", err)
+	}
+
+	configItem := option.Config.GetByID(item.PaymentOptionID)
+	if configItem == nil {
+		return nil, fmt.Errorf("payment option config item for id <%d> not found", item.PaymentOptionID)
+	}
+	return configItem, nil
 }
 
 func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig, chainConfig *domain.PaymentOptionConfigItem, nonce *big.Int) (protocol.PaymentRequestInfoDataItem, error) {
@@ -222,10 +227,7 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 		return nil, err
 	}
 
-	signerAddress, err := p.getAddress(ctx, kms.KeyID{
-		Type: kms.KeyTypeEthereum,
-		ID:   chainConfig.SigningKeyID,
-	})
+	signerAddress, err := p.getSignerAddress(ctx, chainConfig.SigningKeyID)
 	if err != nil {
 		log.Error(ctx, "failed to retrieve signer address", "err", err)
 		return nil, err
@@ -399,14 +401,22 @@ func (p *payment) paymentRequestSignature(
 		log.Error(ctx, "failed to sign typed data hash", "err", err, "keyId", keyID)
 		return nil, err
 	}
+
+	const recoveryIdOffset = 64
+	if len(signature) > recoveryIdOffset {
+		if signature[recoveryIdOffset] <= 1 {
+			signature[recoveryIdOffset] += 27
+		}
+	}
+
 	return signature, nil
 }
 
-func (p *payment) getAddress(ctx context.Context, k kms.KeyID) (common.Address, error) {
-	if p.kms == nil {
-		return common.Address{}, errors.Join(errors.New("the signer is read-only"))
-	}
-	bytesPubKey, err := p.kms.PublicKey(k)
+func (p *payment) getSignerAddress(ctx context.Context, signingKeyID string) (common.Address, error) {
+	bytesPubKey, err := p.kms.PublicKey(kms.KeyID{
+		Type: kms.KeyTypeEthereum,
+		ID:   signingKeyID,
+	})
 	if err != nil {
 		return common.Address{}, err
 	}

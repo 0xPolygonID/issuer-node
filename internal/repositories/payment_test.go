@@ -292,7 +292,7 @@ func TestPayment_GetPaymentRequestByID(t *testing.T) {
 func TestPayment_GetPaymentRequestItem(t *testing.T) {
 	ctx := context.Background()
 	fixture := NewFixture(storage)
-	issuerID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qQHtVzfwjywqosK24XT7um3R1Ym5L1GJTbijjcxMq")
+	issuerID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qX7mBeonrp5u7GapztqjYZTdLsv9XBhyXgjYQGjgi")
 	require.NoError(t, err)
 
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})

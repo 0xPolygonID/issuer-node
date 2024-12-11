@@ -63,6 +63,16 @@ type PaymentOptionConfig struct {
 	Config []PaymentOptionConfigItem `json:"Config"`
 }
 
+// GetByID runs over all items in configuration and returns one with matching ID
+func (c *PaymentOptionConfig) GetByID(paymentOptionID payments.OptionConfigIDType) *PaymentOptionConfigItem {
+	for _, item := range c.Config {
+		if item.PaymentOptionID == paymentOptionID {
+			return &item
+		}
+	}
+	return nil
+}
+
 // PaymentOptionConfigItem is an item in Payment option config
 type PaymentOptionConfigItem struct {
 	PaymentOptionID payments.OptionConfigIDType `json:"paymentOptionId"`
