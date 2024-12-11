@@ -430,12 +430,11 @@ type IssuerDescription struct {
 
 // Key defines model for Key.
 type Key struct {
-	Name string `json:"Name"`
-
 	// Id base64 encoded keyID
 	Id               string     `json:"id"`
 	IsAuthCredential bool       `json:"isAuthCredential"`
 	KeyType          KeyKeyType `json:"keyType"`
+	Name             string     `json:"name"`
 	PublicKey        string     `json:"publicKey"`
 }
 

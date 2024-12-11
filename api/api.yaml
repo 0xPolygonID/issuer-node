@@ -2443,7 +2443,7 @@ components:
         - keyType
         - publicKey
         - isAuthCredential
-        - Name
+        - name
       properties:
         id:
           type: string
@@ -2463,7 +2463,7 @@ components:
           type: boolean
           x-omitempty: false
           example: true
-        Name:
+        name:
           type: string
           x-omitempty: false
           example: "my key"
