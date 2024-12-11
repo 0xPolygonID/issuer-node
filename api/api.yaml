@@ -2419,8 +2419,8 @@ components:
         keyType:
           type: string
           x-omitempty: false
-          example: "babyjujJub"
-          enum: [ babyjujJub, secp256k1 ]
+          example: "babyjubJub"
+          enum: [ babyjubJub, secp256k1 ]
         name:
           type: string
           example: "my key"
@@ -2453,8 +2453,8 @@ components:
         keyType:
           type: string
           x-omitempty: false
-          example: "babyjujJub"
-          enum: [ babyjujJub, secp256k1 ]
+          example: "babyjubJub"
+          enum: [ babyjubJub, secp256k1 ]
         publicKey:
           type: string
           x-omitempty: false

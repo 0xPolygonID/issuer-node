@@ -59,7 +59,7 @@ const (
 
 // Defines values for CreateKeyRequestKeyType.
 const (
-	CreateKeyRequestKeyTypeBabyjujJub CreateKeyRequestKeyType = "babyjujJub"
+	CreateKeyRequestKeyTypeBabyjubJub CreateKeyRequestKeyType = "babyjubJub"
 	CreateKeyRequestKeyTypeSecp256k1  CreateKeyRequestKeyType = "secp256k1"
 )
 
@@ -84,7 +84,7 @@ const (
 
 // Defines values for KeyKeyType.
 const (
-	KeyKeyTypeBabyjujJub KeyKeyType = "babyjujJub"
+	KeyKeyTypeBabyjubJub KeyKeyType = "babyjubJub"
 	KeyKeyTypeSecp256k1  KeyKeyType = "secp256k1"
 )
 

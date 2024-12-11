@@ -12,7 +12,7 @@ import (
 
 // CreateKey is the handler for the POST /keys endpoint.
 func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) (CreateKeyResponseObject, error) {
-	if string(request.Body.KeyType) != string(KeyKeyTypeBabyjujJub) && string(request.Body.KeyType) != string(KeyKeyTypeSecp256k1) {
+	if string(request.Body.KeyType) != string(KeyKeyTypeBabyjubJub) && string(request.Body.KeyType) != string(KeyKeyTypeSecp256k1) {
 		log.Error(ctx, "invalid key type. babyjujJub and secp256k1 keys are supported")
 		return CreateKey400JSONResponse{
 			N400JSONResponse{
@@ -202,13 +202,13 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 
 func convertKeyTypeToResponse(keyType kms.KeyType) KeyKeyType {
 	if keyType == "BJJ" {
-		return KeyKeyTypeBabyjujJub
+		return KeyKeyTypeBabyjubJub
 	}
 	return KeyKeyTypeSecp256k1
 }
 
 func convertKeyTypeFromRequest(keyType CreateKeyRequestKeyType) kms.KeyType {
-	if string(keyType) == string(KeyKeyTypeBabyjujJub) {
+	if string(keyType) == string(KeyKeyTypeBabyjubJub) {
 		return "BJJ"
 	}
 	return "ETH"

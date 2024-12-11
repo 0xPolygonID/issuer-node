@@ -68,7 +68,7 @@ func TestServer_CreateKey(t *testing.T) {
 			auth: authOk,
 			did:  did.String(),
 			body: CreateKeyRequest{
-				KeyType: CreateKeyRequestKeyType(KeyKeyTypeBabyjujJub),
+				KeyType: CreateKeyRequestKeyType(KeyKeyTypeBabyjubJub),
 				Name:    "my-bjj-key",
 			},
 			expected: expected{
@@ -96,7 +96,7 @@ func TestServer_CreateKey(t *testing.T) {
 			auth: authOk,
 			did:  did.String(),
 			body: CreateKeyRequest{
-				KeyType: CreateKeyRequestKeyType(KeyKeyTypeBabyjujJub),
+				KeyType: CreateKeyRequestKeyType(KeyKeyTypeBabyjubJub),
 				Name:    "",
 			},
 			expected: expected{
@@ -223,7 +223,7 @@ func TestServer_GetKey(t *testing.T) {
 				assert.NotNil(t, response.Id)
 				assert.Equal(t, keyID, response.Id)
 				assert.NotNil(t, response.PublicKey)
-				assert.Equal(t, KeyKeyTypeBabyjujJub, response.KeyType)
+				assert.Equal(t, KeyKeyTypeBabyjubJub, response.KeyType)
 				assert.False(t, response.IsAuthCredential)
 				assert.True(t, "my-key" == response.Name)
 			case http.StatusBadRequest:
@@ -325,7 +325,7 @@ func TestServer_GetKeys(t *testing.T) {
 
 		// Check that the keys are sorted by name
 		for i, key := range all {
-			assert.Equal(t, string(KeyKeyTypeBabyjujJub), string(key.KeyType))
+			assert.Equal(t, string(KeyKeyTypeBabyjubJub), string(key.KeyType))
 			if i == 0 {
 				assert.Equal(t, "pubkey-bjj", key.Name)
 			} else {
