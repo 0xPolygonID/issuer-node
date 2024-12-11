@@ -47,6 +47,9 @@ func Test_identity_CreateIdentity(t *testing.T) {
 	connectionsRepository := repositories.NewConnection()
 	keyRepository := repositories.NewKey(*storage)
 
+	claimService := NewClaim(claimsRepo, nil, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, nil, nil, cfg.UniversalLinks)
+	keyService := NewKey(keyStore, claimService, keyRepository)
+
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
@@ -111,6 +114,16 @@ func Test_identity_CreateIdentity(t *testing.T) {
 					assert.Equal(t, address, *identity.Address)
 				} else {
 					assert.False(t, isEthID)
+				}
+
+				allKeys, total, err := keyService.GetAll(ctx, DID, ports.KeyFilter{MaxResults: 10, Page: 1})
+				require.NoError(t, err)
+				if tc.options.KeyType == ETH {
+					assert.Equal(t, uint(2), total)
+					assert.Equal(t, 2, len(allKeys))
+				} else {
+					assert.Equal(t, uint(1), total)
+					assert.Equal(t, 1, len(allKeys))
 				}
 			}
 		})
