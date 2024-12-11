@@ -169,11 +169,6 @@ func (ks *Key) GetAll(ctx context.Context, did *w3c.DID, filter ports.KeyFilter)
 		end = len(keyIDs)
 	}
 
-	sort.Slice(keyIDs, func(i, j int) bool {
-		return keyIDs[i].ID < keyIDs[j].ID
-	})
-
-	keyIDs = keyIDs[start:end]
 	keys := make([]*ports.KMSKey, len(keyIDs))
 	for i, keyID := range keyIDs {
 		key, err := ks.Get(ctx, did, keyID.ID)
@@ -183,6 +178,12 @@ func (ks *Key) GetAll(ctx context.Context, did *w3c.DID, filter ports.KeyFilter)
 		}
 		keys[i] = key
 	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Name < keys[j].Name
+	})
+
+	keys = keys[start:end]
 	return keys, total, nil
 }
 

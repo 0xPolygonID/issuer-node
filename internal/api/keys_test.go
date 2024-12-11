@@ -92,7 +92,24 @@ func TestServer_CreateKey(t *testing.T) {
 			},
 		},
 		{
-			name: "should create a eth key",
+			name: "should get an error - empty name",
+			auth: authOk,
+			did:  did.String(),
+			body: CreateKeyRequest{
+				KeyType: "BJJ",
+				Name:    "",
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: CreateKey400JSONResponse{
+					N400JSONResponse: N400JSONResponse{
+						Message: "name is required",
+					},
+				},
+			},
+		},
+		{
+			name: "should create an eth key",
 			auth: authOk,
 			did:  didETH.String(),
 			body: CreateKeyRequest{
@@ -270,7 +287,7 @@ func TestServer_GetKeys(t *testing.T) {
 
 	t.Run("should get the keys for bjj identity with pagination", func(t *testing.T) {
 		for i := 0; i < 20; i++ {
-			name := fmt.Sprintf("my-key-%d", i)
+			name := fmt.Sprintf("my-key-%s", string('A'+rune(i+1)))
 			_, err = server.keyService.CreateKey(ctx, did, kms.KeyTypeBabyJubJub, name)
 			require.NoError(t, err)
 		}
@@ -305,6 +322,16 @@ func TestServer_GetKeys(t *testing.T) {
 
 		all := append(response.Items, response1.Items...)
 		assert.Equal(t, 1, countAuthCredentials(t, all))
+
+		// Check that the keys are sorted by name
+		for i, key := range all {
+			assert.Equal(t, BJJ, string(key.KeyType))
+			if i == 0 {
+				assert.Equal(t, "default-bjj", key.Name)
+			} else {
+				assert.Equal(t, fmt.Sprintf("my-key-%s", string('A'+rune(i))), key.Name)
+			}
+		}
 	})
 
 	t.Run("should get the keys for eth identity", func(t *testing.T) {
