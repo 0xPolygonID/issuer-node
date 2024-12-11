@@ -66,6 +66,7 @@ linters-settings:
     min-complexity: 35
   revive:
     enable-all-rules: false
+
     rules:
       - name: argument-limit
         severity: warning
@@ -74,6 +75,7 @@ linters-settings:
       - name: exported
         severity: warning
         disabled: false
+        arguments: [ "disableChecksOnConstants", "disableChecksOnVariables" ]
 
 
 issues:

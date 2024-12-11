@@ -101,7 +101,10 @@ func (v *vaultETHKeyProvider) Sign(_ context.Context, keyID KeyID, data []byte) 
 	}
 
 	sig, err := crypto.Sign(data, privKey)
-	return sig, errors.WithStack(err)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return sig, nil
 }
 
 func (v *vaultETHKeyProvider) ListByIdentity(_ context.Context, identity w3c.DID) ([]KeyID, error) {
