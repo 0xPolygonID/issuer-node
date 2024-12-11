@@ -109,3 +109,44 @@ func readContentFile(ctx context.Context, file string) ([]localStorageProviderFi
 
 	return localStorageFileContent, nil
 }
+
+func (ls *fileStorageManager) deleteKeyMaterial(ctx context.Context, keyID KeyID) error {
+	localStorageFileContent, err := readContentFile(ctx, ls.file)
+	if err != nil {
+		return err
+	}
+	for i, keyMaterial := range localStorageFileContent {
+		if keyMaterial.KeyPath == keyID.ID {
+			localStorageFileContent = append(localStorageFileContent[:i], localStorageFileContent[i+1:]...)
+			break
+		}
+	}
+
+	newFileContent, err := json.Marshal(localStorageFileContent)
+	if err != nil {
+		log.Error(ctx, "cannot marshal file content", "err", err)
+		return err
+	}
+	// nolint: all
+	if err := os.WriteFile(ls.file, newFileContent, 0644); err != nil {
+		log.Error(ctx, "cannot write file", "err", err)
+		return err
+	}
+	return nil
+}
+
+func (ls *fileStorageManager) getKeyMaterial(ctx context.Context, keyID KeyID) (map[string]string, error) {
+	localStorageFileContent, err := readContentFile(ctx, ls.file)
+	if err != nil {
+		return nil, err
+	}
+	for _, keyMaterial := range localStorageFileContent {
+		if keyMaterial.KeyPath == keyID.ID {
+			return map[string]string{
+				jsonKeyType: keyMaterial.KeyType,
+				jsonKeyData: keyMaterial.PrivateKey,
+			}, nil
+		}
+	}
+	return nil, ErrKeyNotFound
+}

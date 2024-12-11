@@ -13,7 +13,10 @@ export type RouteID =
   | "identities"
   | "createIdentity"
   | "identityDetails"
-  | "onboarding";
+  | "onboarding"
+  | "keys"
+  | "keyDetails"
+  | "createKey";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -37,6 +40,10 @@ export const ROUTES: Routes = {
   createIdentity: {
     layout: "sider",
     path: "/identities/create",
+  },
+  createKey: {
+    layout: "sider",
+    path: "/keys/create",
   },
   credentialDetails: {
     layout: "sider",
@@ -65,6 +72,14 @@ export const ROUTES: Routes = {
   issuerState: {
     layout: "sider",
     path: "/issuer-state",
+  },
+  keyDetails: {
+    layout: "sider",
+    path: "/keys/:keyID",
+  },
+  keys: {
+    layout: "sider",
+    path: "/keys",
   },
   linkDetails: {
     layout: "sider",

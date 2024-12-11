@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
@@ -309,4 +310,56 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 	}
 
 	return response, nil
+}
+
+// CreateAuthCredential is the controller to create an auth credential
+func (s *Server) CreateAuthCredential(ctx context.Context, request CreateAuthCredentialRequestObject) (CreateAuthCredentialResponseObject, error) {
+	decodedKeyID, err := b64.StdEncoding.DecodeString(request.Body.KeyID)
+	if err != nil {
+		log.Error(ctx, "decoding base64 key id", "err", err)
+		return CreateAuthCredential400JSONResponse{
+			N400JSONResponse{
+				Message: "error decoding base64 key id",
+			},
+		}, nil
+	}
+
+	autCredentialID, err := s.identityService.CreateAuthCredential(ctx, request.Identifier.w3cDID, string(decodedKeyID))
+	if err != nil {
+		log.Error(ctx, "creating auth credential", "err", err)
+		if errors.Is(err, services.ErrDuplicatedHash) {
+			message := fmt.Sprintf("%s. This means an auth credential was already created with this key", err.Error())
+			return CreateAuthCredential400JSONResponse{
+				N400JSONResponse{
+					Message: message,
+				},
+			}, nil
+		}
+
+		if errors.Is(err, services.ErrInvalidKeyType) {
+			return CreateAuthCredential400JSONResponse{
+				N400JSONResponse{
+					Message: "invalid key type. Only BJJ keys are supported",
+				},
+			}, nil
+		}
+
+		if errors.Is(err, services.ErrKeyNotFound) {
+			return CreateAuthCredential400JSONResponse{
+				N400JSONResponse{
+					Message: "key not found",
+				},
+			}, nil
+		}
+
+		return CreateAuthCredential500JSONResponse{
+			N500JSONResponse{
+				Message: err.Error(),
+			},
+		}, nil
+	}
+
+	return CreateAuthCredential201JSONResponse{
+		Id: autCredentialID,
+	}, nil
 }

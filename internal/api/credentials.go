@@ -96,6 +96,9 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		if errors.Is(err, services.ErrLoadingSchema) {
 			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
 		}
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return CreateCredential500JSONResponse{N500JSONResponse{Message: "if this identity has keyType=ETH you must to publish the state first"}}, nil
+		}
 		errs := []error{
 			services.ErrJSONLdContext,
 			services.ErrProcessSchema,

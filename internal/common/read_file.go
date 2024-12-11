@@ -51,6 +51,28 @@ func CreateFile(t *testing.T) *MyYAMLReader {
       contractAddress: 0x3d3763eC0a50CE1AdF83d0b5D99FBE0e3fEB43fb
       chainID: 80002
       publishingKey: pbkey
+
+privado:
+  main:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: https://rpc-mainnet.privado.id
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 21000
+      publishingKey: pbkey
+
 `)
 
 	reader := NewMyYAMLReader(yamlData)

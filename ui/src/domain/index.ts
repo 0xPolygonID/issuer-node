@@ -62,3 +62,6 @@ export type { Schema as ApiSchema } from "src/domain/schema";
 export type { Identity, IdentityDetails, Blockchain, Network } from "src/domain/identity";
 
 export { IdentityType, Method, CredentialStatusType } from "src/domain/identity";
+
+export type { Key } from "src/domain/key";
+export { KeyType } from "src/domain/key";

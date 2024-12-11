@@ -2,8 +2,13 @@ package repositories
 
 import (
 	"context"
+	"crypto/rand"
 	"os"
 	"testing"
+
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -46,4 +51,17 @@ func lookupPostgresURL() string {
 		return ""
 	}
 	return con
+}
+
+func randomDID(t *testing.T) w3c.DID {
+	t.Helper()
+	typ, err := core.BuildDIDType(core.DIDMethodIden3, core.Privado, core.Main)
+	var genesis [27]byte
+	require.NoError(t, err)
+	_, err = rand.Read(genesis[:])
+	require.NoError(t, err)
+	id := core.NewID(typ, genesis)
+	did, err := core.ParseDIDFromID(id)
+	require.NoError(t, err)
+	return *did
 }

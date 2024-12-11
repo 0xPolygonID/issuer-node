@@ -1,7 +1,7 @@
 import { App, Button, Col, Flex, Grid, Row, Tag, TagProps, Typography } from "antd";
-
 import copy from "copy-to-clipboard";
 import { useRef } from "react";
+
 import IconCheckMark from "src/assets/icons/check.svg?react";
 import IconCopy from "src/assets/icons/copy-01.svg?react";
 import IconDownload from "src/assets/icons/download-01.svg?react";
@@ -47,11 +47,13 @@ export function Detail({
   const componentProps =
     Component === Typography.Link
       ? {
+          className: "detail",
           ellipsis: true,
           href,
           target: "_blank",
         }
       : {
+          className: "detail",
           ellipsis: ellipsisPosition ? { suffix: text.slice(-ellipsisPosition) } : true,
         };
 
