@@ -37,7 +37,8 @@ type KeyFilter struct {
 
 // KeyService is the service that manages keys
 type KeyService interface {
-	CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType, name string) (kms.KeyID, error)
+	Create(ctx context.Context, did *w3c.DID, keyType kms.KeyType, name string) (kms.KeyID, error)
+	Update(ctx context.Context, did *w3c.DID, keyID string, name string) error
 	Get(ctx context.Context, did *w3c.DID, keyID string) (*KMSKey, error)
 	GetAll(ctx context.Context, did *w3c.DID, filter KeyFilter) ([]*KMSKey, uint, error)
 	Delete(ctx context.Context, did *w3c.DID, keyID string) error

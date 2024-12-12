@@ -8,6 +8,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // CreateKey is the handler for the POST /keys endpoint.
@@ -30,9 +31,17 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 		}, nil
 	}
 
-	keyID, err := s.keyService.CreateKey(ctx, request.Identifier.did(), convertKeyTypeFromRequest(request.Body.KeyType), request.Body.Name)
+	keyID, err := s.keyService.Create(ctx, request.Identifier.did(), convertKeyTypeFromRequest(request.Body.KeyType), request.Body.Name)
 	if err != nil {
 		log.Error(ctx, "creating key", "err", err)
+		if errors.Is(err, repositories.ErrDuplicateKeyName) {
+			log.Error(ctx, "duplicate key name", "err", err)
+			return CreateKey400JSONResponse{
+				N400JSONResponse{
+					Message: "duplicate key name",
+				},
+			}, nil
+		}
 		return CreateKey500JSONResponse{
 			N500JSONResponse{
 				Message: err.Error(),
@@ -41,6 +50,57 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 	}
 	return CreateKey201JSONResponse{
 		Id: keyID.ID,
+	}, nil
+}
+
+// UpdateKey is the handler for the PATCH /keys/{keyID} endpoint.
+func (s *Server) UpdateKey(ctx context.Context, request UpdateKeyRequestObject) (UpdateKeyResponseObject, error) {
+	decodedKeyID, err := b64.StdEncoding.DecodeString(request.Id)
+	if err != nil {
+		log.Error(ctx, "the key id can not be decoded from base64", "err", err)
+		return UpdateKey400JSONResponse{
+			N400JSONResponse{
+				Message: "the key id can not be decoded from base64",
+			},
+		}, nil
+	}
+
+	if request.Body.Name == "" {
+		log.Error(ctx, "name is required")
+		return UpdateKey400JSONResponse{
+			N400JSONResponse{
+				Message: "name is required",
+			},
+		}, nil
+	}
+
+	err = s.keyService.Update(ctx, request.Identifier.did(), string(decodedKeyID), request.Body.Name)
+	if err != nil {
+		log.Error(ctx, "updating key", "err", err)
+		if errors.Is(err, ports.ErrKeyNotFound) {
+			log.Error(ctx, "key not found", "err", err)
+			return UpdateKey404JSONResponse{
+				N404JSONResponse{
+					Message: "key not found",
+				},
+			}, nil
+		}
+		if errors.Is(err, repositories.ErrDuplicateKeyName) {
+			log.Error(ctx, "duplicate key name", "err", err)
+			return UpdateKey400JSONResponse{
+				N400JSONResponse{
+					Message: "duplicate key name",
+				},
+			}, nil
+		}
+		return UpdateKey500JSONResponse{
+			N500JSONResponse{
+				Message: err.Error(),
+			},
+		}, nil
+	}
+	return UpdateKey200JSONResponse{
+		Message: "key updated",
 	}, nil
 }
 

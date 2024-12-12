@@ -13,8 +13,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-// ErrKeyNotFound key not found error
-var ErrKeyNotFound = errors.New("key not found")
+var (
+	// ErrKeyNotFound key not found error
+	ErrKeyNotFound = errors.New("key not found")
+	// ErrDuplicateKeyName duplicate key name error
+	ErrDuplicateKeyName = errors.New("key name already exists")
+)
 
 type key struct {
 	conn db.Storage
@@ -32,12 +36,14 @@ func (k *key) Save(ctx context.Context, conn db.Querier, key *domain.Key) (uuid.
 	if conn == nil {
 		conn = k.conn.Pgx
 	}
-
 	sql := `INSERT INTO keys (id, issuer_did, public_key, name)
 			VALUES($1, $2, $3, $4) ON CONFLICT (id) DO
-			UPDATE SET public_key=$3, name=$4`
+			UPDATE SET name=$4`
 	_, err := conn.Exec(ctx, sql, key.ID, key.IssuerCoreDID().String(), key.PublicKey, key.Name)
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			return uuid.Nil, ErrDuplicateKeyName
+		}
 		return uuid.Nil, err
 	}
 	return key.ID, err

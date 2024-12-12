@@ -778,6 +778,11 @@ type GetKeysParams struct {
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 }
 
+// UpdateKeyJSONBody defines parameters for UpdateKey.
+type UpdateKeyJSONBody struct {
+	Name string `json:"name"`
+}
+
 // GetSchemasParams defines parameters for GetSchemas.
 type GetSchemasParams struct {
 	// Query Query string to do full text search in schema types and attributes.
@@ -854,6 +859,9 @@ type ActivateLinkJSONRequestBody ActivateLinkJSONBody
 
 // CreateKeyJSONRequestBody defines body for CreateKey for application/json ContentType.
 type CreateKeyJSONRequestBody = CreateKeyRequest
+
+// UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
+type UpdateKeyJSONRequestBody UpdateKeyJSONBody
 
 // ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
@@ -965,6 +973,9 @@ type ServerInterface interface {
 	// Get a Key
 	// (GET /v2/identities/{identifier}/keys/{id})
 	GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
+	// Update a Key
+	// (PATCH /v2/identities/{identifier}/keys/{id})
+	UpdateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -1208,6 +1219,12 @@ func (_ Unimplemented) DeleteKey(w http.ResponseWriter, r *http.Request, identif
 // Get a Key
 // (GET /v2/identities/{identifier}/keys/{id})
 func (_ Unimplemented) GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update a Key
+// (PATCH /v2/identities/{identifier}/keys/{id})
+func (_ Unimplemented) UpdateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2595,6 +2612,46 @@ func (siw *ServerInterfaceWrapper) GetKey(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r)
 }
 
+// UpdateKey operation middleware
+func (siw *ServerInterfaceWrapper) UpdateKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier2
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id PathKeyID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateKey(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSchemas operation middleware
 func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
 
@@ -3175,6 +3232,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/keys/{id}", wrapper.GetKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}/keys/{id}", wrapper.UpdateKey)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
@@ -4723,6 +4783,61 @@ func (response GetKey500JSONResponse) VisitGetKeyResponse(w http.ResponseWriter)
 	return json.NewEncoder(w).Encode(response)
 }
 
+type UpdateKeyRequestObject struct {
+	Identifier PathIdentifier2 `json:"identifier"`
+	Id         PathKeyID       `json:"id"`
+	Body       *UpdateKeyJSONRequestBody
+}
+
+type UpdateKeyResponseObject interface {
+	VisitUpdateKeyResponse(w http.ResponseWriter) error
+}
+
+type UpdateKey200JSONResponse GenericMessage
+
+func (response UpdateKey200JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKey400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateKey400JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKey401JSONResponse struct{ N401JSONResponse }
+
+func (response UpdateKey401JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKey404JSONResponse struct{ N404JSONResponse }
+
+func (response UpdateKey404JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKey500JSONResponse struct{ N500JSONResponse }
+
+func (response UpdateKey500JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetSchemasRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Params     GetSchemasParams
@@ -5247,6 +5362,9 @@ type StrictServerInterface interface {
 	// Get a Key
 	// (GET /v2/identities/{identifier}/keys/{id})
 	GetKey(ctx context.Context, request GetKeyRequestObject) (GetKeyResponseObject, error)
+	// Update a Key
+	// (PATCH /v2/identities/{identifier}/keys/{id})
+	UpdateKey(ctx context.Context, request UpdateKeyRequestObject) (UpdateKeyResponseObject, error)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
@@ -6312,6 +6430,40 @@ func (sh *strictHandler) GetKey(w http.ResponseWriter, r *http.Request, identifi
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetKeyResponseObject); ok {
 		if err := validResponse.VisitGetKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateKey operation middleware
+func (sh *strictHandler) UpdateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
+	var request UpdateKeyRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	var body UpdateKeyJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateKey(ctx, request.(UpdateKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateKeyResponseObject); ok {
+		if err := validResponse.VisitUpdateKeyResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

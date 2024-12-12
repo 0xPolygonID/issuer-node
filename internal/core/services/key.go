@@ -35,8 +35,8 @@ func NewKey(kms *kms.KMS, claimService ports.ClaimService, keyRepository ports.K
 	}
 }
 
-// CreateKey creates a new key for the given DID
-func (ks *Key) CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType, name string) (kms.KeyID, error) {
+// Create creates a new key for the given DID
+func (ks *Key) Create(ctx context.Context, did *w3c.DID, keyType kms.KeyType, name string) (kms.KeyID, error) {
 	var keyID kms.KeyID
 	var err error
 	if keyType == kms.KeyTypeBabyJubJub {
@@ -80,6 +80,49 @@ func (ks *Key) CreateKey(ctx context.Context, did *w3c.DID, keyType kms.KeyType,
 	return keyID, nil
 }
 
+// Update updates the key with the given keyID
+func (ks *Key) Update(ctx context.Context, did *w3c.DID, keyID string, name string) error {
+	keyType, err := getKeyType(keyID)
+	if err != nil {
+		log.Error(ctx, "failed to get key type", "err", err)
+		return err
+	}
+
+	kmsKeyID := kms.KeyID{
+		ID:   keyID,
+		Type: keyType,
+	}
+
+	exists, err := ks.kms.Exists(ctx, kmsKeyID)
+	if err != nil {
+		log.Error(ctx, "failed to check if key exists", "err", err)
+		return err
+	}
+
+	if !exists {
+		return ports.ErrKeyNotFound
+	}
+
+	publicKey, err := ks.getPublicKey(ctx, keyID)
+	if err != nil {
+		log.Error(ctx, "failed to get public key", "err", err)
+		return ports.ErrKeyNotFound
+	}
+
+	keyInfo, err := ks.keyRepository.GetByPublicKey(ctx, *did, hexutil.Encode(publicKey))
+	if err != nil {
+		if !errors.Is(err, repositories.ErrKeyNotFound) {
+			return err
+		}
+	}
+	if keyInfo == nil {
+		keyInfo = domain.NewKey(*did, hexutil.Encode(publicKey), name)
+	}
+	keyInfo.Name = name
+	_, err = ks.keyRepository.Save(ctx, nil, keyInfo)
+	return err
+}
+
 // Get returns the public key for the given keyID
 func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSKey, error) {
 	keyType, err := getKeyType(keyID)
@@ -110,7 +153,6 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 	}
 
 	hasAssociatedAuthCredential := false
-	defaultKeyName := ""
 	switch keyType {
 	case kms.KeyTypeBabyJubJub:
 		hasAssociatedAuthCredential, _, err = ks.hasAssociatedAuthCredential(ctx, did, publicKey)
@@ -118,14 +160,12 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 			return nil, err
 		}
-		defaultKeyName = defaultBJJKeyName
 	case kms.KeyTypeEthereum:
 		hasAssociatedAuthCredential, err = ks.isAssociatedWithIdentity(ctx, did, publicKey)
 		if err != nil {
 			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 			return nil, err
 		}
-		defaultKeyName = defaultETHKeyName
 	default:
 		return nil, ports.ErrInvalidKeyType
 	}
@@ -136,7 +176,7 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 			return nil, err
 		}
 		keyInfo = &domain.Key{
-			Name: defaultKeyName,
+			Name: hexutil.Encode(publicKey),
 		}
 	}
 

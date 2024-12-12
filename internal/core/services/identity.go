@@ -47,11 +47,9 @@ import (
 )
 
 const (
-	transitionDelay   = time.Minute * 5
-	serviceContext    = "https://www.w3.org/ns/did/v1"
-	authReason        = "authentication"
-	defaultBJJKeyName = "pubkey-bjj"
-	defaultETHKeyName = "pubkey-eth"
+	transitionDelay = time.Minute * 5
+	serviceContext  = "https://www.w3.org/ns/did/v1"
+	authReason      = "authentication"
 )
 
 var (
@@ -697,13 +695,13 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, errors.Join(err, errors.New("can't save auth claim"))
 	}
 
-	defaultBJJKey := domain.NewKey(*did, authClaimModel.GetPublicKey().String(), defaultBJJKeyName)
+	defaultBJJKey := domain.NewKey(*did, authClaimModel.GetPublicKey().String(), authClaimModel.GetPublicKey().String())
 	_, err = i.keyRepository.Save(ctx, tx, defaultBJJKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't save default key: %w", err)
 	}
 
-	defaultETHKey := domain.NewKey(*did, hexutil.Encode(ethPublicKey), defaultETHKeyName)
+	defaultETHKey := domain.NewKey(*did, hexutil.Encode(ethPublicKey), hexutil.Encode(ethPublicKey))
 	_, err = i.keyRepository.Save(ctx, tx, defaultETHKey)
 	if err != nil {
 		log.Error(ctx, "saving default eth key", "err", err)
@@ -779,7 +777,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	defaultKey := domain.NewKey(*did, authClaimModel.GetPublicKey().String(), defaultBJJKeyName)
+	defaultKey := domain.NewKey(*did, authClaimModel.GetPublicKey().String(), authClaimModel.GetPublicKey().String())
 	_, err = i.keyRepository.Save(ctx, tx, defaultKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't save default key: %w", err)

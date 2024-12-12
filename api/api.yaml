@@ -1442,6 +1442,44 @@ paths:
           $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
+    patch:
+      summary: Update a Key
+      operationId: UpdateKey
+      description: Update a specific key.
+      tags:
+        - Key Management
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier2'
+        - $ref: '#/components/parameters/pathKeyID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "New Key Name"
+      responses:
+        '200':
+          description: Key found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
     delete:
       summary: Delete Key
       operationId: DeleteKey
