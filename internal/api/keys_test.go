@@ -581,3 +581,121 @@ func TestServer_DeleteKey(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_UpdateKey(t *testing.T) {
+	const (
+		method     = "iden3"
+		blockchain = "privado"
+		network    = "main"
+		BJJ        = "BJJ"
+	)
+	ctx := context.Background()
+	server := newTestServer(t, nil)
+
+	iden, err := server.Services.identity.Create(ctx, "http://issuer-node", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	did, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	handler := getHandler(ctx, server)
+
+	t.Run("should get an error - no auth header", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys/%s", did, "123")
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authWrong())
+
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+
+	t.Run("should get an error - wrong keyID", func(t *testing.T) {
+		url := fmt.Sprintf("/v2/identities/%s/keys/%s", did, "123123")
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusBadRequest, rr.Code)
+
+		var response UpdateKey400JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "the key id can not be decoded from base64", response.Message)
+	})
+
+	t.Run("should update a key", func(t *testing.T) {
+		keyID, err := server.keyService.Create(ctx, did, kms.KeyTypeBabyJubJub, "my-key")
+		require.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys/%s", did, keyID.ID)
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, UpdateKeyJSONRequestBody{
+			Name: "new-name",
+		}))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+		var response UpdateKey200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "key updated", response.Message)
+	})
+
+	t.Run("should get an error - duplicate key name", func(t *testing.T) {
+		keyID, err := server.keyService.Create(ctx, did, kms.KeyTypeBabyJubJub, "my-key")
+		require.NoError(t, err)
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys/%s", did, keyID.ID)
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, UpdateKeyJSONRequestBody{
+			Name: "new-name",
+		}))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusBadRequest, rr.Code)
+		var response UpdateKey400JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "duplicate key name", response.Message)
+	})
+
+	t.Run("should get an error - name is required", func(t *testing.T) {
+		keyID, err := server.keyService.Create(ctx, did, kms.KeyTypeBabyJubJub, "my-key-to-not-update")
+		require.NoError(t, err)
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys/%s", did, keyID.ID)
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, UpdateKeyJSONRequestBody{
+			Name: "",
+		}))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusBadRequest, rr.Code)
+		var response UpdateKey400JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "name is required", response.Message)
+	})
+
+	t.Run("should get an error - key not found", func(t *testing.T) {
+		keyID, err := server.keyService.Create(ctx, did, kms.KeyTypeBabyJubJub, "my-key-to-not-update-2")
+		require.NoError(t, err)
+
+		decodedKeyID, err := b64.StdEncoding.DecodeString(keyID.ID)
+		require.NoError(t, err)
+
+		require.NoError(t, server.keyService.Delete(ctx, did, string(decodedKeyID)))
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/keys/%s", did, keyID.ID)
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, UpdateKeyJSONRequestBody{
+			Name: "new-name",
+		}))
+		require.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusNotFound, rr.Code)
+		var response UpdateKey404JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "key not found", response.Message)
+	})
+}

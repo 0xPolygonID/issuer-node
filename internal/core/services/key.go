@@ -19,6 +19,14 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
+var (
+
+	// ErrAuthCredentialNotRevoked is returned when the associated auth core claim is not revoked
+	ErrAuthCredentialNotRevoked = errors.New("associated auth core claim not revoked")
+	// ErrKeyAssociatedWithIdentity is returned when the key is associated with an identity
+	ErrKeyAssociatedWithIdentity = errors.New("key is associated with an identity")
+)
+
 // Key is the service that manages keys
 type Key struct {
 	kms           *kms.KMS
@@ -100,13 +108,13 @@ func (ks *Key) Update(ctx context.Context, did *w3c.DID, keyID string, name stri
 	}
 
 	if !exists {
-		return ports.ErrKeyNotFound
+		return ErrKeyNotFound
 	}
 
 	publicKey, err := ks.getPublicKey(ctx, keyID)
 	if err != nil {
 		log.Error(ctx, "failed to get public key", "err", err)
-		return ports.ErrKeyNotFound
+		return ErrKeyNotFound
 	}
 
 	keyInfo, err := ks.keyRepository.GetByPublicKey(ctx, *did, hexutil.Encode(publicKey))
@@ -143,13 +151,13 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 	}
 
 	if !exists {
-		return nil, ports.ErrKeyNotFound
+		return nil, ErrKeyNotFound
 	}
 
 	publicKey, err := ks.getPublicKey(ctx, keyID)
 	if err != nil {
 		log.Error(ctx, "failed to get public key", "err", err)
-		return nil, ports.ErrKeyNotFound
+		return nil, ErrKeyNotFound
 	}
 
 	hasAssociatedAuthCredential := false
@@ -167,7 +175,7 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 			return nil, err
 		}
 	default:
-		return nil, ports.ErrInvalidKeyType
+		return nil, ErrInvalidKeyType
 	}
 
 	keyInfo, err := ks.keyRepository.GetByPublicKey(ctx, *did, hexutil.Encode(publicKey))
@@ -247,7 +255,7 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 	}
 
 	if !exists {
-		return ports.ErrKeyNotFound
+		return ErrKeyNotFound
 	}
 
 	publicKey, err := ks.getPublicKey(ctx, keyID)
@@ -276,7 +284,7 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 
 			if revStatus != nil && !revStatus.MTP.Existence {
 				log.Info(ctx, "auth credential is non revoked. Can not be deleted")
-				return ports.ErrAuthCredentialNotRevoked
+				return ErrAuthCredentialNotRevoked
 			}
 		}
 	case kms.KeyTypeEthereum:
@@ -287,10 +295,10 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 		}
 		if hasAssociatedAuthCoreCredential {
 			log.Info(ctx, "can not be deleted because it is associated with the identity")
-			return ports.ErrKeyAssociatedWithIdentity
+			return ErrKeyAssociatedWithIdentity
 		}
 	default:
-		return ports.ErrInvalidKeyType
+		return ErrInvalidKeyType
 	}
 
 	if err := ks.keyRepository.Delete(ctx, *did, hexutil.Encode(publicKey)); err != nil {
@@ -323,7 +331,7 @@ func getKeyType(keyID string) (kms.KeyType, error) {
 	} else if strings.Contains(keyID, "ETH") {
 		keyType = kms.KeyTypeEthereum
 	} else {
-		return keyType, ports.ErrInvalidKeyType
+		return keyType, ErrInvalidKeyType
 	}
 
 	return keyType, nil

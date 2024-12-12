@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/jackc/pgconn"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -41,7 +42,8 @@ func (k *key) Save(ctx context.Context, conn db.Querier, key *domain.Key) (uuid.
 			UPDATE SET name=$4`
 	_, err := conn.Exec(ctx, sql, key.ID, key.IssuerCoreDID().String(), key.PublicKey, key.Name)
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == duplicateViolationErrorCode {
 			return uuid.Nil, ErrDuplicateKeyName
 		}
 		return uuid.Nil, err

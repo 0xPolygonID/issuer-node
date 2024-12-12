@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -77,7 +78,7 @@ func (s *Server) UpdateKey(ctx context.Context, request UpdateKeyRequestObject) 
 	err = s.keyService.Update(ctx, request.Identifier.did(), string(decodedKeyID), request.Body.Name)
 	if err != nil {
 		log.Error(ctx, "updating key", "err", err)
-		if errors.Is(err, ports.ErrKeyNotFound) {
+		if errors.Is(err, services.ErrKeyNotFound) {
 			log.Error(ctx, "key not found", "err", err)
 			return UpdateKey404JSONResponse{
 				N404JSONResponse{
@@ -119,7 +120,7 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 	key, err := s.keyService.Get(ctx, request.Identifier.did(), string(decodedKeyID))
 	if err != nil {
 		log.Error(ctx, "error getting the key", "err", err)
-		if errors.Is(err, ports.ErrInvalidKeyType) {
+		if errors.Is(err, services.ErrInvalidKeyType) {
 			return GetKey400JSONResponse{
 				N400JSONResponse{
 					Message: "invalid key type",
@@ -127,7 +128,7 @@ func (s *Server) GetKey(ctx context.Context, request GetKeyRequestObject) (GetKe
 			}, nil
 		}
 
-		if errors.Is(err, ports.ErrKeyNotFound) {
+		if errors.Is(err, services.ErrKeyNotFound) {
 			return GetKey404JSONResponse{
 				N404JSONResponse{
 					Message: "key not found",
@@ -220,7 +221,7 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 
 	err = s.keyService.Delete(ctx, request.Identifier.did(), string(decodedKeyID))
 	if err != nil {
-		if errors.Is(err, ports.ErrAuthCredentialNotRevoked) {
+		if errors.Is(err, services.ErrAuthCredentialNotRevoked) {
 			log.Error(ctx, "delete key. Auth credential not revoked", "err", err)
 			return DeleteKey400JSONResponse{
 				N400JSONResponse{
@@ -229,7 +230,7 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 			}, nil
 		}
 
-		if errors.Is(err, ports.ErrKeyAssociatedWithIdentity) {
+		if errors.Is(err, services.ErrKeyAssociatedWithIdentity) {
 			log.Error(ctx, "delete key. Key associated with identity", "err", err)
 			return DeleteKey400JSONResponse{
 				N400JSONResponse{
@@ -238,7 +239,7 @@ func (s *Server) DeleteKey(ctx context.Context, request DeleteKeyRequestObject) 
 			}, nil
 		}
 
-		if errors.Is(err, ports.ErrKeyNotFound) {
+		if errors.Is(err, services.ErrKeyNotFound) {
 			log.Error(ctx, "key not found", "err", err)
 			return DeleteKey404JSONResponse{
 				N404JSONResponse{

@@ -2,22 +2,10 @@ package ports
 
 import (
 	"context"
-	"errors"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/kms"
-)
-
-var (
-	// ErrInvalidKeyType is returned when the key type is invalid
-	ErrInvalidKeyType = errors.New("invalid key type")
-	// ErrAuthCredentialNotRevoked is returned when the associated auth core claim is not revoked
-	ErrAuthCredentialNotRevoked = errors.New("associated auth core claim not revoked")
-	// ErrKeyNotFound is returned when the key is not found
-	ErrKeyNotFound = errors.New("key not found")
-	// ErrKeyAssociatedWithIdentity is returned when the key is associated with an identity
-	ErrKeyAssociatedWithIdentity = errors.New("key is associated with an identity")
 )
 
 // KMSKey is the struct that represents a key

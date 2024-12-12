@@ -24,8 +24,8 @@ import (
 
 const duplicateViolationErrorCode = "23505"
 
-// ErrClaimDuplication claim duplication error
 var (
+	// ErrClaimDuplication claim duplication error
 	ErrClaimDuplication = errors.New("claim duplication error")
 	// ErrClaimDoesNotExist claim does not exist
 	ErrClaimDoesNotExist = errors.New("claim does not exist")
