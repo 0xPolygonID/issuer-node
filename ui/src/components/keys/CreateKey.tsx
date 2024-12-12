@@ -1,4 +1,4 @@
-import { App, Button, Card, Divider, Flex, Form, Select, Space } from "antd";
+import { App, Button, Card, Divider, Flex, Form, Input, Select, Space } from "antd";
 import { useNavigate } from "react-router-dom";
 
 import { CreateKey as CreateKeyType, createKey } from "src/adapters/api/keys";
@@ -43,11 +43,20 @@ export function CreateKey() {
           <Form
             form={form}
             initialValues={{
-              keyType: KeyType.BJJ,
+              keyType: KeyType.babyjubJub,
+              name: "",
             }}
             layout="vertical"
             onFinish={handleSubmit}
           >
+            <Form.Item
+              label="Key name"
+              name="name"
+              rules={[{ message: VALUE_REQUIRED, required: true }]}
+            >
+              <Input placeholder="Enter name" />
+            </Form.Item>
+
             <Form.Item
               label="Type"
               name="keyType"

@@ -11,8 +11,9 @@ import { Resource } from "src/utils/types";
 const keyParser = getStrictParser<Key>()(
   z.object({
     id: z.string(),
-    isAuthCoreClaim: z.boolean(),
+    isAuthCredential: z.boolean(),
     keyType: z.nativeEnum(KeyType),
+    name: z.string(),
     publicKey: z.string(),
   })
 );
@@ -60,7 +61,7 @@ export async function getKey({
   env: Env;
   identifier: string;
   keyID: string;
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<Response<Key>> {
   try {
     const response = await axios({
@@ -80,6 +81,7 @@ export async function getKey({
 
 export type CreateKey = {
   keyType: KeyType;
+  name: string;
 };
 
 export async function createKey({
@@ -102,6 +104,38 @@ export async function createKey({
       url: `${API_VERSION}/identities/${identifier}/keys`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export type UpdateKey = {
+  name: string;
+};
+
+export async function updateKeyName({
+  env,
+  identifier,
+  keyID,
+  payload,
+}: {
+  env: Env;
+  identifier: string;
+  keyID: string;
+  payload: UpdateKey;
+}) {
+  try {
+    await axios({
+      baseURL: env.api.url,
+      data: payload,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "PATCH",
+      url: `${API_VERSION}/identities/${identifier}/keys/${keyID}`,
+    });
+
+    return buildSuccessResponse(undefined);
   } catch (error) {
     return buildErrorResponse(error);
   }

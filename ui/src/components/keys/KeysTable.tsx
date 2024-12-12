@@ -47,7 +47,6 @@ import { notifyParseErrors } from "src/utils/error";
 export function KeysTable() {
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
-
   const navigate = useNavigate();
 
   const [keys, setKeys] = useState<AsyncTask<Key[], AppError>>({
@@ -76,6 +75,18 @@ export function KeysTable() {
 
   const tableColumns: TableColumnsType<Key> = [
     {
+      dataIndex: "name",
+      key: "name",
+      render: (name: Key["name"]) => <Typography.Text strong>{name}</Typography.Text>,
+      title: "Name",
+    },
+    {
+      dataIndex: "keyType",
+      key: "keyType",
+      render: (keyType: Key["keyType"]) => <Typography.Text>{keyType}</Typography.Text>,
+      title: "Type",
+    },
+    {
       dataIndex: "publicKey",
       key: "publicKey",
       render: (publicKey: Key["publicKey"]) => (
@@ -87,27 +98,12 @@ export function KeysTable() {
             ellipsis={{
               suffix: publicKey.slice(-5),
             }}
-            strong
           >
             {publicKey}
           </Typography.Text>
         </Tooltip>
       ),
       title: "Public key",
-    },
-    {
-      dataIndex: "keyType",
-      key: "keyType",
-      render: (keyType: Key["keyType"]) => <Typography.Text>{keyType}</Typography.Text>,
-      title: "Type",
-    },
-    {
-      dataIndex: "isAuthCoreClaim",
-      key: "isAuthCoreClaim",
-      render: (isAuthCoreClaim: Key["isAuthCoreClaim"]) => (
-        <Typography.Text>{`${isAuthCoreClaim}`}</Typography.Text>
-      ),
-      title: "Auth core claim",
     },
     {
       dataIndex: "id",
@@ -264,7 +260,7 @@ export function KeysTable() {
       title={
         <Row justify="space-between">
           <Space size="middle">
-            <Card.Meta title="Display methods" />
+            <Card.Meta title="Keys" />
             <Tag>{paginationTotal}</Tag>
           </Space>
         </Row>

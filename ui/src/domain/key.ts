@@ -1,11 +1,12 @@
 export enum KeyType {
-  BJJ = "BJJ",
-  ETH = "ETH",
+  babyjubJub = "babyjubJub",
+  secp256k1 = "secp256k1",
 }
 
 export type Key = {
   id: string;
-  isAuthCoreClaim: boolean;
+  isAuthCredential: boolean;
   keyType: KeyType;
+  name: string;
   publicKey: string;
 };
