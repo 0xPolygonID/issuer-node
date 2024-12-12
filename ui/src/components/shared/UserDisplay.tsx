@@ -75,46 +75,44 @@ export function UserDisplay() {
     >
       <Card className="user-display" styles={{ body: { cursor: "pointer", padding: 12 } }}>
         <Flex gap={12} vertical>
-          <Flex justify="space-between">
-            <Avatar shape="square" size="large" src={issuer.logo} />
-            <IconChevron />
-          </Flex>
-          <Flex gap={4} vertical>
-            <Typography.Text
-              ellipsis={{ tooltip: selectedIdentityDisplayName }}
-              style={{ fontWeight: 600 }}
-              type="secondary"
-            >
-              {selectedIdentityDisplayName}
-            </Typography.Text>
+          <Flex align="center" gap={8} justify="space-between">
+            <Avatar shape="square" size="large" src={issuer.logo} style={{ flexShrink: 0 }} />
 
-            <Flex align="center" gap={4}>
-              <Tag
-                style={{
-                  background: "transparent",
-                  border: "1px solid",
-                  borderColor: token.colorInfoBorder,
-                  borderRadius: 6,
-                  color: token.colorTextSecondary,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  marginRight: 0,
-                  padding: "3px 6px",
-                }}
-              >
-                DID
-              </Tag>
-
-              <Typography.Text
-                copyable={{
-                  icon: [<IconCopy key={0} />, <IconCheck key={1} />],
-                  text: identifier,
-                }}
-                type="secondary"
-              >
-                {formatIdentifier(identifier, { short: true })}
+            <Flex gap={4} style={{ width: "100%" }} vertical>
+              <Typography.Text style={{ fontWeight: 600 }} type="secondary">
+                {selectedIdentityDisplayName}
               </Typography.Text>
+
+              <Flex align="center" gap={4}>
+                <Tag
+                  style={{
+                    background: "transparent",
+                    border: "1px solid",
+                    borderColor: token.colorInfoBorder,
+                    borderRadius: 6,
+                    color: token.colorTextSecondary,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    marginRight: 0,
+                    padding: "3px 6px",
+                  }}
+                >
+                  DID
+                </Tag>
+
+                <Typography.Text
+                  copyable={{
+                    icon: [<IconCopy key={0} />, <IconCheck key={1} />],
+                    text: identifier,
+                  }}
+                  type="secondary"
+                >
+                  {formatIdentifier(identifier, { short: true })}
+                </Typography.Text>
+              </Flex>
             </Flex>
+
+            <IconChevron style={{ flexShrink: 0 }} />
           </Flex>
         </Flex>
       </Card>
