@@ -76,7 +76,7 @@ var (
 )
 
 type identity struct {
-	identityRepository      ports.IndentityRepository
+	identityRepository      ports.IdentityRepository
 	imtRepository           ports.IdentityMerkleTreeRepository
 	identityStateRepository ports.IdentityStateRepository
 	claimsRepository        ports.ClaimRepository
@@ -99,7 +99,7 @@ type identity struct {
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, networkResolver network.Resolver, rhsFactory reversehash.Factory, revocationStatusResolver *revocationstatus.Resolver, keyRepository ports.KeyRepository) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IdentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, networkResolver network.Resolver, rhsFactory reversehash.Factory, revocationStatusResolver *revocationstatus.Resolver, keyRepository ports.KeyRepository) ports.IdentityService {
 	return &identity{
 		identityRepository:       identityRepository,
 		imtRepository:            imtRepository,
@@ -123,7 +123,25 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 }
 
 func (i *identity) GetByDID(ctx context.Context, identifier w3c.DID) (*domain.Identity, error) {
-	return i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	authCredentials, err := i.claimsRepository.GetAuthCoreClaims(ctx, i.storage.Pgx, &identifier, string(authHash))
+	if err != nil {
+		return nil, err
+	}
+
+	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+	if err != nil {
+		return nil, err
+	}
+
+	identity.AuthCredentialsIDs = make([]string, len(authCredentials))
+	for i, authCredential := range authCredentials {
+		identity.AuthCredentialsIDs[i] = authCredential.ID.String()
+	}
+	return identity, nil
 }
 
 func (i *identity) Create(ctx context.Context, hostURL string, didOptions *ports.DIDCreationOptions) (*domain.Identity, error) {

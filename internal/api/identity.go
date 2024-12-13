@@ -229,6 +229,9 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 		})
 	}
 
+	if response == nil {
+		response = make(GetIdentities200JSONResponse, 0)
+	}
 	return response, nil
 }
 
@@ -307,6 +310,7 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 		Address:              responseAddress,
 		Balance:              responseBalance,
 		CredentialStatusType: GetIdentityDetailsResponseCredentialStatusType(identity.AuthCoreClaimRevocationStatus.Type),
+		AuthCredentialsIDs:   identity.AuthCredentialsIDs,
 	}
 
 	return response, nil

@@ -228,7 +228,7 @@ func NewLinkMock() ports.LinkService {
 type repos struct {
 	claims         ports.ClaimRepository
 	connection     ports.ConnectionRepository
-	identity       ports.IndentityRepository
+	identity       ports.IdentityRepository
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
 	links          ports.LinkRepository

@@ -411,6 +411,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 				assert.Equal(t, tc.expected.credentialStatusType, verifiable.CredentialStatusType(response.CredentialStatusType))
 				assert.Equal(t, "", *identity.Address)
 				assert.Nil(t, identity.Balance)
+				assert.Len(t, response.AuthCredentialsIDs, 1)
 			}
 		})
 	}

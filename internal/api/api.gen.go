@@ -382,6 +382,7 @@ type GetIdentitiesResponseCredentialStatusType string
 // GetIdentityDetailsResponse defines model for GetIdentityDetailsResponse.
 type GetIdentityDetailsResponse struct {
 	Address              *string                                        `json:"address,omitempty"`
+	AuthCredentialsIDs   []string                                       `json:"authCredentialsIDs"`
 	Balance              *string                                        `json:"balance,omitempty"`
 	CredentialStatusType GetIdentityDetailsResponseCredentialStatusType `json:"credentialStatusType"`
 	DisplayName          *string                                        `json:"displayName"`

@@ -1101,6 +1101,7 @@ func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, d
 }
 
 // GetAuthCoreClaims returns all the core claims for the given identifier and schema hash
+// The auth core claims returned may not be published onchain.
 func (c *claim) GetAuthCoreClaims(ctx context.Context, conn db.Querier, identifier *w3c.DID, schemaHash string) ([]*domain.Claim, error) {
 	rows, err := conn.Query(ctx,
 		`SELECT claims.id,

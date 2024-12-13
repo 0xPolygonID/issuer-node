@@ -1630,6 +1630,7 @@ components:
         - status
         - keyType
         - credentialStatusType
+        - authCredentialsIDs
       properties:
         identifier:
           type: string
@@ -1650,6 +1651,10 @@ components:
           type: string
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+        authCredentialsIDs:
+          type: array
+          items:
+              type: string
 
     IdentityState:
       type: object

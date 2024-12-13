@@ -23,7 +23,7 @@ var ErrDisplayNameDuplicated = errors.New("display name already exists")
 type identity struct{}
 
 // NewIdentity - Create new identity repository
-func NewIdentity() ports.IndentityRepository {
+func NewIdentity() ports.IdentityRepository {
 	return &identity{}
 }
 
