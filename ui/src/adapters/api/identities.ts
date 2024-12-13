@@ -49,7 +49,7 @@ export async function getIdentities({
       url: `${API_VERSION}/identities`,
     });
 
-    return buildSuccessResponse(getListParser(identityParser).parse(response.data || []));
+    return buildSuccessResponse(getListParser(identityParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
