@@ -73,11 +73,11 @@ type claim struct {
 	publisher                pubsub.Publisher
 	ipfsClient               *shell.Shell
 	revocationStatusResolver *revocationstatus.Resolver
-	mediatypeManager         ports.MediatypeManager
+	mediatypeManager         ports.MediaTypeManager
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocationstatus.Resolver, mediatypeManager ports.MediatypeManager, cfg config.UniversalLinks) ports.ClaimService {
+func NewClaim(repo ports.ClaimRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocationstatus.Resolver, mediatypeManager ports.MediaTypeManager, cfg config.UniversalLinks) ports.ClaimService {
 	s := &claim{
 		host:                     host,
 		icRepo:                   repo,
