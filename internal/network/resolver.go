@@ -49,7 +49,7 @@ type ResolverClientConfig struct {
 
 // Resolver holds the resolver
 type Resolver struct {
-	ethereumClientsByChainID map[string]ResolverClientConfig
+	ethereumClientsByChainID map[core.ChainID]ResolverClientConfig
 	ethereumClients          map[resolverPrefix]ResolverClientConfig
 	rhsSettings              map[resolverPrefix]RhsSettings
 	supportedContracts       map[string]*abi.State
@@ -104,7 +104,7 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 	}
 
 	ethereumClients := make(map[resolverPrefix]ResolverClientConfig)
-	ethereumClientsByChainID := make(map[string]ResolverClientConfig)
+	ethereumClientsByChainID := make(map[core.ChainID]ResolverClientConfig)
 	rhsSettings := make(map[resolverPrefix]RhsSettings)
 	supportedContracts := make(map[string]*abi.State)
 	stateResolvers := make(map[string]pubsignals.StateResolver)
@@ -150,7 +150,12 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 			}
 
 			ethereumClients[resolverPrefix(resolverPrefixKey)] = *resolverClientConfig
-			ethereumClientsByChainID[networkSettings.ChainID] = *resolverClientConfig
+			chainID, err := core.GetChainID(core.Blockchain(chainName), core.NetworkID(networkName))
+			if err != nil {
+				log.Error(ctx, "cannot get chain ID from blockchain and network", "err", err, "blockchain", chainName, "networl", networkName)
+				return nil, err
+			}
+			ethereumClientsByChainID[chainID] = *resolverClientConfig
 			settings := networkSettings.RhsSettings
 			settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.ServerUrl, "/")
 
@@ -204,8 +209,8 @@ func (r *Resolver) GetEthClient(resolverPrefixKey string) (*eth.Client, error) {
 }
 
 // GetEthClientByChainID returns the eth client by chain id.
-func (r *Resolver) GetEthClientByChainID(chainID int) (*eth.Client, error) {
-	resolverClientConfig, ok := r.ethereumClientsByChainID[fmt.Sprintf("%d", chainID)]
+func (r *Resolver) GetEthClientByChainID(chainID core.ChainID) (*eth.Client, error) {
+	resolverClientConfig, ok := r.ethereumClientsByChainID[chainID]
 	if !ok {
 		return nil, fmt.Errorf("ethClient not found for chainID: %d", chainID)
 	}
