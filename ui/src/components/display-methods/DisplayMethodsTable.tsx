@@ -109,6 +109,12 @@ export function DisplayMethodsTable() {
       title: "Name",
     },
     {
+      dataIndex: "type",
+      key: "type",
+      render: (type: DisplayMethod["type"]) => type,
+      title: "Type",
+    },
+    {
       dataIndex: "url",
       key: "url",
       render: (url: DisplayMethod["url"]) => {
