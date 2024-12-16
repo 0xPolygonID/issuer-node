@@ -5,11 +5,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
 
-const defaultType = "Iden3BasicDisplayMethodV1"
+const defaultType = verifiable.Iden3BasicDisplayMethodV1
 
 // DisplayMethodCoreDID is a type alias for w3c.DID
 type DisplayMethodCoreDID w3c.DID
@@ -25,7 +26,7 @@ type DisplayMethod struct {
 
 // NewDisplayMethod creates a new display method
 func NewDisplayMethod(id uuid.UUID, issuerDID w3c.DID, name, url string, dtype *string) DisplayMethod {
-	displayMethodType := defaultType
+	displayMethodType := string(defaultType)
 	if dtype != nil {
 		displayMethodType = *dtype
 	}
