@@ -34,3 +34,10 @@ spec:
             value: {{ quote .Values.pendingPublisherIssuerNode.deployment.env.issuerKeyStoreAddress }}
           args: {{ .Values.pendingPublisherIssuerNode.deployment.args }}
           command: {{ .Values.pendingPublisherIssuerNode.deployment.command }}
+          volumeMounts:
+            - name: local-storage
+              mountPath: /localstoragekeys
+      volumes:
+        - name: local-storage
+          persistentVolumeClaim:
+            claimName: issuer-node-localstorage-pv

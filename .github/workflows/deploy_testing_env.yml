@@ -106,11 +106,12 @@ jobs:
           rm ./k8s/helm/templates/vault-pv.yaml
           rm ./k8s/helm/templates/vault-service.yaml
           rm ./k8s/helm/templates/redis-deployment.yaml
+          rm ./k8s/helm/templates/branches.txt
 
       - name: "Deploy helm chart"
         uses: WyriHaximus/github-action-helm3@v3.0
         with:
-          exec: helm install "${{ steps.extract-url.outputs.url }}" --create-namespace ./k8s/helm --wait --atomic --timeout 5m --namespace="${{ steps.extract-url.outputs.url }}" --values=./k8s/helm/values.yaml --set apidomain="${{ env.API_DOMAIN }}" --set uidomain="${{ env.UI_DOMAIN }}" --set privateKey=${{ secrets.ISSUER_NODE_TESTING_PRIVATE_KEY }} --set ingressEnabled="true" --set vaultpwd="foo" --set issuerUiInsecure=true --set issuerResolverFile="${{ secrets.ISSUER_NODE_TESTING_ISSUER_RESOLVER_FILE }}" --set issuernode_repository_image="${{ env.ISSUER_NODE_API_IMAGE }}" --set issuernode_repository_tag="latest" --set issuernode_ui_repository_image="${{ env.ISSUER_NODE_UI_IMAGE }}" --set issuernode_ui_repository_tag="${{ env.IMAGE_TAG }}"
+          exec: helm install "${{ steps.extract-url.outputs.url }}" --create-namespace ./k8s/helm --wait --atomic --timeout 5m --namespace="${{ steps.extract-url.outputs.url }}" --values=./k8s/helm/values.yaml --set apidomain="${{ env.API_DOMAIN }}" --set uidomain="${{ env.UI_DOMAIN }}" --set privateKey=${{ secrets.ISSUER_NODE_TESTING_PRIVATE_KEY }} --set ingressEnabled="true" --set vaultpwd="foo" --set issuerUiInsecure=true --set issuerResolverFile="${{ secrets.ISSUER_NODE_TESTING_ISSUER_RESOLVER_FILE }}" --set issuernode_repository_image="${{ env.ISSUER_NODE_API_IMAGE }}" --set issuernode_repository_tag="${{ steps.version.outputs.VERSION }}" --set issuernode_ui_repository_image="${{ env.ISSUER_NODE_UI_IMAGE }}" --set issuernode_ui_repository_tag="${{ steps.version.outputs.VERSION }}"
           kubeconfig: "${{ secrets.KUBECONFIG }}"
           overrule_existing_kubeconfig: "true"
         if: steps.helm_check.outputs.result == 'not_found'
@@ -118,7 +119,7 @@ jobs:
       - name: "Update helm chart"
         uses: WyriHaximus/github-action-helm3@v3.0
         with:
-          exec: helm upgrade "${{ steps.extract-url.outputs.url }}" ./k8s/helm/ --wait --atomic --timeout 5m --namespace="${{ steps.extract-url.outputs.url }}" --values=./k8s/helm/values.yaml --set apidomain="${{ env.API_DOMAIN }}" --set uidomain="${{ env.UI_DOMAIN }}" --set privateKey=${{ secrets.ISSUER_NODE_TESTING_PRIVATE_KEY }} --set ingressEnabled="true" --set vaultpwd="foo" --set issuerUiInsecure=true --set issuerResolverFile="${{ secrets.ISSUER_NODE_TESTING_ISSUER_RESOLVER_FILE }}" --set issuernode_repository_image="${{ env.ISSUER_NODE_API_IMAGE }}" --set issuernode_repository_tag="latest" --set issuernode_ui_repository_image="${{ env.ISSUER_NODE_UI_IMAGE }}" --set issuernode_ui_repository_tag="${{ env.IMAGE_TAG }}"
+          exec: helm upgrade "${{ steps.extract-url.outputs.url }}" ./k8s/helm/ --wait --atomic --timeout 5m --namespace="${{ steps.extract-url.outputs.url }}" --values=./k8s/helm/values.yaml --set apidomain="${{ env.API_DOMAIN }}" --set uidomain="${{ env.UI_DOMAIN }}" --set privateKey=${{ secrets.ISSUER_NODE_TESTING_PRIVATE_KEY }} --set ingressEnabled="true" --set vaultpwd="foo" --set issuerUiInsecure=true --set issuerResolverFile="${{ secrets.ISSUER_NODE_TESTING_ISSUER_RESOLVER_FILE }}" --set issuernode_repository_image="${{ env.ISSUER_NODE_API_IMAGE }}" --set issuernode_repository_tag="${{ steps.version.outputs.VERSION }}" --set issuernode_ui_repository_image="${{ env.ISSUER_NODE_UI_IMAGE }}" --set issuernode_ui_repository_tag="${{ steps.version.outputs.VERSION }}"
           kubeconfig: "${{ secrets.KUBECONFIG }}"
           overrule_existing_kubeconfig: "true"
         if: steps.helm_check.outputs.result != 'not_found'
