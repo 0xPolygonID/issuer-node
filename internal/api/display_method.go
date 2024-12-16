@@ -36,7 +36,7 @@ func (s *Server) CreateDisplayMethod(ctx context.Context, request CreateDisplayM
 	if err != nil {
 		log.Error(ctx, "Error saving display method", "err", err)
 		if errors.Is(err, repositories.DisplayMethodDuplicateNameError) {
-			return CreateDisplayMethod400JSONResponse{N400JSONResponse{Message: "Duplicated name display method"}}, nil
+			return CreateDisplayMethod400JSONResponse{N400JSONResponse{Message: "Name already exist"}}, nil
 		}
 		return CreateDisplayMethod500JSONResponse{N500JSONResponse{Message: "Error saving display method"}}, nil
 	}
