@@ -48,8 +48,9 @@ apiIssuerNode:
     issuerDbPassword: strongpasswordapp
     issuerDbPort: "5432"
     issuerDbUser: polygonid
-    issuerKMSBJJProvider: vault
-    issuerKMSETHProvider: vault
+    issuerKMSBJJProvider: localstorage
+    issuerKMSETHProvider: localstorage
+    issuerKMSProviderLocalStorageFilePath: /localstoragekeys
     issuerKeyStorePluginIden3MountPath: iden3
     issuerKeyStorePort: "8200"
     issuerLogLevel: "-4"
@@ -59,7 +60,7 @@ apiIssuerNode:
     issuerOnchainPublishStateFrequency: 1m
     issuerProverTimeout: 600s
     issuerPublishKeyPath: pbkey
-    issuerRedisUrl: redis://@redis-issuer-node-svc:6379/1
+    issuerRedisUrl: redis://@redis-issuer-node-svc.issuer-node.svc.cluster.local:6379/1
     issuerReverseHashServiceEnabled: "false"
     issuerServerPort: "3001"
     issuerServerUrl: http://localhost:3001          
@@ -67,7 +68,6 @@ apiIssuerNode:
     issuerVaultUserpassAuthEnabled: "true"
     issuerCredentialStatusPublishingKeyPath: pbkey
     issuerIpfsGatewayUrl: https://gateway.pinata.cloud
-    issuerKMSProviderLocalStorageFilePath: /localstoragekeys
   
 notificationsIssuerNode:
   deployment:
@@ -164,7 +164,7 @@ postgresIssuerNode:
     postgresUser: polygonid
     postgresName: postgres-secret  
   pvc:
-    storageRequest: 5Gi
+    storageRequest: 200Mi
     volumeName: postgresdata
     postgres: postgresql-issuer-node-pvc
 
@@ -368,6 +368,22 @@ ingress:
       - path: /
         serviceName: api-issuer-node-svc
         servicePort: 3001
+      
+      # - path: /backend
+      #   serviceName: external-api-service
+      #   servicePort: 3001
+      
+      # - path: /set-zero-scopes
+      #   serviceName: external-api-service
+      #   servicePort: 3001
+      
+      # - path: /add_key_endpoint        
+      #   serviceName: external-api-service
+      #   servicePort: 3001
+      
+      # - path: /main        
+      #   serviceName: external-api-service-main
+      #   servicePort: 3001
 
 
 uidomain: ui.issuernode.polygonid.me
@@ -378,7 +394,7 @@ uiPassword: password
 issuerUiInsecure: false
 issuerName: "My Issuer!"
 ingressEnabled: false
-privateKey: metamask private key
+privateKey: default
 vaultpwd: pepe
 namespace: default
 issuerResolverFile: ""
