@@ -31,6 +31,8 @@
   <script>
       window.addEventListener('DOMContentLoaded', () => {
           const rapidocEl = document.getElementById('the-doc');
+          const path = window.location.pathname;
+          rapidocEl.setAttribute('spec-url', globalThis.origin + path +"/static/docs/api/api.yaml");
           rapidocEl["server-url"] = globalThis.origin;
           rapidocEl.addEventListener('spec-loaded', () => {
               rapidocEl.setApiServer(globalThis.origin);
