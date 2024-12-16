@@ -1991,7 +1991,40 @@ paths:
 
   # Verification
 
-  /v2/verification/{identifier}/check:
+  /v2/identities/{identifier}/verification/create:
+    post:
+      summary: Create a Verification query
+      operationId: CreateVerification
+      description: |
+        Endpoint to create a verification query.
+      tags:
+        - Verification
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: Issuer's DID Identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVerificationQueryRequest'
+      responses:
+        '200':
+          description: Verification query created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/identities/{identifier}/verification/check:
     get:
       summary: Check Verification Response or Provide Query
       operationId: CheckVerification
@@ -3236,7 +3269,8 @@ components:
       x-go-type-import:
         name: protocol
         path: github.com/iden3/iden3comm/v2/protocol
-    
+
+    #Verification
     VerificationResponse:
       type: object
       required:
@@ -3268,48 +3302,9 @@ components:
           type: string
           description: The ID of the verification query.
         scopes:
-          type: array
-          items:
-            $ref: '#/components/schemas/VerificationScope'
-
-
-    VerificationScope:
-      type: object
-      required:
-        - scope_id
-        - query_type
-        - context
-      properties:
-        scope_id:
-          type: string
-          description: ID of the scope.
-        query_type:
-          type: string
-          description: Type of query for the verification.
-        context:
-          type: string
-          description: Additional context for the query.
-
-    VerificationResponseRequest:
-      type: object
-      required:
-        - verification_scope_id
-        - user_did
-        - response
-      properties:
-        verification_scope_id:
-          type: string
-          x-go-type: uuid.UUID
-          x-go-type-import:
-            name: uuid
-            path: github.com/google/uuid
-          description: Scope ID of the verification query.
-        user_did:
-          type: string
-          description: User's DID identifier.
-        response:
           type: object
-          description: Response to the verification query request.
+          additionalProperties: true
+          description: "Dynamic JSON object for scopes"
 
     VerificationResponseStatus:
       type: object
@@ -3433,6 +3428,25 @@ components:
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+
+    CreateVerificationQueryRequest:
+      type: object
+      required:
+        - chain_id
+        - skip_revocation_check
+        - scopes
+      properties:
+        chain_id:
+          type: integer
+          example: 1
+        skip_revocation_check:
+          type: boolean
+          example: false
+        scopes:
+          type: object
+          additionalProperties: true
+          description: "Dynamic JSON object for scopes"
+
 
   parameters:
     credentialStatusType:

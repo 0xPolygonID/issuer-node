@@ -171,7 +171,7 @@ func main() {
 	}
 	accountService := services.NewAccountService(*networkResolver)
 
-	verificationService := services.NewVerificationService(verifier, verificationRepository)
+	verificationService := services.NewVerificationService(networkResolver, cachex, verificationRepository, verifier)
 
 	publisherGateway, err := gateways.NewPublisherEthGateway(*networkResolver, keyStore, cfg.PublishingKeyPath)
 	if err != nil {
