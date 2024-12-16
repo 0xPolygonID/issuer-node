@@ -147,7 +147,7 @@ func main() {
 		return
 	}
 
-	paymentSettings, err := payments.SettingsFromConfig(context.Background(), &cfg.Payments)
+	paymentSettings, err := payments.SettingsFromConfig(ctx, &cfg.Payments)
 	if err != nil {
 		log.Error(ctx, "failed to load payment settings", "err", err)
 		return
