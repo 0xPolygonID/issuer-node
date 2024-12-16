@@ -2,7 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
-import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
+import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { getResourceParser, getStrictParser } from "src/adapters/parsers";
 import { Env, Key, KeyType } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
@@ -136,6 +136,30 @@ export async function updateKeyName({
     });
 
     return buildSuccessResponse(undefined);
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function deleteKey({
+  env,
+  identifier,
+  keyID,
+}: {
+  env: Env;
+  identifier: string;
+  keyID: string;
+}): Promise<Response<Message>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "DELETE",
+      url: `${API_VERSION}/identities/${identifier}/keys/${keyID}`,
+    });
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

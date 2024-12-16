@@ -1,4 +1,5 @@
 import {
+  App,
   Avatar,
   Button,
   Card,
@@ -11,10 +12,11 @@ import {
   Tooltip,
   Typography,
 } from "antd";
+import { ItemType } from "antd/es/menu/interface";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { getKeys } from "src/adapters/api/keys";
+import { deleteKey, getKeys } from "src/adapters/api/keys";
 import { positiveIntegerFromStringParser } from "src/adapters/parsers";
 import IconIssuers from "src/assets/icons/building-08.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";
@@ -22,6 +24,7 @@ import IconCopy from "src/assets/icons/copy-01.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
+import IconTrash from "src/assets/icons/trash-01.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
@@ -35,6 +38,7 @@ import {
   DEFAULT_PAGINATION_MAX_RESULTS,
   DEFAULT_PAGINATION_PAGE,
   DEFAULT_PAGINATION_TOTAL,
+  DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
   KEY_ADD_NEW,
@@ -47,6 +51,7 @@ import { notifyParseErrors } from "src/utils/error";
 export function KeysTable() {
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
+  const { message } = App.useApp();
   const navigate = useNavigate();
 
   const [keys, setKeys] = useState<AsyncTask<Key[], AppError>>({
@@ -77,7 +82,20 @@ export function KeysTable() {
     {
       dataIndex: "name",
       key: "name",
-      render: (name: Key["name"]) => <Typography.Text strong>{name}</Typography.Text>,
+      render: (name: Key["name"], { id }: Key) => (
+        <Typography.Link
+          onClick={() =>
+            navigate(
+              generatePath(ROUTES.keyDetails.path, {
+                keyID: id,
+              })
+            )
+          }
+          strong
+        >
+          {name}
+        </Typography.Link>
+      ),
       title: "Name",
     },
     {
@@ -108,29 +126,50 @@ export function KeysTable() {
     {
       dataIndex: "id",
       key: "id",
-      render: (id: Key["id"]) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                icon: <IconInfoCircle />,
-                key: "details",
-                label: DETAILS,
-                onClick: () =>
-                  navigate(
-                    generatePath(ROUTES.keyDetails.path, {
-                      keyID: id,
-                    })
-                  ),
-              },
-            ],
-          }}
-        >
-          <Row>
-            <IconDots className="icon-secondary" />
-          </Row>
-        </Dropdown>
-      ),
+      render: (id: Key["id"], { isAuthCredential }: Key) => {
+        const items: Array<ItemType> = [
+          {
+            icon: <IconInfoCircle />,
+            key: "details",
+            label: DETAILS,
+            onClick: () =>
+              navigate(
+                generatePath(ROUTES.keyDetails.path, {
+                  keyID: id,
+                })
+              ),
+          },
+        ];
+
+        if (!isAuthCredential) {
+          items.push(
+            {
+              key: "divider1",
+              type: "divider",
+            },
+            {
+              danger: true,
+              icon: <IconTrash />,
+              key: "delete",
+              label: DELETE,
+              onClick: () => handleDeleteKey(id),
+            }
+          );
+        }
+
+        return (
+          <Dropdown
+            menu={{
+              items,
+            }}
+          >
+            <Row>
+              <IconDots className="icon-secondary" />
+            </Row>
+          </Dropdown>
+        );
+      },
+
       width: DOTS_DROPDOWN_WIDTH,
     },
   ];
@@ -192,6 +231,17 @@ export function KeysTable() {
     },
     [env, paginationMaxResults, paginationPage, identifier, updateUrlParams]
   );
+
+  const handleDeleteKey = (keyID: string) => {
+    void deleteKey({ env, identifier, keyID }).then((response) => {
+      if (response.success) {
+        void fetchKeys();
+        void message.success(response.data.message);
+      } else {
+        void message.error(response.error.message);
+      }
+    });
+  };
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchKeys);
