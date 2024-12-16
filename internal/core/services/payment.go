@@ -300,9 +300,6 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			TokenAddress:   setting.PaymentOption.ContractAddress.String(),
 			Proof:          paymentProof(&setting, signature, signerAddress),
 		}, nil
-
-	case protocol.Iden3PaymentRequestCryptoV1Type:
-		return &protocol.Iden3PaymentRequestCryptoV1{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported payment option type: %s", setting.PaymentOption.Type)
 	}
