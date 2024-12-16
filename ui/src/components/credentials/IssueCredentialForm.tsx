@@ -438,7 +438,7 @@ export function IssueCredentialForm({
       {did && apiSchema && (
         <>
           <Flex justify="space-between" vertical>
-            <Typography.Text>Recipient Identifier</Typography.Text>
+            <Typography.Text>Recipient identifier:</Typography.Text>
             <Typography.Text>{did}</Typography.Text>
           </Flex>
           <Divider />
