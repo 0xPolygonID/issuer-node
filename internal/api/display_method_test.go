@@ -115,7 +115,7 @@ func TestServer_CreateDisplayMethod(t *testing.T) {
 			},
 			expected: expected{
 				response: CreateDisplayMethod400JSONResponse{
-					N400JSONResponse: N400JSONResponse{Message: "Duplicated name display method"},
+					N400JSONResponse: N400JSONResponse{Message: "name already exist"},
 				},
 				httpCode: http.StatusBadRequest,
 			},
