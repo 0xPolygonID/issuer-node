@@ -1,0 +1,46 @@
+name: Delete Helm Release
+
+on: [delete]
+
+env:
+  BRANCH_NAME: ${{ github.event.ref }}
+
+jobs:
+  delete:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: kubectl configuration
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          echo "KUBECONFIG=./kubeconfig" >> $GITHUB_ENV
+
+      - name: Cambiar contexto de kubectl
+        run: |
+          kubectl config use-context k3s
+
+      - name: Verificar conexión al clúster
+        run: kubectl cluster-info
+
+      - name: Check if helm chart exists
+        id: helm_check
+        run: |
+          result=$(helm list --namespace "${{ env.BRANCH_NAME }}" -q | grep "^issuer-node-${{ env.BRANCH_NAME }}$" || echo 'not_found')
+          echo "result=$result" >> $GITHUB_OUTPUT
+
+      - name: "Print Result"
+        run: echo "${{ steps.helm_check.outputs.result }}"
+
+      - name: "uninstall helm chart"
+        uses: WyriHaximus/github-action-helm3@v3.0
+        with:
+          exec: helm uninstall "issuer-node-${{ env.BRANCH_NAME }}" --namespace="${{ env.BRANCH_NAME }}"
+          kubeconfig: "${{ secrets.KUBECONFIG }}"
+          overrule_existing_kubeconfig: "true"
+        if: steps.helm_check.outputs.result != 'not_found'
+
+      - name: "Delete namespace"
+        run: |
+          kubectl delete namespace ${{ env.BRANCH_NAME }}
+        if: steps.helm_check.outputs.result != 'not_found'
