@@ -277,6 +277,15 @@ type CreateLinkRequest struct {
 	SignatureProof       bool              `json:"signatureProof"`
 }
 
+// CreateVerificationQueryRequest defines model for CreateVerificationQueryRequest.
+type CreateVerificationQueryRequest struct {
+	ChainId int `json:"chain_id"`
+
+	// Scopes Dynamic JSON object for scopes
+	Scopes              map[string]interface{} `json:"scopes"`
+	SkipRevocationCheck bool                   `json:"skip_revocation_check"`
+}
+
 // Credential defines model for Credential.
 type Credential struct {
 	Id         string                   `json:"id"`
@@ -556,7 +565,8 @@ type UUIDString = string
 
 // VerificationQueryRequest defines model for VerificationQueryRequest.
 type VerificationQueryRequest struct {
-	Scopes []VerificationScope `json:"scopes"`
+	// Scopes Dynamic JSON object for scopes
+	Scopes map[string]interface{} `json:"scopes"`
 
 	// VerificationQueryId The ID of the verification query.
 	VerificationQueryId string `json:"verification_query_id"`
@@ -588,18 +598,6 @@ type VerificationResponseStatus struct {
 
 // VerificationResponseStatusStatus The status of the submitted verification response.
 type VerificationResponseStatusStatus string
-
-// VerificationScope defines model for VerificationScope.
-type VerificationScope struct {
-	// Context Additional context for the query.
-	Context string `json:"context"`
-
-	// QueryType Type of query for the verification.
-	QueryType string `json:"query_type"`
-
-	// ScopeId ID of the scope.
-	ScopeId string `json:"scope_id"`
-}
 
 // Id defines model for id.
 type Id = uuid.UUID
@@ -802,16 +800,16 @@ type SubmitVerificationResponseParams struct {
 	Id VerificationQueryId `form:"id" json:"id"`
 }
 
-// GetQrFromStoreParams defines parameters for GetQrFromStore.
-type GetQrFromStoreParams struct {
-	Id     *uuid.UUID `form:"id,omitempty" json:"id,omitempty"`
-	Issuer *string    `form:"issuer,omitempty" json:"issuer,omitempty"`
-}
-
 // CheckVerificationParams defines parameters for CheckVerification.
 type CheckVerificationParams struct {
 	// Id The verification query ID to check for a response
 	Id VerificationQueryId `form:"id" json:"id"`
+}
+
+// GetQrFromStoreParams defines parameters for GetQrFromStore.
+type GetQrFromStoreParams struct {
+	Id     *uuid.UUID `form:"id,omitempty" json:"id,omitempty"`
+	Issuer *string    `form:"issuer,omitempty" json:"issuer,omitempty"`
 }
 
 // AuthenticationParams defines parameters for Authentication.
@@ -860,6 +858,9 @@ type ImportSchemaJSONRequestBody = ImportSchemaRequest
 
 // SubmitVerificationResponseTextRequestBody defines body for SubmitVerificationResponse for text/plain ContentType.
 type SubmitVerificationResponseTextRequestBody = SubmitVerificationResponseTextBody
+
+// CreateVerificationJSONRequestBody defines body for CreateVerification for application/json ContentType.
+type CreateVerificationJSONRequestBody = CreateVerificationQueryRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -977,15 +978,18 @@ type ServerInterface interface {
 	// Submit Verification Response
 	// (POST /v2/identities/{identifier}/verification/callback)
 	SubmitVerificationResponse(w http.ResponseWriter, r *http.Request, identifier string, params SubmitVerificationResponseParams)
+	// Check Verification Response or Provide Query
+	// (GET /v2/identities/{identifier}/verification/check)
+	CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams)
+	// Create a Verification query
+	// (POST /v2/identities/{identifier}/verification/create)
+	CreateVerification(w http.ResponseWriter, r *http.Request, identifier string)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
 	// Get Supported Networks
 	// (GET /v2/supported-networks)
 	GetSupportedNetworks(w http.ResponseWriter, r *http.Request)
-	// Check Verification Response or Provide Query
-	// (GET /v2/verification/{identifier}/check)
-	CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams)
 	// Get Authentication Message
 	// (POST /v2/{identifier}/authentication)
 	Authentication(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthenticationParams)
@@ -1223,6 +1227,18 @@ func (_ Unimplemented) SubmitVerificationResponse(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Check Verification Response or Provide Query
+// (GET /v2/identities/{identifier}/verification/check)
+func (_ Unimplemented) CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a Verification query
+// (POST /v2/identities/{identifier}/verification/create)
+func (_ Unimplemented) CreateVerification(w http.ResponseWriter, r *http.Request, identifier string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get QrCode from store
 // (GET /v2/qr-store)
 func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
@@ -1232,12 +1248,6 @@ func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, pa
 // Get Supported Networks
 // (GET /v2/supported-networks)
 func (_ Unimplemented) GetSupportedNetworks(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Check Verification Response or Provide Query
-// (GET /v2/verification/{identifier}/check)
-func (_ Unimplemented) CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2694,6 +2704,74 @@ func (siw *ServerInterfaceWrapper) SubmitVerificationResponse(w http.ResponseWri
 	handler.ServeHTTP(w, r)
 }
 
+// CheckVerification operation middleware
+func (siw *ServerInterfaceWrapper) CheckVerification(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CheckVerificationParams
+
+	// ------------- Required query parameter "id" -------------
+
+	if paramValue := r.URL.Query().Get("id"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "id"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "id", r.URL.Query(), &params.Id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckVerification(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateVerification operation middleware
+func (siw *ServerInterfaceWrapper) CreateVerification(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateVerification(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetQrFromStore operation middleware
 func (siw *ServerInterfaceWrapper) GetQrFromStore(w http.ResponseWriter, r *http.Request) {
 
@@ -2740,49 +2818,6 @@ func (siw *ServerInterfaceWrapper) GetSupportedNetworks(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSupportedNetworks(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// CheckVerification operation middleware
-func (siw *ServerInterfaceWrapper) CheckVerification(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CheckVerificationParams
-
-	// ------------- Required query parameter "id" -------------
-
-	if paramValue := r.URL.Query().Get("id"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "id"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "id", r.URL.Query(), &params.Id)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CheckVerification(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3056,13 +3091,16 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/verification/callback", wrapper.SubmitVerificationResponse)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/verification/check", wrapper.CheckVerification)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/verification/create", wrapper.CreateVerification)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/qr-store", wrapper.GetQrFromStore)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/supported-networks", wrapper.GetSupportedNetworks)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v2/verification/{identifier}/check", wrapper.CheckVerification)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/{identifier}/authentication", wrapper.Authentication)
@@ -4660,6 +4698,89 @@ func (response SubmitVerificationResponse500JSONResponse) VisitSubmitVerificatio
 	return json.NewEncoder(w).Encode(response)
 }
 
+type CheckVerificationRequestObject struct {
+	Identifier string `json:"identifier"`
+	Params     CheckVerificationParams
+}
+
+type CheckVerificationResponseObject interface {
+	VisitCheckVerificationResponse(w http.ResponseWriter) error
+}
+
+type CheckVerification200JSONResponse struct {
+	union json.RawMessage
+}
+
+func (response CheckVerification200JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response.union)
+}
+
+type CheckVerification400JSONResponse struct{ N400JSONResponse }
+
+func (response CheckVerification400JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CheckVerification404JSONResponse struct{ N404JSONResponse }
+
+func (response CheckVerification404JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CheckVerification500JSONResponse struct{ N500JSONResponse }
+
+func (response CheckVerification500JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateVerificationRequestObject struct {
+	Identifier string `json:"identifier"`
+	Body       *CreateVerificationJSONRequestBody
+}
+
+type CreateVerificationResponseObject interface {
+	VisitCreateVerificationResponse(w http.ResponseWriter) error
+}
+
+type CreateVerification200JSONResponse GenericMessage
+
+func (response CreateVerification200JSONResponse) VisitCreateVerificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateVerification400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateVerification400JSONResponse) VisitCreateVerificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateVerification500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateVerification500JSONResponse) VisitCreateVerificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetQrFromStoreRequestObject struct {
 	Params GetQrFromStoreParams
 }
@@ -4759,53 +4880,6 @@ func (response GetSupportedNetworks404JSONResponse) VisitGetSupportedNetworksRes
 type GetSupportedNetworks500JSONResponse struct{ N500JSONResponse }
 
 func (response GetSupportedNetworks500JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CheckVerificationRequestObject struct {
-	Identifier string `json:"identifier"`
-	Params     CheckVerificationParams
-}
-
-type CheckVerificationResponseObject interface {
-	VisitCheckVerificationResponse(w http.ResponseWriter) error
-}
-
-type CheckVerification200JSONResponse struct {
-	union json.RawMessage
-}
-
-func (response CheckVerification200JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response.union)
-}
-
-type CheckVerification400JSONResponse struct{ N400JSONResponse }
-
-func (response CheckVerification400JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CheckVerification404JSONResponse struct{ N404JSONResponse }
-
-func (response CheckVerification404JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CheckVerification500JSONResponse struct{ N500JSONResponse }
-
-func (response CheckVerification500JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -4964,15 +5038,18 @@ type StrictServerInterface interface {
 	// Submit Verification Response
 	// (POST /v2/identities/{identifier}/verification/callback)
 	SubmitVerificationResponse(ctx context.Context, request SubmitVerificationResponseRequestObject) (SubmitVerificationResponseResponseObject, error)
+	// Check Verification Response or Provide Query
+	// (GET /v2/identities/{identifier}/verification/check)
+	CheckVerification(ctx context.Context, request CheckVerificationRequestObject) (CheckVerificationResponseObject, error)
+	// Create a Verification query
+	// (POST /v2/identities/{identifier}/verification/create)
+	CreateVerification(ctx context.Context, request CreateVerificationRequestObject) (CreateVerificationResponseObject, error)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
 	// Get Supported Networks
 	// (GET /v2/supported-networks)
 	GetSupportedNetworks(ctx context.Context, request GetSupportedNetworksRequestObject) (GetSupportedNetworksResponseObject, error)
-	// Check Verification Response or Provide Query
-	// (GET /v2/verification/{identifier}/check)
-	CheckVerification(ctx context.Context, request CheckVerificationRequestObject) (CheckVerificationResponseObject, error)
 	// Get Authentication Message
 	// (POST /v2/{identifier}/authentication)
 	Authentication(ctx context.Context, request AuthenticationRequestObject) (AuthenticationResponseObject, error)
@@ -6098,6 +6175,66 @@ func (sh *strictHandler) SubmitVerificationResponse(w http.ResponseWriter, r *ht
 	}
 }
 
+// CheckVerification operation middleware
+func (sh *strictHandler) CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams) {
+	var request CheckVerificationRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckVerification(ctx, request.(CheckVerificationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckVerification")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CheckVerificationResponseObject); ok {
+		if err := validResponse.VisitCheckVerificationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateVerification operation middleware
+func (sh *strictHandler) CreateVerification(w http.ResponseWriter, r *http.Request, identifier string) {
+	var request CreateVerificationRequestObject
+
+	request.Identifier = identifier
+
+	var body CreateVerificationJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateVerification(ctx, request.(CreateVerificationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateVerification")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateVerificationResponseObject); ok {
+		if err := validResponse.VisitCreateVerificationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetQrFromStore operation middleware
 func (sh *strictHandler) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
 	var request GetQrFromStoreRequestObject
@@ -6141,33 +6278,6 @@ func (sh *strictHandler) GetSupportedNetworks(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetSupportedNetworksResponseObject); ok {
 		if err := validResponse.VisitGetSupportedNetworksResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// CheckVerification operation middleware
-func (sh *strictHandler) CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams) {
-	var request CheckVerificationRequestObject
-
-	request.Identifier = identifier
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CheckVerification(ctx, request.(CheckVerificationRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CheckVerification")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CheckVerificationResponseObject); ok {
-		if err := validResponse.VisitCheckVerificationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

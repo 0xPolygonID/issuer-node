@@ -14,9 +14,12 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgtype"
+
+	"github.com/polygonid/sh-id-platform/internal/cache"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -38,25 +41,70 @@ type TransactionData struct {
 }
 
 const (
-	stateTransitionDelay = time.Minute * 5
-	defaultReason        = "for testing purposes"
-	defaultBigIntBase    = 10
+	stateTransitionDelay               = time.Minute * 5
+	defaultReason                      = "for testing purposes"
+	defaultBigIntBase                  = 10
+	defaultExpiration    time.Duration = 0
 )
 
 // VerificationService can verify responses to verification queries
 type VerificationService struct {
-	verifier *auth.Verifier
-	repo     ports.VerificationRepository
+	networkResolver *network.Resolver
+	store           cache.Cache
+	repo            ports.VerificationRepository
+	verifier        *auth.Verifier
 }
 
 // NewVerificationService creates a new instance of VerificationService
-func NewVerificationService(verifier *auth.Verifier, repo ports.VerificationRepository) *VerificationService {
-	return &VerificationService{verifier: verifier, repo: repo}
+func NewVerificationService(networkResolver *network.Resolver, store cache.Cache, repo ports.VerificationRepository, verifier *auth.Verifier) *VerificationService {
+	return &VerificationService{
+		networkResolver: networkResolver,
+		store:           store,
+		verifier:        verifier,
+		repo:            repo,
+	}
 }
 
-// CheckVerification checks if a verification response already exists for a given verification query ID and userDID.
+// Create  creates and saves a new verification query in the database.
+func (vs *VerificationService) Create(ctx context.Context, issuerID w3c.DID, chainID int, skipCheckRevocation bool, scopes map[string]interface{}, serverURL string) (*domain.VerificationQuery, error) {
+	var scopeJSON pgtype.JSONB
+	err := scopeJSON.Set(scopes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set scope JSON: %w", err)
+	}
+
+	verificationQuery := domain.VerificationQuery{
+		ID:                  uuid.New(),
+		IssuerDID:           issuerID.String(),
+		ChainID:             chainID,
+		SkipCheckRevocation: skipCheckRevocation,
+		Scope:               scopeJSON,
+		CreatedAt:           time.Now(),
+	}
+
+	queryID, err := vs.repo.Save(ctx, issuerID, verificationQuery)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save verification query: %w", err)
+	}
+
+	verificationQuery.ID = queryID
+
+	authRequest, err := getAuthRequestOffChain(&verificationQuery, serverURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate auth request: %w", err)
+	}
+
+	if err := vs.store.Set(ctx, queryID.String(), authRequest, defaultExpiration); err != nil {
+		log.Error(ctx, "error storing verification query request", "id", queryID.String(), "error", err)
+		return nil, err
+	}
+
+	return &verificationQuery, nil
+}
+
+// Check checks if a verification response already exists for a given verification query ID and userDID.
 // If no response exists, it returns the verification query.
-func (vs *VerificationService) CheckVerification(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error) {
+func (vs *VerificationService) Check(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error) {
 	query, err := vs.repo.Get(ctx, issuerID, verificationQueryID)
 	if err != nil {
 		if err == repositories.VerificationQueryNotFoundError {
@@ -73,21 +121,19 @@ func (vs *VerificationService) CheckVerification(ctx context.Context, issuerID w
 	return nil, query, nil
 }
 
-// SubmitVerificationResponse checks if a verification response passes a verify check and saves result
-func (vs *VerificationService) SubmitVerificationResponse(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error) {
-	// check db for existing verification query
-	var authRequest = protocol.AuthorizationRequestMessage{}
-	verificationQuery, err := vs.repo.Get(ctx, issuerID, verificationQueryID)
-	authRequest, err = getAuthRequestOffChain(verificationQuery, serverURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get authorization request: %w", err)
+// Submit checks if a verification response passes a verify check and saves result
+func (vs *VerificationService) Submit(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error) {
+	// check cache for existing authRequest
+	var authRequest protocol.AuthorizationRequestMessage
+	if found := vs.store.Get(ctx, verificationQueryID.String(), &authRequest); !found {
+		log.Error(ctx, "authRequest not found in the cache", "id", verificationQueryID.String())
+		return nil, ErrQRCodeLinkNotFound
 	}
 
 	// perform verification
 	authRespMsg, err := vs.verifier.FullVerify(ctx, token,
 		authRequest,
 		pubsignals.WithAcceptedStateTransitionDelay(stateTransitionDelay))
-
 	if err != nil {
 		log.Error(ctx, "failed to verify", "verificationQueryID", verificationQueryID, "err", err)
 		return nil, fmt.Errorf("failed to  verify token: %w", err)
@@ -120,7 +166,6 @@ func (vs *VerificationService) SubmitVerificationResponse(ctx context.Context, v
 }
 
 func getAuthRequestOffChain(req *domain.VerificationQuery, serverURL string) (protocol.AuthorizationRequestMessage, error) {
-
 	id := uuid.NewString()
 	authReq := auth.CreateAuthorizationRequest(getReason(nil), req.IssuerDID, getUri(serverURL, req.IssuerDID, req.ID))
 	authReq.ID = id

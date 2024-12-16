@@ -11,9 +11,28 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-// CheckVerification returns CheckVerificationResponse or Provide Query
+// CreateVerification a VerificationQuery using verificationService
+func (s *Server) CreateVerification(ctx context.Context, request CreateVerificationRequestObject) (CreateVerificationResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return CreateVerification400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+
+	verificationQuery, err := s.verificationService.Create(ctx, *issuerDID, request.Body.ChainId, request.Body.SkipRevocationCheck, request.Body.Scopes, s.cfg.ServerUrl)
+	if err != nil {
+		log.Error(ctx, "creating verification query", "err", err)
+		return CreateVerification500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+
+	return CreateVerification200JSONResponse{
+		Message: verificationQuery.ID.String(),
+	}, nil
+}
+
+// CheckVerification returns CheckVerificationResponse or Provided Query
 func (s *Server) CheckVerification(ctx context.Context, request CheckVerificationRequestObject) (CheckVerificationResponseObject, error) {
-	//validation
+	// validation
 	issuerDID, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
@@ -27,7 +46,7 @@ func (s *Server) CheckVerification(ctx context.Context, request CheckVerificatio
 	}
 
 	// Use the VerificationService to check if there's an existing response or get the query
-	response, query, err := s.verificationService.CheckVerification(ctx, *issuerDID, verificationQueryID)
+	response, query, err := s.verificationService.Check(ctx, *issuerDID, verificationQueryID)
 	if err != nil {
 		log.Error(ctx, "checking verification", "err", err)
 		return CheckVerification500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -59,7 +78,7 @@ func (s *Server) SubmitVerificationResponse(ctx context.Context, request SubmitV
 	token := request.Body
 
 	// Submit the verification response using VerificationService
-	response, err := s.verificationService.SubmitVerificationResponse(ctx, request.Params.Id, *issuerDID, *token, s.cfg.ServerUrl)
+	response, err := s.verificationService.Submit(ctx, request.Params.Id, *issuerDID, *token, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "failed to submit verification response", "err", err)
 		return SubmitVerificationResponse500JSONResponse{
