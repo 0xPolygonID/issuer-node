@@ -16,8 +16,7 @@ export type RouteID =
   | "onboarding"
   | "displayMethods"
   | "displayMethodDetails"
-  | "createDisplayMethod"
-  | "editDisplayMethod";
+  | "createDisplayMethod";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -61,10 +60,6 @@ export const ROUTES: Routes = {
   displayMethods: {
     layout: "sider",
     path: "/display-methods",
-  },
-  editDisplayMethod: {
-    layout: "sider",
-    path: "/display-methods/edit/:displayMethodID",
   },
   identities: {
     layout: "sider",

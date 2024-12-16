@@ -10,7 +10,6 @@ import { LinkDetails } from "src/components/credentials/LinkDetails";
 import { CreateDisplayMethod } from "src/components/display-methods/CreateDisplayMethod";
 import { DisplayMethodDetails } from "src/components/display-methods/DisplayMethodDetails";
 import { DisplayMethods } from "src/components/display-methods/DisplayMethods";
-import { EditDisplayMethod } from "src/components/display-methods/EditDisplayMethod";
 import { CreateIdentity } from "src/components/identities/CreateIdentity";
 import { Identities } from "src/components/identities/Identities";
 import { Identity } from "src/components/identities/Identity";
@@ -35,7 +34,6 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   credentials: Credentials,
   displayMethodDetails: DisplayMethodDetails,
   displayMethods: DisplayMethods,
-  editDisplayMethod: EditDisplayMethod,
   identities: Identities,
   identityDetails: Identity,
   importSchema: ImportSchema,

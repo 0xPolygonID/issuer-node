@@ -1,13 +1,36 @@
-import { Button, Card, Divider, Flex, Space, Typography } from "antd";
+import {
+  App,
+  Button,
+  Card,
+  Divider,
+  Dropdown,
+  Flex,
+  Form,
+  Input,
+  Row,
+  Space,
+  Typography,
+} from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { generatePath, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
-import { DISPLAY_METHOD_DETAILS, DISPLAY_METHOD_EDIT } from "../../utils/constants";
-import { getDisplayMethod, getDisplayMethodMetadata } from "src/adapters/api/display-method";
+import { z } from "zod";
+import { DISPLAY_METHOD_DETAILS, DISPLAY_METHOD_EDIT, VALUE_REQUIRED } from "../../utils/constants";
+import {
+  UpsertDisplayMethod,
+  deleteDisplayMethod,
+  getDisplayMethod,
+  getDisplayMethodMetadata,
+  updateDisplayMethod,
+} from "src/adapters/api/display-method";
+import { processUrl } from "src/adapters/api/schemas";
+import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
 import { DisplayMethodCard } from "src/components/display-methods/DisplayMethodCard";
 import { DisplayMethodErrorResult } from "src/components/display-methods/DisplayMethodErrorResult";
+import { DeleteItem } from "src/components/shared/DeleteItem";
 import { Detail } from "src/components/shared/Detail";
+import { EditModal } from "src/components/shared/EditModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
@@ -22,13 +45,24 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
+import { buildAppError, notifyError } from "src/utils/error";
 
-function Details({ name, type, url }: Omit<DisplayMethod, "id">) {
+function Details({ data }: { data: DisplayMethod }) {
+  const env = useEnvContext();
+  const { name, type, url } = data;
+
+  const processedDisplayMethodUrl = processUrl(url, env);
+
   return (
     <Space direction="vertical">
       <Typography.Text type="secondary">DISPLAY METHOD DETAILS</Typography.Text>
       <Detail label="Name" text={name} />
-      <Detail copyable href={url} label="URL" text={url} />
+      <Detail
+        copyable
+        href={processedDisplayMethodUrl.success ? processedDisplayMethodUrl.data : url}
+        label="URL"
+        text={url}
+      />
       <Detail label="Type" text={type} />
     </Space>
   );
@@ -38,7 +72,11 @@ export function DisplayMethodDetails() {
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
   const { displayMethodID } = useParams();
+  const { message } = App.useApp();
   const navigate = useNavigate();
+  const [form] = Form.useForm<UpsertDisplayMethod>();
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const [displayMethod, setDisplayMethod] = useState<AsyncTask<DisplayMethod, AppError>>({
     status: "pending",
@@ -51,7 +89,7 @@ export function DisplayMethodDetails() {
   });
 
   const fetchDisplayMethodMetadata = useCallback(
-    (url: string, signal: AbortSignal) => {
+    (url: string, signal?: AbortSignal) => {
       setDisplayMethodMetadata({ status: "loading" });
       void getDisplayMethodMetadata({
         env,
@@ -71,7 +109,7 @@ export function DisplayMethodDetails() {
   );
 
   const fetchDisplayMethod = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       setDisplayMethod((previousDisplayMethod) =>
         isAsyncTaskDataAvailable(previousDisplayMethod)
           ? { data: previousDisplayMethod.data, status: "reloading" }
@@ -114,18 +152,104 @@ export function DisplayMethodDetails() {
     return <ErrorResult error="No display method provided." />;
   }
 
-  return (
-    <SiderLayoutContent
-      description="View display method details"
-      extra={
+  const handleEdit = () => {
+    const { name, url } = form.getFieldsValue();
+    const parsedUrl = z.string().url().safeParse(url);
+
+    if (parsedUrl.success) {
+      void updateDisplayMethod({
+        env,
+        id: displayMethodID,
+        identifier,
+        payload: {
+          name: name.trim(),
+          url: parsedUrl.data,
+        },
+      }).then((response) => {
+        if (response.success) {
+          void fetchDisplayMethod();
+          setIsEditModalOpen(false);
+        } else {
+          notifyError(buildAppError(response.error.message));
+        }
+      });
+    } else {
+      notifyError(buildAppError(`"${url}" is not a valid URL`));
+    }
+  };
+
+  const handleDeleteDisplayMethod = () => {
+    void deleteDisplayMethod({ env, id: displayMethodID, identifier }).then((response) => {
+      if (response.success) {
+        navigate(ROUTES.displayMethods.path);
+        void message.success(response.data.message);
+      } else {
+        void message.error(response.error.message);
+      }
+    });
+  };
+
+  const editModal = isAsyncTaskDataAvailable(displayMethod) && (
+    <EditModal
+      onClose={() => setIsEditModalOpen(false)}
+      onSubmit={handleEdit}
+      open={isEditModalOpen}
+      title="Edit display method"
+    >
+      <Form
+        form={form}
+        initialValues={{ name: displayMethod.data.name, url: displayMethod.data.url }}
+        layout="vertical"
+      >
+        <Form.Item label="Name" name="name" rules={[{ message: VALUE_REQUIRED, required: true }]}>
+          <Input placeholder="Enter name" />
+        </Form.Item>
+
+        <Form.Item label="URL" name="url" rules={[{ message: VALUE_REQUIRED, required: true }]}>
+          <Input placeholder="Enter URL" />
+        </Form.Item>
+      </Form>
+    </EditModal>
+  );
+
+  const cardTitle = isAsyncTaskDataAvailable(displayMethod) && (
+    <Flex align="center" gap={8} justify="space-between">
+      <Typography.Text style={{ fontWeight: 600 }}>{displayMethod.data.name}</Typography.Text>
+      <Flex gap={8}>
         <Button
           icon={<EditIcon />}
-          onClick={() => navigate(generatePath(ROUTES.editDisplayMethod.path, { displayMethodID }))}
-          type="primary"
+          onClick={() => setIsEditModalOpen(true)}
+          style={{ flexShrink: 0 }}
+          type="text"
+        />
+
+        <Dropdown
+          menu={{
+            items: [
+              {
+                danger: true,
+                key: "delete",
+                label: (
+                  <DeleteItem
+                    onOk={handleDeleteDisplayMethod}
+                    title="Are you sure you want to delete this display method?"
+                  />
+                ),
+              },
+            ],
+          }}
         >
-          {DISPLAY_METHOD_EDIT}
-        </Button>
-      }
+          <Row>
+            <IconDots className="icon-secondary" />
+          </Row>
+        </Dropdown>
+      </Flex>
+    </Flex>
+  );
+
+  return (
+    <SiderLayoutContent
+      description="View and edit display method details"
       showBackButton
       showDivider
       title={DISPLAY_METHOD_DETAILS}
@@ -144,20 +268,19 @@ export function DisplayMethodDetails() {
           );
         } else if (hasAsyncTaskFailed(displayMethodMetadata)) {
           return (
-            <Card className="centered">
+            <Card className="centered" title={cardTitle}>
               {isAsyncTaskDataAvailable(displayMethod) && (
                 <>
-                  <Details {...displayMethod.data} />
+                  <Details data={displayMethod.data} />
                   <Divider />
+                  {editModal}
                 </>
               )}
               {displayMethodMetadata.error.type === "parse-error" ? (
                 <DisplayMethodErrorResult
                   labelRetry={DISPLAY_METHOD_EDIT}
                   message={displayMethodMetadata.error.message}
-                  onRetry={() =>
-                    navigate(generatePath(ROUTES.editDisplayMethod.path, { displayMethodID }))
-                  }
+                  onRetry={() => setIsEditModalOpen(true)}
                 />
               ) : (
                 <ErrorResult
@@ -180,8 +303,8 @@ export function DisplayMethodDetails() {
           );
         } else {
           return (
-            <Card className="centered">
-              <Details {...displayMethod.data} />
+            <Card className="centered" title={cardTitle}>
+              <Details data={displayMethod.data} />
 
               <Divider />
 
@@ -223,6 +346,7 @@ export function DisplayMethodDetails() {
 
                 <Detail label="Logo alt" text={displayMethodMetadata.data.logo.alt} />
               </Space>
+              {editModal}
             </Card>
           );
         }

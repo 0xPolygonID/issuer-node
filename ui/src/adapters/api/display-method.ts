@@ -192,16 +192,22 @@ export async function updateDisplayMethod({
   payload: UpsertDisplayMethod;
 }): Promise<Response<Message>> {
   try {
-    const response = await axios({
-      baseURL: env.api.url,
-      data: payload,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
-      method: "PATCH",
-      url: `${API_VERSION}/identities/${identifier}/display-method/${id}`,
-    });
-    return buildSuccessResponse(messageParser.parse(response.data));
+    const metadataResponse = await getDisplayMethodMetadata({ env, url: payload.url });
+
+    if (metadataResponse.success) {
+      const response = await axios({
+        baseURL: env.api.url,
+        data: payload,
+        headers: {
+          Authorization: buildAuthorizationHeader(env),
+        },
+        method: "PATCH",
+        url: `${API_VERSION}/identities/${identifier}/display-method/${id}`,
+      });
+      return buildSuccessResponse(messageParser.parse(response.data));
+    } else {
+      return metadataResponse;
+    }
   } catch (error) {
     return buildErrorResponse(error);
   }

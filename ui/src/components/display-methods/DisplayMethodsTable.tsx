@@ -19,11 +19,12 @@ import { deleteDisplayMethod, getDisplayMethods } from "src/adapters/api/display
 import { positiveIntegerFromStringParser } from "src/adapters/parsers";
 import { tableSorterParser } from "src/adapters/parsers/view";
 import IconIssuers from "src/assets/icons/building-08.svg?react";
+import IconCheckMark from "src/assets/icons/check.svg?react";
+import IconCopy from "src/assets/icons/copy-01.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
-import EditIcon from "src/assets/icons/edit-02.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
-import IconTrash from "src/assets/icons/trash-01.svg?react";
+import { DeleteItem } from "src/components/shared/DeleteItem";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
@@ -37,11 +38,9 @@ import {
   DEFAULT_PAGINATION_MAX_RESULTS,
   DEFAULT_PAGINATION_PAGE,
   DEFAULT_PAGINATION_TOTAL,
-  DELETE,
   DETAILS,
   DISPLAY_METHOD_ADD_NEW,
   DOTS_DROPDOWN_WIDTH,
-  EDIT,
   PAGINATION_MAX_RESULTS_PARAM,
   PAGINATION_PAGE_PARAM,
   QUERY_SEARCH_PARAM,
@@ -89,7 +88,20 @@ export function DisplayMethodsTable() {
     {
       dataIndex: "name",
       key: "name",
-      render: (name: DisplayMethod["name"]) => <Typography.Text strong>{name}</Typography.Text>,
+      render: (name: DisplayMethod["name"], { id }: DisplayMethod) => (
+        <Typography.Link
+          onClick={() =>
+            navigate(
+              generatePath(ROUTES.displayMethodDetails.path, {
+                displayMethodID: id,
+              })
+            )
+          }
+          strong
+        >
+          {name}
+        </Typography.Link>
+      ),
       sorter: {
         multiple: 1,
       },
@@ -99,11 +111,19 @@ export function DisplayMethodsTable() {
     {
       dataIndex: "url",
       key: "url",
-      render: (url: DisplayMethod["url"]) => (
-        <Typography.Link href={url} target="_blank">
-          {url}
-        </Typography.Link>
-      ),
+      render: (url: DisplayMethod["url"]) => {
+        return (
+          <Typography.Link
+            copyable={{
+              icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
+            }}
+            href={url}
+            target="_blank"
+          >
+            {url}
+          </Typography.Link>
+        );
+      },
       title: "Url",
     },
     {
@@ -128,25 +148,15 @@ export function DisplayMethodsTable() {
                 key: "divider1",
                 type: "divider",
               },
-
-              {
-                icon: <EditIcon />,
-                key: "edit",
-                label: EDIT,
-                onClick: () => handleEditDisplayMethod(id),
-              },
-
-              {
-                key: "divider2",
-                type: "divider",
-              },
-
               {
                 danger: true,
-                icon: <IconTrash />,
                 key: "delete",
-                label: DELETE,
-                onClick: () => handleDeleteDisplayMethod(id),
+                label: (
+                  <DeleteItem
+                    onOk={() => handleDeleteDisplayMethod(id)}
+                    title="Are you sure you want to delete this display method?"
+                  />
+                ),
               },
             ],
           }}
@@ -169,10 +179,6 @@ export function DisplayMethodsTable() {
         void message.error(response.error.message);
       }
     });
-  };
-
-  const handleEditDisplayMethod = (id: string) => {
-    navigate(generatePath(ROUTES.editDisplayMethod.path, { displayMethodID: id }));
   };
 
   const updateUrlParams = useCallback(
