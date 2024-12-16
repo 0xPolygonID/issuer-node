@@ -1,0 +1,115 @@
+name: Deploy To Testing Environment
+
+on:
+  workflow_run:
+    workflows: ["Checks"]
+    branches-ignore:
+      - main
+      - develop
+    types:
+      - completed
+
+env:
+  BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
+  API_DOMAIN: "core-api-issuer-node-k8s.privado.id"
+  UI_DOMAIN: "issuer-node-k8s.privado.id"
+  ISSUER_NODE_API_IMAGE: "privadoid/issuernode-api-testing"
+  ISSUER_NODE_UI_IMAGE: "privadoid/issuernode-ui-testing"
+
+jobs:
+  deploy:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH_NAME }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          buildkitd-flags: --debug
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Get version
+        run: echo "::set-output name=VERSION::$(git rev-parse --short HEAD)"
+        id: version
+
+      - name: Build and push ui
+        uses: docker/build-push-action@v4
+        env:
+          IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
+        with:
+          context: ./ui
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.ISSUER_NODE_UI_IMAGE }}:${{ env.IMAGE_TAG }}
+
+      - name: Build and push amd64 image
+        uses: docker/build-push-action@v4
+        env:
+          IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.ISSUER_NODE_API_IMAGE }}:${{ env.IMAGE_TAG }}
+
+      - name: kubectl configuration
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          echo "KUBECONFIG=./kubeconfig" >> $GITHUB_ENV
+
+      - name: list contexts
+        run: |
+          kubectl config get-contexts
+
+      - name: change context
+        run: |
+          kubectl config use-context k3s
+
+      - name: check cluster info
+        run: kubectl cluster-info
+
+      - name: Check if helm chart exists
+        id: helm_check
+        run: |
+          result=$(helm list --namespace "${{ env.BRANCH_NAME }}" -q | grep "^issuer-node-${{ env.BRANCH_NAME }}$" || echo 'not_found')
+          echo "result=$result" >> $GITHUB_OUTPUT
+
+      - name: "Print Result - Helm Check"
+        run: echo "${{ steps.helm_check.outputs.result }}"
+
+      - name: "Apply custom resources"
+        run: |
+          cp ./k8s/testing/*.* ./k8s/helm/templates/
+          mv ./k8s/helm/templates/values.yaml ./k8s/helm/values.yaml
+          rm ./k8s/helm/templates/vault-configmap.yaml
+          rm ./k8s/helm/templates/vault-deployment.yaml
+          rm ./k8s/helm/templates/vault-pv.yaml
+          rm ./k8s/helm/templates/vault-service.yaml
+          rm ./k8s/helm/templates/redis-deployment.yaml
+
+      - name: "Deploy helm chart"
+        uses: WyriHaximus/github-action-helm3@v3.0
+        with:
+          exec: helm install "issuer-node-${{ env.BRANCH_NAME }}" --create-namespace ./k8s/helm --wait --atomic --timeout 5m --namespace="${{ env.BRANCH_NAME }}" --values=./k8s/helm/values.yaml --set apidomain="${{ env.API_DOMAIN }}" --set uidomain="${{ env.UI_DOMAIN }}" --set privateKey=${{ secrets.ISSUER_NODE_TESTING_PRIVATE_KEY }} --set ingressEnabled="true" --set vaultpwd="foo" --set issuerUiInsecure=true --set issuerResolverFile="${{ secrets.ISSUER_NODE_TESTING_ISSUER_RESOLVER_FILE }}" --set issuernode_repository_image="${{ env.ISSUER_NODE_API_IMAGE }}" --set issuernode_repository_tag="latest" --set issuernode_ui_repository_image="${{ env.ISSUER_NODE_UI_IMAGE }}" --set issuernode_ui_repository_tag="${{ env.IMAGE_TAG }}"
+          kubeconfig: "${{ secrets.KUBECONFIG }}"
+          overrule_existing_kubeconfig: "true"
+        if: steps.helm_check.outputs.result == 'not_found'
+
+      - name: "Update helm chart"
+        uses: WyriHaximus/github-action-helm3@v3.0
+        with:
+          exec: helm upgrade "issuer-node-${{ env.BRANCH_NAME }}" ./k8s/helm/ --wait --atomic --timeout 5m --namespace="${{ env.BRANCH_NAME }}" --values=./k8s/helm/values.yaml --set apidomain="${{ env.API_DOMAIN }}" --set uidomain="${{ env.UI_DOMAIN }}" --set privateKey=${{ secrets.ISSUER_NODE_TESTING_PRIVATE_KEY }} --set ingressEnabled="true" --set vaultpwd="foo" --set issuerUiInsecure=true --set issuerResolverFile="${{ secrets.ISSUER_NODE_TESTING_ISSUER_RESOLVER_FILE }}" --set issuernode_repository_image="${{ env.ISSUER_NODE_API_IMAGE }}" --set issuernode_repository_tag="latest" --set issuernode_ui_repository_image="${{ env.ISSUER_NODE_UI_IMAGE }}" --set issuernode_ui_repository_tag="${{ env.IMAGE_TAG }}"
+          kubeconfig: "${{ secrets.KUBECONFIG }}"
+          overrule_existing_kubeconfig: "true"
+        if: steps.helm_check.outputs.result != 'not_found'
