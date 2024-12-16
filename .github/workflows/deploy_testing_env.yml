@@ -106,6 +106,7 @@ jobs:
           rm ./k8s/helm/templates/vault-pv.yaml
           rm ./k8s/helm/templates/vault-service.yaml
           rm ./k8s/helm/templates/redis-deployment.yaml
+          rm ./k8s/helm/templates/branches.txt
 
       - name: "Deploy helm chart"
         uses: WyriHaximus/github-action-helm3@v3.0
