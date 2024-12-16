@@ -45,3 +45,10 @@ spec:
                 value: {{ .Values.apiIssuerNode.deployment.livenessProbe.value }}
             initialDelaySeconds: {{ .Values.apiIssuerNode.deployment.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.apiIssuerNode.deployment.livenessProbe.periodSeconds }}
+          volumeMounts:
+            - name: local-storage
+              mountPath: /localstoragekeys
+      volumes:
+        - name: local-storage
+          persistentVolumeClaim:
+            claimName: issuer-node-localstorage-pv
