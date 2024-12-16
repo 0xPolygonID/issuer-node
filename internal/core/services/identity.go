@@ -41,6 +41,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/reversehash"
 	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	"github.com/polygonid/sh-id-platform/internal/urn"
+	"github.com/polygonid/sh-id-platform/internal/utils"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
@@ -288,7 +289,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 			return keyID, err
 		}
 
-		if authClaim.GetPublicKey().Equal(pubKeyBytes) {
+		if utils.GetPublicKeyFromClaim(authClaim).Equal(pubKeyBytes) {
 			log.Info(ctx, "key found", "keyID", keyID)
 			return keyID, nil
 		}
@@ -713,7 +714,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, errors.Join(err, errors.New("can't save auth claim"))
 	}
 
-	defaultBJJKey := domain.NewKey(*did, authClaimModel.GetPublicKey().String(), authClaimModel.GetPublicKey().String())
+	defaultBJJKey := domain.NewKey(*did, utils.GetPublicKeyFromClaim(authClaimModel).String(), utils.GetPublicKeyFromClaim(authClaimModel).String())
 	_, err = i.keyRepository.Save(ctx, tx, defaultBJJKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't save default key: %w", err)
@@ -795,7 +796,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	defaultKey := domain.NewKey(*did, authClaimModel.GetPublicKey().String(), authClaimModel.GetPublicKey().String())
+	defaultKey := domain.NewKey(*did, utils.GetPublicKeyFromClaim(authClaimModel).String(), utils.GetPublicKeyFromClaim(authClaimModel).String())
 	_, err = i.keyRepository.Save(ctx, tx, defaultKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't save default key: %w", err)

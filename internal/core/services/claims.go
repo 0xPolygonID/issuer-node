@@ -38,6 +38,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	schemaPkg "github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/urn"
+	"github.com/polygonid/sh-id-platform/internal/utils"
 )
 
 var (
@@ -603,7 +604,7 @@ func (c *claim) GetAuthCredentialWithPublicKey(ctx context.Context, identifier *
 		return nil, err
 	}
 	for _, authCredential := range authCredentials {
-		if authCredential.GetPublicKey().Equal(publicKey) {
+		if utils.GetPublicKeyFromClaim(authCredential).Equal(publicKey) {
 			return authCredential, nil
 		}
 	}

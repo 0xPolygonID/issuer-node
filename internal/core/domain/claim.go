@@ -241,12 +241,3 @@ func (c *Claim) GetCredentialStatus() (*verifiable.CredentialStatus, error) {
 	}
 	return cStatus, nil
 }
-
-// GetPublicKey returns the public key of the claim
-// If the schema is not supported, it returns an unSupportedPublicKeyType
-func (c *Claim) GetPublicKey() PublicKey {
-	if c.SchemaURL == bjjAuthSchemaURL {
-		return newBJJPublicKey(*c)
-	}
-	return &unSupportedPublicKeyType{}
-}
