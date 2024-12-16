@@ -53,7 +53,6 @@ helm install "$APP_INSTANCE_NAME" . \
 --set namespace="$NAMESPACE" \
 --set uidomain="$UI_DOMAIN" \
 --set apidomain="$API_DOMAIN" \
---set privatekey="$PRIVATE_KEY" \
 --set uiPassword="$UIPASSWORD" \
 --set issuerName="$ISSUERNAME" \
 --set privateKey="$PRIVATE_KEY" \
