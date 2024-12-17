@@ -25,8 +25,7 @@ import (
 )
 
 const paymentOptionConfigurationTesting = `
-{
-  "Config": [
+ [
     {
       "paymentOptionId": 1,
       "amount": "500000000000000000",
@@ -39,8 +38,7 @@ const paymentOptionConfigurationTesting = `
       "Recipient": "0x53d284357ec70cE289D6D64134DfAc8E511c8a3D",
       "SigningKeyId": "pubId"
     }
-  ]
-}
+]
 `
 
 func TestServer_GetPaymentSettings(t *testing.T) {
@@ -187,14 +185,14 @@ func TestServer_GetPaymentOption(t *testing.T) {
 	var config PaymentOptionConfig
 	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
 	domainConfig := domain.PaymentOptionConfig{}
-	for _, item := range config.Config {
+	for _, item := range config {
 		amount, ok := new(big.Int).SetString(item.Amount, 10)
 		require.True(t, ok)
 		domainConfig.Config = append(domainConfig.Config, domain.PaymentOptionConfigItem{
-			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionId),
+			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionID),
 			Amount:          *amount,
 			Recipient:       common.HexToAddress(item.Recipient),
-			SigningKeyID:    item.SigningKeyId,
+			SigningKeyID:    item.SigningKeyID,
 		})
 	}
 	optionID, err := server.Services.payments.CreatePaymentOption(
@@ -386,6 +384,7 @@ func TestServer_GetPaymentOptions(t *testing.T) {
 			switch tc.expected.httpCode {
 			case http.StatusOK:
 				var response GetPaymentOptions200JSONResponse
+				fmt.Println(rr.Body.String())
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.count, len(response.Items)) // Check that 10 items are returned
 				assert.Equal(t, 1, int(response.Meta.Page))

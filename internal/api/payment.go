@@ -52,7 +52,7 @@ func (s *Server) CreatePaymentOption(ctx context.Context, request CreatePaymentO
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	payOptConf, err := newPaymentOptionConfig(&request.Body.Config)
+	payOptConf, err := newPaymentOptionConfig(request.Body.Config)
 	if err != nil {
 		log.Error(ctx, "creating payment option config", "err", err)
 		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid config: %s", err)}}, nil
@@ -175,12 +175,12 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 	return toVerifyPaymentResponse(status)
 }
 
-func newPaymentOptionConfig(config *PaymentOptionConfig) (*domain.PaymentOptionConfig, error) {
+func newPaymentOptionConfig(config PaymentOptionConfig) (*domain.PaymentOptionConfig, error) {
 	const base10 = 10
 	cfg := &domain.PaymentOptionConfig{
-		Config: make([]domain.PaymentOptionConfigItem, len(config.Config)),
+		Config: make([]domain.PaymentOptionConfigItem, len(config)),
 	}
-	for i, item := range config.Config {
+	for i, item := range config {
 		if !common.IsHexAddress(item.Recipient) {
 			return nil, fmt.Errorf("invalid recipient address: %s", item.Recipient)
 		}
@@ -190,10 +190,10 @@ func newPaymentOptionConfig(config *PaymentOptionConfig) (*domain.PaymentOptionC
 		}
 
 		cfg.Config[i] = domain.PaymentOptionConfigItem{
-			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionId),
+			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionID),
 			Amount:          *amount,
 			Recipient:       common.HexToAddress(item.Recipient),
-			SigningKeyID:    item.SigningKeyId,
+			SigningKeyID:    item.SigningKeyID,
 		}
 	}
 	return cfg, nil

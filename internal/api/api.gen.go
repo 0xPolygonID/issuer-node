@@ -295,7 +295,7 @@ type CreatePaymentRequest struct {
 
 // CreatePaymentRequestResponse defines model for CreatePaymentRequestResponse.
 type CreatePaymentRequestResponse struct {
-	CreatedAt   time.Time `json:"CreatedAt"`
+	CreatedAt   time.Time `json:"createdAt"`
 	Credentials []struct {
 		Context string `json:"context"`
 		Type    string `json:"type"`
@@ -500,16 +500,14 @@ type PaymentOption struct {
 }
 
 // PaymentOptionConfig defines model for PaymentOptionConfig.
-type PaymentOptionConfig struct {
-	Config []PaymentOptionConfigItem `json:"config"`
-}
+type PaymentOptionConfig = []PaymentOptionConfigItem
 
 // PaymentOptionConfigItem defines model for PaymentOptionConfigItem.
 type PaymentOptionConfigItem struct {
-	Recipient       string `json:"Recipient"`
-	SigningKeyId    string `json:"SigningKeyId"`
 	Amount          string `json:"amount"`
-	PaymentOptionId int    `json:"paymentOptionId"`
+	PaymentOptionID int    `json:"paymentOptionID"`
+	Recipient       string `json:"recipient"`
+	SigningKeyID    string `json:"signingKeyID"`
 }
 
 // PaymentOptionRequest defines model for PaymentOptionRequest.

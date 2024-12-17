@@ -317,15 +317,13 @@ func toPaymentOption(opt *domain.PaymentOption) (PaymentOption, error) {
 }
 
 func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfig {
-	cfg := PaymentOptionConfig{
-		Config: make([]PaymentOptionConfigItem, len(config.Config)),
-	}
+	cfg := make([]PaymentOptionConfigItem, len(config.Config))
 	for i, item := range config.Config {
-		cfg.Config[i] = PaymentOptionConfigItem{
-			PaymentOptionId: int(item.PaymentOptionID),
+		cfg[i] = PaymentOptionConfigItem{
+			PaymentOptionID: int(item.PaymentOptionID),
 			Amount:          item.Amount.String(),
 			Recipient:       item.Recipient.String(),
-			SigningKeyId:    item.SigningKeyID,
+			SigningKeyID:    item.SigningKeyID,
 		}
 	}
 	return cfg

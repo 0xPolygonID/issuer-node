@@ -2241,42 +2241,33 @@ components:
           $ref: '#/components/schemas/TimeUTC'
 
     PaymentOptionConfig:
-      type: object
-      required:
-        - config
-      properties:
-        config:
-          type: array
-          items:
-            $ref: '#/components/schemas/PaymentOptionConfigItem'
+      type: array
+      items:
+        $ref: '#/components/schemas/PaymentOptionConfigItem'
 
     PaymentOptionConfigItem:
       type: object
       required:
-        - paymentOptionId
+        - paymentOptionID
         - amount
-        - Recipient
-        - SigningKeyId
+        - recipient
+        - signingKeyID
       properties:
-        paymentOptionId:
+        paymentOptionID:
          type: integer
         amount:
           type: string
-        Recipient:
+        recipient:
           type: string
-        SigningKeyId:
+        signingKeyID:
           type: string
 
     PaymentOptionRequest:
       type: object
       required:
-        - id
-        - issuerID
         - name
         - description
         - config
-        - modifiedAt
-        - createdAt
       properties:
         name:
           type: string
@@ -2328,7 +2319,7 @@ components:
         - recipientDID
         - paymentOptionID
         - payments
-        - CreatedAt
+        - createdAt
       properties:
         id:
           type: string
@@ -2358,7 +2349,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PaymentRequestItem'
-        CreatedAt:
+        createdAt:
           type: string
           format: date-time
 
