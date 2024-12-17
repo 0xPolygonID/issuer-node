@@ -16,6 +16,8 @@ spec:
       labels:
         {{- include "polygon-id-issuer.uiIssuerNode.Labels" . | nindent 8 }}
         {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
     spec:
       serviceAccountName: {{ include "helpers.serviceAccountName" . }}
       containers:

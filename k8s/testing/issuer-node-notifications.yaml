@@ -34,3 +34,10 @@ spec:
             value: {{ quote .Values.notificationsIssuerNode.deployment.env.issuerKeyStoreAddress }}
           args: {{ .Values.notificationsIssuerNode.deployment.args }}
           command: {{ .Values.notificationsIssuerNode.deployment.command }}
+          volumeMounts:
+            - name: local-storage
+              mountPath: /localstoragekeys
+      volumes:
+        - name: local-storage
+          persistentVolumeClaim:
+            claimName: issuer-node-localstorage-pv

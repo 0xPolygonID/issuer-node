@@ -1,0 +1,54 @@
+name: Delete Helm Release
+
+on: [delete]
+
+env:
+  BRANCH_NAME: ${{ github.event.ref }}
+
+jobs:
+  delete:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: kubectl configuration
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          echo "KUBECONFIG=./kubeconfig" >> $GITHUB_ENV
+
+      - name: Extract URL from branches.txt
+        id: extract-url
+        run: |
+          # Search for the branch in the file
+          url=$(grep "^${{ env.BRANCH_NAME }}=" branches.txt | cut -d'=' -f2)
+          echo "Extracted URL: $url"
+          echo "::set-output name=url::$url"
+
+      - name: Cambiar contexto de kubectl
+        run: |
+          kubectl config use-context k3s
+
+      - name: Verificar conexión al clúster
+        run: kubectl cluster-info
+
+      - name: Check if helm chart exists
+        id: helm_check
+        run: |
+          result=$(helm list --namespace "${{ steps.extract-url.outputs.url }}" -q | grep "^${{ steps.extract-url.outputs.url }}$" || echo 'not_found')
+          echo "result=$result" >> $GITHUB_OUTPUT
+
+      - name: "Print Result"
+        run: echo "${{ steps.helm_check.outputs.result }}"
+
+      - name: "uninstall helm chart"
+        uses: WyriHaximus/github-action-helm3@v3.0
+        with:
+          exec: helm uninstall "${{ steps.extract-url.outputs.url }}" --namespace="${{ steps.extract-url.outputs.url }}"
+          kubeconfig: "${{ secrets.KUBECONFIG }}"
+          overrule_existing_kubeconfig: "true"
+        if: steps.helm_check.outputs.result != 'not_found'
+
+      - name: "Delete namespace"
+        run: |
+          kubectl delete namespace ${{ env.BRANCH_NAME }}
+        if: steps.helm_check.outputs.result != 'not_found'
