@@ -24,16 +24,16 @@ import (
 )
 
 // Scope is a property of VerificationQuery, and it's required for the authRequest
-type Scope struct {
+type scope struct {
 	CircuitId       string                  `json:"circuitId"`
 	Id              uint32                  `json:"id"`
 	Params          *map[string]interface{} `json:"params,omitempty"`
 	Query           map[string]interface{}  `json:"query"`
-	TransactionData *TransactionData        `json:"transactionData,omitempty"`
+	TransactionData *transactionData        `json:"transactionData,omitempty"`
 }
 
 // TransactionData is a property of Scope, and it's required for the authRequest
-type TransactionData struct {
+type transactionData struct {
 	ChainID         int    `json:"chainID"`
 	ContractAddress string `json:"contractAddress"`
 	MethodID        string `json:"methodID"`
@@ -46,6 +46,8 @@ const (
 	defaultBigIntBase                  = 10
 	defaultExpiration    time.Duration = 0
 )
+
+var errVerificationKeyNotFound = errors.New("authRequest not found in the cache")
 
 // VerificationService can verify responses to verification queries
 type VerificationService struct {
@@ -65,8 +67,8 @@ func NewVerificationService(networkResolver *network.Resolver, store cache.Cache
 	}
 }
 
-// Create  creates and saves a new verification query in the database.
-func (vs *VerificationService) Create(ctx context.Context, issuerID w3c.DID, chainID int, skipCheckRevocation bool, scopes map[string]interface{}, serverURL string) (*domain.VerificationQuery, error) {
+// CreateVerificationQuery  creates and saves a new verification query in the database.
+func (vs *VerificationService) CreateVerificationQuery(ctx context.Context, issuerID w3c.DID, chainID int, skipCheckRevocation bool, scopes map[string]interface{}, serverURL string) (*domain.VerificationQuery, error) {
 	var scopeJSON pgtype.JSONB
 	err := scopeJSON.Set(scopes)
 	if err != nil {
@@ -89,12 +91,12 @@ func (vs *VerificationService) Create(ctx context.Context, issuerID w3c.DID, cha
 
 	verificationQuery.ID = queryID
 
-	authRequest, err := getAuthRequestOffChain(&verificationQuery, serverURL)
+	authRequest, err := vs.getAuthRequestOffChain(&verificationQuery, serverURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate auth request: %w", err)
 	}
 
-	if err := vs.store.Set(ctx, queryID.String(), authRequest, defaultExpiration); err != nil {
+	if err := vs.store.Set(ctx, vs.key(queryID), authRequest, defaultExpiration); err != nil {
 		log.Error(ctx, "error storing verification query request", "id", queryID.String(), "error", err)
 		return nil, err
 	}
@@ -102,9 +104,9 @@ func (vs *VerificationService) Create(ctx context.Context, issuerID w3c.DID, cha
 	return &verificationQuery, nil
 }
 
-// Check checks if a verification response already exists for a given verification query ID and userDID.
+// GetVerificationStatus checks if a verification response already exists for a given verification query ID and userDID.
 // If no response exists, it returns the verification query.
-func (vs *VerificationService) Check(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error) {
+func (vs *VerificationService) GetVerificationStatus(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error) {
 	query, err := vs.repo.Get(ctx, issuerID, verificationQueryID)
 	if err != nil {
 		if err == repositories.VerificationQueryNotFoundError {
@@ -121,13 +123,13 @@ func (vs *VerificationService) Check(ctx context.Context, issuerID w3c.DID, veri
 	return nil, query, nil
 }
 
-// Submit checks if a verification response passes a verify check and saves result
-func (vs *VerificationService) Submit(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error) {
+// SubmitVerificationResponse checks if a verification response passes a verify check and saves result
+func (vs *VerificationService) SubmitVerificationResponse(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error) {
 	// check cache for existing authRequest
 	var authRequest protocol.AuthorizationRequestMessage
 	if found := vs.store.Get(ctx, verificationQueryID.String(), &authRequest); !found {
 		log.Error(ctx, "authRequest not found in the cache", "id", verificationQueryID.String())
-		return nil, ErrQRCodeLinkNotFound
+		return nil, errVerificationKeyNotFound
 	}
 
 	// perform verification
@@ -165,14 +167,18 @@ func (vs *VerificationService) Submit(ctx context.Context, verificationQueryID u
 	return &response, nil
 }
 
-func getAuthRequestOffChain(req *domain.VerificationQuery, serverURL string) (protocol.AuthorizationRequestMessage, error) {
+func (s *VerificationService) key(id uuid.UUID) string {
+	return "issuer-node:qr-code:" + id.String()
+}
+
+func (vs *VerificationService) getAuthRequestOffChain(req *domain.VerificationQuery, serverURL string) (protocol.AuthorizationRequestMessage, error) {
 	id := uuid.NewString()
-	authReq := auth.CreateAuthorizationRequest(getReason(nil), req.IssuerDID, getUri(serverURL, req.IssuerDID, req.ID))
+	authReq := auth.CreateAuthorizationRequest(vs.getReason(nil), req.IssuerDID, vs.getUri(serverURL, req.IssuerDID, req.ID))
 	authReq.ID = id
 	authReq.ThreadID = id
 	authReq.To = ""
 
-	var scopes []Scope
+	var scopes []scope
 	if req.Scope.Status == pgtype.Present {
 		err := json.Unmarshal(req.Scope.Bytes, &scopes)
 		if err != nil {
@@ -187,7 +193,7 @@ func getAuthRequestOffChain(req *domain.VerificationQuery, serverURL string) (pr
 			Query:     scope.Query,
 		}
 		if scope.Params != nil {
-			params, err := getParams(*scope.Params)
+			params, err := vs.getParams(*scope.Params)
 			if err != nil {
 				return protocol.AuthorizationRequestMessage{}, err
 			}
@@ -199,14 +205,14 @@ func getAuthRequestOffChain(req *domain.VerificationQuery, serverURL string) (pr
 	return authReq, nil
 }
 
-func getReason(reason *string) string {
+func (vs *VerificationService) getReason(reason *string) string {
 	if reason == nil {
 		return "for testing purposes"
 	}
 	return *reason
 }
 
-func getParams(params map[string]interface{}) (map[string]interface{}, error) {
+func (vs *VerificationService) getParams(params map[string]interface{}) (map[string]interface{}, error) {
 	val, ok := params["nullifierSessionID"]
 	if !ok {
 		return nil, errors.New("nullifierSessionID is empty")
@@ -220,7 +226,7 @@ func getParams(params map[string]interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{"nullifierSessionId": nullifierSessionID.String()}, nil
 }
 
-func getUri(serverURL string, issuerDID string, verificationQueryID uuid.UUID) string {
+func (vs *VerificationService) getUri(serverURL string, issuerDID string, verificationQueryID uuid.UUID) string {
 	path := fmt.Sprintf(`/v2/identities/%s/verification/callback?id=%s`, issuerDID, verificationQueryID)
 	return fmt.Sprintf("%s%s", serverURL, path)
 }
