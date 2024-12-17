@@ -1401,6 +1401,14 @@ paths:
             minimum: 1
             example: 1
           description: Page to fetch. First is one. If omitted, page 1 will be returned.
+        - in: query
+          name: type
+          schema:
+            type: string
+            x-omitempty: false
+            example: "babyjubJub"
+            enum: [ babyjubJub, secp256k1 ]
+          description: If not provided, all keys will be returned.
       responses:
         '200':
           description: Keys collection

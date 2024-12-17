@@ -5,6 +5,7 @@ import (
 	b64 "encoding/base64"
 	"errors"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -35,7 +36,7 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 	keyID, err := s.keyService.Create(ctx, request.Identifier.did(), convertKeyTypeFromRequest(request.Body.KeyType), request.Body.Name)
 	if err != nil {
 		log.Error(ctx, "creating key", "err", err)
-		if errors.Is(err, repositories.ErrDuplicateKeyName) {
+		if errors.Is(err, repositories.ErrDuplicateKeyName) || errors.Is(err, services.ErrDuplicateKeyName) {
 			log.Error(ctx, "duplicate key name", "err", err)
 			return CreateKey400JSONResponse{
 				N400JSONResponse{
@@ -162,6 +163,22 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 	filter := ports.KeyFilter{
 		MaxResults: defaultMaxResults,
 		Page:       defaultPage,
+	}
+
+	if request.Params.Type != nil {
+		if string(*request.Params.Type) != string(KeyKeyTypeBabyjubJub) && string(*request.Params.Type) != string(KeyKeyTypeSecp256k1) {
+			log.Error(ctx, "invalid key type. babyjubJub and secp256k1 keys are supported")
+			return GetKeys400JSONResponse{
+				N400JSONResponse{
+					Message: "invalid key type. babyjubJub and secp256k1 keys are supported",
+				},
+			}, nil
+		}
+		if string(*request.Params.Type) == string(KeyKeyTypeBabyjubJub) {
+			filter.KeyType = common.ToPointer(kms.KeyTypeBabyJubJub)
+		} else {
+			filter.KeyType = common.ToPointer(kms.KeyTypeEthereum)
+		}
 	}
 
 	if request.Params.MaxResults != nil {

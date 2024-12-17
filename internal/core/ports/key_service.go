@@ -21,6 +21,7 @@ type KMSKey struct {
 type KeyFilter struct {
 	MaxResults uint // Max number of results to return on each call.
 	Page       uint // Page number to return. First is 1.
+	KeyType    *kms.KeyType
 }
 
 // KeyService is the service that manages keys

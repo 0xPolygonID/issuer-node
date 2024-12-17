@@ -75,3 +75,21 @@ func (k *key) Delete(ctx context.Context, issuerDID w3c.DID, publicKey string) e
 	_, err := k.conn.Pgx.Exec(ctx, sql, issuerDID.String(), publicKey)
 	return err
 }
+
+// GetByName returns a key by its name
+func (k *key) GetByName(ctx context.Context, issuerDID w3c.DID, name string) (*domain.Key, error) {
+	sql := `SELECT id, issuer_did, public_key, name 
+			FROM keys WHERE  issuer_did=$1 and name=$2`
+	row := k.conn.Pgx.QueryRow(ctx, sql, issuerDID.String(), name)
+
+	key := domain.Key{}
+	err := row.Scan(&key.ID, &key.IssuerDID, &key.PublicKey, &key.Name)
+	if err != nil {
+		log.Error(ctx, "error getting key by name", "err", err)
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, ErrKeyNotFound
+		}
+		return nil, err
+	}
+	return &key, nil
+}

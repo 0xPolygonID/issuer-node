@@ -15,4 +15,5 @@ type KeyRepository interface {
 	Save(ctx context.Context, conn db.Querier, key *domain.Key) (uuid.UUID, error)
 	GetByPublicKey(ctx context.Context, issuerDID w3c.DID, publicKey string) (*domain.Key, error)
 	Delete(ctx context.Context, issuerDID w3c.DID, publicKey string) error
+	GetByName(ctx context.Context, issuerDID w3c.DID, name string) (*domain.Key, error)
 }

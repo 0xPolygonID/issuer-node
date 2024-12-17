@@ -150,6 +150,12 @@ const (
 	GetCredentialOfferParamsTypeUniversalLink GetCredentialOfferParamsType = "universalLink"
 )
 
+// Defines values for GetKeysParamsType.
+const (
+	BabyjubJub GetKeysParamsType = "babyjubJub"
+	Secp256k1  GetKeysParamsType = "secp256k1"
+)
+
 // Defines values for GetStateTransactionsParamsFilter.
 const (
 	GetStateTransactionsParamsFilterAll    GetStateTransactionsParamsFilter = "all"
@@ -777,7 +783,13 @@ type GetKeysParams struct {
 
 	// Page Page to fetch. First is one. If omitted, page 1 will be returned.
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// Type If not provided, all keys will be returned.
+	Type *GetKeysParamsType `form:"type,omitempty" json:"type,omitempty"`
 }
+
+// GetKeysParamsType defines parameters for GetKeys.
+type GetKeysParamsType string
 
 // UpdateKeyJSONBody defines parameters for UpdateKey.
 type UpdateKeyJSONBody struct {
@@ -2488,6 +2500,14 @@ func (siw *ServerInterfaceWrapper) GetKeys(w http.ResponseWriter, r *http.Reques
 	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
 		return
 	}
 

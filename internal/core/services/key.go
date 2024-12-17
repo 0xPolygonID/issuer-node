@@ -25,6 +25,8 @@ var (
 	ErrAuthCredentialNotRevoked = errors.New("associated auth core claim not revoked")
 	// ErrKeyAssociatedWithIdentity is returned when the key is associated with an identity
 	ErrKeyAssociatedWithIdentity = errors.New("key is associated with an identity")
+	// ErrDuplicateKeyName is returned when the key name already exists
+	ErrDuplicateKeyName = errors.New("duplicate key name")
 )
 
 // Key is the service that manages keys
@@ -47,6 +49,17 @@ func NewKey(kms *kms.KMS, claimService ports.ClaimService, keyRepository ports.K
 func (ks *Key) Create(ctx context.Context, did *w3c.DID, keyType kms.KeyType, name string) (kms.KeyID, error) {
 	var keyID kms.KeyID
 	var err error
+
+	keyWithName, err := ks.keyRepository.GetByName(ctx, *did, name)
+	if keyWithName != nil {
+		return kms.KeyID{}, ErrDuplicateKeyName
+	}
+	if err != nil {
+		if !errors.Is(err, repositories.ErrKeyNotFound) {
+			return kms.KeyID{}, err
+		}
+	}
+
 	if keyType == kms.KeyTypeBabyJubJub {
 		keyID, err = ks.kms.CreateKey(keyType, did)
 		if err != nil {
@@ -203,6 +216,16 @@ func (ks *Key) GetAll(ctx context.Context, did *w3c.DID, filter ports.KeyFilter)
 	if err != nil {
 		log.Error(ctx, "failed to get keys", "err", err)
 		return nil, 0, err
+	}
+
+	if filter.KeyType != nil {
+		filteredKeyIDs := make([]kms.KeyID, 0)
+		for _, keyID := range keyIDs {
+			if keyID.Type == *filter.KeyType {
+				filteredKeyIDs = append(filteredKeyIDs, keyID)
+			}
+		}
+		keyIDs = filteredKeyIDs
 	}
 
 	total := uint(len(keyIDs))
