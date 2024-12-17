@@ -5,6 +5,7 @@ export type Env = {
     username: string;
   };
   buildTag?: string;
+  displayMethodBuilderUrl: string;
   ipfsGatewayUrl: string;
   issuer: {
     logo: string;

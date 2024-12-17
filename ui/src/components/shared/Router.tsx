@@ -7,6 +7,9 @@ import { CredentialDetails } from "src/components/credentials/CredentialDetails"
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
 import { LinkDetails } from "src/components/credentials/LinkDetails";
+import { CreateDisplayMethod } from "src/components/display-methods/CreateDisplayMethod";
+import { DisplayMethodDetails } from "src/components/display-methods/DisplayMethodDetails";
+import { DisplayMethods } from "src/components/display-methods/DisplayMethods";
 import { CreateIdentity } from "src/components/identities/CreateIdentity";
 import { Identities } from "src/components/identities/Identities";
 import { Identity } from "src/components/identities/Identity";
@@ -25,9 +28,12 @@ import { ROOT_PATH } from "src/utils/constants";
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
+  createDisplayMethod: CreateDisplayMethod,
   createIdentity: CreateIdentity,
   credentialDetails: CredentialDetails,
   credentials: Credentials,
+  displayMethodDetails: DisplayMethodDetails,
+  displayMethods: DisplayMethods,
   identities: Identities,
   identityDetails: Identity,
   importSchema: ImportSchema,
