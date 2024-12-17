@@ -11,7 +11,7 @@ import (
 
 // VerificationService interface
 type VerificationService interface {
-	Create(ctx context.Context, issuerID w3c.DID, chainID int, skipCheckRevocation bool, scopes map[string]interface{}, serverURL string) (*domain.VerificationQuery, error)
-	Check(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error)
-	Submit(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error)
+	CreateVerificationQuery(ctx context.Context, issuerID w3c.DID, chainID int, skipCheckRevocation bool, scopes map[string]interface{}, serverURL string) (*domain.VerificationQuery, error)
+	GetVerificationStatus(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error)
+	SubmitVerificationResponse(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error)
 }

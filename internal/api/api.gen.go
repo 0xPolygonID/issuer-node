@@ -239,6 +239,12 @@ type BasicMessage struct {
 	Type     string      `json:"type"`
 }
 
+// CheckVerificationResponse Response that includes either a verification response or a verification query request.
+type CheckVerificationResponse struct {
+	VerificationQueryRequest *VerificationQueryRequest `json:"verification_query_request,omitempty"`
+	VerificationResponse     *VerificationResponse     `json:"verification_response,omitempty"`
+}
+
 // ConnectionsPaginated defines model for ConnectionsPaginated.
 type ConnectionsPaginated struct {
 	Items GetConnectionsResponse `json:"items"`
@@ -386,6 +392,12 @@ type CreateVerificationQueryRequest struct {
 	// Scopes Dynamic JSON object for scopes
 	Scopes              map[string]interface{} `json:"scopes"`
 	SkipRevocationCheck bool                   `json:"skip_revocation_check"`
+}
+
+// CreateVerificationQueryResponse defines model for CreateVerificationQueryResponse.
+type CreateVerificationQueryResponse struct {
+	// VerificationQueryId The ID of the created verification query.
+	VerificationQueryId string `json:"verificationQueryId"`
 }
 
 // Credential defines model for Credential.
@@ -1047,17 +1059,17 @@ type GetStateTransactionsParamsFilter string
 // GetStateTransactionsParamsSort defines parameters for GetStateTransactions.
 type GetStateTransactionsParamsSort string
 
+// CheckVerificationParams defines parameters for CheckVerification.
+type CheckVerificationParams struct {
+	// Id The verification query ID to check for a response
+	Id VerificationQueryId `form:"id" json:"id"`
+}
+
 // SubmitVerificationResponseTextBody defines parameters for SubmitVerificationResponse.
 type SubmitVerificationResponseTextBody = string
 
 // SubmitVerificationResponseParams defines parameters for SubmitVerificationResponse.
 type SubmitVerificationResponseParams struct {
-	// Id The verification query ID to check for a response
-	Id VerificationQueryId `form:"id" json:"id"`
-}
-
-// CheckVerificationParams defines parameters for CheckVerification.
-type CheckVerificationParams struct {
 	// Id The verification query ID to check for a response
 	Id VerificationQueryId `form:"id" json:"id"`
 }
@@ -1139,11 +1151,11 @@ type ImportSchemaJSONRequestBody = ImportSchemaRequest
 // UpdateSchemaJSONRequestBody defines body for UpdateSchema for application/json ContentType.
 type UpdateSchemaJSONRequestBody UpdateSchemaJSONBody
 
-// SubmitVerificationResponseTextRequestBody defines body for SubmitVerificationResponse for text/plain ContentType.
-type SubmitVerificationResponseTextRequestBody = SubmitVerificationResponseTextBody
-
 // CreateVerificationJSONRequestBody defines body for CreateVerification for application/json ContentType.
 type CreateVerificationJSONRequestBody = CreateVerificationQueryRequest
+
+// SubmitVerificationResponseTextRequestBody defines body for SubmitVerificationResponse for text/plain ContentType.
+type SubmitVerificationResponseTextRequestBody = SubmitVerificationResponseTextBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1321,15 +1333,15 @@ type ServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
+	// Check Verification Response or Provide Query
+	// (GET /v2/identities/{identifier}/verification)
+	CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams)
+	// Create a Verification query
+	// (POST /v2/identities/{identifier}/verification)
+	CreateVerification(w http.ResponseWriter, r *http.Request, identifier string)
 	// Submit Verification Response
 	// (POST /v2/identities/{identifier}/verification/callback)
 	SubmitVerificationResponse(w http.ResponseWriter, r *http.Request, identifier string, params SubmitVerificationResponseParams)
-	// Check Verification Response or Provide Query
-	// (GET /v2/identities/{identifier}/verification/check)
-	CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams)
-	// Create a Verification query
-	// (POST /v2/identities/{identifier}/verification/create)
-	CreateVerification(w http.ResponseWriter, r *http.Request, identifier string)
 	// Payments Configuration
 	// (GET /v2/payment/settings)
 	GetPaymentSettings(w http.ResponseWriter, r *http.Request)
@@ -1696,21 +1708,21 @@ func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Submit Verification Response
-// (POST /v2/identities/{identifier}/verification/callback)
-func (_ Unimplemented) SubmitVerificationResponse(w http.ResponseWriter, r *http.Request, identifier string, params SubmitVerificationResponseParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Check Verification Response or Provide Query
-// (GET /v2/identities/{identifier}/verification/check)
+// (GET /v2/identities/{identifier}/verification)
 func (_ Unimplemented) CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create a Verification query
-// (POST /v2/identities/{identifier}/verification/create)
+// (POST /v2/identities/{identifier}/verification)
 func (_ Unimplemented) CreateVerification(w http.ResponseWriter, r *http.Request, identifier string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Submit Verification Response
+// (POST /v2/identities/{identifier}/verification/callback)
+func (_ Unimplemented) SubmitVerificationResponse(w http.ResponseWriter, r *http.Request, identifier string, params SubmitVerificationResponseParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3955,49 +3967,6 @@ func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
-// SubmitVerificationResponse operation middleware
-func (siw *ServerInterfaceWrapper) SubmitVerificationResponse(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params SubmitVerificationResponseParams
-
-	// ------------- Required query parameter "id" -------------
-
-	if paramValue := r.URL.Query().Get("id"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "id"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "id", r.URL.Query(), &params.Id)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SubmitVerificationResponse(w, r, identifier, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // CheckVerification operation middleware
 func (siw *ServerInterfaceWrapper) CheckVerification(w http.ResponseWriter, r *http.Request) {
 
@@ -4057,6 +4026,49 @@ func (siw *ServerInterfaceWrapper) CreateVerification(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateVerification(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SubmitVerificationResponse operation middleware
+func (siw *ServerInterfaceWrapper) SubmitVerificationResponse(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SubmitVerificationResponseParams
+
+	// ------------- Required query parameter "id" -------------
+
+	if paramValue := r.URL.Query().Get("id"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "id"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "id", r.URL.Query(), &params.Id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SubmitVerificationResponse(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4465,13 +4477,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/state/transactions", wrapper.GetStateTransactions)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/verification", wrapper.CheckVerification)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/verification", wrapper.CreateVerification)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/verification/callback", wrapper.SubmitVerificationResponse)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v2/identities/{identifier}/verification/check", wrapper.CheckVerification)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v2/identities/{identifier}/verification/create", wrapper.CreateVerification)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/payment/settings", wrapper.GetPaymentSettings)
@@ -6982,43 +6994,6 @@ func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsRes
 	return json.NewEncoder(w).Encode(response)
 }
 
-type SubmitVerificationResponseRequestObject struct {
-	Identifier string `json:"identifier"`
-	Params     SubmitVerificationResponseParams
-	Body       *SubmitVerificationResponseTextRequestBody
-}
-
-type SubmitVerificationResponseResponseObject interface {
-	VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error
-}
-
-type SubmitVerificationResponse200JSONResponse VerificationResponseStatus
-
-func (response SubmitVerificationResponse200JSONResponse) VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type SubmitVerificationResponse400JSONResponse struct{ N400JSONResponse }
-
-func (response SubmitVerificationResponse400JSONResponse) VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type SubmitVerificationResponse500JSONResponse struct{ N500JSONResponse }
-
-func (response SubmitVerificationResponse500JSONResponse) VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type CheckVerificationRequestObject struct {
 	Identifier string `json:"identifier"`
 	Params     CheckVerificationParams
@@ -7028,15 +7003,13 @@ type CheckVerificationResponseObject interface {
 	VisitCheckVerificationResponse(w http.ResponseWriter) error
 }
 
-type CheckVerification200JSONResponse struct {
-	union json.RawMessage
-}
+type CheckVerification200JSONResponse CheckVerificationResponse
 
 func (response CheckVerification200JSONResponse) VisitCheckVerificationResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
-	return json.NewEncoder(w).Encode(response.union)
+	return json.NewEncoder(w).Encode(response)
 }
 
 type CheckVerification400JSONResponse struct{ N400JSONResponse }
@@ -7075,11 +7048,11 @@ type CreateVerificationResponseObject interface {
 	VisitCreateVerificationResponse(w http.ResponseWriter) error
 }
 
-type CreateVerification200JSONResponse GenericMessage
+type CreateVerification201JSONResponse CreateVerificationQueryResponse
 
-func (response CreateVerification200JSONResponse) VisitCreateVerificationResponse(w http.ResponseWriter) error {
+func (response CreateVerification201JSONResponse) VisitCreateVerificationResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+	w.WriteHeader(201)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -7096,6 +7069,43 @@ func (response CreateVerification400JSONResponse) VisitCreateVerificationRespons
 type CreateVerification500JSONResponse struct{ N500JSONResponse }
 
 func (response CreateVerification500JSONResponse) VisitCreateVerificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitVerificationResponseRequestObject struct {
+	Identifier string `json:"identifier"`
+	Params     SubmitVerificationResponseParams
+	Body       *SubmitVerificationResponseTextRequestBody
+}
+
+type SubmitVerificationResponseResponseObject interface {
+	VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error
+}
+
+type SubmitVerificationResponse200JSONResponse VerificationResponseStatus
+
+func (response SubmitVerificationResponse200JSONResponse) VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitVerificationResponse400JSONResponse struct{ N400JSONResponse }
+
+func (response SubmitVerificationResponse400JSONResponse) VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SubmitVerificationResponse500JSONResponse struct{ N500JSONResponse }
+
+func (response SubmitVerificationResponse500JSONResponse) VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -7435,15 +7445,15 @@ type StrictServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
+	// Check Verification Response or Provide Query
+	// (GET /v2/identities/{identifier}/verification)
+	CheckVerification(ctx context.Context, request CheckVerificationRequestObject) (CheckVerificationResponseObject, error)
+	// Create a Verification query
+	// (POST /v2/identities/{identifier}/verification)
+	CreateVerification(ctx context.Context, request CreateVerificationRequestObject) (CreateVerificationResponseObject, error)
 	// Submit Verification Response
 	// (POST /v2/identities/{identifier}/verification/callback)
 	SubmitVerificationResponse(ctx context.Context, request SubmitVerificationResponseRequestObject) (SubmitVerificationResponseResponseObject, error)
-	// Check Verification Response or Provide Query
-	// (GET /v2/identities/{identifier}/verification/check)
-	CheckVerification(ctx context.Context, request CheckVerificationRequestObject) (CheckVerificationResponseObject, error)
-	// Create a Verification query
-	// (POST /v2/identities/{identifier}/verification/create)
-	CreateVerification(ctx context.Context, request CreateVerificationRequestObject) (CreateVerificationResponseObject, error)
 	// Payments Configuration
 	// (GET /v2/payment/settings)
 	GetPaymentSettings(ctx context.Context, request GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error)
@@ -9166,41 +9176,6 @@ func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Req
 	}
 }
 
-// SubmitVerificationResponse operation middleware
-func (sh *strictHandler) SubmitVerificationResponse(w http.ResponseWriter, r *http.Request, identifier string, params SubmitVerificationResponseParams) {
-	var request SubmitVerificationResponseRequestObject
-
-	request.Identifier = identifier
-	request.Params = params
-
-	data, err := io.ReadAll(r.Body)
-	if err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
-		return
-	}
-	body := SubmitVerificationResponseTextRequestBody(data)
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.SubmitVerificationResponse(ctx, request.(SubmitVerificationResponseRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SubmitVerificationResponse")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(SubmitVerificationResponseResponseObject); ok {
-		if err := validResponse.VisitSubmitVerificationResponseResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // CheckVerification operation middleware
 func (sh *strictHandler) CheckVerification(w http.ResponseWriter, r *http.Request, identifier string, params CheckVerificationParams) {
 	var request CheckVerificationRequestObject
@@ -9254,6 +9229,41 @@ func (sh *strictHandler) CreateVerification(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateVerificationResponseObject); ok {
 		if err := validResponse.VisitCreateVerificationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SubmitVerificationResponse operation middleware
+func (sh *strictHandler) SubmitVerificationResponse(w http.ResponseWriter, r *http.Request, identifier string, params SubmitVerificationResponseParams) {
+	var request SubmitVerificationResponseRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := SubmitVerificationResponseTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SubmitVerificationResponse(ctx, request.(SubmitVerificationResponseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SubmitVerificationResponse")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SubmitVerificationResponseResponseObject); ok {
+		if err := validResponse.VisitSubmitVerificationResponseResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

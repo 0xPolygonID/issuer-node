@@ -1991,40 +1991,7 @@ paths:
 
   # Verification
 
-  /v2/identities/{identifier}/verification/create:
-    post:
-      summary: Create a Verification query
-      operationId: CreateVerification
-      description: |
-        Endpoint to create a verification query.
-      tags:
-        - Verification
-      parameters:
-        - name: identifier
-          in: path
-          required: true
-          description: Issuer's DID Identifier
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateVerificationQueryRequest'
-      responses:
-        '200':
-          description: Verification query created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericMessage'
-        '400':
-          $ref: '#/components/responses/400'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v2/identities/{identifier}/verification/check:
+  /v2/identities/{identifier}/verification:
     get:
       summary: Check Verification Response or Provide Query
       operationId: CheckVerification
@@ -2047,15 +2014,45 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/VerificationResponse'
-                  - $ref: '#/components/schemas/VerificationQueryRequest'
+                $ref: '#/components/schemas/CheckVerificationResponse'
         '400':
           $ref: '#/components/responses/400'
         '404':
           $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
+
+    post:
+      summary: Create a Verification query
+      operationId: CreateVerification
+      description: |
+        Endpoint to create a verification query.
+      tags:
+        - Verification
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: Issuer's DID Identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVerificationQueryRequest'
+      responses:
+        '201':
+          description: Verification query created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateVerificationQueryResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'    
 
   /v2/identities/{identifier}/verification/callback:
     post:
@@ -3271,6 +3268,33 @@ components:
         path: github.com/iden3/iden3comm/v2/protocol
 
     #Verification
+    CreateVerificationQueryRequest:
+      type: object
+      required:
+        - chain_id
+        - skip_revocation_check
+        - scopes
+      properties:
+        chain_id:
+          type: integer
+          example: 1
+        skip_revocation_check:
+          type: boolean
+          example: false
+        scopes:
+          type: object
+          additionalProperties: true
+          description: "Dynamic JSON object for scopes"
+    
+    CreateVerificationQueryResponse:
+      type: object
+      required:
+        - verificationQueryId
+      properties:
+        verificationQueryId:
+          type: string
+          description: The ID of the created verification query.
+
     VerificationResponse:
       type: object
       required:
@@ -3305,6 +3329,16 @@ components:
           type: object
           additionalProperties: true
           description: "Dynamic JSON object for scopes"
+
+    CheckVerificationResponse:
+      type: object
+      description: Response that includes either a verification response or a verification query request.
+      properties:
+        verification_response:
+          $ref: '#/components/schemas/VerificationResponse'
+        verification_query_request:
+          $ref: '#/components/schemas/VerificationQueryRequest'
+      additionalProperties: false
 
     VerificationResponseStatus:
       type: object
@@ -3428,24 +3462,6 @@ components:
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
-
-    CreateVerificationQueryRequest:
-      type: object
-      required:
-        - chain_id
-        - skip_revocation_check
-        - scopes
-      properties:
-        chain_id:
-          type: integer
-          example: 1
-        skip_revocation_check:
-          type: boolean
-          example: false
-        scopes:
-          type: object
-          additionalProperties: true
-          description: "Dynamic JSON object for scopes"
 
 
   parameters:

@@ -379,7 +379,8 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	}
 	universalDIDResolverHandler := packagemanager.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
 	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
-	verifier, _ := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
+	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
+	require.NoError(t, err)
 
 	verificationService := services.NewVerificationService(networkResolver, cachex, repos.verification, verifier)
 
