@@ -237,15 +237,17 @@ type repos struct {
 	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
+	displayMethod  ports.DisplayMethodRepository
 }
 
 type servicex struct {
-	credentials ports.ClaimService
-	identity    ports.IdentityService
-	schema      ports.SchemaService
-	links       ports.LinkService
+	credentials   ports.ClaimService
+	identity      ports.IdentityService
+	schema        ports.SchemaService
+	links         ports.LinkService
 	payments    ports.PaymentService
-	qrs         ports.QrStoreService
+	qrs           ports.QrStoreService
+	displayMethod ports.DisplayMethodService
 }
 
 type infra struct {
@@ -276,6 +278,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		sessions:       repositories.NewSessionCached(cachex),
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
+		displayMethod:  repositories.NewDisplayMethod(*st),
 	}
 
 	pubSub := pubsub.NewMock()
@@ -359,18 +362,20 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, paymentService)
+	displayMethodService := services.NewDisplayMethod(repos.displayMethod)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, paymentService, displayMethodService)
 
 	return &testServer{
 		Server: server,
 		Repos:  repos,
 		Services: servicex{
-			credentials: claimsService,
-			identity:    identityService,
-			links:       linkService,
+			credentials:   claimsService,
+			identity:      identityService,
+			links:         linkService,
 			payments:    paymentService,
-			qrs:         qrService,
-			schema:      schemaService,
+			qrs:           qrService,
+			schema:        schemaService,
+			displayMethod: displayMethodService,
 		},
 		Infra: infra{
 			db:     st,

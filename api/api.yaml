@@ -1292,6 +1292,184 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  # Display Methods
+  /v2/identities/{identifier}/display-method:
+    post:
+      summary: Create Display Method
+      operationId: CreateDisplayMethod
+      description: Create a display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDisplayMethodRequest'
+      responses:
+        '201':
+          description: Display Method Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+    get:
+      summary: Get All Display Methods
+      operationId: GetAllDisplayMethods
+      description: |
+        Get all the display methods for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "created_at", "-created_at", "name", "-name", "type", "-type" ]
+              default: "-created_at"
+            description: >
+              The minus sign (-) before field means descending order.
+      responses:
+        '200':
+          description: Display Method list response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayMethodPaginated'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/identities/{identifier}/display-method/{id}:
+    get:
+      summary: Get Display Method
+      operationId: GetDisplayMethod
+      description: |
+        Get a specific display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Display Method response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayMethodEntity'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    patch:
+      summary: Update Display Method
+      operationId: UpdateDisplayMethod
+      description: |
+        Update a specific display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "New Display Method Name"
+                url:
+                  type: string
+                  example: "https://new-display-method.com"
+                type:
+                  type: string
+                  example: "Iden3BasicDisplayMethodV1"
+
+      responses:
+        '200':
+          description: Display Method updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    delete:
+      summary: Delete Display Method
+      operationId: DeleteDisplayMethod
+      description: |
+        Delete a specific display method for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Display Methods
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Display Method updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v2/identities/{identifier}/payment-request:
     post:
       summary: Create Payment Request
@@ -1927,7 +2105,7 @@ components:
           type: string
           x-omitempty: false
           enum:
-            - "Iden3BasicDisplayMethodv2"
+            - "Iden3BasicDisplayMethodV1"
 
     #Credentials
     CreateCredentialRequest:
@@ -2423,6 +2601,43 @@ components:
           x-omitempty: false
           example: https://wallet.privado.id#request_uri=url
 
+
+    DisplayMethodEntity:
+      type: object
+      required:
+        - id
+        - name
+        - url
+        - type
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        name:
+          type: string
+          example: "a display method name"
+        url:
+          type: string
+          example: "https://someValidURL.com"
+        type:
+          type: string
+          example: "Iden3BasicDisplayMethodV1"
+
+    DisplayMethodPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisplayMethodEntity'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
     CredentialSubject:
       type: object
       x-omitempty: false
@@ -2586,6 +2801,24 @@ components:
       x-go-type-import:
         name: protocol
         path: github.com/iden3/iden3comm/v2/protocol
+
+    CreateDisplayMethodRequest:
+        type: object
+        required:
+          - name
+          - url
+        properties:
+          name:
+            type: string
+            example: "My Display Method"
+          url:
+            type: string
+            example: "https://my-display-method.com"
+          type:
+            type: string
+            example: "Iden3BasicDisplayMethodV1"
+            description: "Display method type (Iden3BasicDisplayMethodV1 is default value)"
+
 
   parameters:
     credentialStatusType:

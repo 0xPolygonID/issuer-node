@@ -313,16 +313,6 @@
 }
 
 .ant-typography {
-  &:has(.ant-typography-copy) {
-    display: flex;
-    justify-content: flex-end;
-    word-break: keep-all;
-
-    @media screen and (width <= 576px) {
-      justify-content: flex-start;
-    }
-  }
-
   .ant-typography-copy {
     margin-inline-start: 8px;
   }
@@ -542,4 +532,10 @@ svg {
 
 .user-display:hover {
   background-color: $bg-light;
+}
+
+.wrapped-form-item {
+  .ant-form-item {
+    margin-bottom: 0;
+  }
 }

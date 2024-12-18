@@ -160,6 +160,7 @@ func main() {
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
 	paymentService := services.NewPaymentService(paymentsRepo, *networkResolver, schemaService, paymentSettings, keyStore)
+	displayMethodService := services.NewDisplayMethod(repositories.NewDisplayMethod(*storage))
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
@@ -202,7 +203,7 @@ func main() {
 	)
 	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, paymentService),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, paymentService, displayMethodService),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
