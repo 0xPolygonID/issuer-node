@@ -363,7 +363,7 @@ func getKeyType(keyID string) (kms.KeyType, error) {
 // hasAssociatedAuthCredential checks if the bbj key has an associated auth credential
 func (ks *Key) hasAssociatedAuthCredential(ctx context.Context, did *w3c.DID, publicKey []byte) (bool, *domain.Claim, error) {
 	hasAssociatedAuthCredential := false
-	authCredential, err := ks.claimService.GetAuthCredentialWithPublicKey(ctx, did, publicKey)
+	authCredential, err := ks.claimService.GetAuthCredentialByPublicKey(ctx, did, publicKey)
 	if err != nil {
 		log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 		return false, nil, err

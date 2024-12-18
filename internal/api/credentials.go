@@ -22,15 +22,23 @@ import (
 
 // DeleteCredential deletes a credential
 func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
+	did, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		return DeleteCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+
 	clID, err := uuid.Parse(request.Id)
 	if err != nil {
 		return DeleteCredential400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
 	}
 
-	err = s.claimService.Delete(ctx, clID)
+	err = s.claimService.Delete(ctx, did, clID)
 	if err != nil {
 		if errors.Is(err, services.ErrCredentialNotFound) {
 			return DeleteCredential400JSONResponse{N400JSONResponse{"The given credential does not exist"}}, nil
+		}
+		if errors.Is(err, services.ErrAuthCredentialCannotBeRevoked) {
+			return DeleteCredential400JSONResponse{N400JSONResponse{Message: "you can not delete this auth credential"}}, nil
 		}
 		return DeleteCredential500JSONResponse{N500JSONResponse{"There was an error deleting the credential"}}, nil
 	}
@@ -139,6 +147,11 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 			}}, nil
 		}
 
+		if errors.Is(err, services.ErrAuthCredentialCannotBeRevoked) {
+			return RevokeCredential400JSONResponse{N400JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
 		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return RevokeCredential202JSONResponse{

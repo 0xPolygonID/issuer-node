@@ -20,6 +20,7 @@ type ClaimRepository interface {
 	GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *w3c.DID, revocationNonce domain.RevNonceUint64) ([]*domain.Claim, error)
 	GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *w3c.DID, claimID uuid.UUID) (*domain.Claim, error)
 	FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *w3c.DID, schemaHash string) (*domain.Claim, error)
+	FindClaimsBySchemaHash(ctx context.Context, conn db.Querier, subject *w3c.DID, schemaHash string) ([]*domain.Claim, error)
 	GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, uint, error)
 	GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID w3c.DID) ([]*domain.Claim, error)
 	GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DID, state *merkletree.Hash) (claims []domain.Claim, err error)
