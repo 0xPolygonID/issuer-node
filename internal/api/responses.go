@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -138,6 +139,7 @@ func schemaResponse(s *domain.Schema) Schema {
 	return Schema{
 		Id:          s.ID.String(),
 		Type:        s.Type,
+		ContextURL:  s.ContextURL,
 		Url:         s.URL,
 		BigInt:      s.Hash.BigInt().String(),
 		Hash:        string(hash),
@@ -343,25 +345,23 @@ func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePayment
 			Type:    cred.Type,
 		}
 	}
-	payments := make([]PaymentRequestItem, len(payReq.Payments))
-	for i, payment := range payReq.Payments {
-		payments[i] = PaymentRequestItem{
-			Id:               payment.ID,
-			Nonce:            payment.Nonce.String(),
-			PaymentRequestID: payment.PaymentRequestID,
-			Payment:          payment.Payment,
-		}
+	payment := PaymentRequestInfo{
+		Credentials: payReq.Credentials,
+		Description: payReq.Description,
 	}
-	return CreatePaymentRequestResponse{
+	payment.Data = make([]protocol.PaymentRequestInfoDataItem, len(payReq.Payments))
+	for i, pay := range payReq.Payments {
+		payment.Data[i] = pay.Payment
+	}
+	resp := CreatePaymentRequestResponse{
 		CreatedAt:       payReq.CreatedAt,
-		Credentials:     creds,
-		Description:     payReq.Description,
 		Id:              payReq.ID,
 		IssuerDID:       payReq.IssuerDID.String(),
 		RecipientDID:    payReq.RecipientDID.String(),
 		PaymentOptionID: payReq.PaymentOptionID,
-		Payments:        payments,
+		Payments:        []PaymentRequestInfo{payment},
 	}
+	return resp
 }
 
 func toVerifyPaymentResponse(status ports.BlockchainPaymentStatus) (VerifyPaymentResponseObject, error) {

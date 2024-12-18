@@ -346,7 +346,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader)
-	paymentService := services.NewPaymentService(repos.payments, *networkResolver, paymentSettings, keyStore)
+	paymentService := services.NewPaymentService(repos.payments, *networkResolver, schemaService, paymentSettings, keyStore)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{

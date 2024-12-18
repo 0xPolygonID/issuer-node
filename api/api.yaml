@@ -1871,6 +1871,7 @@ components:
         - bigInt
         - url
         - type
+        - contextURL
         - createdAt
         - version
       properties:
@@ -1894,6 +1895,8 @@ components:
           type: string
           x-omitempty: false
           example: KYCCountryOfResidenceCredential
+        contextURL:
+          type: string
         createdAt:
           $ref: '#/components/schemas/TimeUTC'
           x-omitempty: false
@@ -2279,29 +2282,23 @@ components:
     CreatePaymentRequest:
       type: object
       required:
-        - option
-        - credentials
+        - optionID
+        - schemaID
         - description
         - userDID
       properties:
-        option:
+        optionID:
           type: string
           x-go-type: uuid.UUID
           x-go-type-import:
             name: uuid
             path: github.com/google/uuid
-        credentials:
-          type: array
-          items:
-            type: object
-            required: [ type, context ]
-            properties:
-              type:
-                type: string
-                example: "AML"
-              context:
-                type: string
-                example: "<context url>"
+        schemaID:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
         description:
           type: string
           example: "Payment for AML"
@@ -2313,8 +2310,6 @@ components:
       type: object
       required:
         - id
-        - credentials
-        - description
         - issuerDID
         - recipientDID
         - paymentOptionID
@@ -2324,20 +2319,6 @@ components:
         id:
           type: string
           format: uuid
-        credentials:
-          type: array
-          items:
-            type: object
-            required: [ type, context ]
-            properties:
-              type:
-                type: string
-                example: "AML"
-              context:
-                type: string
-                example: "<context url>"
-        description:
-          type: string
         issuerDID:
           type: string
         recipientDID:
@@ -2348,29 +2329,17 @@ components:
         payments:
           type: array
           items:
-            $ref: '#/components/schemas/PaymentRequestItem'
+            $ref: '#/components/schemas/PaymentRequestInfo'
         createdAt:
           type: string
           format: date-time
 
-    PaymentRequestItem:
+    PaymentRequestInfo:
       type: object
-      required:
-        - id
-        - nonce
-        - paymentRequestID
-        - payment
-      properties:
-        id:
-          type: string
-          format: uuid
-        nonce:
-          type: string
-        paymentRequestID:
-          type: string
-          format: uuid
-        payment:
-          type: null
+      x-go-type: protocol.PaymentRequestInfo
+      x-go-type-import:
+        name: protocol
+        path: github.com/iden3/iden3comm/v2/protocol
 
     TimeUTC:
       type: string

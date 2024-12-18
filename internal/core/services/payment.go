@@ -33,15 +33,17 @@ import (
 type payment struct {
 	networkResolver network.Resolver
 	settings        payments.Config
+	schemaService   ports.SchemaService
 	paymentsStore   ports.PaymentRepository
 	kms             kms.KMSType
 }
 
 // NewPaymentService creates a new payment service
-func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, settings *payments.Config, kms kms.KMSType) ports.PaymentService {
+func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType) ports.PaymentService {
 	return &payment{
 		networkResolver: resolver,
 		settings:        *settings,
+		schemaService:   schemaSrv,
 		paymentsStore:   payOptsRepo,
 		kms:             kms,
 	}
@@ -93,14 +95,24 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 	option, err := p.paymentsStore.GetPaymentOptionByID(ctx, &req.IssuerDID, req.OptionID)
 	if err != nil {
 		log.Error(ctx, "failed to get payment option", "err", err, "issuerDID", req.IssuerDID, "optionID", req.OptionID)
-		return nil, err
+		return nil, fmt.Errorf("failed to get payment option: %w", err)
+	}
+	schema, err := p.schemaService.GetByID(ctx, req.IssuerDID, req.SchemaID)
+	if err != nil {
+		log.Error(ctx, "failed to get schema", "err", err, "issuerDID", req.IssuerDID, "schemaID", req.SchemaID)
+		return nil, fmt.Errorf("failed to get schema: %w", err)
 	}
 
 	paymentRequest := &domain.PaymentRequest{
-		ID:              uuid.New(),
-		IssuerDID:       req.IssuerDID,
-		RecipientDID:    req.UserDID,
-		Credentials:     req.Credentials,
+		ID:           uuid.New(),
+		IssuerDID:    req.IssuerDID,
+		RecipientDID: req.UserDID,
+		Credentials: []protocol.PaymentRequestInfoCredentials{
+			{
+				Context: schema.ContextURL,
+				Type:    schema.Type,
+			},
+		},
 		Description:     req.Description,
 		PaymentOptionID: req.OptionID,
 		CreatedAt:       time.Now(),

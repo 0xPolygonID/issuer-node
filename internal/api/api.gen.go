@@ -284,27 +284,19 @@ type CreateLinkRequest struct {
 
 // CreatePaymentRequest defines model for CreatePaymentRequest.
 type CreatePaymentRequest struct {
-	Credentials []struct {
-		Context string `json:"context"`
-		Type    string `json:"type"`
-	} `json:"credentials"`
 	Description string    `json:"description"`
-	Option      uuid.UUID `json:"option"`
+	OptionID    uuid.UUID `json:"optionID"`
+	SchemaID    uuid.UUID `json:"schemaID"`
 	UserDID     string    `json:"userDID"`
 }
 
 // CreatePaymentRequestResponse defines model for CreatePaymentRequestResponse.
 type CreatePaymentRequestResponse struct {
-	CreatedAt   time.Time `json:"createdAt"`
-	Credentials []struct {
-		Context string `json:"context"`
-		Type    string `json:"type"`
-	} `json:"credentials"`
-	Description     string               `json:"description"`
+	CreatedAt       time.Time            `json:"createdAt"`
 	Id              openapi_types.UUID   `json:"id"`
 	IssuerDID       string               `json:"issuerDID"`
 	PaymentOptionID openapi_types.UUID   `json:"paymentOptionID"`
-	Payments        []PaymentRequestItem `json:"payments"`
+	Payments        []PaymentRequestInfo `json:"payments"`
 	RecipientDID    string               `json:"recipientDID"`
 }
 
@@ -526,13 +518,8 @@ type PaymentOptionsPaginated struct {
 	Meta  PaginatedMetadata `json:"meta"`
 }
 
-// PaymentRequestItem defines model for PaymentRequestItem.
-type PaymentRequestItem struct {
-	Id               openapi_types.UUID `json:"id"`
-	Nonce            string             `json:"nonce"`
-	Payment          interface{}        `json:"payment"`
-	PaymentRequestID openapi_types.UUID `json:"paymentRequestID"`
-}
+// PaymentRequestInfo defines model for PaymentRequestInfo.
+type PaymentRequestInfo = protocol.PaymentRequestInfo
 
 // PaymentStatus defines model for PaymentStatus.
 type PaymentStatus struct {
@@ -591,6 +578,7 @@ type RevokeClaimResponse struct {
 // Schema defines model for Schema.
 type Schema struct {
 	BigInt      string  `json:"bigInt"`
+	ContextURL  string  `json:"contextURL"`
 	CreatedAt   TimeUTC `json:"createdAt"`
 	Description *string `json:"description"`
 	Hash        string  `json:"hash"`

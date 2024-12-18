@@ -34,8 +34,8 @@ type CreatePaymentRequestReq struct {
 	IssuerDID   w3c.DID
 	UserDID     w3c.DID
 	OptionID    uuid.UUID
+	SchemaID    uuid.UUID
 	Description string
-	Credentials []protocol.PaymentRequestInfoCredentials
 }
 
 // PaymentService is the interface implemented by the payment service

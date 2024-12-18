@@ -8,7 +8,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
-	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -123,20 +122,13 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 		log.Error(ctx, "parsing user did", "err", err, "did", request.Body.UserDID)
 		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "invalid userDID"}}, nil
 	}
-	if len(request.Body.Credentials) == 0 {
-		log.Error(ctx, "create payment request: empty credentials")
-		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: "empty credentials"}}, nil
-	}
 
 	req := &ports.CreatePaymentRequestReq{
 		IssuerDID:   *issuerDID,
 		UserDID:     *userDID,
-		OptionID:    request.Body.Option,
+		SchemaID:    request.Body.SchemaID,
+		OptionID:    request.Body.OptionID,
 		Description: request.Body.Description,
-	}
-	req.Credentials = make([]protocol.PaymentRequestInfoCredentials, len(request.Body.Credentials))
-	for i, cred := range request.Body.Credentials {
-		req.Credentials[i] = protocol.PaymentRequestInfoCredentials{Type: cred.Type, Context: cred.Context}
 	}
 
 	payReq, err := s.paymentService.CreatePaymentRequest(ctx, req)

@@ -27,6 +27,7 @@ type dbSchema struct {
 	IssuerID    string
 	URL         string
 	Type        string
+	ContextURL  string
 	Version     string
 	Title       *string
 	Description *string
@@ -46,7 +47,7 @@ func NewSchema(conn db.Storage) *schema {
 
 // Save stores a new entry in schemas table
 func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
-	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  hash,  words, created_at,version,title,description) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, $7, $8::text,$9::text,$10::text);`
+	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  context_url, hash,  words, created_at, version, title, description) VALUES($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11);`
 	hash, err := s.Hash.MarshalText()
 	if err != nil {
 		return err
@@ -58,6 +59,7 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 		s.IssuerDID.String(),
 		s.URL,
 		s.Type,
+		s.ContextURL,
 		string(hash),
 		r.toFullTextSearchDocument(s.Type, s.Words),
 		s.CreatedAt,
@@ -72,7 +74,38 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 
 		return err
 	}
+	return nil
+}
 
+func (r *schema) Update(ctx context.Context, s *domain.Schema) error {
+	const updateSchema = `
+UPDATE schemas 
+SET issuer_id=$2, url=$3, type=$4, context_url=$5, hash=$6,  words=$7, created_at=$8, version=$9, title=$10, description=$11
+WHERE schemas.id = $1;`
+	hash, err := s.Hash.MarshalText()
+	if err != nil {
+		return err
+	}
+	cmd, err := r.conn.Pgx.Exec(
+		ctx,
+		updateSchema,
+		s.ID,
+		s.IssuerDID.String(),
+		s.URL,
+		s.Type,
+		s.ContextURL,
+		string(hash),
+		r.toFullTextSearchDocument(s.Type, s.Words),
+		s.CreatedAt,
+		s.Version,
+		s.Title,
+		s.Description)
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrSchemaDoesNotExist
+	}
 	return nil
 }
 
@@ -89,7 +122,7 @@ func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) (
 	var err error
 	var rows pgx.Rows
 	sqlArgs := make([]interface{}, 0)
-	sqlQuery := `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description
+	sqlQuery := `SELECT id, issuer_id, url, type, context_url, words, hash, created_at,version,title,description
 	FROM schemas
 	WHERE issuer_id=$1`
 	sqlArgs = append(sqlArgs, issuerDID.String())
@@ -110,7 +143,7 @@ func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) (
 	schemaCol := make([]domain.Schema, 0)
 	s := dbSchema{}
 	for rows.Next() {
-		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description); err != nil {
+		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.ContextURL, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description); err != nil {
 			return nil, err
 		}
 		item, err := toSchemaDomain(&s)
@@ -124,14 +157,14 @@ func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) (
 
 // GetByID searches and returns an schema by id
 func (r *schema) GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.Schema, error) {
-	const byID = `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description
+	const byID = `SELECT id, issuer_id, url, type, context_url, words, hash, created_at,version,title,description
 		FROM schemas 
 		WHERE issuer_id = $1 AND id=$2`
 
 	s := dbSchema{}
 	row := r.conn.Pgx.QueryRow(ctx, byID, issuerDID.String(), id)
-	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description)
-	if err == pgx.ErrNoRows {
+	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.ContextURL, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrSchemaDoesNotExist
 	}
 	if err != nil {
@@ -154,6 +187,7 @@ func toSchemaDomain(s *dbSchema) (*domain.Schema, error) {
 		IssuerDID:   *issuerDID,
 		URL:         s.URL,
 		Type:        s.Type,
+		ContextURL:  s.ContextURL,
 		Hash:        schemaHash,
 		Words:       domain.SchemaWordsFromString(s.Words),
 		CreatedAt:   s.CreatedAt,
