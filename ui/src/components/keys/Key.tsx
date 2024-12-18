@@ -1,11 +1,12 @@
-import { App, Button, Card, Flex, Form, Input, Space, Typography } from "antd";
+import { App, Button, Card, Dropdown, Flex, Form, Input, Row, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useIdentityContext } from "../../contexts/Identity";
 import { UpdateKey, deleteKey, getKey, updateKeyName } from "src/adapters/api/keys";
+import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
-import IconTrash from "src/assets/icons/trash-01.svg?react";
+import { DeleteItem } from "src/components/schemas/DeleteItem";
 import { Detail } from "src/components/shared/Detail";
 import { EditModal } from "src/components/shared/EditModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -138,13 +139,26 @@ export function Key() {
                         type="text"
                       />
                       {!key.data.isAuthCredential && (
-                        <Button
-                          danger
-                          icon={<IconTrash />}
-                          onClick={handleDeleteKey}
-                          style={{ flexShrink: 0 }}
-                          type="text"
-                        />
+                        <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                danger: true,
+                                key: "delete",
+                                label: (
+                                  <DeleteItem
+                                    onOk={handleDeleteKey}
+                                    title="Are you sure you want to delete this key?"
+                                  />
+                                ),
+                              },
+                            ],
+                          }}
+                        >
+                          <Row>
+                            <IconDots className="icon-secondary" />
+                          </Row>
+                        </Dropdown>
                       )}
                     </Flex>
                   </Flex>

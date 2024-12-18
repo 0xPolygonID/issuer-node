@@ -101,6 +101,7 @@ export async function createIdentity({
 
 export const identityDetailsParser = getStrictParser<IdentityDetails>()(
   z.object({
+    authCredentialsIDs: z.array(z.string()),
     credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string().nullable(),
     identifier: z.string(),

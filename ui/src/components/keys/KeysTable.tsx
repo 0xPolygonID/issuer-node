@@ -24,7 +24,7 @@ import IconCopy from "src/assets/icons/copy-01.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
-import IconTrash from "src/assets/icons/trash-01.svg?react";
+import { DeleteItem } from "src/components/schemas/DeleteItem";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
@@ -38,7 +38,6 @@ import {
   DEFAULT_PAGINATION_MAX_RESULTS,
   DEFAULT_PAGINATION_PAGE,
   DEFAULT_PAGINATION_TOTAL,
-  DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
   KEY_ADD_NEW,
@@ -149,10 +148,13 @@ export function KeysTable() {
             },
             {
               danger: true,
-              icon: <IconTrash />,
               key: "delete",
-              label: DELETE,
-              onClick: () => handleDeleteKey(id),
+              label: (
+                <DeleteItem
+                  onOk={() => handleDeleteKey(id)}
+                  title="Are you sure you want to delete this key?"
+                />
+              ),
             }
           );
         }

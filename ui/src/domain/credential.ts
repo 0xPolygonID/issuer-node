@@ -1,3 +1,5 @@
+import { CredentialStatusType } from "src/domain/identity";
+
 export type CredentialsTabIDs = "issued" | "links";
 
 export enum ProofType {
@@ -15,7 +17,13 @@ export type DisplayMethod = {
   type: "Iden3BasicDisplayMethodv2";
 };
 
+export type CredentialStatus = {
+  revocationNonce: number;
+  type: CredentialStatusType;
+};
+
 export type Credential = {
+  credentialStatus: CredentialStatus;
   credentialSubject: Record<string, unknown>;
   displayMethod: DisplayMethod | null;
   expirationDate: Date | null;

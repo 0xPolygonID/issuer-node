@@ -21,7 +21,7 @@ const keyParser = getStrictParser<Key>()(
 export async function getKeys({
   env,
   identifier,
-  params: { maxResults, page },
+  params: { maxResults, page, type },
   signal,
 }: {
   env: Env;
@@ -29,6 +29,7 @@ export async function getKeys({
   params: {
     maxResults?: number;
     page?: number;
+    type?: KeyType;
   };
   signal?: AbortSignal;
 }): Promise<Response<Resource<Key>>> {
@@ -42,6 +43,7 @@ export async function getKeys({
       params: new URLSearchParams({
         ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
         ...(page !== undefined ? { page: page.toString() } : {}),
+        ...(type !== undefined ? { type } : {}),
       }),
       signal,
       url: `${API_VERSION}/identities/${identifier}/keys`,
