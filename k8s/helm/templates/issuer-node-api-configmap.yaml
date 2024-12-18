@@ -33,6 +33,3 @@ data:
   ISSUER_RESOLVER_FILE : {{ .Values.issuerResolverFile | quote }}
   ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH: {{ .Values.apiIssuerNode.configMap.issuerKMSProviderLocalStorageFilePath | quote }}
   ISSUER_PAYMENTS_SETTINGS_FILE: {{ .Values.apiIssuerNode.configMap.issuerPaymentsSettingsFile | quote }}
-
-
-  ISSUER_PAYMENTS_SETTINGS_FILE

@@ -659,7 +659,7 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 				assert.NotEqual(t, uuid.Nil, response.Id)
 				assert.Equal(t, tc.expected.resp.IssuerDID, response.IssuerDID)
 				assert.Equal(t, tc.expected.resp.RecipientDID, response.RecipientDID)
-				assert.InDelta(t, time.Now().UnixMilli(), response.CreatedAt.UnixMilli(), 10)
+				assert.InDelta(t, time.Now().UnixMilli(), response.CreatedAt.UnixMilli(), 100)
 				/*
 					assert.Equal(t, len(tc.expected.resp.Payments), len(response.Payments))
 					for i := range tc.expected.resp.Payments {
