@@ -1503,9 +1503,9 @@ paths:
 
   /v2/payment/settings:
     get:
-      summary: Return payment settings
+      summary: Payments Configuration
       operationId: GetPaymentSettings
-      description: Get the payment settings
+      description: Returns the server payments configuration
       tags:
         - Payment
       security:
@@ -1516,7 +1516,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentOptionConfig'
+                $ref: '#/components/schemas/PaymentsConfiguration'
 
   /v2/identities/{identifier}/payment/options:
     get:
@@ -2390,6 +2390,13 @@ components:
         status:
           type: string
           enum: [ success, failed, pending, canceled ]
+
+    PaymentsConfiguration:
+      type: object
+      x-go-type: payments.Config
+      x-go-type-import:
+        name: payments
+        path: github.com/polygonid/sh-id-platform/internal/payments
 
     PaymentOption:
       type: object

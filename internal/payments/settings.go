@@ -36,7 +36,7 @@ type PaymentOptionConfig struct {
 	Name            string
 	Type            protocol.PaymentRequestType
 	ContractAddress common.Address
-	Features        []protocol.PaymentFeatures
+	Features        []protocol.PaymentFeatures `json:"features,omitempty"`
 }
 
 // configDTO is the data transfer object for the configuration. It maps to payment configuration file

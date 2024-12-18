@@ -141,9 +141,7 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 
 // GetPaymentSettings is the controller to get payment settings
 func (s *Server) GetPaymentSettings(_ context.Context, _ GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error) {
-	// TODO: Implement
-	// return GetPaymentSettings200JSONResponse(s.paymentService.GetSettings()), nil
-	return GetPaymentSettings200JSONResponse{}, nil
+	return GetPaymentSettings200JSONResponse(s.paymentService.GetSettings()), nil
 }
 
 // VerifyPayment is the controller to verify payment

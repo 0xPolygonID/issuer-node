@@ -18,6 +18,7 @@ import (
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 	openapi_types "github.com/oapi-codegen/runtime/types"
+	payments "github.com/polygonid/sh-id-platform/internal/payments"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
@@ -567,6 +568,9 @@ type PaymentVerifyRequest struct {
 	TxHash string `json:"txHash"`
 }
 
+// PaymentsConfiguration defines model for PaymentsConfiguration.
+type PaymentsConfiguration = payments.Config
+
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {
 	ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
@@ -1084,7 +1088,7 @@ type ServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
-	// Return payment settings
+	// Payments Configuration
 	// (GET /v2/payment/settings)
 	GetPaymentSettings(w http.ResponseWriter, r *http.Request)
 	// Get QrCode from store
@@ -1390,7 +1394,7 @@ func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Return payment settings
+// Payments Configuration
 // (GET /v2/payment/settings)
 func (_ Unimplemented) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -5661,7 +5665,7 @@ type GetPaymentSettingsResponseObject interface {
 	VisitGetPaymentSettingsResponse(w http.ResponseWriter) error
 }
 
-type GetPaymentSettings200JSONResponse PaymentOptionConfig
+type GetPaymentSettings200JSONResponse PaymentsConfiguration
 
 func (response GetPaymentSettings200JSONResponse) VisitGetPaymentSettingsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -5957,7 +5961,7 @@ type StrictServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
-	// Return payment settings
+	// Payments Configuration
 	// (GET /v2/payment/settings)
 	GetPaymentSettings(ctx context.Context, request GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error)
 	// Get QrCode from store
