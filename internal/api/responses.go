@@ -357,7 +357,7 @@ func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePayment
 		CreatedAt:       payReq.CreatedAt,
 		Id:              payReq.ID,
 		IssuerDID:       payReq.IssuerDID.String(),
-		RecipientDID:    payReq.RecipientDID.String(),
+		UserDID:         payReq.RecipientDID.String(),
 		PaymentOptionID: payReq.PaymentOptionID,
 		Payments:        []PaymentRequestInfo{payment},
 	}

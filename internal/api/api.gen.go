@@ -317,7 +317,7 @@ type CreatePaymentRequestResponse struct {
 	IssuerDID       string               `json:"issuerDID"`
 	PaymentOptionID openapi_types.UUID   `json:"paymentOptionID"`
 	Payments        []PaymentRequestInfo `json:"payments"`
-	RecipientDID    string               `json:"recipientDID"`
+	UserDID         string               `json:"userDID"`
 }
 
 // Credential defines model for Credential.

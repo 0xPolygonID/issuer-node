@@ -635,7 +635,7 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 							Data:        protocol.PaymentRequestInfoData{},
 						},
 					},
-					RecipientDID: receiverDID.String(),
+					UserDID: receiverDID.String(),
 				},
 			},
 		},
@@ -658,7 +658,7 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.NotEqual(t, uuid.Nil, response.Id)
 				assert.Equal(t, tc.expected.resp.IssuerDID, response.IssuerDID)
-				assert.Equal(t, tc.expected.resp.RecipientDID, response.RecipientDID)
+				assert.Equal(t, tc.expected.resp.UserDID, response.UserDID)
 				assert.InDelta(t, time.Now().UnixMilli(), response.CreatedAt.UnixMilli(), 100)
 				/*
 					assert.Equal(t, len(tc.expected.resp.Payments), len(response.Payments))

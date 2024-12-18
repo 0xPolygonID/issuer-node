@@ -2496,7 +2496,7 @@ components:
       required:
         - id
         - issuerDID
-        - recipientDID
+        - userDID
         - paymentOptionID
         - payments
         - createdAt
@@ -2506,7 +2506,7 @@ components:
           format: uuid
         issuerDID:
           type: string
-        recipientDID:
+        userDID:
           type: string
         paymentOptionID:
           type: string
