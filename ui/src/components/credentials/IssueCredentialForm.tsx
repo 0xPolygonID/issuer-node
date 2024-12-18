@@ -144,6 +144,11 @@ export function IssueCredentialForm({
     }
   };
 
+  const isCountryCode = (x: number) => {
+    const iso31661NumericRegex = /^\d{1,3}$/;
+    return iso31661NumericRegex.test(x.toString());
+  };
+
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
     if (isAsyncTaskDataAvailable(jsonSchema)) {
       const serializedSchemaForm = serializeSchemaForm({
@@ -165,9 +170,17 @@ export function IssueCredentialForm({
             type: "string",
             validate: isPositiveBigInt,
           });
+          ajv.addFormat("positive-integer-eth-address", {
+            type: "string",
+            validate: isPositiveBigInt,
+          });
           ajv.addFormat("non-negative-integer", {
             type: "string",
             validate: isNonNegativeBigInt,
+          });
+          ajv.addFormat("iso-3166-1-numeric", {
+            type: "number",
+            validate: isCountryCode,
           });
           ajv.addVocabulary(["$metadata"]);
           applyDraft2019Formats(ajv);
