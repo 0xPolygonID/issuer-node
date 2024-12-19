@@ -9,6 +9,7 @@ export type EnvInput = {
   VITE_API_URL: string;
   VITE_API_USERNAME: string;
   VITE_BUILD_TAG?: string;
+  VITE_DISPLAY_METHOD_BUILDER_URL: string;
   VITE_IPFS_GATEWAY_URL: string;
   VITE_ISSUER_LOGO?: string;
   VITE_ISSUER_NAME: string;
@@ -23,6 +24,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
       VITE_API_URL: z.string().url(),
       VITE_API_USERNAME: z.string().min(1),
       VITE_BUILD_TAG: z.string().optional(),
+      VITE_DISPLAY_METHOD_BUILDER_URL: z.string(),
       VITE_IPFS_GATEWAY_URL: z.string().url(),
       VITE_ISSUER_LOGO: z.string().optional(),
       VITE_ISSUER_NAME: z.string().min(1),
@@ -38,6 +40,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
         VITE_API_URL,
         VITE_API_USERNAME,
         VITE_BUILD_TAG,
+        VITE_DISPLAY_METHOD_BUILDER_URL,
         VITE_IPFS_GATEWAY_URL,
         VITE_ISSUER_LOGO,
         VITE_ISSUER_NAME,
@@ -50,6 +53,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
           username: VITE_API_USERNAME,
         },
         buildTag: VITE_BUILD_TAG,
+        displayMethodBuilderUrl: VITE_DISPLAY_METHOD_BUILDER_URL,
         ipfsGatewayUrl: VITE_IPFS_GATEWAY_URL,
         issuer: {
           logo: VITE_ISSUER_LOGO || IMAGE_PLACEHOLDER_PATH,

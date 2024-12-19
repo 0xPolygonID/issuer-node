@@ -1,5 +1,5 @@
+import { DisplayMethodType } from "src/domain/display-method";
 import { CredentialStatusType } from "src/domain/identity";
-
 export type CredentialsTabIDs = "issued" | "links";
 
 export enum ProofType {
@@ -12,9 +12,9 @@ export type RefreshService = {
   type: "Iden3RefreshService2023";
 };
 
-export type DisplayMethod = {
+export type CredentialDisplayMethod = {
   id: string;
-  type: "Iden3BasicDisplayMethodv2";
+  type: DisplayMethodType;
 };
 
 export type CredentialStatus = {
@@ -25,7 +25,7 @@ export type CredentialStatus = {
 export type Credential = {
   credentialStatus: CredentialStatus;
   credentialSubject: Record<string, unknown>;
-  displayMethod: DisplayMethod | null;
+  displayMethod: CredentialDisplayMethod | null;
   expirationDate: Date | null;
   expired: boolean;
   id: string;
@@ -53,11 +53,13 @@ export type Link = {
   credentialExpiration: Date | null;
   credentialSubject: Record<string, unknown>;
   deepLink: string;
+  displayMethod: CredentialDisplayMethod | null;
   expiration: Date | null;
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
   proofTypes: ProofType[];
+  refreshService: RefreshService | null;
   schemaHash: string;
   schemaType: string;
   schemaUrl: string;

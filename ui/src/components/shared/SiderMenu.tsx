@@ -21,6 +21,7 @@ import {
   CONNECTIONS,
   CREDENTIALS,
   CREDENTIALS_TABS,
+  DISPLAY_METHODS,
   DOCS_URL,
   IDENTITIES,
   ISSUER_STATE,
@@ -49,7 +50,8 @@ export function SiderMenu({
   const issuerStatePath = ROUTES.issuerState.path;
   const schemasPath = ROUTES.schemas.path;
   const identitiesPath = ROUTES.identities.path;
-  const keysPath = ROUTES.keys.path;
+  const displayMethodsPath = ROUTES.displayMethods.path;
+    const keysPath = ROUTES.keys.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -94,11 +96,22 @@ export function SiderMenu({
       return [identitiesPath];
     } else if (
       matchRoutes(
-        [{ path: keysPath }, { path: ROUTES.keyDetails.path }, { path: ROUTES.createKey.path }],
+        [
+          { path: displayMethodsPath },
+          { path: ROUTES.createDisplayMethod.path },
+          { path: ROUTES.displayMethodDetails.path },
+        ],
         pathname
       )
     ) {
-      return [keysPath];
+      return [displayMethodsPath];
+    } else if (
+        matchRoutes(
+            [{ path: keysPath }, { path: ROUTES.keyDetails.path }, { path: ROUTES.createKey.path }],
+            pathname
+        )
+    ) {
+        return [keysPath];
     }
 
     return [];
@@ -128,6 +141,13 @@ export function SiderMenu({
                 key: schemasPath,
                 label: SCHEMAS,
                 onClick: () => onMenuClick(schemasPath),
+                title: "",
+              },
+              {
+                icon: <IconIdentities />,
+                key: displayMethodsPath,
+                label: DISPLAY_METHODS,
+                onClick: () => onMenuClick(displayMethodsPath),
                 title: "",
               },
               {

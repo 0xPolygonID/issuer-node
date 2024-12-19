@@ -10,6 +10,7 @@ export const DELETE = "Delete";
 export const DETAILS = "Details";
 export const ERROR_MESSAGE = "Something went wrong";
 export const EXPIRATION = "Expiration";
+export const EDIT = "Edit";
 export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
@@ -23,6 +24,11 @@ export const IDENTITY_ADD_NEW = "Add new identity";
 export const IDENTITY_ADD = "Add identity";
 export const IDENTITY_DETAILS = "Identity details";
 export const IDENTITIES = "Identities";
+export const DISPLAY_METHODS = "Display methods";
+export const DISPLAY_METHOD_ADD_NEW = "Add new display method";
+export const DISPLAY_METHOD_EDIT = "Edit display method";
+export const DISPLAY_METHOD_ADD = "Add display method";
+export const DISPLAY_METHOD_DETAILS = "Display method details";
 export const KEYS = "Keys";
 export const KEY_ADD = "Add key";
 export const KEY_ADD_NEW = "Add new key";
@@ -89,6 +95,8 @@ export const TOAST_NOTIFICATION_TIMEOUT = 6;
 export const DOCS_URL = "https://docs.privado.id";
 
 export const SCHEMAS_DOCS_URL = "https://docs.privado.id/docs/category/schemas";
+
+export const DISPLAY_METHOD_DOCS_URL = "https://docs.privado.id/docs/issuer/display-method";
 
 export const IPFS_PUBLIC_GATEWAY_CHECKER_URL = "https://ipfs.github.io/public-gateway-checker";
 

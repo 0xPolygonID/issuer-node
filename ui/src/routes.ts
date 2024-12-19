@@ -15,9 +15,12 @@ export type RouteID =
   | "createIdentity"
   | "identityDetails"
   | "onboarding"
-  | "keys"
-  | "keyDetails"
-  | "createKey";
+  | "displayMethods"
+  | "displayMethodDetails"
+  | "createDisplayMethod"
+    | "keys"
+    | "keyDetails"
+    | "createKey";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -38,10 +41,14 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/connections",
   },
-  createAuthCredential: {
+  createDisplayMethod: {
     layout: "sider",
-    path: "/credentials/auth",
+    path: "/display-methods/create",
   },
+    createAuthCredential: {
+        layout: "sider",
+        path: "/credentials/auth",
+    },
   createIdentity: {
     layout: "sider",
     path: "/identities/create",
@@ -57,6 +64,14 @@ export const ROUTES: Routes = {
   credentials: {
     layout: "sider",
     path: "/credentials/:tabID",
+  },
+  displayMethodDetails: {
+    layout: "sider",
+    path: "/display-methods/:displayMethodID",
+  },
+  displayMethods: {
+    layout: "sider",
+    path: "/display-methods",
   },
   identities: {
     layout: "sider",
