@@ -533,3 +533,9 @@ svg {
 .user-display:hover {
   background-color: $bg-light;
 }
+
+.wrapped-form-item {
+  .ant-form-item {
+    margin-bottom: 0;
+  }
+}

@@ -235,16 +235,18 @@ type repos struct {
 	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
+	displayMethod  ports.DisplayMethodRepository
 	keyRepository  ports.KeyRepository
 }
 
 type servicex struct {
-	credentials ports.ClaimService
-	identity    ports.IdentityService
-	schema      ports.SchemaService
-	links       ports.LinkService
-	qrs         ports.QrStoreService
-	keyService  ports.KeyService
+	credentials   ports.ClaimService
+	identity      ports.IdentityService
+	schema        ports.SchemaService
+	links         ports.LinkService
+	qrs           ports.QrStoreService
+	displayMethod ports.DisplayMethodService
+	keyService    ports.KeyService
 }
 
 type infra struct {
@@ -274,6 +276,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		sessions:       repositories.NewSessionCached(cachex),
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
+		displayMethod:  repositories.NewDisplayMethod(*st),
 		keyRepository:  repositories.NewKey(*st),
 	}
 
@@ -301,19 +304,21 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
+	displayMethodService := services.NewDisplayMethod(repos.displayMethod)
 	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, keyService)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService)
 
 	return &testServer{
 		Server: server,
 		Repos:  repos,
 		Services: servicex{
-			credentials: claimsService,
-			identity:    identityService,
-			links:       linkService,
-			qrs:         qrService,
-			schema:      schemaService,
-			keyService:  keyService,
+			credentials:   claimsService,
+			identity:      identityService,
+			links:         linkService,
+			qrs:           qrService,
+			schema:        schemaService,
+			displayMethod: displayMethodService,
+			keyService:    keyService,
 		},
 		Infra: infra{
 			db:     st,

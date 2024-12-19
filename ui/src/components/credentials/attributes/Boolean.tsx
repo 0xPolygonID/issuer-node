@@ -1,5 +1,6 @@
 import { Form, Radio, Select, Space, Typography } from "antd";
 
+import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
 import { BooleanAttribute, ObjectAttribute } from "src/domain";
 import { VALUE_REQUIRED } from "src/utils/constants";
 
@@ -16,11 +17,15 @@ export function Boolean({
 }) {
   return (
     <Form.Item
-      extra={attribute.schema.description}
       help={error}
       label={<Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>}
       name={["credentialSubject", ...parents.map((parent) => parent.name), attribute.name]}
       rules={[{ message: VALUE_REQUIRED, required: attribute.required }]}
+      tooltip={{
+        icon: <IconInfoCircle style={{ width: 14 }} />,
+        placement: "right",
+        title: attribute.schema.description,
+      }}
       validateStatus={error ? "error" : undefined}
     >
       {attribute.schema.enum ? (

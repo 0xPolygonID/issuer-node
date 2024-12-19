@@ -115,6 +115,7 @@ export function ObjectAttributeForm({
 
     return isRootAttribute ? (
       <Card
+        className="wrapped-form-item"
         key={key}
         title={shouldShowTitle ? attribute.schema.title || attribute.name : undefined}
         type="inner"
@@ -127,7 +128,7 @@ export function ObjectAttributeForm({
   });
 
   return isRootAttribute ? (
-    <Space direction="vertical" size="large">
+    <Space direction="vertical" size="large" style={{ rowGap: 16 }}>
       {form}
     </Space>
   ) : (
