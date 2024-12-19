@@ -4,12 +4,9 @@ import (
 	"bytes"
 
 	"github.com/iden3/go-iden3-crypto/babyjub"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-)
-
-const (
-	bjjAuthSchemaURL = "https://schema.iden3.io/core/json/auth.json"
 )
 
 // PublicKey - defines the interface for public keys
@@ -54,7 +51,7 @@ func (u *unSupportedPublicKeyType) String() string {
 // GetPublicKeyFromClaim returns the public key of the claim
 // If the schema is not supported, it returns an unSupportedPublicKeyType
 func GetPublicKeyFromClaim(c *domain.Claim) PublicKey {
-	if c.SchemaURL == bjjAuthSchemaURL {
+	if c.SchemaURL == verifiable.JSONSchemaIden3AuthBJJCredential {
 		return newBJJPublicKey(*c)
 	}
 	return &unSupportedPublicKeyType{}
