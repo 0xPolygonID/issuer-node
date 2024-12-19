@@ -21,8 +21,8 @@ import (
 
 var (
 
-	// ErrAuthCredentialNotRevoked is returned when the associated auth core claim is not revoked
-	ErrAuthCredentialNotRevoked = errors.New("associated auth core claim not revoked")
+	// ErrAuthCredentialNotRevoked is returned when the associated auth credential is not revoked
+	ErrAuthCredentialNotRevoked = errors.New("associated auth credential not revoked")
 	// ErrKeyAssociatedWithIdentity is returned when the key is associated with an identity
 	ErrKeyAssociatedWithIdentity = errors.New("key is associated with an identity")
 	// ErrDuplicateKeyName is returned when the key name already exists
