@@ -19,8 +19,8 @@ import {
 } from "src/adapters/parsers";
 import {
   Credential,
-    CredentialStatusType,
-    CredentialDisplayMethod,
+  CredentialDisplayMethod,
+  CredentialStatusType,
   DisplayMethodType,
   Env,
   IssuedMessage,

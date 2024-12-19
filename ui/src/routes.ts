@@ -18,9 +18,9 @@ export type RouteID =
   | "displayMethods"
   | "displayMethodDetails"
   | "createDisplayMethod"
-    | "keys"
-    | "keyDetails"
-    | "createKey";
+  | "keys"
+  | "keyDetails"
+  | "createKey";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -41,14 +41,14 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/connections",
   },
+  createAuthCredential: {
+    layout: "sider",
+    path: "/credentials/auth",
+  },
   createDisplayMethod: {
     layout: "sider",
     path: "/display-methods/create",
   },
-    createAuthCredential: {
-        layout: "sider",
-        path: "/credentials/auth",
-    },
   createIdentity: {
     layout: "sider",
     path: "/identities/create",
