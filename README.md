@@ -102,6 +102,8 @@ a4a1d3ec9159   redis:6-alpine                  "docker-entrypoint.s…"   38 sec
 make private_key=<private-key> import-private-key-to-kms 
 ```
 
+**_TODO_**: Add section to configure payments
+
 then visit:
 * http://localhost:8088/ to access the UI (default username / password are: user-ui, password-ui). You can set them using env [vars](.env-ui.sample).
 * <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API. (default username / password are: user-issuer, password-issuer)
@@ -138,6 +140,8 @@ cp resolvers_settings_sample.yaml resolvers_settings.yaml
 then modify the file with the proper values. The most important fields to run the issuer node are RPC (`networkURL`) fields.
 In this file you can define customizations for each type of blockchain and network. For this example, we only need to 
 define the RPCs. that will use.
+
+**_TODO_**: Add section to configure payments****
 
 4. Copy .env-ui sample file and fill the needed env variables:
 
