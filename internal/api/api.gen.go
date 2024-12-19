@@ -24,6 +24,13 @@ const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
+// Defines values for CreateAuthCredentialRequestCredentialStatusType.
+const (
+	CreateAuthCredentialRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateAuthCredentialRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	CreateAuthCredentialRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateAuthCredentialRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	CreateAuthCredentialRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateAuthCredentialRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
+)
+
 // Defines values for CreateCredentialRequestCredentialStatusType.
 const (
 	CreateCredentialRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateCredentialRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
@@ -77,9 +84,9 @@ const (
 
 // Defines values for GetIdentityDetailsResponseCredentialStatusType.
 const (
-	Iden3OnchainSparseMerkleTreeProof2023 GetIdentityDetailsResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
-	Iden3ReverseSparseMerkleTreeProof     GetIdentityDetailsResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	Iden3commRevocationStatusV10          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	GetIdentityDetailsResponseCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 GetIdentityDetailsResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	GetIdentityDetailsResponseCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     GetIdentityDetailsResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	GetIdentityDetailsResponseCredentialStatusTypeIden3commRevocationStatusV10          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for KeyKeyType.
@@ -217,6 +224,18 @@ type ConnectionsPaginated struct {
 	Items GetConnectionsResponse `json:"items"`
 	Meta  PaginatedMetadata      `json:"meta"`
 }
+
+// CreateAuthCredentialRequest defines model for CreateAuthCredentialRequest.
+type CreateAuthCredentialRequest struct {
+	CredentialStatusType CreateAuthCredentialRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
+	Expiration           *int64                                          `json:"expiration,omitempty"`
+	KeyID                string                                          `json:"keyID"`
+	RevNonce             *uint64                                         `json:"revNonce,omitempty"`
+	Version              *uint32                                         `json:"version,omitempty"`
+}
+
+// CreateAuthCredentialRequestCredentialStatusType defines model for CreateAuthCredentialRequest.CredentialStatusType.
+type CreateAuthCredentialRequestCredentialStatusType string
 
 // CreateConnectionRequest defines model for CreateConnectionRequest.
 type CreateConnectionRequest struct {
@@ -736,11 +755,6 @@ type DeleteConnectionParams struct {
 	DeleteCredentials *bool `form:"deleteCredentials,omitempty" json:"deleteCredentials,omitempty"`
 }
 
-// CreateAuthCredentialJSONBody defines parameters for CreateAuthCredential.
-type CreateAuthCredentialJSONBody struct {
-	KeyID string `json:"keyID"`
-}
-
 // GetCredentialsParams defines parameters for GetCredentials.
 type GetCredentialsParams struct {
 	// Page Page to fetch. First is one. If omitted, all results will be returned.
@@ -908,7 +922,7 @@ type UpdateIdentityJSONRequestBody UpdateIdentityJSONBody
 type CreateConnectionJSONRequestBody = CreateConnectionRequest
 
 // CreateAuthCredentialJSONRequestBody defines body for CreateAuthCredential for application/json ContentType.
-type CreateAuthCredentialJSONRequestBody CreateAuthCredentialJSONBody
+type CreateAuthCredentialJSONRequestBody = CreateAuthCredentialRequest
 
 // CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
 type CreateCredentialJSONRequestBody = CreateCredentialRequest

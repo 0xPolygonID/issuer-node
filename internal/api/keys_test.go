@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -457,7 +458,7 @@ func TestServer_DeleteKey(t *testing.T) {
 	keyIDForAuthCoreClaimIDASByteArr, err := b64.StdEncoding.DecodeString(keyIDForAuthCoreClaimID.ID)
 	require.NoError(t, err)
 
-	_, err = server.Services.identity.CreateAuthCredential(ctx, did, string(keyIDForAuthCoreClaimIDASByteArr))
+	_, err = server.Services.identity.CreateAuthCredential(ctx, did, string(keyIDForAuthCoreClaimIDASByteArr), nil, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)

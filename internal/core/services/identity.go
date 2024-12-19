@@ -855,12 +855,21 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 }
 
 // CreateAuthCredential creates a new auth credential
-func (i *identity) CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID string) (uuid.UUID, error) {
-	revNonce, err := common.RandInt64()
-	if err != nil {
-		log.Error(ctx, "generating revocation nonce", "err", err)
-		return uuid.Nil, fmt.Errorf("can't generate revocation nonce: %w", err)
+func (i *identity) CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID string, revNonce *uint64, expiration *time.Time, version *uint32, credentialStatusType verifiable.CredentialStatusType) (uuid.UUID, error) {
+	var err error
+	if revNonce == nil {
+		generatedRevNonce, err := common.RandInt64()
+		if err != nil {
+			log.Error(ctx, "generating revocation nonce", "err", err)
+			return uuid.Nil, fmt.Errorf("can't generate revocation nonce: %w", err)
+		}
+		revNonce = &generatedRevNonce
 	}
+
+	if version == nil {
+		version = common.ToPointer[uint32](0)
+	}
+
 	var newAuthCoreClaimID uuid.UUID
 
 	var keyType kms.KeyType
@@ -878,24 +887,6 @@ func (i *identity) CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID
 		func(tx pgx.Tx) error {
 			identity, err := i.identityRepository.GetByID(ctx, tx, *did)
 			if err != nil {
-				return err
-			}
-
-			// get current auth core claim
-			authHash, err := core.AuthSchemaHash.MarshalText()
-			if err != nil {
-				log.Error(ctx, "marshaling auth schema hash", "err", err)
-				return err
-			}
-			currentAuthClaim, err := i.claimsRepository.FindOneClaimBySchemaHash(ctx, tx, did, string(authHash))
-			if err != nil {
-				log.Error(ctx, "finding auth claim by schema hash", "err", err)
-				return err
-			}
-
-			var authCoreClaimRevocationStatus domain.AuthCoreClaimRevocationStatus
-			if err := json.Unmarshal(currentAuthClaim.CredentialStatus.Bytes, &authCoreClaimRevocationStatus); err != nil {
-				log.Error(ctx, "unmarshalling auth core claim revocation status", "err", err)
 				return err
 			}
 
@@ -917,7 +908,11 @@ func (i *identity) CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID
 				return errors.Join(err, errors.New("can't create auth claim"))
 			}
 
-			authClaim.SetRevocationNonce(revNonce)
+			authClaim.SetRevocationNonce(*revNonce)
+			authClaim.SetVersion(*version)
+			if expiration != nil {
+				authClaim.SetExpirationDate(*expiration)
+			}
 
 			// get identity merkle trees
 			mts, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, did)
@@ -930,7 +925,7 @@ func (i *identity) CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID
 				return err
 			}
 
-			authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, verifiable.CredentialStatusType(authCoreClaimRevocationStatus.Type), false)
+			authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, credentialStatusType, false)
 			if err != nil {
 				log.Error(ctx, "auth claim to model", "err", err)
 				return err

@@ -444,14 +444,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - keyID
-              properties:
-                keyID:
-                  type: string
-                  x-omitempty: false
-                  example: ZGlkOnBvbHlnb25pZDpwb2x5Z29uOmFtb3k6MnFRNjhKa1JjZjN5cXBYanRqVVQ3WjdVeW1TV0hzYll
+              $ref: '#/components/schemas/CreateAuthCredentialRequest'
       responses:
         '201':
           description: Key added successfully
@@ -461,6 +454,7 @@ paths:
                 type: object
                 required:
                   - id
+                  - credentialStatusType
                 properties:
                   id:
                     type: string
@@ -470,7 +464,6 @@ paths:
                       name: uuid
                       path: github.com/google/uuid
                     example: 8edd8112-c415-11ed-b036-debe37e1cbd6
-
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -2761,7 +2754,28 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMetadata'
 
-
+    CreateAuthCredentialRequest:
+      type: object
+      required: [keyID, credentialStatusType]
+      properties:
+        keyID:
+          type: string
+          x-omitempty: false
+          example: ZGlkOnBvbHlnb25pZDpwb2x5Z29uOmFtb3k6MnFRNjhKa1JjZjN5cXBYanRqVVQ3WjdVeW1TV0hzYll
+        expiration:
+          type: integer
+          format: int64
+        version:
+          type: integer
+          format: uint32
+        revNonce:
+          type: integer
+          format: uint64
+        credentialStatusType:
+          type: string
+          x-omitempty: true
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
   parameters:
     credentialStatusType:
