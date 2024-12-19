@@ -616,6 +616,6 @@ func TestServer_CreateAuthCredential(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, float64(revNonce), status["revocationNonce"])
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), status["type"])
-		assert.Equal(t, *response2.Vc.Expiration, time.Unix(1829174400, 0))
+		assert.Equal(t, *response2.Vc.Expiration, time.Unix(1829174400, 0).Local())
 	})
 }
