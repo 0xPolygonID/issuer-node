@@ -104,7 +104,7 @@ func (s *Server) CheckVerification(ctx context.Context, request CheckVerificatio
 	}
 
 	// Return 404 if neither response nor query exists
-	return CheckVerification404JSONResponse{N404JSONResponse{Message: "Verification query not found"}}, nil
+	return CheckVerification500JSONResponse{N500JSONResponse{Message: "Verification query not found"}}, nil
 }
 
 // SubmitVerificationResponse returns a VerificationResponse
