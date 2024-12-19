@@ -5,6 +5,7 @@ export type RouteID =
   | "credentials"
   | "importSchema"
   | "issueCredential"
+  | "createAuthCredential"
   | "issuerState"
   | "linkDetails"
   | "notFound"
@@ -16,7 +17,10 @@ export type RouteID =
   | "onboarding"
   | "displayMethods"
   | "displayMethodDetails"
-  | "createDisplayMethod";
+  | "createDisplayMethod"
+    | "keys"
+    | "keyDetails"
+    | "createKey";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -41,9 +45,17 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/display-methods/create",
   },
+    createAuthCredential: {
+        layout: "sider",
+        path: "/credentials/auth",
+    },
   createIdentity: {
     layout: "sider",
     path: "/identities/create",
+  },
+  createKey: {
+    layout: "sider",
+    path: "/keys/create",
   },
   credentialDetails: {
     layout: "sider",
@@ -80,6 +92,14 @@ export const ROUTES: Routes = {
   issuerState: {
     layout: "sider",
     path: "/issuer-state",
+  },
+  keyDetails: {
+    layout: "sider",
+    path: "/keys/:keyID",
+  },
+  keys: {
+    layout: "sider",
+    path: "/keys",
   },
   linkDetails: {
     layout: "sider",

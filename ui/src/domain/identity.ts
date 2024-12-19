@@ -35,6 +35,7 @@ export type Identity = {
 };
 
 export type IdentityDetails = {
+  authCredentialsIDs: string[];
   credentialStatusType: CredentialStatusType;
   displayName: string | null;
   identifier: string;

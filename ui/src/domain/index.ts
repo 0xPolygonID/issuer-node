@@ -66,3 +66,6 @@ export { IdentityType, Method, CredentialStatusType } from "src/domain/identity"
 export type { DisplayMethod, DisplayMethodMetadata } from "src/domain/display-method";
 
 export { DisplayMethodType } from "./display-method";
+
+export type { Key } from "src/domain/key";
+export { KeyType } from "src/domain/key";

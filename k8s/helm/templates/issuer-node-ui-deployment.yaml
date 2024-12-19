@@ -25,7 +25,7 @@ spec:
           image: {{ .Values.issuernode_ui_repository_image }}:{{ .Values.issuernode_ui_repository_tag }}
           imagePullPolicy: {{ .Values.uiIssuerNode.deployment.imagePullPolicy | quote }}
           ports:
-          - containerPort: {{ .Values.uiIssuerNode.deployment.containerPort }}
+            - containerPort: {{ .Values.uiIssuerNode.deployment.containerPort }}
           envFrom:
-          - configMapRef:
-              name: {{ .Values.uiIssuerNode.deployment.uiconfigMapRef }}
+            - configMapRef:
+                name: {{ .Values.uiIssuerNode.deployment.uiconfigMapRef }}

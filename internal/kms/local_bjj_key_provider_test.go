@@ -259,12 +259,14 @@ func Test_PublicKey_LocalBJJKeyProvider(t *testing.T) {
 		AccessKey: "access_key",
 		SecretKey: "secret_key",
 		Region:    "local",
+		URL:       "http://localhost:4566",
 	})
 	require.NoError(t, err)
 
 	t.Run("should get public key using local storage manager", func(t *testing.T) {
+		did := randomDID(t)
 		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, ls)
-		keyID, err := localbbjKeyProvider.New(nil)
+		keyID, err := localbbjKeyProvider.New(&did)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, keyID.ID)
 
@@ -274,8 +276,9 @@ func Test_PublicKey_LocalBJJKeyProvider(t *testing.T) {
 	})
 
 	t.Run("should get public key using aws storage manager", func(t *testing.T) {
+		did := randomDID(t)
 		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, awsStorageProvider)
-		keyID, err := localbbjKeyProvider.New(nil)
+		keyID, err := localbbjKeyProvider.New(&did)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, keyID.ID)
 
@@ -373,5 +376,44 @@ func Test_Sign_LocalBJJKeyProvider(t *testing.T) {
 		signature, err := localbbjKeyProvider.Sign(ctx, keys[0], data)
 		assert.NoError(t, err)
 		assert.NotNil(t, signature)
+	})
+}
+
+func Test_DeleteKey_LocalBJJKeyProvider(t *testing.T) {
+	ctx := context.Background()
+	tmpFile, err := createTestFile(t)
+	assert.NoError(t, err)
+	//nolint:errcheck
+	defer os.Remove(tmpFile.Name())
+	ls := NewFileStorageManager(tmpFile.Name())
+
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
+		AccessKey: "access_key",
+		SecretKey: "secret_key",
+		Region:    "local",
+		URL:       "http://localhost:4566",
+	})
+	require.NoError(t, err)
+
+	t.Run("should get public key using local storage manager", func(t *testing.T) {
+		did := randomDID(t)
+		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, ls)
+		keyID, err := localbbjKeyProvider.New(&did)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, keyID.ID)
+
+		err = localbbjKeyProvider.Delete(ctx, keyID)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should get public key using aws storage manager", func(t *testing.T) {
+		did := randomDID(t)
+		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, awsStorageProvider)
+		keyID, err := localbbjKeyProvider.New(&did)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, keyID.ID)
+
+		err = localbbjKeyProvider.Delete(ctx, keyID)
+		assert.NoError(t, err)
 	})
 }

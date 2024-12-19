@@ -19,7 +19,8 @@ import {
 } from "src/adapters/parsers";
 import {
   Credential,
-  CredentialDisplayMethod,
+    CredentialStatusType,
+    CredentialDisplayMethod,
   DisplayMethodType,
   Env,
   IssuedMessage,
@@ -42,6 +43,7 @@ type CredentialInput = Pick<Credential, "id" | "revoked" | "schemaHash"> & {
     } & Record<string, unknown>;
     credentialStatus: {
       revocationNonce: number;
+      type: CredentialStatusType;
     } & Record<string, unknown>;
     credentialSubject: Record<string, unknown>;
     displayMethod?: CredentialDisplayMethod | null;
@@ -69,6 +71,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
         credentialStatus: z
           .object({
             revocationNonce: z.number(),
+            type: z.nativeEnum(CredentialStatusType),
           })
           .and(z.record(z.unknown())),
         credentialSubject: z.record(z.unknown()),
@@ -108,6 +111,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
         const [, schemaType] = type;
 
         return {
+          credentialStatus,
           credentialSubject,
           displayMethod,
           expirationDate,
@@ -197,6 +201,40 @@ export async function getCredentials({
       url: `${API_VERSION}/identities/${identifier}/credentials`,
     });
     return buildSuccessResponse(getResourceParser(credentialParser).parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function getCredentialsByIDs({
+  env,
+  identifier,
+  IDs,
+  signal,
+}: {
+  IDs: Array<string>;
+  env: Env;
+  identifier: string;
+  signal?: AbortSignal;
+}): Promise<Response<List<Credential>>> {
+  try {
+    const promises = IDs.map((id) =>
+      axios({
+        baseURL: env.api.url,
+        headers: {
+          Authorization: buildAuthorizationHeader(env),
+        },
+        method: "GET",
+        signal,
+        url: `${API_VERSION}/identities/${identifier}/credentials/${id}`,
+      })
+    );
+
+    const credentials = await Promise.all(promises);
+
+    return buildSuccessResponse(
+      getListParser(credentialParser).parse(credentials.map((credential) => credential.data))
+    );
   } catch (error) {
     return buildErrorResponse(error);
   }
@@ -575,6 +613,35 @@ export async function getIssuedMessages({
       issuedMessageParser.parse(universalLinkResponse.data),
       issuedMessageParser.parse(deepLinkResponse.data),
     ]);
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export type CreateAuthCredential = {
+  keyID: string;
+};
+
+export async function createAuthCredential({
+  env,
+  identifier,
+  payload,
+}: {
+  env: Env;
+  identifier: string;
+  payload: CreateAuthCredential;
+}): Promise<Response<ID>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      data: payload,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      url: `${API_VERSION}/identities/${identifier}/create-auth-credential`,
+    });
+    return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
