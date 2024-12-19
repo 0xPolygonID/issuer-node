@@ -79,8 +79,6 @@ github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.18 h1:tJ5RnkHC
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.18/go.mod h1:++NHzT+nAF7ZPrHPsA+ENvsXkOO8wEu+C6RXltAG4/c=
 github.com/aws/aws-sdk-go-v2/service/kms v1.35.5 h1:XUomV7SiclZl1QuXORdGcfFqHxEHET7rmNGtxTfNB+M=
 github.com/aws/aws-sdk-go-v2/service/kms v1.35.5/go.mod h1:A5CS0VRmxxj2YKYLCY08l/Zzbd01m6JZn0WzxgT1OCA=
-github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.25.6 h1:I+a2rKx253mIClu5QtBkYWtko1k3nC+SvAtWTomengI=
-github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.25.6/go.mod h1:hmJ9BhvEvDx0TrC16/p9UdoBRyCD2+k23ritPq5ctdM=
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.2 h1:Rrqru2wYkKQCS2IM5/JrgKUQIoNTqA6y/iuxkjzxC6M=
 github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.2/go.mod h1:QuCURO98Sqee2AXmqDNxKXYFm2OEDAVAPApMqO0Vqnc=
 github.com/aws/aws-sdk-go-v2/service/sso v1.22.5 h1:zCsFCKvbj25i7p1u94imVoO447I/sFv8qq+lGJhRN0c=
@@ -447,8 +445,8 @@ github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b
 github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b/go.mod h1:8qNTFId1o6wftaLnvdiprtJ9MoaKO7g7Xh64vnFcnQc=
 github.com/iden3/go-schema-processor v1.3.1 h1:LJfFInfYGMOp0bTKKC17R8q4XI+VtqhFLPTEqnOIvlM=
 github.com/iden3/go-schema-processor v1.3.1/go.mod h1:NwJ1nuGdRlCFaN1/V6mS0AOAdvpLcGf4KKq0mluLG7U=
-github.com/iden3/go-schema-processor/v2 v2.5.0 h1:MX84oFb9kYq0ntKiU4DrPPaRgCDUCKlurtHB6nvPPAs=
-github.com/iden3/go-schema-processor/v2 v2.5.0/go.mod h1:hMqYi4lKOzEGkmCRks/r4Crj8H4G8YaTt8H4jZHzX9Y=
+github.com/iden3/go-schema-processor/v2 v2.6.1 h1:KD33sTAu2xAyG94SmrUAMxI+MREFTmSsavYy70gkTW4=
+github.com/iden3/go-schema-processor/v2 v2.6.1/go.mod h1:MYrkk55aEx3ZBKz0d/0rfxa7lBH4x9TfKGI1T/WBlpw=
 github.com/iden3/iden3comm/v2 v2.6.0 h1:6cu0N2b9oluJGDMvM2C0r2IH1GtrMUmmHOcJTn3O0mQ=
 github.com/iden3/iden3comm/v2 v2.6.0/go.mod h1:ZRnfFg4geX336Bp9+29ZQdSqchbsBoVcd7ARn6JXH5Y=
 github.com/iden3/merkletree-proof v0.3.0 h1:NVlvtUBEgn4Etxxn+RsOmXP/qlI+85BdN8oUDTf3mxI=
@@ -718,8 +716,8 @@ github.com/perimeterx/marshmallow v1.1.5 h1:a2LALqQ1BlHM8PZblsDdidgv1mWi1DgC2UmX
 github.com/perimeterx/marshmallow v1.1.5/go.mod h1:dsXbUu8CRzfYP5a87xpp0xq9S3u0Vchtcl8we9tYaXw=
 github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
-github.com/piprate/json-gold v0.5.1-0.20230111113000-6ddbe6e6f19f h1:HlPa7RcxTCrva5izPfTEfvYecO7LTahgmMRD1Qp13xg=
-github.com/piprate/json-gold v0.5.1-0.20230111113000-6ddbe6e6f19f/go.mod h1:WZ501QQMbZZ+3pXFPhQKzNwS1+jls0oqov3uQ2WasLs=
+github.com/piprate/json-gold v0.5.1-0.20241210232033-19254b3ec65b h1:xyh6boGzDR4EpdEDe9ix1KhHNgOSiBjBocahA6FalEQ=
+github.com/piprate/json-gold v0.5.1-0.20241210232033-19254b3ec65b/go.mod h1:RVhE35veDX19r5gfUAR+IYHkAUuPwJO8Ie/qVeFaIzw=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
