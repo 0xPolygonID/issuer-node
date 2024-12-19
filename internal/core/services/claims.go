@@ -58,7 +58,8 @@ var (
 	ErrUnsupportedDisplayMethodType      = errors.New("unsupported display method type")                               // ErrUnsupportedDisplayMethodType means the display method type is not supported
 	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
 	ErrWrongCredentialSubjectID          = errors.New("wrong format for credential subject ID")                        // ErrWrongCredentialSubjectID means the credential subject ID is wrong
-	ErrAuthCredentialCannotBeRevoked     = errors.New("auth credential cannot be revoked")                             // ErrAuthCredentialCannotBeRevoked means the credential cannot be revoked
+	ErrAuthCredentialCannotBeRevoked     = errors.New("cannot delete the only remaining authentication credential. " +
+		"An identity must have at least one credential") // ErrAuthCredentialCannotBeRevoked means the credential cannot be revoked
 )
 
 type claim struct {

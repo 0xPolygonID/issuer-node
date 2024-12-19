@@ -38,7 +38,7 @@ func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialR
 			return DeleteCredential400JSONResponse{N400JSONResponse{"The given credential does not exist"}}, nil
 		}
 		if errors.Is(err, services.ErrAuthCredentialCannotBeRevoked) {
-			return DeleteCredential400JSONResponse{N400JSONResponse{Message: "you can not delete this auth credential"}}, nil
+			return DeleteCredential400JSONResponse{N400JSONResponse{Message: "Cannot delete the only remaining authentication credential. An identity must have at least one credential"}}, nil
 		}
 		return DeleteCredential500JSONResponse{N500JSONResponse{"There was an error deleting the credential"}}, nil
 	}

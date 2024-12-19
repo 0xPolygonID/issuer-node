@@ -124,7 +124,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			expected: expected{
 				httpCode: 400,
 				response: RevokeCredential400JSONResponse{N400JSONResponse{
-					Message: "auth credential cannot be revoked",
+					Message: "cannot delete the only remaining authentication credential. An identity must have at least one credential",
 				}},
 			},
 		},
