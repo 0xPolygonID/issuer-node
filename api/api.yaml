@@ -431,7 +431,10 @@ paths:
     post:
       summary: Create Auth Credential
       operationId: CreateAuthCredential
-      description: Endpoint to create a new Auth Credential
+      description: | 
+                Endpoint to create a new Auth Credential
+                * keyID - only babyjubjub keys supported
+
       security:
         - basicAuth: [ ]
       parameters:
