@@ -584,6 +584,8 @@ func TestServer_CreateAuthCredential(t *testing.T) {
 		key, err := server.keyService.Create(ctx, issuerDID, kms.KeyTypeBabyJubJub, uuid.New().String())
 		require.NoError(t, err)
 
+		authCredentialExpiration := time.Now().UTC().Unix()
+
 		revNonce, err := common.RandInt64()
 		require.NoError(t, err)
 		body := CreateAuthCredentialRequest{
@@ -591,7 +593,7 @@ func TestServer_CreateAuthCredential(t *testing.T) {
 			CredentialStatusType: CreateAuthCredentialRequestCredentialStatusType(verifiable.Iden3commRevocationStatusV1),
 			RevNonce:             &revNonce,
 			Version:              common.ToPointer[uint32](1),
-			Expiration:           common.ToPointer[int64](1829174400),
+			Expiration:           common.ToPointer[int64](authCredentialExpiration),
 		}
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/create-auth-credential", did), tests.JSONBody(t, body))
@@ -616,6 +618,6 @@ func TestServer_CreateAuthCredential(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, float64(revNonce), status["revocationNonce"])
 		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), status["type"])
-		assert.Equal(t, *response2.Vc.Expiration, time.Unix(1829174400, 0).Local())
+		assert.Equal(t, authCredentialExpiration, response2.Vc.Expiration.UTC().Unix())
 	})
 }
