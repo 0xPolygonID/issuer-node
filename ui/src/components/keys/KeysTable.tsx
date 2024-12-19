@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { deleteKey, getKeys } from "src/adapters/api/keys";
-import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { notifyErrors, positiveIntegerFromStringParser } from "src/adapters/parsers";
 import IconIssuers from "src/assets/icons/building-08.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";
 import IconCopy from "src/assets/icons/copy-01.svg?react";
@@ -45,7 +45,6 @@ import {
   PAGINATION_PAGE_PARAM,
   QUERY_SEARCH_PARAM,
 } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 
 export function KeysTable() {
   const env = useEnvContext();
@@ -224,7 +223,7 @@ export function KeysTable() {
           maxResults: response.data.meta.max_results,
           page: response.data.meta.page,
         });
-        notifyParseErrors(response.data.items.failed);
+        void notifyErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setKeys({ error: response.error, status: "failed" });

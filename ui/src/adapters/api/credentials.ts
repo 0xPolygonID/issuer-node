@@ -218,23 +218,24 @@ export async function getCredentialsByIDs({
   signal?: AbortSignal;
 }): Promise<Response<List<Credential>>> {
   try {
-    const promises = IDs.map((id) =>
-      axios({
-        baseURL: env.api.url,
-        headers: {
-          Authorization: buildAuthorizationHeader(env),
-        },
-        method: "GET",
-        signal,
-        url: `${API_VERSION}/identities/${identifier}/credentials/${id}`,
-      })
-    );
-
+    const promises = IDs.map((id) => getCredential({ credentialID: id, env, identifier, signal }));
     const credentials = await Promise.all(promises);
 
-    return buildSuccessResponse(
-      getListParser(credentialParser).parse(credentials.map((credential) => credential.data))
+    const { failed, successful } = credentials.reduce<List<Credential>>(
+      (acc, credential) => {
+        if (credential.success) {
+          return { ...acc, successful: [...acc.successful, credential.data] };
+        } else {
+          return { ...acc, failed: [...acc.failed, credential.error] };
+        }
+      },
+      { failed: [], successful: [] }
     );
+
+    return buildSuccessResponse({
+      failed,
+      successful,
+    });
   } catch (error) {
     return buildErrorResponse(error);
   }
@@ -619,6 +620,7 @@ export async function getIssuedMessages({
 }
 
 export type CreateAuthCredential = {
+  credentialStatusType: CredentialStatusType;
   keyID: string;
 };
 

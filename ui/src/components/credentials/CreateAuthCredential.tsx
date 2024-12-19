@@ -5,14 +5,16 @@ import {
   CreateAuthCredential as CreateAuthCredentialType,
   createAuthCredential,
 } from "src/adapters/api/credentials";
+import { getSupportedBlockchains } from "src/adapters/api/identities";
 import { getKeys } from "src/adapters/api/keys";
+import { notifyErrors } from "src/adapters/parsers";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
-import { AppError, Key, KeyType } from "src/domain";
+import { AppError, CredentialStatusType, Key, KeyType } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -22,7 +24,6 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { VALUE_REQUIRED } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 
 export function CreateAuthCredential() {
   const env = useEnvContext();
@@ -32,6 +33,12 @@ export function CreateAuthCredential() {
   const { message } = App.useApp();
 
   const [keys, setKeys] = useState<AsyncTask<Key[], AppError>>({
+    status: "pending",
+  });
+
+  const [credentialStatusTypes, setCredentialStatusTypes] = useState<
+    AsyncTask<CredentialStatusType[], AppError>
+  >({
     status: "pending",
   });
 
@@ -72,7 +79,7 @@ export function CreateAuthCredential() {
           status: "successful",
         });
 
-        notifyParseErrors(response.data.items.failed);
+        void notifyErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setKeys({ error: response.error, status: "failed" });
@@ -82,11 +89,51 @@ export function CreateAuthCredential() {
     [env, identifier]
   );
 
+  const fetchBlockChains = useCallback(
+    async (signal: AbortSignal) => {
+      setCredentialStatusTypes((previousState) =>
+        isAsyncTaskDataAvailable(previousState)
+          ? { data: previousState.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
+      const response = await getSupportedBlockchains({
+        env,
+        signal,
+      });
+
+      if (response.success) {
+        const [, , blockchain = "", network = ""] = identifier.split(":");
+        const identityBlockchainNetworks =
+          response.data.successful.find(({ name }) => name === blockchain)?.networks || [];
+        const identityNetworkCredentialStatusTypes =
+          identityBlockchainNetworks.find(({ name }) => name === network)?.credentialStatus || [];
+
+        setCredentialStatusTypes({
+          data: identityNetworkCredentialStatusTypes,
+          status: "successful",
+        });
+      } else {
+        if (!isAbortedError(response.error)) {
+          setCredentialStatusTypes({ error: response.error, status: "failed" });
+          void message.error(response.error.message);
+        }
+      }
+    },
+    [env, message, identifier]
+  );
+
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchKeys);
 
     return aborter;
   }, [fetchKeys]);
+
+  useEffect(() => {
+    const { aborter } = makeRequestAbortable(fetchBlockChains);
+
+    return aborter;
+  }, [fetchBlockChains]);
 
   return (
     <SiderLayoutContent
@@ -96,13 +143,17 @@ export function CreateAuthCredential() {
       title="Add new auth credential"
     >
       {(() => {
-        if (hasAsyncTaskFailed(keys)) {
+        if (hasAsyncTaskFailed(keys) || hasAsyncTaskFailed(credentialStatusTypes)) {
           return (
             <Card className="centered">
-              <ErrorResult error={keys.error.message} />;
+              {hasAsyncTaskFailed(keys) && <ErrorResult error={keys.error.message} />};
+              {hasAsyncTaskFailed(credentialStatusTypes) && (
+                <ErrorResult error={credentialStatusTypes.error.message} />
+              )}
+              ;
             </Card>
           );
-        } else if (isAsyncTaskStarting(keys)) {
+        } else if (isAsyncTaskStarting(keys) || isAsyncTaskStarting(credentialStatusTypes)) {
           return (
             <Card className="centered">
               <LoadingResult />
@@ -112,23 +163,30 @@ export function CreateAuthCredential() {
           return (
             <Card className="centered" title="Auth credential details">
               <Space direction="vertical" size="large">
-                <Form
-                  form={form}
-                  initialValues={{
-                    keyID: "",
-                  }}
-                  layout="vertical"
-                  onFinish={handleSubmit}
-                >
+                <Form form={form} layout="vertical" onFinish={handleSubmit}>
                   <Form.Item
-                    label="Key name"
+                    label="Key"
                     name="keyID"
                     rules={[{ message: VALUE_REQUIRED, required: true }]}
                   >
-                    <Select className="full-width" placeholder="Type">
+                    <Select className="full-width" placeholder="Choose a key">
                       {keys.data.map(({ id, name }) => (
                         <Select.Option key={id} value={id}>
                           {name}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item
+                    label="Credential status"
+                    name="credentialStatusType"
+                    rules={[{ message: VALUE_REQUIRED, required: true }]}
+                  >
+                    <Select className="full-width" placeholder="Choose a credential status type">
+                      {credentialStatusTypes.data.map((type) => (
+                        <Select.Option key={type} value={type}>
+                          {type}
                         </Select.Option>
                       ))}
                     </Select>

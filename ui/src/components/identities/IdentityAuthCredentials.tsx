@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { getCredentialsByIDs } from "src/adapters/api/credentials";
+import { notifyErrors } from "src/adapters/parsers";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
@@ -28,8 +29,7 @@ import { AppError, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { DOTS_DROPDOWN_WIDTH, ISSUED, ISSUE_DATE, REVOCATION, REVOKE } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
+import { DOTS_DROPDOWN_WIDTH, ISSUE_DATE, REVOCATION, REVOKE } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 
 export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
@@ -40,6 +40,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
   });
+
   const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
 
   const fetchAuthCredentials = useCallback(
@@ -62,7 +63,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
           status: "successful",
         });
 
-        notifyParseErrors(response.data.failed);
+        void notifyErrors(response.data.failed.filter((error) => error.type !== "cancel-error"));
       } else {
         if (!isAbortedError(response.error)) {
           setCredentials({ error: response.error, status: "failed" });
@@ -185,10 +186,9 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
 
   return (
     <Card
+      style={{ width: "100%" }}
       title={
-        <Flex align="center" justify="space-between" style={{ padding: 12 }}>
-          <Typography.Text style={{ fontSize: 18 }}>Auth Credentials</Typography.Text>
-
+        <Flex align="center" justify="flex-end" style={{ padding: 12 }}>
           <Button
             icon={<IconPlus />}
             onClick={() => navigate(ROUTES.createAuthCredential.path)}
@@ -235,7 +235,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
         title={
           <Row gutter={[0, 8]} justify="space-between">
             <Space size="middle">
-              <Card.Meta title={ISSUED} />
+              <Card.Meta title="Auth credentials" />
 
               <Tag>{credentialsList.length}</Tag>
             </Space>
