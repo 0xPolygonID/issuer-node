@@ -25,11 +25,11 @@ import (
 
 // Scope is a property of VerificationQuery, and it's required for the authRequest
 type scope struct {
-	CircuitId       string                  `json:"circuitId"`
-	Id              uint32                  `json:"id"`
-	Params          *map[string]interface{} `json:"params,omitempty"`
-	Query           map[string]interface{}  `json:"query"`
-	TransactionData *transactionData        `json:"transactionData,omitempty"`
+	CircuitId       string           `json:"circuitId"`
+	Id              uint32           `json:"id"`
+	Params          json.RawMessage  `json:"params,omitempty"`
+	Query           json.RawMessage  `json:"query"`
+	TransactionData *transactionData `json:"transactionData,omitempty"`
 }
 
 // TransactionData is a property of Scope, and it's required for the authRequest
@@ -68,7 +68,7 @@ func NewVerificationService(networkResolver *network.Resolver, store cache.Cache
 }
 
 // CreateVerificationQuery  creates and saves a new verification query in the database.
-func (vs *VerificationService) CreateVerificationQuery(ctx context.Context, issuerID w3c.DID, chainID int, skipCheckRevocation bool, scopes map[string]interface{}, serverURL string) (*domain.VerificationQuery, error) {
+func (vs *VerificationService) CreateVerificationQuery(ctx context.Context, issuerID w3c.DID, chainID int, skipCheckRevocation bool, scopes []map[string]interface{}, serverURL string) (*domain.VerificationQuery, error) {
 	var scopeJSON pgtype.JSONB
 	err := scopeJSON.Set(scopes)
 	if err != nil {
@@ -127,7 +127,7 @@ func (vs *VerificationService) GetVerificationStatus(ctx context.Context, issuer
 func (vs *VerificationService) SubmitVerificationResponse(ctx context.Context, verificationQueryID uuid.UUID, issuerID w3c.DID, token string, serverURL string) (*domain.VerificationResponse, error) {
 	// check cache for existing authRequest
 	var authRequest protocol.AuthorizationRequestMessage
-	if found := vs.store.Get(ctx, verificationQueryID.String(), &authRequest); !found {
+	if found := vs.store.Get(ctx, vs.key(verificationQueryID), &authRequest); !found {
 		log.Error(ctx, "authRequest not found in the cache", "id", verificationQueryID.String())
 		return nil, errVerificationKeyNotFound
 	}
@@ -187,13 +187,24 @@ func (vs *VerificationService) getAuthRequestOffChain(req *domain.VerificationQu
 	}
 
 	for _, scope := range scopes {
+		var query map[string]interface{}
+		err := json.Unmarshal(scope.Query, &query)
+		if err != nil {
+			return protocol.AuthorizationRequestMessage{}, err
+		}
+
 		mtpProofRequest := protocol.ZeroKnowledgeProofRequest{
 			ID:        scope.Id,
 			CircuitID: scope.CircuitId,
-			Query:     scope.Query,
+			Query:     query,
 		}
 		if scope.Params != nil {
-			params, err := vs.getParams(*scope.Params)
+			var paramsObj map[string]interface{}
+			err := json.Unmarshal(scope.Params, &paramsObj)
+			if err != nil {
+				return protocol.AuthorizationRequestMessage{}, err
+			}
+			params, err := vs.getParams(paramsObj)
 			if err != nil {
 				return protocol.AuthorizationRequestMessage{}, err
 			}

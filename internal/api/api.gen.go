@@ -389,9 +389,9 @@ type CreatePaymentRequestResponse struct {
 type CreateVerificationQueryRequest struct {
 	ChainId int `json:"chain_id"`
 
-	// Scopes Dynamic JSON object for scopes
-	Scopes              map[string]interface{} `json:"scopes"`
-	SkipRevocationCheck bool                   `json:"skip_revocation_check"`
+	// Scopes An array of dynamic JSON objects for scopes.
+	Scopes              []map[string]interface{} `json:"scopes"`
+	SkipRevocationCheck bool                     `json:"skip_revocation_check"`
 }
 
 // CreateVerificationQueryResponse defines model for CreateVerificationQueryResponse.

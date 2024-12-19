@@ -3282,9 +3282,12 @@ components:
           type: boolean
           example: false
         scopes:
-          type: object
-          additionalProperties: true
-          description: "Dynamic JSON object for scopes"
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            description: A dynamic JSON object representing a scope.
+          description: An array of dynamic JSON objects for scopes.
     
     CreateVerificationQueryResponse:
       type: object
