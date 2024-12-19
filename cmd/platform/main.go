@@ -152,7 +152,7 @@ func main() {
 	proofService := services.NewProver(circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
-	discoveryService := services.NewDiscovery(mediaTypeManager)
+	discoveryService := services.NewDiscovery(mediaTypeManager, packageManager)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {

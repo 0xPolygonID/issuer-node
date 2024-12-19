@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -17,17 +18,19 @@ import (
 
 type discovery struct {
 	mediatypeManager ports.MediatypeManager
+	packerManager    *iden3comm.PackageManager
 }
 
-func NewDiscovery(mediatypeManager ports.MediatypeManager) *discovery {
+// NewDiscovery is a constructor for the discovery service
+func NewDiscovery(mediatypeManager ports.MediatypeManager, packerManager *iden3comm.PackageManager) *discovery {
 	d := &discovery{
 		mediatypeManager: mediatypeManager,
+		packerManager:    packerManager,
 	}
 	return d
 }
 
 func (c *discovery) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
-	fmt.Println("discovery.Agent")
 	if !c.mediatypeManager.AllowMediaType(req.Type, req.Typ) {
 		err := fmt.Errorf("unsupported media type '%s' for message type '%s'", req.Typ, req.Type)
 		log.Error(ctx, "agent: unsupported media type", "err", err)
@@ -42,30 +45,23 @@ func (c *discovery) Agent(ctx context.Context, req *ports.AgentRequest) (*domain
 	}
 
 	disclosures := []protocol.DiscoverFeatureDisclosure{}
-
 	for _, query := range queries.Queries {
+		var disclosuresToAppend []protocol.DiscoverFeatureDisclosure
 		switch query.FeatureType {
 		case protocol.DiscoveryProtocolFeatureTypeAccept:
-			acceptDisclosures, err := c.handleAccept(ctx)
+			disclosuresToAppend, err = c.handleAccept(ctx)
 			if err != nil {
 				return nil, err
 			}
-			disclosures = append(disclosures, acceptDisclosures...)
-			break
 		case protocol.DiscoveryProtocolFeatureTypeGoalCode:
-			goalCodeDisclosures := c.handleGoalCode(ctx)
-			disclosures = append(disclosures, goalCodeDisclosures...)
-			break
+			disclosuresToAppend = c.handleGoalCode(ctx)
 		case protocol.DiscoveryProtocolFeatureTypeProtocol:
-			protocolDisclosures := c.handleProtocol(ctx)
-			disclosures = append(disclosures, protocolDisclosures...)
-			break
+			disclosuresToAppend = c.handleProtocol(ctx)
 		case protocol.DiscoveryProtocolFeatureTypeHeader:
-			headertDisclosures := c.handleHeader(ctx)
-			disclosures = append(disclosures, headertDisclosures...)
-			break
+			disclosuresToAppend = c.handleHeader(ctx)
 		}
-
+		disclosuresToAppend = c.handleMatch(ctx, disclosuresToAppend, query.Match)
+		disclosures = append(disclosures, disclosuresToAppend...)
 	}
 
 	var from, to string
@@ -89,22 +85,30 @@ func (c *discovery) Agent(ctx context.Context, req *ports.AgentRequest) (*domain
 	}, nil
 }
 
-func (d *discovery) handleAccept(ctx context.Context) ([]protocol.DiscoverFeatureDisclosure, error) {
+func (d *discovery) handleAccept(_ context.Context) ([]protocol.DiscoverFeatureDisclosure, error) {
 	disclosures := []protocol.DiscoverFeatureDisclosure{}
+
+	profiles := d.packerManager.GetSupportedProfiles()
+	for _, profile := range profiles {
+		disclosures = append(disclosures, protocol.DiscoverFeatureDisclosure{
+			FeatureType: protocol.DiscoveryProtocolFeatureTypeAccept,
+			ID:          profile,
+		})
+	}
 	return disclosures, nil
 }
 
-func (d *discovery) handleProtocol(ctx context.Context) []protocol.DiscoverFeatureDisclosure {
+func (d *discovery) handleProtocol(_ context.Context) []protocol.DiscoverFeatureDisclosure {
 	disclosures := []protocol.DiscoverFeatureDisclosure{}
 	return disclosures
 }
 
-func (d *discovery) handleGoalCode(ctx context.Context) []protocol.DiscoverFeatureDisclosure {
+func (d *discovery) handleGoalCode(_ context.Context) []protocol.DiscoverFeatureDisclosure {
 	disclosures := []protocol.DiscoverFeatureDisclosure{}
 	return disclosures
 }
 
-func (d *discovery) handleHeader(ctx context.Context) []protocol.DiscoverFeatureDisclosure {
+func (d *discovery) handleHeader(_ context.Context) []protocol.DiscoverFeatureDisclosure {
 	headers := []string{
 		"id",
 		"typ",
@@ -137,7 +141,7 @@ func wildcardToRegExp(match string) *regexp.Regexp {
 	return regExp
 }
 
-func (d *discovery) handleMatch(ctx context.Context, disclosures []protocol.DiscoverFeatureDisclosure, match string) []protocol.DiscoverFeatureDisclosure {
+func (d *discovery) handleMatch(_ context.Context, disclosures []protocol.DiscoverFeatureDisclosure, match string) []protocol.DiscoverFeatureDisclosure {
 	if match == "" || match == "*" {
 		return disclosures
 	}

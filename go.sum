@@ -449,6 +449,8 @@ github.com/iden3/go-schema-processor/v2 v2.5.0 h1:MX84oFb9kYq0ntKiU4DrPPaRgCDUCK
 github.com/iden3/go-schema-processor/v2 v2.5.0/go.mod h1:hMqYi4lKOzEGkmCRks/r4Crj8H4G8YaTt8H4jZHzX9Y=
 github.com/iden3/iden3comm/v2 v2.9.2-0.20241219115901-f1830f8624fb h1:PewX2Z3Xmexzh9ncnbvhNboh6DXe9EMjG/vaWhPSIh4=
 github.com/iden3/iden3comm/v2 v2.9.2-0.20241219115901-f1830f8624fb/go.mod h1:l8t+BkbHU3ri7kiExZYc4CTY6erkzkcBbYXw416nwhA=
+github.com/iden3/iden3comm/v2 v2.9.2-0.20241219173004-71b2ecc9bb90 h1:I6PEe+67NZYM4p6AyleU/J/J5BKWRPPRoSeMwNhSVeE=
+github.com/iden3/iden3comm/v2 v2.9.2-0.20241219173004-71b2ecc9bb90/go.mod h1:l8t+BkbHU3ri7kiExZYc4CTY6erkzkcBbYXw416nwhA=
 github.com/iden3/merkletree-proof v0.3.0 h1:NVlvtUBEgn4Etxxn+RsOmXP/qlI+85BdN8oUDTf3mxI=
 github.com/iden3/merkletree-proof v0.3.0/go.mod h1:+E2sBxMqhcn/fcu0LDGjmk3us+Vr+fxQUiZMxdpbgUE=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
