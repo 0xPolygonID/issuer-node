@@ -122,6 +122,7 @@ func main() {
 		map[iden3comm.ProtocolMessage][]string{
 			iden3commProtocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			iden3commProtocol.RevocationStatusRequestMessageType: {"*"},
+			iden3commProtocol.DiscoverFeatureQueriesMessageType:  {"*"},
 		},
 		*cfg.MediaTypeManager.Enabled,
 	)
@@ -151,6 +152,7 @@ func main() {
 	proofService := services.NewProver(circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
+	discoveryService := services.NewDiscovery(mediaTypeManager)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
@@ -193,7 +195,7 @@ func main() {
 	)
 	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, discoveryService),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

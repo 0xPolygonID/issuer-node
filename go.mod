@@ -1,6 +1,8 @@
 module github.com/polygonid/sh-id-platform
 
-go 1.22.1
+go 1.22.6
+
+toolchain go1.23.3
 
 require (
 	github.com/alicebob/miniredis/v2 v2.33.0
@@ -9,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.30
 	github.com/aws/aws-sdk-go-v2/service/kms v1.35.5
 	github.com/caarlos0/env/v11 v11.2.2
-	github.com/ethereum/go-ethereum v1.14.8
+	github.com/ethereum/go-ethereum v1.14.11
 	github.com/getkin/kin-openapi v0.127.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
@@ -23,7 +25,7 @@ require (
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20230911112726-4533c5701af1
 	github.com/iden3/go-circuits/v2 v2.4.0
-	github.com/iden3/go-iden3-auth/v2 v2.5.0
+	github.com/iden3/go-iden3-auth/v2 v2.6.0
 	github.com/iden3/go-iden3-core/v2 v2.3.1
 	github.com/iden3/go-iden3-crypto v0.0.17
 	github.com/iden3/go-jwz/v2 v2.2.0
@@ -35,7 +37,7 @@ require (
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b
 	github.com/iden3/go-schema-processor v1.3.1
 	github.com/iden3/go-schema-processor/v2 v2.5.0
-	github.com/iden3/iden3comm/v2 v2.6.0
+	github.com/iden3/iden3comm/v2 v2.9.2-0.20241219115901-f1830f8624fb
 	github.com/iden3/merkletree-proof v0.3.0
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.3
@@ -118,7 +120,7 @@ require (
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
-	github.com/cockroachdb/pebble v1.1.1 // indirect
+	github.com/cockroachdb/pebble v1.1.2 // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/consensys/gnark-crypto v0.12.1 // indirect
@@ -135,7 +137,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustinxie/ecc v0.0.0-20210511000915-959544187564 // indirect
 	github.com/ethereum/c-kzg-4844 v1.0.1 // indirect
-	github.com/ethereum/go-verkle v0.1.1-0.20240306133620-7d920df305f0 // indirect
+	github.com/ethereum/go-verkle v0.1.1-0.20240829091221-dffa7562dbe9 // indirect
 	github.com/ettle/strcase v0.2.0 // indirect
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
@@ -190,6 +192,7 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/iden3/contracts-abi/rhs-storage/go/abi v0.0.0-20231006141557-7d13ef7e3c48 // indirect
+	github.com/iden3/driver-did-iden3 v0.0.5 // indirect
 	github.com/iden3/go-iden3-core v1.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.5 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -307,7 +310,7 @@ require (
 	github.com/stbenjam/no-sprintf-host-port v0.1.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/supranational/blst v0.3.11 // indirect
+	github.com/supranational/blst v0.3.13 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tdakkota/asciicheck v0.2.0 // indirect
 	github.com/tetafro/godot v1.4.16 // indirect
