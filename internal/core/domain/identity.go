@@ -32,6 +32,7 @@ type Identity struct {
 	Address                       *string                       `json:"address"`
 	Balance                       *big.Int                      `json:"balance"`
 	AuthCoreClaimRevocationStatus AuthCoreClaimRevocationStatus `json:"authCoreClaimRevocationStatus"`
+	AuthCredentialsIDs            []string                      `json:"authCredentialsIDs"`
 }
 
 // IdentityDisplayName struct

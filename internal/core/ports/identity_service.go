@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core/v2"
@@ -58,4 +59,5 @@ type IdentityService interface {
 	GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error)
 	PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error
 	UpdateIdentityDisplayName(ctx context.Context, did w3c.DID, displayName string) error
+	CreateAuthCredential(ctx context.Context, did *w3c.DID, keyID string, revNonce *uint64, expiration *time.Time, version *uint32, credentialStatusType verifiable.CredentialStatusType) (uuid.UUID, error)
 }

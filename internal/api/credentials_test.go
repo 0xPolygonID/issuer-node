@@ -31,25 +31,22 @@ import (
 
 func TestServer_RevokeClaim(t *testing.T) {
 	server := newTestServer(t, nil)
-
-	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
-	identity := &domain.Identity{
-		Identifier: idStr,
-	}
 	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
+	identity, err := server.Services.identity.Create(context.Background(), "http://privado-test", &ports.DIDCreationOptions{Method: core.DIDMethodIden3, Blockchain: core.Privado, Network: core.Main, KeyType: kms.KeyTypeBabyJubJub})
+	require.NoError(t, err)
 
 	idClaim, err := uuid.NewUUID()
 	require.NoError(t, err)
 	nonce := int64(123)
 	revNonce := domain.RevNonceUint64(nonce)
+
 	fixture.CreateClaim(t, &domain.Claim{
 		ID:              idClaim,
-		Identifier:      &idStr,
-		Issuer:          idStr,
+		Identifier:      &identity.Identifier,
+		Issuer:          identity.Identifier,
 		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
-		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
-		SchemaType:      "AuthBJJCredential",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+		SchemaType:      "KYCAgeCredential",
 		OtherIdentifier: "",
 		Expiration:      0,
 		Version:         0,
@@ -57,17 +54,6 @@ func TestServer_RevokeClaim(t *testing.T) {
 		CoreClaim:       domain.CoreClaim{},
 		Status:          nil,
 	})
-
-	query := repositories.ExecQueryParams{
-		Query: `INSERT INTO identity_mts (identifier, type) VALUES 
-                                                    ($1, 0),
-                                                    ($1, 1),
-                                                    ($1, 2),
-                                                    ($1, 3)`,
-		Arguments: []interface{}{idStr},
-	}
-
-	fixture.ExecQuery(t, query)
 
 	handler := getHandler(context.Background(), server)
 
@@ -88,7 +74,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		{
 			name:  "No auth header",
 			auth:  authWrong,
-			did:   idStr,
+			did:   identity.Identifier,
 			nonce: nonce,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -97,7 +83,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		{
 			name:  "should revoke the credentials",
 			auth:  authOk,
-			did:   idStr,
+			did:   identity.Identifier,
 			nonce: nonce,
 			expected: expected{
 				httpCode: 202,
@@ -109,7 +95,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		{
 			name:  "should get an error wrong nonce",
 			auth:  authOk,
-			did:   idStr,
+			did:   identity.Identifier,
 			nonce: int64(1231323),
 			expected: expected{
 				httpCode: 404,
@@ -130,6 +116,18 @@ func TestServer_RevokeClaim(t *testing.T) {
 				}},
 			},
 		},
+		{
+			name:  "should get an error - cannot revoke auth credential",
+			auth:  authOk,
+			did:   identity.Identifier,
+			nonce: 0,
+			expected: expected{
+				httpCode: 400,
+				response: RevokeCredential400JSONResponse{N400JSONResponse{
+					Message: "cannot delete the only remaining authentication credential. An identity must have at least one credential",
+				}},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -143,6 +141,10 @@ func TestServer_RevokeClaim(t *testing.T) {
 			switch v := tc.expected.response.(type) {
 			case RevokeCredential202JSONResponse:
 				var response RevokeCredential202JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, v.Message, response.Message)
+			case RevokeCredential400JSONResponse:
+				var response RevokeCredential400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case RevokeCredential404JSONResponse:

@@ -1,8 +1,8 @@
 import { keccak256 } from "js-sha3";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
+import { buildAppError } from "src/adapters/parsers";
 
 import { JsonLdType } from "src/domain";
-import { buildAppError } from "src/utils/error";
 
 const HEX_TABLE = "0123456789abcdef";
 

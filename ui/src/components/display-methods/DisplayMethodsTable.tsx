@@ -16,7 +16,7 @@ import { Link, generatePath, useNavigate, useSearchParams } from "react-router-d
 
 import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 import { deleteDisplayMethod, getDisplayMethods } from "src/adapters/api/display-method";
-import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { notifyErrors, positiveIntegerFromStringParser } from "src/adapters/parsers";
 import { tableSorterParser } from "src/adapters/parsers/view";
 import IconIssuers from "src/assets/icons/building-08.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";
@@ -46,7 +46,6 @@ import {
   QUERY_SEARCH_PARAM,
   SORT_PARAM,
 } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 
 export function DisplayMethodsTable() {
   const env = useEnvContext();
@@ -240,7 +239,7 @@ export function DisplayMethodsTable() {
           maxResults: response.data.meta.max_results,
           page: response.data.meta.page,
         });
-        notifyParseErrors(response.data.items.failed);
+        void notifyErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setDisplayMethods({ error: response.error, status: "failed" });

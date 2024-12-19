@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { createCredential, createLink } from "src/adapters/api/credentials";
+import { notifyParseError } from "src/adapters/parsers";
 import {
   CredentialDirectIssuance,
   CredentialFormInput,
@@ -23,7 +24,6 @@ import { ApiSchema, JsonSchema, ProofType } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { DID_SEARCH_PARAM, ISSUE_CREDENTIAL, SCHEMA_SEARCH_PARAM } from "src/utils/constants";
-import { notifyParseError } from "src/utils/error";
 import {
   extractCredentialSubjectAttribute,
   extractCredentialSubjectAttributeWithoutId,
@@ -140,7 +140,7 @@ export function IssueCredential() {
           void message.error(response.error.message);
         }
       } else {
-        notifyParseError(serializedCredentialForm.error);
+        void notifyParseError(serializedCredentialForm.error);
       }
       setIsLoading(false);
     }
@@ -188,7 +188,7 @@ export function IssueCredential() {
           void message.error(response.error.message);
         }
       } else {
-        notifyParseError(serializedCredentialForm.error);
+        void notifyParseError(serializedCredentialForm.error);
       }
 
       setIsLoading(false);
@@ -270,7 +270,7 @@ export function IssueCredential() {
                           });
                         }
                       } else {
-                        notifyParseError(parsedForm.error);
+                        void notifyParseError(parsedForm.error);
                       }
                     }}
                     type={credentialFormInput.issuanceMethod.type}

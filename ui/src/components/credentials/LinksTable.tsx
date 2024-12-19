@@ -22,6 +22,7 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLinks, linkStatusParser, updateLink } from "src/adapters/api/credentials";
+import { notifyErrors } from "src/adapters/parsers";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
@@ -46,7 +47,6 @@ import {
   STATUS,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
@@ -231,7 +231,7 @@ export function LinksTable() {
 
       if (response.success) {
         setLinks({ data: response.data.successful, status: "successful" });
-        notifyParseErrors(response.data.failed);
+        void notifyErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setLinks({ error: response.error, status: "failed" });

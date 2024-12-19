@@ -190,6 +190,15 @@ func (v *vaultETHKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	return keyID, saveKeyMaterial(v.vaultCli, keyID.ID, keyMaterial)
 }
 
+func (v *vaultETHKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	_, err := v.vaultCli.Logical().Delete(absVaultSecretPath(keyID.ID))
+	return err
+}
+
+func (v *vaultETHKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	return false, errors.New("not implemented")
+}
+
 // NewVaultEthProvider creates new provider for Ethereum keys stored in vault
 func NewVaultEthProvider(valutCli *api.Client, keyType KeyType) KeyProvider {
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" +

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
@@ -44,6 +45,10 @@ func Test_identity_CreateIdentity(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnection()
+	keyRepository := repositories.NewKey(*storage)
+
+	claimService := NewClaim(claimsRepo, nil, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, nil, nil, cfg.UniversalLinks)
+	keyService := NewKey(keyStore, claimService, keyRepository)
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -51,7 +56,7 @@ func Test_identity_CreateIdentity(t *testing.T) {
 
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 
 	type testConfig struct {
 		name            string
@@ -99,6 +104,27 @@ func Test_identity_CreateIdentity(t *testing.T) {
 				} else {
 					t.Errorf("invalid key type")
 				}
+
+				DID, err := w3c.ParseDID(identity.Identifier)
+				require.NoError(t, err)
+				isEthID, address, err := common.CheckEthIdentityByDID(DID)
+				require.NoError(t, err)
+				if tc.options.KeyType == ETH {
+					assert.True(t, isEthID)
+					assert.Equal(t, address, *identity.Address)
+				} else {
+					assert.False(t, isEthID)
+				}
+
+				allKeys, total, err := keyService.GetAll(ctx, DID, ports.KeyFilter{MaxResults: 10, Page: 1})
+				require.NoError(t, err)
+				if tc.options.KeyType == ETH {
+					assert.Equal(t, uint(2), total)
+					assert.Equal(t, 2, len(allKeys))
+				} else {
+					assert.Equal(t, uint(1), total)
+					assert.Equal(t, 1, len(allKeys))
+				}
 			}
 		})
 	}
@@ -113,6 +139,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnection()
+	keyRepository := repositories.NewKey(*storage)
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -131,7 +158,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 		}).Return(rhsPublishers, nil)
 
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
@@ -158,7 +185,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 		}).Return(rhsPublishers, nil)
 
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		_, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 		assert.Error(t, err)
 		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
@@ -167,7 +194,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 	t.Run("should create ETH identity with RHS", func(t *testing.T) {
 		rhsFactoryMock := reversehash.NewMockFactory(t)
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: ETH})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
@@ -195,7 +222,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 		}).Return(rhsPublishers, nil)
 
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
@@ -223,7 +250,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 		}).Return(rhsPublishers, nil)
 
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthCredentialStatus: verifiable.Iden3commRevocationStatusV1})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
@@ -247,6 +274,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnection()
+	keyRepository := repositories.NewKey(*storage)
 
 	reader := common.CreateFileWithRHSOffChain(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -265,7 +293,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 		}).Return(rhsPublishers, nil)
 
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
@@ -292,7 +320,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 		}).Return(rhsPublishers, nil)
 
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		_, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 		assert.Error(t, err)
 		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
@@ -301,7 +329,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 	t.Run("should create ETH identity with RHS", func(t *testing.T) {
 		rhsFactoryMock := reversehash.NewMockFactory(t)
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: ETH})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
@@ -329,7 +357,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 		}).Return(rhsPublishers, nil)
 
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
@@ -357,7 +385,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 		}).Return(rhsPublishers, nil)
 
 		revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver, keyRepository)
 		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthCredentialStatus: verifiable.Iden3ReverseSparseMerkleTreeProof})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
@@ -381,6 +409,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnection()
+	keyRepository := repositories.NewKey(*storage)
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -388,7 +417,7 @@ func Test_identity_UpdateState(t *testing.T) {
 
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 
 	mediaTypeManager := NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
@@ -574,6 +603,7 @@ func Test_identity_GetByDID(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnection()
+	keyRepository := repositories.NewKey(*storage)
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -581,7 +611,7 @@ func Test_identity_GetByDID(t *testing.T) {
 
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 	assert.NoError(t, err)
 
@@ -631,6 +661,7 @@ func Test_identity_GetLatestStateByID(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnection()
+	keyRepository := repositories.NewKey(*storage)
 
 	reader := common.CreateFile(t)
 	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
@@ -638,7 +669,7 @@ func Test_identity_GetLatestStateByID(t *testing.T) {
 
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 	assert.NoError(t, err)
 
@@ -684,6 +715,81 @@ func Test_identity_GetLatestStateByID(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.did.String(), identityState.Identifier)
+			}
+		})
+	}
+}
+
+func Test_identity_RotateKey(t *testing.T) {
+	ctx := context.Background()
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaim()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
+	mtService := NewIdentityMerkleTrees(mtRepo)
+	connectionsRepository := repositories.NewConnection()
+	keyRepository := repositories.NewKey(*storage)
+
+	reader := common.CreateFile(t)
+	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
+	require.NoError(t, err)
+
+	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
+
+	type testConfig struct {
+		name            string
+		options         *ports.DIDCreationOptions
+		shouldReturnErr bool
+	}
+
+	genesisStr := "0000000000000000000000000000000000000000000000000000000000000000"
+
+	for _, tc := range []testConfig{
+		{
+			name:            "should rotate BJJ identity",
+			options:         &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ},
+			shouldReturnErr: false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			identity, err := identityService.Create(ctx, cfg.ServerUrl, tc.options)
+			assert.NoError(t, err)
+			did, err := w3c.ParseDID(identity.Identifier)
+			assert.NoError(t, err)
+			authHash, err := core.AuthSchemaHash.MarshalText()
+			assert.NoError(t, err)
+
+			authCoreClaim, err := claimsRepo.FindOneClaimBySchemaHash(ctx, storage.Pgx, did, string(authHash))
+			assert.NoError(t, err)
+			if tc.shouldReturnErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, identity.Identifier)
+				assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+				assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+				assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+				assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+				assert.NotNil(t, identity.State.State)
+				assert.Equal(t, "confirmed", string(identity.State.Status))
+				if tc.options.KeyType == ETH {
+					assert.NotNil(t, identity.Address)
+					assert.Equal(t, genesisStr, *identity.State.State)
+				} else if tc.options.KeyType == BJJ {
+					assert.NotNil(t, identity.State.ClaimsTreeRoot)
+				} else {
+					t.Errorf("invalid key type")
+				}
+				assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+				assert.Equal(t, fmt.Sprintf("%s/v2/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+				assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+
+				authCoreClaimNew, err := claimsRepo.FindOneClaimBySchemaHash(ctx, storage.Pgx, did, string(authHash))
+				assert.NoError(t, err)
+				assert.Equal(t, authCoreClaim.ID, authCoreClaimNew.ID)
 			}
 		})
 	}

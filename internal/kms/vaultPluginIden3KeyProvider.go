@@ -128,6 +128,9 @@ func (v *vaultPluginIden3KeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 
 	publicKeyStr, err := publicKey(v.vaultCli, v.keyPathFromID(keyID))
 	if err != nil {
+		if strings.Contains(err.Error(), "secret is nil") {
+			return nil, ErrKeyNotFound
+		}
 		return nil, err
 	}
 
@@ -159,6 +162,22 @@ func (v *vaultPluginIden3KeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	}
 
 	return keyID, nil
+}
+
+func (v *vaultPluginIden3KeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	_, err := v.vaultCli.Logical().Delete(v.keyPathFromID(keyID).keys())
+	return err
+}
+
+func (v *vaultPluginIden3KeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	_, err := publicKey(v.vaultCli, v.keyPathFromID(keyID))
+	if err != nil {
+		if strings.Contains(err.Error(), "secret is nil") {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func (v *vaultPluginIden3KeyProvider) randomKeyPath() (keyPathT, error) {

@@ -2,9 +2,9 @@ import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useSt
 import { z } from "zod";
 
 import { EnvInput, envParser } from "src/adapters/env";
+import { buildAppError, envErrorToString } from "src/adapters/parsers";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { Env } from "src/domain";
-import { buildAppError, envErrorToString } from "src/utils/error";
 
 const defaultEnvContext: Env = {
   api: {

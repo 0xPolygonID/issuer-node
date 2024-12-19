@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
+import { CreateAuthCredential } from "src/components/credentials/CreateAuthCredential";
 import { CredentialDetails } from "src/components/credentials/CredentialDetails";
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
@@ -15,6 +16,9 @@ import { Identities } from "src/components/identities/Identities";
 import { Identity } from "src/components/identities/Identity";
 import { Onboarding } from "src/components/identities/Onboarding";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
+import { CreateKey } from "src/components/keys/CreateKey";
+import { Key } from "src/components/keys/Key";
+import { Keys } from "src/components/keys/Keys";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
@@ -28,8 +32,10 @@ import { ROOT_PATH } from "src/utils/constants";
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
+    createAuthCredential: CreateAuthCredential,
   createDisplayMethod: CreateDisplayMethod,
   createIdentity: CreateIdentity,
+  createKey: CreateKey,
   credentialDetails: CredentialDetails,
   credentials: Credentials,
   displayMethodDetails: DisplayMethodDetails,
@@ -39,6 +45,8 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
   issuerState: IssuerState,
+  keyDetails: Key,
+  keys: Keys,
   linkDetails: LinkDetails,
   notFound: NotFound,
   onboarding: Onboarding,
