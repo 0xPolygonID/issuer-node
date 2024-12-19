@@ -19,7 +19,7 @@ func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) 
 		log.Error(ctx, "invalid key type. babyjujJub and secp256k1 keys are supported")
 		return CreateKey400JSONResponse{
 			N400JSONResponse{
-				Message: "invalid key type. babyjujJub and secp256k1 keys are supported are supported",
+				Message: "invalid key type. babyjujJub and secp256k1 keys are supported",
 			},
 		}, nil
 	}

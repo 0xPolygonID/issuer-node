@@ -88,7 +88,7 @@ func TestServer_CreateKey(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 				response: CreateKey400JSONResponse{
 					N400JSONResponse: N400JSONResponse{
-						Message: "invalid key type. babyjujJub and secp256k1 keys are supported are supported",
+						Message: "invalid key type. babyjujJub and secp256k1 keys are supported",
 					},
 				},
 			},
