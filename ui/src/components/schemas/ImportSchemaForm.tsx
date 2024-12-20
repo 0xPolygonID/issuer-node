@@ -3,16 +3,16 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
+import {
+  buildAppError,
+  jsonLdContextErrorToString,
+  jsonSchemaErrorToString,
+} from "src/adapters/parsers";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Env, Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import {
-  buildAppError,
-  jsonLdContextErrorToString,
-  jsonSchemaErrorToString,
-} from "src/utils/error";
 
 export type FormData = {
   jsonLdContextObject: Json;

@@ -2,6 +2,7 @@ import { App, Button, Col, Divider, Form, Input, Row, Select, Typography } from 
 import { useCallback, useEffect, useState } from "react";
 
 import { getSupportedBlockchains } from "src/adapters/api/identities";
+import { buildAppError } from "src/adapters/parsers";
 import { IdentityFormData, identityFormDataParser } from "src/adapters/parsers/view";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -10,7 +11,6 @@ import { AppError, Blockchain, CredentialStatusType, IdentityType, Method } from
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { VALUE_REQUIRED } from "src/utils/constants";
-import { buildAppError } from "src/utils/error";
 
 const initialValues: IdentityFormData = {
   blockchain: "",

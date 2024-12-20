@@ -16,7 +16,7 @@ import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
-import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { notifyErrors, positiveIntegerFromStringParser } from "src/adapters/parsers";
 import { tableSorterParser } from "src/adapters/parsers/view";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
@@ -49,7 +49,6 @@ import {
   QUERY_SEARCH_PARAM,
   SORT_PARAM,
 } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 
 export function ConnectionsTable() {
   const env = useEnvContext();
@@ -217,7 +216,7 @@ export function ConnectionsTable() {
           maxResults: response.data.meta.max_results,
           page: response.data.meta.page,
         });
-        notifyParseErrors(response.data.items.failed);
+        void notifyErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setConnections({ error: response.error, status: "failed" });

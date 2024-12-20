@@ -26,6 +26,7 @@ import { z } from "zod";
 import { getDisplayMethods } from "src/adapters/api/display-method";
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
+import { buildAppError, jsonSchemaErrorToString, notifyError } from "src/adapters/parsers";
 import {
   IssueCredentialFormData,
   dayjsInstanceParser,
@@ -58,7 +59,6 @@ import {
   URL_FIELD_ERROR_MESSAGE,
   VALUE_REQUIRED,
 } from "src/utils/constants";
-import { buildAppError, jsonSchemaErrorToString, notifyError } from "src/utils/error";
 import {
   extractCredentialSubjectAttributeWithoutId,
   makeAttributeOptional,
@@ -215,10 +215,10 @@ export function IssueCredentialForm({
             );
           }
         } catch (error) {
-          notifyError(buildAppError(error));
+          void notifyError(buildAppError(error));
         }
       } else {
-        notifyError(buildAppError(serializedSchemaForm.error));
+        void notifyError(buildAppError(serializedSchemaForm.error));
       }
     }
     return false;

@@ -25,6 +25,7 @@ import {
   DOCS_URL,
   IDENTITIES,
   ISSUER_STATE,
+  KEYS,
   SCHEMAS,
 } from "src/utils/constants";
 
@@ -50,6 +51,7 @@ export function SiderMenu({
   const schemasPath = ROUTES.schemas.path;
   const identitiesPath = ROUTES.identities.path;
   const displayMethodsPath = ROUTES.displayMethods.path;
+    const keysPath = ROUTES.keys.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -103,6 +105,13 @@ export function SiderMenu({
       )
     ) {
       return [displayMethodsPath];
+    } else if (
+        matchRoutes(
+            [{ path: keysPath }, { path: ROUTES.keyDetails.path }, { path: ROUTES.createKey.path }],
+            pathname
+        )
+    ) {
+        return [keysPath];
     }
 
     return [];
@@ -180,6 +189,13 @@ export function SiderMenu({
                 key: identitiesPath,
                 label: IDENTITIES,
                 onClick: () => onMenuClick(identitiesPath),
+                title: "",
+              },
+              {
+                icon: <IconIdentities />,
+                key: keysPath,
+                label: KEYS,
+                onClick: () => onMenuClick(keysPath),
                 title: "",
               },
             ]}

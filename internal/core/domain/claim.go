@@ -241,3 +241,8 @@ func (c *Claim) GetCredentialStatus() (*verifiable.CredentialStatus, error) {
 	}
 	return cStatus, nil
 }
+
+// EqualToSchemaHash returns true if the claim has the same schema hash
+func (c *Claim) EqualToSchemaHash(schemaHash string) bool {
+	return c.SchemaHash == schemaHash
+}

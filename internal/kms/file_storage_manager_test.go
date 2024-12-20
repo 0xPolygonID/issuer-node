@@ -164,6 +164,91 @@ func TestSearchPrivateKeyInFile_ReturnsErrorWhenKeyNotFound(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func Test_GetKeyMaterial(t *testing.T) {
+	tmpFile, err := createTestFile(t)
+	assert.NoError(t, err)
+	//nolint:errcheck
+	defer os.Remove(tmpFile.Name())
+
+	ls := NewFileStorageManager(tmpFile.Name())
+	ctx := context.Background()
+
+	t.Run("should return key material", func(t *testing.T) {
+		did := randomDID(t)
+		privateKey := "9d7abdd5a43573ab9b623c50b9fc8f4357329d3009fe0fc22c8931161d98a03d"
+		id := getKeyID(&did, KeyTypeBabyJubJub, "BJJ:2290140c920a31a596937095f18a9ae15c1fe7091091be485f353968a4310380")
+
+		err = ls.SaveKeyMaterial(ctx, map[string]string{
+			jsonKeyType: string(KeyTypeBabyJubJub),
+			jsonKeyData: privateKey,
+		}, id)
+		assert.NoError(t, err)
+
+		keyMaterial, err := ls.getKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   id,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{
+			jsonKeyType: string(babyjubjub),
+			jsonKeyData: privateKey,
+		}, keyMaterial)
+	})
+
+	t.Run("should return an error", func(t *testing.T) {
+		_, err := ls.getKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   "wrong_id",
+		})
+		require.Error(t, err)
+	})
+}
+
+func Test_DeleteKeyMaterial(t *testing.T) {
+	tmpFile, err := createTestFile(t)
+	require.NoError(t, err)
+	//nolint:errcheck
+	defer os.Remove(tmpFile.Name())
+
+	ls := NewFileStorageManager(tmpFile.Name())
+	ctx := context.Background()
+
+	t.Run("should delete key material", func(t *testing.T) {
+		did := randomDID(t)
+		privateKey := "9d7abdd5a43573ab9b623c50b9fc8f4357329d3009fe0fc22c8931161d98a03d"
+		id := getKeyID(&did, KeyTypeBabyJubJub, "BJJ:2290140c920a31a596937095f18a9ae15c1fe7091091be485f353968a4310380")
+
+		err = ls.SaveKeyMaterial(ctx, map[string]string{
+			jsonKeyType: string(KeyTypeBabyJubJub),
+			jsonKeyData: privateKey,
+		}, id)
+		assert.NoError(t, err)
+
+		keyMaterial, err := ls.getKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   id,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{
+			jsonKeyType: string(babyjubjub),
+			jsonKeyData: privateKey,
+		}, keyMaterial)
+
+		err = ls.deleteKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   id,
+		})
+
+		require.NoError(t, err)
+
+		_, err = ls.getKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   id,
+		})
+		require.Error(t, err)
+	})
+}
+
 func createTestFile(t *testing.T) (*os.File, error) {
 	t.Helper()
 	tmpFile, err := os.Create("./kms.json")

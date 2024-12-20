@@ -96,10 +96,10 @@ func Test_LinkToIdentity_LocalETHKeyProvider(t *testing.T) {
 		assert.NotEmpty(t, keyID.ID)
 
 		did := randomDID(t)
-		keyID, err = localETHKeyProvider.LinkToIdentity(ctx, keyID, did)
+		newKeyID, err := localETHKeyProvider.LinkToIdentity(ctx, keyID, did)
 		assert.NoError(t, err)
 		assert.NotNil(t, keyID)
-		assert.Equal(t, did.String(), keyID.ID)
+		assert.Equal(t, did.String()+"/"+keyID.ID, newKeyID.ID)
 		assert.Equal(t, KeyTypeEthereum, keyID.Type)
 	})
 
@@ -110,10 +110,10 @@ func Test_LinkToIdentity_LocalETHKeyProvider(t *testing.T) {
 		assert.NotEmpty(t, keyID.ID)
 
 		did := randomDID(t)
-		keyID, err = localETHKeyProvider.LinkToIdentity(ctx, keyID, did)
+		newKeyID, err := localETHKeyProvider.LinkToIdentity(ctx, keyID, did)
 		assert.NoError(t, err)
 		assert.NotNil(t, keyID)
-		assert.Equal(t, did.String(), keyID.ID)
+		assert.Equal(t, did.String()+"/"+keyID.ID, newKeyID.ID)
 		assert.Equal(t, KeyTypeEthereum, keyID.Type)
 	})
 }

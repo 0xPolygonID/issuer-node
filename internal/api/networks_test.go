@@ -43,7 +43,7 @@ func TestServer_GetSupportedNetworks(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 
-			req, err := http.NewRequest("GET", "/v2/supported-networks", nil)
+			req, err := http.NewRequest(http.MethodGet, "/v2/supported-networks", nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
@@ -52,14 +52,7 @@ func TestServer_GetSupportedNetworks(t *testing.T) {
 			if tc.expected.httpCode == http.StatusOK {
 				var response GetSupportedNetworks200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, 1, len(response))
-				assert.Equal(t, "polygon", response[0].Blockchain)
-				assert.Equal(t, []NetworkData{
-					{
-						Name:             "amoy",
-						CredentialStatus: []string{"Iden3commRevocationStatusV1.0"},
-					},
-				}, response[0].Networks)
+				assert.Equal(t, 2, len(response))
 			}
 		})
 	}

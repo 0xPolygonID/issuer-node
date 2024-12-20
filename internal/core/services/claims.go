@@ -38,6 +38,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/revocationstatus"
 	schemaPkg "github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/urn"
+	"github.com/polygonid/sh-id-platform/internal/utils"
 )
 
 var (
@@ -57,6 +58,8 @@ var (
 	ErrUnsupportedDisplayMethodType      = errors.New("unsupported display method type")                               // ErrUnsupportedDisplayMethodType means the display method type is not supported
 	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
 	ErrWrongCredentialSubjectID          = errors.New("wrong format for credential subject ID")                        // ErrWrongCredentialSubjectID means the credential subject ID is wrong
+	ErrAuthCredentialCannotBeRevoked     = errors.New("cannot delete the only remaining authentication credential. " +
+		"An identity must have at least one credential") // ErrAuthCredentialCannotBeRevoked means the credential cannot be revoked
 )
 
 type claim struct {
@@ -73,11 +76,11 @@ type claim struct {
 	publisher                pubsub.Publisher
 	ipfsClient               *shell.Shell
 	revocationStatusResolver *revocationstatus.Resolver
-	mediatypeManager         ports.MediatypeManager
+	mediatypeManager         ports.MediaTypeManager
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocationstatus.Resolver, mediatypeManager ports.MediatypeManager, cfg config.UniversalLinks) ports.ClaimService {
+func NewClaim(repo ports.ClaimRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocationstatus.Resolver, mediatypeManager ports.MediaTypeManager, cfg config.UniversalLinks) ports.ClaimService {
 	s := &claim{
 		host:                     host,
 		icRepo:                   repo,
@@ -301,8 +304,33 @@ func (c *claim) RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, i
 		})
 }
 
-func (c *claim) Delete(ctx context.Context, id uuid.UUID) error {
-	err := c.icRepo.Delete(ctx, c.storage.Pgx, id)
+func (c *claim) Delete(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error {
+	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issuerDID, id)
+	if err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return ErrCredentialNotFound
+		}
+		return err
+	}
+
+	claims := make([]*domain.Claim, 1)
+	claims[0] = claim
+
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return err
+	}
+
+	// check if the nonce can be deleted
+	canBeRevoked, err := c.canRevokeNonce(ctx, issuerDID, c.storage.Pgx, claims, uint64(claim.RevNonce), string(authHash))
+	if err != nil {
+		return fmt.Errorf("error checking if the nonce can be revoked: %w", err)
+	}
+	if !canBeRevoked {
+		return ErrAuthCredentialCannotBeRevoked
+	}
+
+	err = c.icRepo.Delete(ctx, c.storage.Pgx, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
 			return ErrCredentialNotFound
@@ -587,7 +615,54 @@ func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, did *w3c.DID, stat
 	return c.icRepo.GetByStateIDWithMTPProof(ctx, c.storage.Pgx, did, state)
 }
 
+// GetAuthCredentials returns the auth credentials for the given identifier
+// The auth credentials are the credentials that are used to sign other credentials
+// The credentials can have mtp proof or not.
+// The credentials are not revoked
+func (c *claim) GetAuthCredentials(ctx context.Context, identifier *w3c.DID) ([]*domain.Claim, error) {
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	return c.icRepo.GetAuthCoreClaims(ctx, c.storage.Pgx, identifier, string(authHash))
+}
+
+// GetAuthCredentialByPublicKey returns the auth credential with the given public key
+func (c *claim) GetAuthCredentialByPublicKey(ctx context.Context, identifier *w3c.DID, publicKey []byte) (*domain.Claim, error) {
+	authCredentials, err := c.GetAuthCredentials(ctx, identifier)
+	if err != nil {
+		log.Error(ctx, "failed to get auth credentials", "err", err)
+		return nil, err
+	}
+	for _, authCredential := range authCredentials {
+		if utils.GetPublicKeyFromClaim(authCredential).Equal(publicKey) {
+			return authCredential, nil
+		}
+	}
+	return nil, nil
+}
+
 func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, description string, querier db.Querier) error {
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return err
+	}
+
+	// get the claims to revoke by nonce
+	claimsToRevoke, err := c.icRepo.GetByRevocationNonce(ctx, querier, did, domain.RevNonceUint64(nonce))
+	if err != nil {
+		log.Error(ctx, "error getting the claim by revocation nonce", "err", err)
+	}
+
+	// check if the nonce can be revoked
+	canBeRevoked, err := c.canRevokeNonce(ctx, did, querier, claimsToRevoke, nonce, string(authHash))
+	if err != nil {
+		return fmt.Errorf("error checking if the nonce can be revoked: %w", err)
+	}
+	if !canBeRevoked {
+		return ErrAuthCredentialCannotBeRevoked
+	}
+
 	rID := new(big.Int).SetUint64(nonce)
 	revocation := domain.Revocation{
 		Identifier:  did.String(),
@@ -635,6 +710,35 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 	}
 
 	return nil
+}
+
+// canRevokeNonce checks if the nonce can be revoked
+func (c *claim) canRevokeNonce(ctx context.Context, did *w3c.DID, querier db.Querier, claimsToRevoke []*domain.Claim, nonce uint64, authHash string) (bool, error) {
+	checkAuthCredentials := false
+	for _, claim := range claimsToRevoke {
+		if claim.EqualToSchemaHash(authHash) {
+			checkAuthCredentials = true
+			break
+		}
+	}
+
+	canBeRevoked := true
+	if checkAuthCredentials {
+		authCredentials, err := c.icRepo.FindClaimsBySchemaHash(ctx, querier, did, authHash)
+		if err != nil {
+			return false, fmt.Errorf("error getting the auth credentials: %w", err)
+		}
+		if len(authCredentials) == 1 {
+			return false, nil
+		}
+		canBeRevoked = false
+		for _, authCredential := range authCredentials {
+			if authCredential.RevNonce != domain.RevNonceUint64(nonce) {
+				canBeRevoked = true
+			}
+		}
+	}
+	return canBeRevoked, nil
 }
 
 func (c *claim) getRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {

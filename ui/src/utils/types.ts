@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { AppError } from "src/domain/error";
 
 export type ResourceMeta = {
   max_results: number;
@@ -7,7 +7,7 @@ export type ResourceMeta = {
 };
 
 export type List<T> = {
-  failed: z.ZodError<T>[];
+  failed: AppError[];
   successful: T[];
 };
 
