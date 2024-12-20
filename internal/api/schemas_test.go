@@ -33,7 +33,7 @@ func TestServer_GetSchema(t *testing.T) {
 	s := &domain.Schema{
 		ID:        uuid.New(),
 		IssuerDID: *issuerDID,
-		URL:       "https://domain.org/this/is/an/url",
+		URL:       "http://localhost:8080/json/exampleMultidepth.json",
 		Type:      "schemaType",
 		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
 		CreatedAt: time.Now(),
@@ -88,12 +88,13 @@ func TestServer_GetSchema(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				schema: &Schema{
-					BigInt:    s.Hash.BigInt().String(),
-					CreatedAt: TimeUTC(s.CreatedAt),
-					Hash:      string(sHash),
-					Id:        s.ID.String(),
-					Type:      s.Type,
-					Url:       s.URL,
+					BigInt:     s.Hash.BigInt().String(),
+					CreatedAt:  TimeUTC(s.CreatedAt),
+					ContextURL: "http://localhost:8080/json-ld/exampleMultidepth.jsonld",
+					Hash:       string(sHash),
+					Id:         s.ID.String(),
+					Type:       s.Type,
+					Url:        s.URL,
 				},
 			},
 		},
@@ -114,6 +115,7 @@ func TestServer_GetSchema(t *testing.T) {
 				assert.Equal(t, tc.expected.schema.Id, response.Id)
 				assert.Equal(t, tc.expected.schema.BigInt, response.BigInt)
 				assert.Equal(t, tc.expected.schema.Type, response.Type)
+				assert.Equal(t, tc.expected.schema.ContextURL, response.ContextURL)
 				assert.Equal(t, tc.expected.schema.Url, response.Url)
 				assert.Equal(t, tc.expected.schema.Hash, response.Hash)
 				assert.InDelta(t, time.Time(tc.expected.schema.CreatedAt).UnixMilli(), time.Time(response.CreatedAt).UnixMilli(), 1000)

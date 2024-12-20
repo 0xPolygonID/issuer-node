@@ -2,8 +2,10 @@ package kms
 
 import (
 	"context"
+	"encoding/hex"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -143,9 +145,14 @@ func Test_searchPrivateKey(t *testing.T) {
 
 	t.Run("should get private key for BJJ", func(t *testing.T) {
 		did := randomDID(t)
-		privateKey := "9d7abdd5a43573ab9b623c50b9fc8f4357329d3009fe0fc22c8931161d98a03d"
+
+		privKey, err := crypto.GenerateKey()
+		require.NoError(t, err)
+		privKeyBytes := crypto.FromECDSA(privKey)
+		privateKey := hex.EncodeToString(privKeyBytes)
+
 		id := getKeyID(&did, KeyTypeBabyJubJub, "BJJ:2290140c920a31a596937095f18a9ae15c1fe7091091be485f353968a4310380")
-		err := awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
+		err = awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
 			jsonKeyType: string(KeyTypeBabyJubJub),
 			jsonKeyData: privateKey,
 		}, id)
@@ -164,9 +171,14 @@ func Test_searchPrivateKey(t *testing.T) {
 
 	t.Run("should get private key for ETH", func(t *testing.T) {
 		did := randomDID(t)
-		privateKey := "9d7abdd5a43573ab9b623c50b9fc8f4357329d3009fe0fc22c8931161d98a03d"
+
+		privKey, err := crypto.GenerateKey()
+		require.NoError(t, err)
+		privKeyBytes := crypto.FromECDSA(privKey)
+		privateKey := hex.EncodeToString(privKeyBytes)
+
 		id := getKeyID(&did, KeyTypeEthereum, "ETH:2290140c920a31a596937095f18a9ae15c1fe7091091be485f353968a4310380")
-		err := awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
+		err = awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
 			jsonKeyType: string(KeyTypeEthereum),
 			jsonKeyData: privateKey,
 		}, id)
@@ -185,9 +197,14 @@ func Test_searchPrivateKey(t *testing.T) {
 
 	t.Run("should get private key for BJJ | from eth identity", func(t *testing.T) {
 		did := randomDID(t)
-		privateKey := "9d7abdd5a43573ab9b623c50b9fc8f4357329d3009fe0fc22c8931161d98a03d"
+
+		privKey, err := crypto.GenerateKey()
+		require.NoError(t, err)
+		privKeyBytes := crypto.FromECDSA(privKey)
+		privateKey := hex.EncodeToString(privKeyBytes)
+
 		id := did.String() + "/BJJ:f6eb5b16318de6054ccc30047d9ba395c954e78b6f1ba0a8f52a6e46b7f2500f"
-		err := awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
+		err = awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
 			jsonKeyType: string(KeyTypeBabyJubJub),
 			jsonKeyData: privateKey,
 		}, id)
