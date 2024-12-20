@@ -30,6 +30,9 @@ export type Credential = {
   expired: boolean;
   id: string;
   issuanceDate: Date;
+  proof: Array<{
+    type: ProofType;
+  }> | null;
   proofTypes: ProofType[];
   refreshService: RefreshService | null;
   revNonce: number;
@@ -38,6 +41,14 @@ export type Credential = {
   schemaType: string;
   schemaUrl: string;
   userID: string;
+};
+
+export type AuthCredential = Omit<Credential, "credentialSubject"> & {
+  credentialSubject: {
+    x: bigint;
+    y: bigint;
+  };
+  published: boolean;
 };
 
 export type IssuedMessage = {

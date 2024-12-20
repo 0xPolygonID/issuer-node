@@ -1,3 +1,4 @@
+import { PublicKey } from "@iden3/js-crypto";
 import {
   Avatar,
   Button,
@@ -9,13 +10,16 @@ import {
   Table,
   TableColumnsType,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getCredentialsByIDs } from "src/adapters/api/credentials";
+import { getAuthCredentialsByIDs } from "src/adapters/api/credentials";
 import { notifyErrors } from "src/adapters/parsers";
+import IconCheckMark from "src/assets/icons/check.svg?react";
+import IconCopy from "src/assets/icons/copy-01.svg?react";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
@@ -25,7 +29,7 @@ import { TableCard } from "src/components/shared/TableCard";
 
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
-import { AppError, Credential } from "src/domain";
+import { AppError, AuthCredential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -37,11 +41,11 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
   const { identifier } = useIdentityContext();
   const navigate = useNavigate();
 
-  const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
+  const [credentials, setCredentials] = useState<AsyncTask<AuthCredential[], AppError>>({
     status: "pending",
   });
 
-  const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
+  const [credentialToRevoke, setCredentialToRevoke] = useState<AuthCredential>();
 
   const fetchAuthCredentials = useCallback(
     async (signal?: AbortSignal) => {
@@ -51,7 +55,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
           : { status: "loading" }
       );
 
-      const response = await getCredentialsByIDs({
+      const response = await getAuthCredentialsByIDs({
         env,
         identifier,
         IDs,
@@ -73,12 +77,48 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
     [env, identifier, IDs]
   );
 
-  const tableColumns: TableColumnsType<Credential> = [
+  const tableColumns: TableColumnsType<AuthCredential> = [
+    {
+      dataIndex: "credentialSubject",
+      ellipsis: { showTitle: false },
+      key: "credentialSubject",
+      render: (credentialSubject: AuthCredential["credentialSubject"]) => {
+        const { x, y } = credentialSubject;
+        const pKey = new PublicKey([x, y]);
+        const pKeyHex = pKey.hex();
+        return (
+          <Tooltip title={pKeyHex}>
+            <Typography.Text
+              copyable={{
+                icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
+                text: pKeyHex,
+              }}
+              ellipsis={{
+                suffix: pKeyHex.slice(-5),
+              }}
+            >
+              {pKeyHex}
+            </Typography.Text>
+          </Tooltip>
+        );
+      },
+
+      title: "Public key",
+    },
+    {
+      dataIndex: "credentialStatus",
+      ellipsis: { showTitle: false },
+      key: "credentialStatus",
+      render: (credentialStatus: AuthCredential["credentialStatus"]) => (
+        <Typography.Text>{credentialStatus.revocationNonce}</Typography.Text>
+      ),
+      title: "Revocation nonce",
+    },
     {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
       key: "schemaType",
-      render: (schemaType: Credential["schemaType"]) => (
+      render: (schemaType: AuthCredential["schemaType"]) => (
         <Typography.Text strong>{schemaType}</Typography.Text>
       ),
       sorter: {
@@ -88,70 +128,45 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
       title: "Type",
     },
     {
+      dataIndex: "credentialStatus",
+      ellipsis: { showTitle: false },
+      key: "credentialStatus",
+      render: (credentialStatus: AuthCredential["credentialStatus"]) => (
+        <Typography.Text>{credentialStatus.type}</Typography.Text>
+      ),
+      title: "Revocation status",
+    },
+    {
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (issuanceDate: Credential["issuanceDate"]) => (
+      render: (issuanceDate: AuthCredential["issuanceDate"]) => (
         <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
       sorter: ({ issuanceDate: a }, { issuanceDate: b }) => b.getTime() - a.getTime(),
       title: ISSUE_DATE,
     },
-
-    {
-      dataIndex: "credentialSubject",
-      ellipsis: { showTitle: false },
-      key: "credentialSubject",
-      render: (credentialSubject: Credential["credentialSubject"]) => (
-        <Typography.Text>
-          {typeof credentialSubject.x === "string" ? credentialSubject.x : "-"}
-        </Typography.Text>
-      ),
-
-      title: "Credential Subject x",
-    },
-    {
-      dataIndex: "credentialSubject",
-      ellipsis: { showTitle: false },
-      key: "credentialSubject",
-      render: (credentialSubject: Credential["credentialSubject"]) => (
-        <Typography.Text>
-          {typeof credentialSubject.y === "string" ? credentialSubject.y : "-"}
-        </Typography.Text>
-      ),
-      title: "Credential Subject y",
-    },
-    {
-      dataIndex: "credentialStatus",
-      ellipsis: { showTitle: false },
-      key: "credentialStatus",
-      render: (credentialStatus: Credential["credentialStatus"]) => (
-        <Typography.Text>{credentialStatus.revocationNonce}</Typography.Text>
-      ),
-      title: "Revocation nonce",
-    },
-    {
-      dataIndex: "credentialStatus",
-      ellipsis: { showTitle: false },
-      key: "credentialStatus",
-      render: (credentialStatus: Credential["credentialStatus"]) => (
-        <Typography.Text>{credentialStatus.type}</Typography.Text>
-      ),
-      title: "Revocation status type",
-    },
     {
       dataIndex: "revoked",
       key: "revoked",
-      render: (revoked: Credential["revoked"]) => (
+      render: (revoked: AuthCredential["revoked"]) => (
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
       responsive: ["sm"],
       title: REVOCATION,
     },
-
+    {
+      dataIndex: "published",
+      key: "published",
+      render: (published: AuthCredential["published"]) => (
+        <Typography.Text>{published ? "Published" : "Pending"}</Typography.Text>
+      ),
+      responsive: ["sm"],
+      title: "Published",
+    },
     {
       dataIndex: "id",
       key: "id",
-      render: (id: Credential["id"], credential: Credential) => (
+      render: (id: AuthCredential["id"], credential: AuthCredential) => (
         <Dropdown
           menu={{
             items: [
