@@ -306,7 +306,8 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
 	displayMethodService := services.NewDisplayMethod(repos.displayMethod)
 	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService)
+	discoveryService := services.NewDiscovery(mediaTypeManager, NewPackageManagerMock())
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, discoveryService)
 
 	return &testServer{
 		Server: server,
