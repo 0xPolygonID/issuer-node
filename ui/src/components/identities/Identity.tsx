@@ -1,4 +1,4 @@
-import { App, Button, Card, Flex, Form, Input, Space } from "antd";
+import { App, Button, Card, Divider, Flex, Form, Input, Space } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useIdentityContext } from "../../contexts/Identity";
@@ -7,6 +7,7 @@ import { IdentityDetailsFormData } from "src/adapters/parsers/view";
 import CheckIcon from "src/assets/icons/check.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
 import CloseIcon from "src/assets/icons/x-close.svg?react";
+import { IdentityAuthCredentials } from "src/components/identities/IdentityAuthCredentials";
 import { Detail } from "src/components/shared/Detail";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -126,69 +127,77 @@ export function Identity() {
         } else {
           const [, method = "", blockchain = "", network = ""] = identifier.split(":");
           return (
-            <Card
-              className="centered"
-              styles={{ header: { border: "none" } }}
-              title={
-                <Flex align="center" gap={8} style={{ paddingTop: "24px" }}>
-                  {displayNameEditable ? (
-                    <Form
-                      form={form}
-                      initialValues={{ displayName: identity.data.displayName }}
-                      onFinish={handleEditDisplayName}
-                      style={{ width: "100%" }}
-                    >
-                      <Flex gap={16}>
-                        <Form.Item
-                          name="displayName"
-                          rules={[{ message: VALUE_REQUIRED, required: true }]}
-                          style={{ marginBottom: 0, width: "50%" }}
-                        >
-                          <Input placeholder="Enter name" />
-                        </Form.Item>
-                        <Flex gap={8}>
-                          <Button
-                            icon={<CloseIcon />}
-                            onClick={() => setDisplayNameEditable(false)}
-                          />
-                          <Button htmlType="submit" icon={<CheckIcon />} onClick={() => {}} />
+            <>
+              <Card
+                className="centered"
+                styles={{ header: { border: "none" } }}
+                title={
+                  <Flex align="center" gap={8} style={{ paddingTop: "24px" }}>
+                    {displayNameEditable ? (
+                      <Form
+                        form={form}
+                        initialValues={{ displayName: identity.data.displayName }}
+                        onFinish={handleEditDisplayName}
+                        style={{ width: "100%" }}
+                      >
+                        <Flex gap={16}>
+                          <Form.Item
+                            name="displayName"
+                            rules={[{ message: VALUE_REQUIRED, required: true }]}
+                            style={{ marginBottom: 0, width: "50%" }}
+                          >
+                            <Input placeholder="Enter name" />
+                          </Form.Item>
+                          <Flex gap={8}>
+                            <Button
+                              icon={<CloseIcon />}
+                              onClick={() => setDisplayNameEditable(false)}
+                            />
+                            <Button htmlType="submit" icon={<CheckIcon />} onClick={() => {}} />
+                          </Flex>
                         </Flex>
-                      </Flex>
-                    </Form>
-                  ) : (
-                    <>
-                      {identity.data.displayName}
-                      <Button
-                        icon={<EditIcon />}
-                        onClick={() => setDisplayNameEditable(true)}
-                        size="small"
-                        type="text"
-                      />
-                    </>
-                  )}
-                </Flex>
-              }
-            >
-              <Card className="background-grey">
-                <Space direction="vertical">
-                  <Detail
-                    copyable
-                    copyableText={identifier}
-                    label="Identifier"
-                    text={formatIdentifier(identifier)}
-                  />
+                      </Form>
+                    ) : (
+                      <>
+                        {identity.data.displayName}
+                        <Button
+                          icon={<EditIcon />}
+                          onClick={() => setDisplayNameEditable(true)}
+                          size="small"
+                          type="text"
+                        />
+                      </>
+                    )}
+                  </Flex>
+                }
+              >
+                <Card className="background-grey">
+                  <Space direction="vertical">
+                    <Detail
+                      copyable
+                      copyableText={identifier}
+                      label="Identifier"
+                      text={formatIdentifier(identifier)}
+                    />
 
-                  <Detail label="Method" text={method} />
+                    <Detail label="Method" text={method} />
 
-                  <Detail label="Blockchain" text={blockchain} />
+                    <Detail label="Blockchain" text={blockchain} />
 
-                  <Detail label="Network" text={network} />
+                    <Detail label="Network" text={network} />
 
-                  <Detail label="Type" text={identity.data.keyType} />
-                  <Detail label="Credential status" text={identity.data.credentialStatusType} />
-                </Space>
+                    <Detail label="Type" text={identity.data.keyType} />
+                    <Detail label="Credential status" text={identity.data.credentialStatusType} />
+                  </Space>
+                </Card>
               </Card>
-            </Card>
+
+              <Divider />
+
+              {identity.data.authCredentialsIDs.length && (
+                <IdentityAuthCredentials IDs={identity.data.authCredentialsIDs} />
+              )}
+            </>
           );
         }
       })()}

@@ -3,12 +3,12 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { UpsertDisplayMethod, getDisplayMethodMetadata } from "src/adapters/api/display-method";
+import { buildAppError, notifyError } from "src/adapters/parsers";
 import { DisplayMethodErrorResult } from "src/components/display-methods/DisplayMethodErrorResult";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, DisplayMethodMetadata } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { VALUE_REQUIRED } from "src/utils/constants";
-import { buildAppError, notifyError } from "src/utils/error";
 
 export function DisplayMethodForm({
   initialValues,
@@ -39,7 +39,7 @@ export function DisplayMethodForm({
         }
       });
     } else {
-      notifyError(buildAppError(`"${url}" is not a valid URL`));
+      void notifyError(buildAppError(`"${url}" is not a valid URL`));
     }
   };
 

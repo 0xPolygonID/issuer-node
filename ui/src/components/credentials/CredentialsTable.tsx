@@ -19,7 +19,11 @@ import { Link, generatePath, useNavigate, useSearchParams } from "react-router-d
 
 import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
-import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import {
+  notifyErrors,
+  notifyParseError,
+  positiveIntegerFromStringParser,
+} from "src/adapters/parsers";
 import { tableSorterParser } from "src/adapters/parsers/view";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
@@ -57,7 +61,6 @@ import {
   SORT_PARAM,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
-import { notifyParseError, notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable() {
@@ -270,7 +273,7 @@ export function CredentialsTable() {
           maxResults: response.data.meta.max_results,
           page: response.data.meta.page,
         });
-        notifyParseErrors(response.data.items.failed);
+        void notifyErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setCredentials({ error: response.error, status: "failed" });
@@ -321,7 +324,7 @@ export function CredentialsTable() {
 
       setSearchParams(params);
     } else {
-      notifyParseError(parsedCredentialStatus.error);
+      void notifyParseError(parsedCredentialStatus.error);
     }
   };
 

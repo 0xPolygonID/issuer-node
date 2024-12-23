@@ -35,6 +35,7 @@ func Test_link_issueClaim(t *testing.T) {
 	schemaRepository := repositories.NewSchema(*storage)
 	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnection()
+	keyRepository := repositories.NewKey(*storage)
 
 	reader := common.CreateFile(t)
 	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
@@ -42,7 +43,7 @@ func Test_link_issueClaim(t *testing.T) {
 
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	schemaService := NewSchema(schemaRepository, docLoader)
 

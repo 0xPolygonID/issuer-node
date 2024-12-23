@@ -166,3 +166,38 @@ func (a *awsSecretStorageProvider) searchPrivateKey(ctx context.Context, keyID K
 	}
 	return secretValue.PrivateKey, nil
 }
+
+func (a *awsSecretStorageProvider) deleteKeyMaterial(ctx context.Context, keyID KeyID) error {
+	encodedSecretName := base64.StdEncoding.EncodeToString([]byte(keyID.ID))
+	input := &secretsmanager.DeleteSecretInput{
+		SecretId:                   aws.String(encodedSecretName),
+		ForceDeleteWithoutRecovery: aws.Bool(true),
+	}
+	_, err := a.secretManager.DeleteSecret(ctx, input)
+	return err
+}
+
+func (a *awsSecretStorageProvider) getKeyMaterial(ctx context.Context, keyID KeyID) (map[string]string, error) {
+	encodedSecretName := base64.StdEncoding.EncodeToString([]byte(keyID.ID))
+	input := &secretsmanager.GetSecretValueInput{
+		SecretId: aws.String(encodedSecretName),
+	}
+	result, err := a.secretManager.GetSecretValue(ctx, input)
+	if err != nil {
+		log.Error(ctx, "error getting secret value", "err", err)
+		if strings.Contains(err.Error(), "ResourceNotFoundException") {
+			return nil, ErrKeyNotFound
+		}
+		return nil, errors.New("error getting secret value from AWS")
+	}
+
+	var secretValue secretStorageProviderKeyMaterial
+	if err := json.Unmarshal([]byte(aws.ToString(result.SecretString)), &secretValue); err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		jsonKeyType: secretValue.KeyType,
+		jsonKeyData: secretValue.PrivateKey,
+	}, nil
+}

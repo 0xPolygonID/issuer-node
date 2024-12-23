@@ -221,3 +221,88 @@ func Test_searchPrivateKey(t *testing.T) {
 		assert.Equal(t, privateKey, privateKeyFromStore)
 	})
 }
+
+func Test_getKeyMaterial(t *testing.T) {
+	ctx := context.Background()
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
+		AccessKey: "access_key",
+		SecretKey: "secret_key",
+		Region:    "local",
+		URL:       "http://localhost:4566",
+	})
+	require.NoError(t, err)
+
+	t.Run("should get key material for bjj", func(t *testing.T) {
+		did := randomDID(t)
+		privateKey := "9d7abdd5a43573ab9b623c50b9fc8f4357329d3009fe0fc22c8931161d98a03d"
+		id := getKeyID(&did, KeyTypeBabyJubJub, "BJJ:2290140c920a31a596937095f18a9ae15c1fe7091091be485f353968a4310380")
+		err := awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
+			jsonKeyType: string(KeyTypeBabyJubJub),
+			jsonKeyData: privateKey,
+		}, id)
+		assert.NoError(t, err)
+
+		keyMaterial, err := awsStorageProvider.getKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   id,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{
+			jsonKeyType: string(babyjubjub),
+			jsonKeyData: privateKey,
+		}, keyMaterial)
+	})
+
+	t.Run("should get an error for bjj", func(t *testing.T) {
+		_, err := awsStorageProvider.getKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   "wrong_id",
+		})
+		require.Error(t, err)
+	})
+}
+
+func Test_deleteKeyMaterial(t *testing.T) {
+	ctx := context.Background()
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
+		AccessKey: "access_key",
+		SecretKey: "secret_key",
+		Region:    "local",
+		URL:       "http://localhost:4566",
+	})
+	require.NoError(t, err)
+
+	t.Run("should delete key material for bjj", func(t *testing.T) {
+		did := randomDID(t)
+		privateKey := "9d7abdd5a43573ab9b623c50b9fc8f4357329d3009fe0fc22c8931161d98a03d"
+		id := getKeyID(&did, KeyTypeBabyJubJub, "BJJ:2290140c920a31a596937095f18a9ae15c1fe7091091be485f353968a4310380")
+		err := awsStorageProvider.SaveKeyMaterial(ctx, map[string]string{
+			jsonKeyType: string(KeyTypeBabyJubJub),
+			jsonKeyData: privateKey,
+		}, id)
+		assert.NoError(t, err)
+
+		keyMaterial, err := awsStorageProvider.getKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   id,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{
+			jsonKeyType: string(babyjubjub),
+			jsonKeyData: privateKey,
+		}, keyMaterial)
+
+		err = awsStorageProvider.deleteKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   id,
+		})
+
+		require.NoError(t, err)
+
+		_, err = awsStorageProvider.getKeyMaterial(ctx, KeyID{
+			Type: babyjubjub,
+			ID:   id,
+		})
+		require.Error(t, err)
+	})
+}

@@ -229,7 +229,7 @@ func NewLinkMock() ports.LinkService {
 type repos struct {
 	claims         ports.ClaimRepository
 	connection     ports.ConnectionRepository
-	identity       ports.IndentityRepository
+	identity       ports.IdentityRepository
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
 	links          ports.LinkRepository
@@ -238,6 +238,7 @@ type repos struct {
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
 	displayMethod  ports.DisplayMethodRepository
+	keyRepository  ports.KeyRepository
 }
 
 type servicex struct {
@@ -248,6 +249,7 @@ type servicex struct {
 	payments      ports.PaymentService
 	qrs           ports.QrStoreService
 	displayMethod ports.DisplayMethodService
+	keyService    ports.KeyService
 }
 
 type infra struct {
@@ -279,6 +281,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
 		displayMethod:  repositories.NewDisplayMethod(*st),
+		keyRepository:  repositories.NewKey(*st),
 	}
 
 	pubSub := pubsub.NewMock()
@@ -346,7 +349,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
 	qrService := services.NewQrStoreService(cachex)
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
-	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver, repos.keyRepository)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader)
 	paymentService := services.NewPaymentService(repos.payments, *networkResolver, schemaService, paymentSettings, keyStore)
@@ -363,7 +366,8 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
 	displayMethodService := services.NewDisplayMethod(repos.displayMethod)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, paymentService, displayMethodService)
+	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService)
 
 	return &testServer{
 		Server: server,
@@ -376,6 +380,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 			qrs:           qrService,
 			schema:        schemaService,
 			displayMethod: displayMethodService,
+			keyService:    keyService,
 		},
 		Infra: infra{
 			db:     st,

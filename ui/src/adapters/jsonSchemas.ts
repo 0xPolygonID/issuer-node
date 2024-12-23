@@ -1,8 +1,8 @@
 import { Response } from "src/adapters";
 import { getJsonFromUrl } from "src/adapters/json";
+import { buildAppError } from "src/adapters/parsers";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
 import { Env, Json, JsonLdType, JsonSchema } from "src/domain";
-import { buildAppError } from "src/utils/error";
 
 export async function getJsonSchemaFromUrl({
   env,

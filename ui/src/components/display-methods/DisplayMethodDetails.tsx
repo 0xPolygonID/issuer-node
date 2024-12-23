@@ -24,6 +24,7 @@ import {
   updateDisplayMethod,
 } from "src/adapters/api/display-method";
 import { processUrl } from "src/adapters/api/schemas";
+import { buildAppError, notifyError } from "src/adapters/parsers";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
 import { DisplayMethodCard } from "src/components/display-methods/DisplayMethodCard";
@@ -45,7 +46,6 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { buildAppError, notifyError } from "src/utils/error";
 
 function Details({ data }: { data: DisplayMethod }) {
   const env = useEnvContext();
@@ -170,11 +170,11 @@ export function DisplayMethodDetails() {
           void fetchDisplayMethod();
           setIsEditModalOpen(false);
         } else {
-          notifyError(buildAppError(response.error.message));
+          void notifyError(buildAppError(response.error.message));
         }
       });
     } else {
-      notifyError(buildAppError(`"${url}" is not a valid URL`));
+      void notifyError(buildAppError(`"${url}" is not a valid URL`));
     }
   };
 
