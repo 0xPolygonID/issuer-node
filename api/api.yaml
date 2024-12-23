@@ -2074,6 +2074,10 @@ components:
         version:
           type: string
           example: "1.0.0"
+        displayMethodID:
+          type: string
+          x-go-type: uuid.UUID
+          x-omitempty: false
 
     Schema:
       type: object
@@ -2121,6 +2125,10 @@ components:
           type: string
           x-omitempty: false
           example: "1.0.0"
+        displayMethodID:
+          type: string
+          x-go-type: uuid.UUID
+          x-omitempty: false
 
     # display method
     DisplayMethod:

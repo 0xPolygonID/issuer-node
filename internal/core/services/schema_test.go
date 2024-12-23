@@ -31,10 +31,13 @@ func TestSchema_ImportSchema(t *testing.T) {
 	issuerDID, err := w3c.ParseDID(did)
 	require.NoError(t, err)
 
+	displayMethodRepository := repositories.NewDisplayMethod(*storage)
+	displayMethodService := NewDisplayMethod(displayMethodRepository)
+
 	expectHash := utils.CreateSchemaHash([]byte(urlLD + "#" + schemaType))
 
-	s := NewSchema(repo, docLoader)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer(title), version, common.ToPointer(description))
+	s := NewSchema(repo, docLoader, displayMethodService)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer(title), version, common.ToPointer(description), nil)
 	got, err := s.ImportSchema(ctx, *issuerDID, iReq)
 	require.NoError(t, err)
 	_, err = uuid.Parse(got.ID.String())

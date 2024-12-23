@@ -12,6 +12,7 @@ const defaultEnvContext: Env = {
     url: "",
     username: "",
   },
+  baseUrl: "",
   displayMethodBuilderUrl: "",
   ipfsGatewayUrl: "",
   issuer: {

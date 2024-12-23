@@ -40,7 +40,7 @@ func TestServer_CreateLink(t *testing.T) {
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil))
 	assert.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -244,7 +244,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil))
 	assert.NoError(t, err)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
@@ -372,7 +372,7 @@ func TestServer_GetLink(t *testing.T) {
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil))
 	assert.NoError(t, err)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
@@ -528,7 +528,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(sUrl, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(sUrl, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil))
 	assert.NoError(t, err)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
@@ -741,7 +741,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil))
 	assert.NoError(t, err)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
@@ -839,7 +839,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	require.NoError(t, err)
 	did2, err := w3c.ParseDID(iden2.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil))
 	assert.NoError(t, err)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
@@ -924,7 +924,7 @@ func TestServer_CreateLinkOffer(t *testing.T) {
 	require.NoError(t, err)
 	did, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
-	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(uri, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription")))
+	importedSchema, err := server.Services.schema.ImportSchema(ctx, *did, ports.NewImportSchemaRequest(uri, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil))
 	assert.NoError(t, err)
 
 	validUntil := common.ToPointer(time.Now().Add(365 * 24 * time.Hour))
