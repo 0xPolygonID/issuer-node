@@ -1,9 +1,14 @@
 name: Delete Helm Release
 
-on: [delete]
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to target'
+        required: true
 
 env:
-  BRANCH_NAME: ${{ github.event.ref }}
+  BRANCH_NAME: ${{ github.event.inputs.branch }}
 
 jobs:
   delete:
@@ -24,14 +29,14 @@ jobs:
           echo "Extracted URL: $url"
           echo "::set-output name=url::$url"
 
-      - name: Cambiar contexto de kubectl
+      - name: change k3s context
         run: |
           kubectl config use-context k3s
 
-      - name: Verificar conexión al clúster
+      - name: check if the cluster exists
         run: kubectl cluster-info
 
-      - name: Check if helm chart exists
+      - name: check if helm chart exists
         id: helm_check
         run: |
           result=$(helm list --namespace "${{ steps.extract-url.outputs.url }}" -q | grep "^${{ steps.extract-url.outputs.url }}$" || echo 'not_found')
@@ -48,7 +53,7 @@ jobs:
           overrule_existing_kubeconfig: "true"
         if: steps.helm_check.outputs.result != 'not_found'
 
-      - name: "Delete namespace"
+      - name: "delete namespace"
         run: |
           kubectl delete namespace ${{ env.BRANCH_NAME }}
         if: steps.helm_check.outputs.result != 'not_found'
