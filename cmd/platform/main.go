@@ -112,6 +112,7 @@ func main() {
 	schemaRepository := repositories.NewSchema(*storage)
 	linkRepository := repositories.NewLink(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
+	verificationRepository := repositories.NewVerification(*storage)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
@@ -138,7 +139,7 @@ func main() {
 		return
 	}
 
-	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
+	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/verification_keys"}
 	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
 	if err != nil {
 		log.Error(ctx, "failed init verifier", "err", err)
@@ -158,6 +159,8 @@ func main() {
 		return
 	}
 	accountService := services.NewAccountService(*networkResolver)
+
+	verificationService := services.NewVerificationService(networkResolver, cachex, verificationRepository, verifier)
 
 	publisherGateway, err := gateways.NewPublisherEthGateway(*networkResolver, keyStore, cfg.PublishingKeyPath)
 	if err != nil {
@@ -193,7 +196,7 @@ func main() {
 	)
 	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, verificationService, mediaTypeManager),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
