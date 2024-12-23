@@ -64,13 +64,13 @@ jobs:
           tags: ${{ env.ISSUER_NODE_API_IMAGE }}:${{ env.IMAGE_TAG }}
 
 
-      - name: Extract URL from branches.txt
+      - name: Extract URL from branch name
         id: extract-url
         run: |
-          # Search for the branch in the file
-          url=$(grep "^${{ env.BRANCH_NAME }}=" ./k8s/testing/branches.txt | cut -d'=' -f2)
-          echo "Extracted URL: $url"
-          echo "::set-output name=url::$url"
+          TRANSFORMED_NAME=$(echo "${{ env.BRANCH_NAME }}" | sed 's/_/-/g' | cut -c1-30)
+          echo "Original branch name: ${{ env.BRANCH_NAME }}"
+          echo "Transformed branch name: $TRANSFORMED_NAME"
+          echo "::set-output name=url::$TRANSFORMED_NAME"
 
       - name: kubectl configuration
         run: |
