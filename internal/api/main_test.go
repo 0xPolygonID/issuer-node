@@ -124,6 +124,7 @@ func TestMain(m *testing.M) {
 	cfg.ServerUrl = "https://testing.env"
 	cfg.Ethereum = cfgForTesting.Ethereum
 	cfg.UniversalLinks = config.UniversalLinks{BaseUrl: "https://testing.env"}
+	cfg.Circuit.Path = "../../pkg/credentials/circuits"
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL, false)
 	m.Run()
 }
