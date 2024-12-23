@@ -297,6 +297,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		map[iden3comm.ProtocolMessage][]string{
 			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			protocol.RevocationStatusRequestMessageType: {"*"},
+			protocol.DiscoverFeatureQueriesMessageType:  {"*"},
 		},
 		true,
 	)
