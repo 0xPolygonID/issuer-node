@@ -21,6 +21,7 @@ import {
   credentialStatusParser,
   getCredentials,
 } from "src/adapters/api/credentials";
+import { notifyErrors, notifyParseError } from "src/adapters/parsers";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
@@ -49,7 +50,6 @@ import {
   REVOCATION,
   REVOKE,
 } from "src/utils/constants";
-import { notifyParseError, notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable({ userID }: { userID: string }) {
@@ -199,7 +199,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             data: response.data.items.successful,
             status: "successful",
           });
-          notifyParseErrors(response.data.items.failed);
+          void notifyErrors(response.data.items.failed);
         } else {
           if (!isAbortedError(response.error)) {
             setCredentials({ error: response.error, status: "failed" });
@@ -215,7 +215,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
     if (parsedCredentialStatus.success) {
       setCredentialStatus(parsedCredentialStatus.data);
     } else {
-      notifyParseError(parsedCredentialStatus.error);
+      void notifyParseError(parsedCredentialStatus.error);
     }
   };
 

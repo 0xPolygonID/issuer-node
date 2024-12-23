@@ -116,13 +116,27 @@ func (ls *localEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, 
 		return KeyID{}, err
 	}
 
-	keyID.ID = identity.String()
+	keyID.ID = identity.String() + "/" + keyID.ID
 	return keyID, nil
 }
 
 // ListByIdentity lists keys by identity
 func (ls *localEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
 	return ls.storageManager.searchByIdentity(ctx, identity, ls.keyType)
+}
+
+func (ls *localEthKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	return ls.storageManager.deleteKeyMaterial(ctx, keyID)
+}
+
+func (ls *localEthKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	_, err := ls.storageManager.getKeyMaterial(ctx, keyID)
+	if err != nil {
+		if errors.Is(err, ErrKeyNotFound) {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // nolint

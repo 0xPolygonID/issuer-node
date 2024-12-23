@@ -125,6 +125,10 @@ func (ls *localBJJKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, 
 	return keyID, nil
 }
 
+func (ls *localBJJKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	return ls.storageManager.deleteKeyMaterial(ctx, keyID)
+}
+
 func (ls *localBJJKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]byte, error) {
 	if keyID.Type != ls.keyType {
 		return nil, ErrIncorrectKeyType
@@ -154,4 +158,14 @@ func (ls *localBJJKeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]b
 	}
 
 	return val, nil
+}
+
+func (ls *localBJJKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	_, err := ls.storageManager.getKeyMaterial(ctx, keyID)
+	if err != nil {
+		if errors.Is(err, ErrKeyNotFound) {
+			return false, nil
+		}
+	}
+	return true, nil
 }

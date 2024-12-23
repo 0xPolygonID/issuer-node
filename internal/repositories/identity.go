@@ -22,8 +22,8 @@ var ErrDisplayNameDuplicated = errors.New("display name already exists")
 
 type identity struct{}
 
-// NewIdentity TODO
-func NewIdentity() ports.IndentityRepository {
+// NewIdentity - Create new identity repository
+func NewIdentity() ports.IdentityRepository {
 	return &identity{}
 }
 
@@ -70,7 +70,8 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
 				        claims.credential_status
 			   FROM identities
 			   LEFT JOIN identity_states ON identities.identifier = identity_states.identifier
-               LEFT JOIN claims ON claims.identifier = identities.identifier and claims.schema_type = 'https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential'
+               LEFT JOIN claims ON claims.identifier = identities.identifier 
+                        AND claims.schema_type = 'https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential'
 			   WHERE identities.identifier=$1 
 			        AND ( status = 'transacted' OR status = 'confirmed')
     				OR (identities.identifier=$1 AND status = 'created' AND previous_state is null
