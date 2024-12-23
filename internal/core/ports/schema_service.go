@@ -18,20 +18,22 @@ type SchemaService interface {
 
 // ImportSchemaRequest defines the request for importing a schema
 type ImportSchemaRequest struct {
-	URL         string
-	SType       string
-	Title       *string
-	Description *string
-	Version     string
+	URL             string
+	SType           string
+	Title           *string
+	Description     *string
+	Version         string
+	DisplayMethodID *uuid.UUID
 }
 
 // NewImportSchemaRequest creates a new ImportSchemaRequest
-func NewImportSchemaRequest(url string, stype string, title *string, version string, description *string) *ImportSchemaRequest {
+func NewImportSchemaRequest(url string, stype string, title *string, version string, description *string, displayMethodID *uuid.UUID) *ImportSchemaRequest {
 	return &ImportSchemaRequest{
-		URL:         url,
-		SType:       stype,
-		Title:       title,
-		Description: description,
-		Version:     version,
+		URL:             url,
+		SType:           stype,
+		Title:           title,
+		Description:     description,
+		Version:         version,
+		DisplayMethodID: displayMethodID,
 	}
 }

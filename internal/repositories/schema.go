@@ -18,21 +18,23 @@ import (
 )
 
 var (
-	ErrSchemaDoesNotExist = errors.New("schema does not exist")   // ErrSchemaDoesNotExist schema does not exist
-	ErrDuplicated         = errors.New("schema already imported") // ErrDuplicated schema duplicated
+	ErrSchemaDoesNotExist    = errors.New("schema does not exist")    // ErrSchemaDoesNotExist schema does not exist
+	ErrDuplicated            = errors.New("schema already imported")  // ErrDuplicated schema duplicated
+	ErrDisplayMethodNotFound = errors.New("display method not found") // ErrDisplayMethodNotFound display method not found
 )
 
 type dbSchema struct {
-	ID          uuid.UUID
-	IssuerID    string
-	URL         string
-	Type        string
-	Version     string
-	Title       *string
-	Description *string
-	Hash        string
-	Words       string
-	CreatedAt   time.Time
+	ID              uuid.UUID
+	IssuerID        string
+	URL             string
+	Type            string
+	Version         string
+	Title           *string
+	Description     *string
+	Hash            string
+	Words           string
+	CreatedAt       time.Time
+	DisplayMethodID *uuid.UUID
 }
 
 type schema struct {
@@ -46,7 +48,7 @@ func NewSchema(conn db.Storage) *schema {
 
 // Save stores a new entry in schemas table
 func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
-	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  hash,  words, created_at,version,title,description) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, $7, $8::text,$9::text,$10::text);`
+	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  hash,  words, created_at,version,title,description, display_method_id) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, $7, $8::text,$9::text,$10::text, $11);`
 	hash, err := s.Hash.MarshalText()
 	if err != nil {
 		return err
@@ -63,11 +65,16 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 		s.CreatedAt,
 		s.Version,
 		s.Title,
-		s.Description)
+		s.Description,
+		s.DisplayMethodID)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == duplicateViolationErrorCode {
 			return ErrDuplicated
+		}
+
+		if pgErr.Code == foreignKeyViolationErrorCode {
+			return ErrDisplayMethodNotFound
 		}
 
 		return err
@@ -89,7 +96,7 @@ func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) (
 	var err error
 	var rows pgx.Rows
 	sqlArgs := make([]interface{}, 0)
-	sqlQuery := `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description
+	sqlQuery := `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description, display_method_id
 	FROM schemas
 	WHERE issuer_id=$1`
 	sqlArgs = append(sqlArgs, issuerDID.String())
@@ -110,7 +117,7 @@ func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) (
 	schemaCol := make([]domain.Schema, 0)
 	s := dbSchema{}
 	for rows.Next() {
-		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description); err != nil {
+		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description, &s.DisplayMethodID); err != nil {
 			return nil, err
 		}
 		item, err := toSchemaDomain(&s)
@@ -124,13 +131,13 @@ func (r *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) (
 
 // GetByID searches and returns an schema by id
 func (r *schema) GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.Schema, error) {
-	const byID = `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description
+	const byID = `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description, display_method_id
 		FROM schemas 
 		WHERE issuer_id = $1 AND id=$2`
 
 	s := dbSchema{}
 	row := r.conn.Pgx.QueryRow(ctx, byID, issuerDID.String(), id)
-	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description)
+	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description, &s.DisplayMethodID)
 	if err == pgx.ErrNoRows {
 		return nil, ErrSchemaDoesNotExist
 	}
@@ -150,15 +157,16 @@ func toSchemaDomain(s *dbSchema) (*domain.Schema, error) {
 		return nil, fmt.Errorf("parsing hash from schema: %w", err)
 	}
 	return &domain.Schema{
-		ID:          s.ID,
-		IssuerDID:   *issuerDID,
-		URL:         s.URL,
-		Type:        s.Type,
-		Hash:        schemaHash,
-		Words:       domain.SchemaWordsFromString(s.Words),
-		CreatedAt:   s.CreatedAt,
-		Version:     s.Version,
-		Title:       s.Title,
-		Description: s.Description,
+		ID:              s.ID,
+		IssuerDID:       *issuerDID,
+		URL:             s.URL,
+		Type:            s.Type,
+		Hash:            schemaHash,
+		Words:           domain.SchemaWordsFromString(s.Words),
+		CreatedAt:       s.CreatedAt,
+		Version:         s.Version,
+		Title:           s.Title,
+		Description:     s.Description,
+		DisplayMethodID: s.DisplayMethodID,
 	}, nil
 }

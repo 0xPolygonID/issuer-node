@@ -474,11 +474,12 @@ type IdentityState struct {
 
 // ImportSchemaRequest defines model for ImportSchemaRequest.
 type ImportSchemaRequest struct {
-	Description *string `json:"description,omitempty"`
-	SchemaType  string  `json:"schemaType"`
-	Title       *string `json:"title,omitempty"`
-	Url         string  `json:"url"`
-	Version     string  `json:"version"`
+	Description     *string    `json:"description,omitempty"`
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
+	SchemaType      string     `json:"schemaType"`
+	Title           *string    `json:"title,omitempty"`
+	Url             string     `json:"url"`
+	Version         string     `json:"version"`
 }
 
 // IssuerDescription defines model for IssuerDescription.
@@ -598,15 +599,16 @@ type RevokeClaimResponse struct {
 
 // Schema defines model for Schema.
 type Schema struct {
-	BigInt      string  `json:"bigInt"`
-	CreatedAt   TimeUTC `json:"createdAt"`
-	Description *string `json:"description"`
-	Hash        string  `json:"hash"`
-	Id          string  `json:"id"`
-	Title       *string `json:"title"`
-	Type        string  `json:"type"`
-	Url         string  `json:"url"`
-	Version     string  `json:"version"`
+	BigInt          string     `json:"bigInt"`
+	CreatedAt       TimeUTC    `json:"createdAt"`
+	Description     *string    `json:"description"`
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
+	Hash            string     `json:"hash"`
+	Id              string     `json:"id"`
+	Title           *string    `json:"title"`
+	Type            string     `json:"type"`
+	Url             string     `json:"url"`
+	Version         string     `json:"version"`
 }
 
 // StateStatusResponse defines model for StateStatusResponse.

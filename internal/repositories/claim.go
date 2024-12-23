@@ -22,7 +22,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-const duplicateViolationErrorCode = "23505"
+const (
+	duplicateViolationErrorCode  = "23505"
+	foreignKeyViolationErrorCode = "23503"
+)
 
 var (
 	// ErrClaimDuplication claim duplication error

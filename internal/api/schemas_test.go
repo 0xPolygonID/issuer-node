@@ -18,6 +18,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
@@ -25,22 +26,41 @@ import (
 func TestServer_GetSchema(t *testing.T) {
 	ctx := context.Background()
 	server := newTestServer(t, nil)
-	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
-	require.NoError(t, err)
-	server.cfg.ServerUrl = "https://testing.env"
 	fixture := repositories.NewFixture(storage)
+
+	iden, err := server.Services.identity.Create(ctx, "http://issuer-node", &ports.DIDCreationOptions{Method: "iden3", Blockchain: "privado", Network: "main", KeyType: "BJJ"})
+	require.NoError(t, err)
+	did, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	displayMethodID, err := server.Services.displayMethod.Save(ctx, *did, "display method", "display method description", nil)
+	require.NoError(t, err)
 
 	s := &domain.Schema{
 		ID:        uuid.New(),
-		IssuerDID: *issuerDID,
+		IssuerDID: *did,
 		URL:       "https://domain.org/this/is/an/url",
 		Type:      "schemaType",
 		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
 		CreatedAt: time.Now(),
 	}
 	s.Hash = common.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
+
+	s.DisplayMethodID = displayMethodID
 	fixture.CreateSchema(t, ctx, s)
 	sHash, _ := s.Hash.MarshalText()
+
+	s2 := &domain.Schema{
+		ID:        uuid.New(),
+		IssuerDID: *did,
+		URL:       "https://domain.org/this/is/an/url_2",
+		Type:      "schemaType",
+		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+		CreatedAt: time.Now(),
+	}
+	s2.Hash = common.CreateSchemaHash([]byte(s2.URL + "#" + s2.Type))
+	fixture.CreateSchema(t, ctx, s2)
+	s2Hash, _ := s2.Hash.MarshalText()
 
 	handler := getHandler(ctx, server)
 	type expected struct {
@@ -88,19 +108,37 @@ func TestServer_GetSchema(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				schema: &Schema{
-					BigInt:    s.Hash.BigInt().String(),
-					CreatedAt: TimeUTC(s.CreatedAt),
-					Hash:      string(sHash),
-					Id:        s.ID.String(),
-					Type:      s.Type,
-					Url:       s.URL,
+					BigInt:          s.Hash.BigInt().String(),
+					CreatedAt:       TimeUTC(s.CreatedAt),
+					Hash:            string(sHash),
+					Id:              s.ID.String(),
+					Type:            s.Type,
+					Url:             s.URL,
+					DisplayMethodID: displayMethodID,
+				},
+			},
+		},
+		{
+			name: "Happy path. Existing schema without display method",
+			auth: authOk,
+			id:   s2.ID.String(),
+			expected: expected{
+				httpCode: http.StatusOK,
+				schema: &Schema{
+					BigInt:          s2.Hash.BigInt().String(),
+					CreatedAt:       TimeUTC(s2.CreatedAt),
+					Hash:            string(s2Hash),
+					Id:              s2.ID.String(),
+					Type:            s2.Type,
+					Url:             s2.URL,
+					DisplayMethodID: nil,
 				},
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", fmt.Sprintf("/v2/identities/%s/schemas/%s", issuerDID, tc.id), nil)
+			req, err := http.NewRequest("GET", fmt.Sprintf("/v2/identities/%s/schemas/%s", did, tc.id), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -116,6 +154,7 @@ func TestServer_GetSchema(t *testing.T) {
 				assert.Equal(t, tc.expected.schema.Type, response.Type)
 				assert.Equal(t, tc.expected.schema.Url, response.Url)
 				assert.Equal(t, tc.expected.schema.Hash, response.Hash)
+				assert.Equal(t, tc.expected.schema.DisplayMethodID, response.DisplayMethodID)
 				assert.InDelta(t, time.Time(tc.expected.schema.CreatedAt).UnixMilli(), time.Time(response.CreatedAt).UnixMilli(), 1000)
 			case http.StatusNotFound:
 				var response GetSchema404JSONResponse
@@ -267,9 +306,13 @@ func TestServer_ImportSchema(t *testing.T) {
 	ctx := context.Background()
 
 	server := newTestServer(t, nil)
-	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	iden, err := server.Services.identity.Create(ctx, "http://issuer-node", &ports.DIDCreationOptions{Method: "iden3", Blockchain: "privado", Network: "main", KeyType: "BJJ"})
 	require.NoError(t, err)
-	server.cfg.ServerUrl = "https://testing.env"
+	did, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	displayMethodID, err := server.Services.displayMethod.Save(ctx, *did, "display method", "display method description", nil)
+	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
 
@@ -331,10 +374,42 @@ func TestServer_ImportSchema(t *testing.T) {
 				errorMsg: "bad request: parsing url: parse \"wrong/url\": invalid URI for request",
 			},
 		},
+		{
+			name: "Valid request with display method",
+			auth: authOk,
+			request: &ImportSchemaRequest{
+				SchemaType:      schemaType,
+				Url:             url,
+				Title:           common.ToPointer("some Title"),
+				Description:     common.ToPointer("some Description"),
+				Version:         uuid.NewString(),
+				DisplayMethodID: displayMethodID,
+			},
+			expected: expected{
+				httpCode: http.StatusCreated,
+				errorMsg: "bad request: parsing url: parse \"wrong/url\": invalid URI for request",
+			},
+		},
+		{
+			name: "Invalid request with display method",
+			auth: authOk,
+			request: &ImportSchemaRequest{
+				SchemaType:      schemaType,
+				Url:             url,
+				Title:           common.ToPointer("some Title"),
+				Description:     common.ToPointer("some Description"),
+				Version:         uuid.NewString(),
+				DisplayMethodID: common.ToPointer(uuid.New()),
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "display method not found",
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/schemas", issuerDID), tests.JSONBody(t, tc.request))
+			req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/schemas", did), tests.JSONBody(t, tc.request))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 

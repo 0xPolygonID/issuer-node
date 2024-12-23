@@ -12,6 +12,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // ImportSchema is the UI endpoint to import schema metadata
@@ -26,10 +27,15 @@ func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestOb
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return ImportSchema400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	iReq := ports.NewImportSchemaRequest(req.Url, req.SchemaType, req.Title, req.Version, req.Description)
+
+	iReq := ports.NewImportSchemaRequest(req.Url, req.SchemaType, req.Title, req.Version, req.Description, req.DisplayMethodID)
 	schema, err := s.schemaService.ImportSchema(ctx, *issuerDID, iReq)
 	if err != nil {
 		log.Error(ctx, "Importing schema", "err", err, "req", req)
+		if errors.Is(err, repositories.ErrDisplayMethodNotFound) || errors.Is(err, services.ErrDisplayMethodNotFound) {
+			return ImportSchema400JSONResponse{N400JSONResponse{Message: "display method not found"}}, nil
+		}
+
 		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return ImportSchema201JSONResponse{Id: schema.ID.String()}, nil
