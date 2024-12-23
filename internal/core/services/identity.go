@@ -1356,7 +1356,7 @@ func sanitizeIssuerDoc(issDoc []byte) []byte {
 	return []byte(str)
 }
 
-// ethPubKey returns the public key from the key manager service.
+// EthPubKey returns the ethereum public key from the key manager service.
 // the public key is either uncompressed or compressed, so we need to handle both cases.
 func ethPubKey(ctx context.Context, keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
 	const (
@@ -1364,6 +1364,10 @@ func ethPubKey(ctx context.Context, keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.
 		awsKeyLength          = 88
 		defaultKeyLength      = 33
 	)
+
+	if keyID.Type != kms.KeyTypeEthereum {
+		return nil, errors.New("key type is not ethereum")
+	}
 
 	keyBytes, err := keyMS.PublicKey(keyID)
 	if err != nil {

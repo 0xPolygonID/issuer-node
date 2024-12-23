@@ -43,13 +43,15 @@ func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) 
 		return GetSchema400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
 	schema, err := s.schemaService.GetByID(ctx, *issuerDID, request.Id)
-	if errors.Is(err, services.ErrSchemaNotFound) {
-		log.Error(ctx, "schema not found", "id", request.Id)
-		return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
-	}
 	if err != nil {
+		if errors.Is(err, services.ErrSchemaNotFound) {
+			log.Error(ctx, "schema not found", "id", request.Id)
+			return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
+		}
 		log.Error(ctx, "loading schema", "err", err, "id", request.Id)
+		return GetSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
+
 	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
 
