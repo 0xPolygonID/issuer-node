@@ -3,6 +3,7 @@ export type { AppError } from "src/domain/error";
 export type { Connection } from "src/domain/connection";
 
 export type {
+  AuthCredential,
   Credential,
   CredentialsTabIDs,
   IssuedMessage,
@@ -66,3 +67,6 @@ export { IdentityType, Method, CredentialStatusType } from "src/domain/identity"
 export type { DisplayMethod, DisplayMethodMetadata } from "src/domain/display-method";
 
 export { DisplayMethodType } from "./display-method";
+
+export type { Key } from "src/domain/key";
+export { KeyType } from "src/domain/key";

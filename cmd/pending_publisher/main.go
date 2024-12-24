@@ -104,6 +104,7 @@ func main() {
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
+	keyRepository := repositories.NewKey(*storage)
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	qrService := services.NewQrStoreService(cachex)
 
@@ -120,7 +121,7 @@ func main() {
 		*cfg.MediaTypeManager.Enabled,
 	)
 
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)

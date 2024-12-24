@@ -49,7 +49,7 @@ export async function getIdentities({
       url: `${API_VERSION}/identities`,
     });
 
-    return buildSuccessResponse(getListParser(identityParser).parse(response.data || []));
+    return buildSuccessResponse(getListParser(identityParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
@@ -101,6 +101,7 @@ export async function createIdentity({
 
 export const identityDetailsParser = getStrictParser<IdentityDetails>()(
   z.object({
+    authCredentialsIDs: z.array(z.string()),
     credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string().nullable(),
     identifier: z.string(),

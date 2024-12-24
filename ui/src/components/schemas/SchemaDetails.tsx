@@ -4,6 +4,11 @@ import { generatePath, useNavigate, useParams } from "react-router-dom";
 
 import { getApiSchema, processUrl } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
+import {
+  buildAppError,
+  jsonLdContextErrorToString,
+  jsonSchemaErrorToString,
+} from "src/adapters/parsers";
 import CreditCardIcon from "src/assets/icons/credit-card-plus.svg?react";
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
@@ -18,11 +23,6 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SCHEMA_SEARCH_PARAM } from "src/utils/constants";
-import {
-  buildAppError,
-  jsonLdContextErrorToString,
-  jsonSchemaErrorToString,
-} from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function SchemaDetails() {

@@ -22,15 +22,23 @@ import (
 
 // DeleteCredential deletes a credential
 func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
+	did, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		return DeleteCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+
 	clID, err := uuid.Parse(request.Id)
 	if err != nil {
 		return DeleteCredential400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
 	}
 
-	err = s.claimService.Delete(ctx, clID)
+	err = s.claimService.Delete(ctx, did, clID)
 	if err != nil {
 		if errors.Is(err, services.ErrCredentialNotFound) {
 			return DeleteCredential400JSONResponse{N400JSONResponse{"The given credential does not exist"}}, nil
+		}
+		if errors.Is(err, services.ErrAuthCredentialCannotBeRevoked) {
+			return DeleteCredential400JSONResponse{N400JSONResponse{Message: "Cannot delete the only remaining authentication credential. An identity must have at least one credential"}}, nil
 		}
 		return DeleteCredential500JSONResponse{N500JSONResponse{"There was an error deleting the credential"}}, nil
 	}
@@ -96,6 +104,9 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		if errors.Is(err, services.ErrLoadingSchema) {
 			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
 		}
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return CreateCredential500JSONResponse{N500JSONResponse{Message: "if this identity has keyType=ETH you must to publish the state first"}}, nil
+		}
 		errs := []error{
 			services.ErrJSONLdContext,
 			services.ErrProcessSchema,
@@ -136,6 +147,11 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 			}}, nil
 		}
 
+		if errors.Is(err, services.ErrAuthCredentialCannotBeRevoked) {
+			return RevokeCredential400JSONResponse{N400JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
 		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return RevokeCredential202JSONResponse{

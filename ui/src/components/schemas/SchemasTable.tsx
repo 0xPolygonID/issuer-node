@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
 
 import { getApiSchemas } from "src/adapters/api/schemas";
+import { notifyErrors } from "src/adapters/parsers";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
 import IconUpload from "src/assets/icons/upload-01.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -34,7 +35,6 @@ import {
   SCHEMA_SEARCH_PARAM,
   SCHEMA_TYPE,
 } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function SchemasTable() {
@@ -138,7 +138,7 @@ export function SchemasTable() {
       });
       if (response.success) {
         setApiSchemas({ data: response.data.successful, status: "successful" });
-        notifyParseErrors(response.data.failed);
+        void notifyErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setApiSchemas({ error: response.error, status: "failed" });

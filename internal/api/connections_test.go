@@ -257,7 +257,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 		OtherIdentifier: userDID2.String(),
 		Expiration:      0,
 		Version:         0,
-		RevNonce:        0,
+		RevNonce:        1,
 		CoreClaim:       domain.CoreClaim{},
 		Status:          nil,
 	})
@@ -475,7 +475,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 		OtherIdentifier: userDID.String(),
 		Expiration:      0,
 		Version:         0,
-		RevNonce:        0,
+		RevNonce:        1,
 		CoreClaim:       domain.CoreClaim{},
 		Status:          nil,
 	})

@@ -13,7 +13,7 @@ import (
 // Fixture - Handle testing fixture configuration
 type Fixture struct {
 	storage                 *db.Storage
-	identityRepository      ports.IndentityRepository
+	identityRepository      ports.IdentityRepository
 	claimRepository         ports.ClaimRepository
 	connectionsRepository   ports.ConnectionRepository
 	schemaRepository        ports.SchemaRepository
