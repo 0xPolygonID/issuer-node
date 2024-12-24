@@ -28,7 +28,6 @@ import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeMod
 import { TableCard } from "src/components/shared/TableCard";
 
 import { useEnvContext } from "src/contexts/Env";
-import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, AuthCredential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -36,9 +35,14 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { DOTS_DROPDOWN_WIDTH, ISSUE_DATE, REVOCATION, REVOKE } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 
-export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
+export function IdentityAuthCredentials({
+  identityID,
+  IDs,
+}: {
+  IDs: Array<string>;
+  identityID: string;
+}) {
   const env = useEnvContext();
-  const { identifier } = useIdentityContext();
   const navigate = useNavigate();
 
   const [credentials, setCredentials] = useState<AsyncTask<AuthCredential[], AppError>>({
@@ -57,7 +61,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
 
       const response = await getAuthCredentialsByIDs({
         env,
-        identifier,
+        identifier: identityID,
         IDs,
         signal,
       });
@@ -74,7 +78,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
         }
       }
     },
-    [env, identifier, IDs]
+    [env, identityID, IDs]
   );
 
   const tableColumns: TableColumnsType<AuthCredential> = [
