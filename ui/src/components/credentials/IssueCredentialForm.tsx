@@ -35,6 +35,7 @@ import {
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import IconLink from "src/assets/icons/link-external-01.svg?react";
+import { iso31661Countries } from "src/assets/iso31661Countries";
 import { InputErrors, ObjectAttributeForm } from "src/components/credentials/ObjectAttributeForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -144,9 +145,8 @@ export function IssueCredentialForm({
     }
   };
 
-  const isCountryCode = (x: number) => {
-    const iso31661NumericRegex = /^\d{1,3}$/;
-    return iso31661NumericRegex.test(x.toString());
+  const isCountryCode = (code: number) => {
+    return iso31661Countries.some((country) => country.code === code);
   };
 
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
