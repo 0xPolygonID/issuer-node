@@ -197,7 +197,7 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 		id, err := repo.SavePaymentRequest(ctx, &domain.PaymentRequest{
 			ID:              uuid.New(),
 			IssuerDID:       *issuerID,
-			RecipientDID:    *issuerID,
+			UserDID:         *issuerID,
 			Description:     "this is a payment for cinema",
 			Credentials:     []protocol.PaymentRequestInfoCredentials{{Context: "context", Type: "type"}},
 			PaymentOptionID: uuid.New(),
@@ -211,7 +211,7 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 		id, err := repo.SavePaymentRequest(ctx, &domain.PaymentRequest{
 			ID:              uuid.New(),
 			IssuerDID:       *issuerID,
-			RecipientDID:    *issuerID,
+			UserDID:         *issuerID,
 			Description:     "this is a payment for cinema",
 			Credentials:     []protocol.PaymentRequestInfoCredentials{{Context: "context", Type: "type"}},
 			PaymentOptionID: payymentOptionID,
@@ -245,7 +245,7 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 		id, err := repo.SavePaymentRequest(ctx, &domain.PaymentRequest{
 			ID:              paymentRequestID,
 			IssuerDID:       *issuerID,
-			RecipientDID:    *issuerID,
+			UserDID:         *issuerID,
 			Description:     "this is a payment for cinema",
 			Credentials:     []protocol.PaymentRequestInfoCredentials{{Context: "context", Type: "type"}},
 			PaymentOptionID: payymentOptionID,
@@ -275,7 +275,7 @@ func TestPayment_GetPaymentRequestByID(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expected.ID, paymentRequest.ID)
 		assert.Equal(t, expected.IssuerDID, paymentRequest.IssuerDID)
-		assert.Equal(t, expected.RecipientDID, paymentRequest.RecipientDID)
+		assert.Equal(t, expected.UserDID, paymentRequest.UserDID)
 		assert.Equal(t, expected.PaymentOptionID, paymentRequest.PaymentOptionID)
 		assert.InDelta(t, expected.CreatedAt.UnixMilli(), paymentRequest.CreatedAt.UnixMilli(), 1)
 		assert.Len(t, expected.Payments, len(paymentRequest.Payments))

@@ -30,13 +30,15 @@ const paymentOptionConfigurationTesting = `
       "paymentOptionId": 1,
       "amount": "500000000000000000",
       "Recipient": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-      "SigningKeyId": "pubId"
+      "SigningKeyId": "pubId",
+	  "Expiration": "2025-04-17T11:40:43.681857-03:00"
     },
     {
       "paymentOptionId": 2,
       "amount": "1500000000000000000",
       "Recipient": "0x53d284357ec70cE289D6D64134DfAc8E511c8a3D",
-      "SigningKeyId": "pubId"
+      "SigningKeyId": "pubId",
+	  "Expiration": "2025-04-17T11:40:43.681857-03:00"
     }
 ]
 `
@@ -99,9 +101,9 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 			auth:      authWrong,
 			issuerDID: *issuerDID,
 			body: CreatePaymentOptionJSONRequestBody{
-				Config:      config,
-				Description: "Payment Option explanation",
-				Name:        "1 POL Payment",
+				PaymentOptions: config,
+				Description:    "Payment Option explanation",
+				Name:           "1 POL Payment",
 			},
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -113,9 +115,9 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 			auth:      authOk,
 			issuerDID: *issuerDID,
 			body: CreatePaymentOptionJSONRequestBody{
-				Config:      config,
-				Description: "Payment Option explanation",
-				Name:        "1 POL Payment",
+				PaymentOptions: config,
+				Description:    "Payment Option explanation",
+				Name:           "1 POL Payment",
 			},
 			expected: expected{
 				httpCode: http.StatusCreated,
@@ -126,9 +128,9 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 			auth:      authOk,
 			issuerDID: *otherDID,
 			body: CreatePaymentOptionJSONRequestBody{
-				Config:      config,
-				Description: "Payment Option explanation",
-				Name:        "1 POL Payment",
+				PaymentOptions: config,
+				Description:    "Payment Option explanation",
+				Name:           "1 POL Payment",
 			},
 			expected: expected{
 				httpCode: http.StatusBadRequest,
@@ -188,11 +190,12 @@ func TestServer_GetPaymentOption(t *testing.T) {
 	for _, item := range config {
 		amount, ok := new(big.Int).SetString(item.Amount, 10)
 		require.True(t, ok)
-		domainConfig.Config = append(domainConfig.Config, domain.PaymentOptionConfigItem{
+		domainConfig.PaymentOptions = append(domainConfig.PaymentOptions, domain.PaymentOptionConfigItem{
 			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionID),
 			Amount:          *amount,
 			Recipient:       common.HexToAddress(item.Recipient),
 			SigningKeyID:    item.SigningKeyID,
+			Expiration:      item.Expiration,
 		})
 	}
 	optionID, err := server.Services.payments.CreatePaymentOption(
@@ -233,11 +236,11 @@ func TestServer_GetPaymentOption(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				option: PaymentOption{
-					Id:          optionID,
-					IssuerDID:   issuerDID.String(),
-					Name:        "1 POL Payment",
-					Description: "Payment Option explanation",
-					Config:      config,
+					Id:             optionID,
+					IssuerDID:      issuerDID.String(),
+					Name:           "1 POL Payment",
+					Description:    "Payment Option explanation",
+					PaymentOptions: config,
 				},
 			},
 		},
@@ -280,7 +283,7 @@ func TestServer_GetPaymentOption(t *testing.T) {
 				assert.Equal(t, tc.expected.option.Name, response.Name)
 				assert.Equal(t, tc.expected.option.Description, response.Description)
 				assert.Equal(t, tc.expected.option.IssuerDID, response.IssuerDID)
-				assert.Equal(t, tc.expected.option.Config, response.Config)
+				assert.Equal(t, tc.expected.option.PaymentOptions, response.PaymentOptions)
 
 			case http.StatusNotFound:
 				var response GetPaymentOption404JSONResponse
@@ -313,7 +316,7 @@ func TestServer_GetPaymentOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	config := domain.PaymentOptionConfig{
-		Config: []domain.PaymentOptionConfigItem{
+		PaymentOptions: []domain.PaymentOptionConfigItem{
 			{
 				PaymentOptionID: 1,
 				Amount:          *big.NewInt(500000000000000000),
@@ -531,7 +534,7 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 
 	amount := new(big.Int).SetUint64(500000000000000000)
 	config := domain.PaymentOptionConfig{
-		Config: []domain.PaymentOptionConfigItem{
+		PaymentOptions: []domain.PaymentOptionConfigItem{
 			{
 				PaymentOptionID: 1,
 				Amount:          *amount,

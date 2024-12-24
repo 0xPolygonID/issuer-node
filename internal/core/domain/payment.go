@@ -18,7 +18,7 @@ type PaymentRequest struct {
 	Credentials     []protocol.PaymentRequestInfoCredentials
 	Description     string
 	IssuerDID       w3c.DID
-	RecipientDID    w3c.DID
+	UserDID         w3c.DID
 	PaymentOptionID uuid.UUID
 	Payments        []PaymentRequestItem
 	CreatedAt       time.Time
@@ -58,14 +58,14 @@ func NewPaymentOption(issuerDID w3c.DID, name string, description string, config
 	}
 }
 
-// PaymentOptionConfig represents the configuration of a payment option
+// PaymentOptionConfig represents the wrapper configuration of a payment option
 type PaymentOptionConfig struct {
-	Config []PaymentOptionConfigItem `json:"Config"`
+	PaymentOptions []PaymentOptionConfigItem `json:"PaymentOptions"`
 }
 
 // GetByID runs over all items in configuration and returns one with matching ID
 func (c *PaymentOptionConfig) GetByID(paymentOptionID payments.OptionConfigIDType) *PaymentOptionConfigItem {
-	for _, item := range c.Config {
+	for _, item := range c.PaymentOptions {
 		if item.PaymentOptionID == paymentOptionID {
 			return &item
 		}
@@ -79,4 +79,5 @@ type PaymentOptionConfigItem struct {
 	Amount          big.Int                     `json:"amount"`
 	Recipient       common.Address              `json:"Recipient"`
 	SigningKeyID    string                      `json:"SigningKeyID"`
+	Expiration      *time.Time                  `json:"expiration"`
 }

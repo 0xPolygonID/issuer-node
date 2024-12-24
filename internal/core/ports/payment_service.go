@@ -41,9 +41,12 @@ type CreatePaymentRequestReq struct {
 // PaymentService is the interface implemented by the payment service
 type PaymentService interface {
 	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq) (*domain.PaymentRequest, error)
+	GetPaymentRequests(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentRequest, error)
+	GetPaymentRequest(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error)
+	DeletePaymentRequest(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
 	GetSettings() payments.Config
-	VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash string) (BlockchainPaymentStatus, error)
+	VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash *string, userDID *w3c.DID) (BlockchainPaymentStatus, error)
 	CreatePaymentOption(ctx context.Context, issuerDID *w3c.DID, name, description string, config *domain.PaymentOptionConfig) (uuid.UUID, error)
 	GetPaymentOptions(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentOption, error)
 	GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error)

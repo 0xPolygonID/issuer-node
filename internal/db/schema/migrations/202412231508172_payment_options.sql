@@ -21,7 +21,7 @@ CREATE TABLE payment_requests
     credentials       jsonb            NOT NULL, /* []protocol.PaymentRequestCredentials */
     description       text             NOT NULL,
     issuer_did        text             NOT NULL REFERENCES identities (identifier),
-    recipient_did     text             NOT NULL,
+    recipient_did     text             NOT NULL, /* TODO: rename to user_did */
     payment_option_id UUID REFERENCES payment_options (id),
     created_at        timestamptz      NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

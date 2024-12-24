@@ -19,6 +19,7 @@ type PaymentRepository interface {
 
 	SavePaymentRequest(ctx context.Context, req *domain.PaymentRequest) (uuid.UUID, error)
 	GetPaymentRequestByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error)
+	DeletePaymentRequest(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) error
 	GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID) ([]domain.PaymentRequest, error)
 	GetPaymentRequestItem(ctx context.Context, issuerDID w3c.DID, nonce *big.Int) (*domain.PaymentRequestItem, error)
 }
