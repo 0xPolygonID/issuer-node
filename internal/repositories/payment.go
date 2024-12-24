@@ -95,9 +95,10 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 		return nil, err
 	}
 	defer rows.Close()
-	var pr *domain.PaymentRequest
+	requestFound := false
+	var pr domain.PaymentRequest
 	for rows.Next() {
-		pr = &domain.PaymentRequest{}
+		requestFound = true
 		var item domain.PaymentRequestItem
 		var strIssuerDID, strUserDID string
 		var sNonce string
@@ -149,10 +150,10 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 		pr.Payments = append(pr.Payments, item)
 	}
 
-	if pr == nil {
+	if !requestFound {
 		return nil, ErrPaymentRequestDoesNotExists
 	}
-	return pr, nil
+	return &pr, nil
 }
 
 // DeletePaymentRequest deletes a payment request
