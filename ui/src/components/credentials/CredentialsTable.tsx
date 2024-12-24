@@ -109,10 +109,15 @@ export function CredentialsTable() {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
       key: "schemaType",
-      render: (schemaType: Credential["schemaType"]) => (
-        <Tooltip placement="topLeft" title={schemaType}>
-          <Typography.Text strong>{schemaType}</Typography.Text>
-        </Tooltip>
+      render: (schemaType: Credential["schemaType"], credential: Credential) => (
+        <Typography.Link
+          onClick={() =>
+            navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: credential.id }))
+          }
+          strong
+        >
+          {schemaType}
+        </Typography.Link>
       ),
       sorter: {
         multiple: 1,

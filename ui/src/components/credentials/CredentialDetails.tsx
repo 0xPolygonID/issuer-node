@@ -202,6 +202,7 @@ export function CredentialDetails() {
           );
         } else {
           const {
+            credentialStatus,
             displayMethod,
             expirationDate,
             issuanceDate,
@@ -261,12 +262,19 @@ export function CredentialDetails() {
                     />
 
                     <Detail
+                      label="Revocation nonce"
+                      text={credentialStatus.revocationNonce.toString()}
+                    />
+
+                    <Detail label="Credential status type" text={credentialStatus.type} />
+
+                    <Detail
                       label="Refresh Service"
                       text={refreshService ? refreshService.id : "-"}
                     />
 
                     <Detail
-                      copyable
+                      copyable={!!displayMethod}
                       label="Display Method"
                       text={displayMethod ? displayMethod.id : "-"}
                     />

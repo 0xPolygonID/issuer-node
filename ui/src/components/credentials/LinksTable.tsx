@@ -13,7 +13,6 @@ import {
   Table,
   TableColumnsType,
   Tag,
-  Tooltip,
   Typography,
 } from "antd";
 
@@ -97,10 +96,13 @@ export function LinksTable() {
       dataIndex: "schemaType",
       ellipsis: true,
       key: "schemaType",
-      render: (schemaType: Link["schemaType"]) => (
-        <Tooltip placement="topLeft" title={schemaType}>
-          <Typography.Text strong>{schemaType}</Typography.Text>
-        </Tooltip>
+      render: (schemaType: Link["schemaType"], link: Link) => (
+        <Typography.Link
+          onClick={() => navigate(generatePath(ROUTES.linkDetails.path, { linkID: link.id }))}
+          strong
+        >
+          {schemaType}
+        </Typography.Link>
       ),
       sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
       title: "Credential",

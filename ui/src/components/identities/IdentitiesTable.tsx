@@ -8,11 +8,14 @@ import {
   Table,
   TableColumnsType,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 import IconIssuers from "src/assets/icons/building-08.svg?react";
+import IconCheckMark from "src/assets/icons/check.svg?react";
+import IconCopy from "src/assets/icons/copy-01.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
@@ -81,9 +84,18 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
       dataIndex: "displayName",
       key: "displayName",
       render: (displayName: Identity["displayName"], identity: Identity) => (
-        <Typography.Text strong>
+        <Typography.Link
+          onClick={() =>
+            navigate(
+              generatePath(ROUTES.identityDetails.path, {
+                identityID: identity.identifier,
+              })
+            )
+          }
+          strong
+        >
           {displayName || formatIdentifier(identity.identifier, { short: true })}
-        </Typography.Text>
+        </Typography.Link>
       ),
       sorter: (a, b) =>
         (a.displayName || a.identifier).localeCompare(b.displayName || b.identifier),
@@ -93,16 +105,36 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
       dataIndex: "identifier",
       key: "identifier",
       render: (identifier: Identity["identifier"]) => (
-        <Typography.Text strong>{formatIdentifier(identifier)}</Typography.Text>
+        <Tooltip title={identifier}>
+          <Typography.Text
+            copyable={{
+              icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
+            }}
+            ellipsis={{
+              suffix: identifier.slice(-5),
+            }}
+          >
+            {identifier}
+          </Typography.Text>
+        </Tooltip>
       ),
       sorter: ({ identifier: a }, { identifier: b }) => a.localeCompare(b),
       title: "DID",
     },
     {
+      dataIndex: "credentialStatusType",
+      key: "credentialStatusType",
+      render: (credentialStatusType: Identity["credentialStatusType"]) => (
+        <Typography.Text>{credentialStatusType}</Typography.Text>
+      ),
+      sorter: ({ identifier: a }, { identifier: b }) => a.localeCompare(b),
+      title: "Credential status",
+    },
+    {
       dataIndex: "blockchain",
       key: "blockchain",
       render: (blockchain: Identity["blockchain"]) => (
-        <Typography.Text strong>{blockchain}</Typography.Text>
+        <Typography.Text>{blockchain}</Typography.Text>
       ),
       sorter: ({ blockchain: a }, { blockchain: b }) => a.localeCompare(b),
       title: "Blockchain",
@@ -110,7 +142,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
     {
       dataIndex: "network",
       key: "network",
-      render: (network: Identity["network"]) => <Typography.Text strong>{network}</Typography.Text>,
+      render: (network: Identity["network"]) => <Typography.Text>{network}</Typography.Text>,
       sorter: ({ network: a }, { network: b }) => a.localeCompare(b),
       title: "Network",
     },

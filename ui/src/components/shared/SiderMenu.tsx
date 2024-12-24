@@ -51,7 +51,7 @@ export function SiderMenu({
   const schemasPath = ROUTES.schemas.path;
   const identitiesPath = ROUTES.identities.path;
   const displayMethodsPath = ROUTES.displayMethods.path;
-    const keysPath = ROUTES.keys.path;
+  const keysPath = ROUTES.keys.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -106,12 +106,12 @@ export function SiderMenu({
     ) {
       return [displayMethodsPath];
     } else if (
-        matchRoutes(
-            [{ path: keysPath }, { path: ROUTES.keyDetails.path }, { path: ROUTES.createKey.path }],
-            pathname
-        )
+      matchRoutes(
+        [{ path: keysPath }, { path: ROUTES.keyDetails.path }, { path: ROUTES.createKey.path }],
+        pathname
+      )
     ) {
-        return [keysPath];
+      return [keysPath];
     }
 
     return [];
@@ -184,13 +184,7 @@ export function SiderMenu({
                 onClick: () => onMenuClick(issuerStatePath),
                 title: "",
               },
-              {
-                icon: <IconIdentities />,
-                key: identitiesPath,
-                label: IDENTITIES,
-                onClick: () => onMenuClick(identitiesPath),
-                title: "",
-              },
+
               {
                 icon: <IconIdentities />,
                 key: keysPath,
@@ -207,6 +201,13 @@ export function SiderMenu({
         <Space direction="vertical" size={40}>
           <Menu
             items={[
+              {
+                icon: <IconIdentities />,
+                key: identitiesPath,
+                label: IDENTITIES,
+                onClick: () => onMenuClick(identitiesPath),
+                title: "",
+              },
               {
                 icon: <IconSettings />,
                 key: "settings",
@@ -236,6 +237,7 @@ export function SiderMenu({
               },
             ]}
             selectable={false}
+            selectedKeys={getSelectedKey()}
           />
           {isBreakpoint && (
             <Space>
