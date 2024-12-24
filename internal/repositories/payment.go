@@ -20,6 +20,9 @@ import (
 // ErrPaymentOptionDoesNotExists error
 var ErrPaymentOptionDoesNotExists = errors.New("payment option not found")
 
+// ErrPaymentRequestDoesNotExists error
+var ErrPaymentRequestDoesNotExists = errors.New("payment request not found")
+
 // payment repository
 type payment struct {
 	conn db.Storage
@@ -54,7 +57,7 @@ VALUES ($1, $2, $3, $4, $5, $6);`
 		req.Credentials,
 		req.Description,
 		req.IssuerDID.String(),
-		req.RecipientDID.String(),
+		req.UserDID.String(),
 		req.PaymentOptionID,
 		req.CreatedAt,
 	)
@@ -83,7 +86,7 @@ VALUES ($1, $2, $3, $4, $5, $6);`
 // GetPaymentRequestByID returns a payment request by ID
 func (p *payment) GetPaymentRequestByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error) {
 	const query = `
-SELECT pr.id, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
+SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
 WHERE pr.issuer_did = $1 AND pr.id = $2;`
@@ -92,17 +95,21 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 		return nil, err
 	}
 	defer rows.Close()
-	var pr domain.PaymentRequest
+	var pr *domain.PaymentRequest
 	for rows.Next() {
+		pr = &domain.PaymentRequest{}
 		var item domain.PaymentRequestItem
-		var strIssuerDID, strRecipientDID string
+		var strIssuerDID, strUserDID string
 		var sNonce string
 		var did *w3c.DID
 		var paymentRequestInfoBytes []byte
+		var paymentCredentials []byte
 		if err := rows.Scan(
 			&pr.ID,
+			&pr.Description,
+			&paymentCredentials,
 			&strIssuerDID,
-			&strRecipientDID,
+			&strUserDID,
 			&pr.PaymentOptionID,
 			&pr.CreatedAt,
 			&item.ID,
@@ -130,20 +137,110 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 			return nil, fmt.Errorf("could not parse issuer DID: %w", err)
 		}
 		pr.IssuerDID = *did
-		if did, err = w3c.ParseDID(strRecipientDID); err != nil {
+		if did, err = w3c.ParseDID(strUserDID); err != nil {
 			return nil, fmt.Errorf("could not parse recipient DID: %w", err)
 		}
-		pr.RecipientDID = *did
+		pr.UserDID = *did
+		pr.Credentials, err = p.paymentRequestCredentials(paymentCredentials)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal payment credentials info: %w", err)
+		}
+
 		pr.Payments = append(pr.Payments, item)
 	}
-	return &pr, nil
+
+	if pr == nil {
+		return nil, ErrPaymentRequestDoesNotExists
+	}
+	return pr, nil
+}
+
+// DeletePaymentRequest deletes a payment request
+func (p *payment) DeletePaymentRequest(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) error {
+	const removePaymentRequestItemsQuery = `DELETE FROM payment_request_items WHERE payment_request_id = $1;`
+	_, err := p.conn.Pgx.Exec(ctx, removePaymentRequestItemsQuery, id)
+	if err != nil {
+		return err
+	}
+
+	const query = `DELETE FROM payment_requests WHERE id = $1 and issuer_did = $2;`
+	cmd, err := p.conn.Pgx.Exec(ctx, query, id, issuerDID.String())
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrPaymentRequestDoesNotExists
+	}
+	return nil
 }
 
 // GetAllPaymentRequests returns all payment requests
-// TODO: Pagination?
 func (p *payment) GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID) ([]domain.PaymentRequest, error) {
-	// TODO implement me
-	panic("implement me")
+	const query = `
+SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
+FROM payment_requests pr
+LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
+WHERE pr.issuer_did = $1`
+	rows, err := p.conn.Pgx.Query(ctx, query, issuerDID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var pr domain.PaymentRequest
+	var requests []domain.PaymentRequest
+	for rows.Next() {
+		var item domain.PaymentRequestItem
+		var strIssuerDID, strUserDID string
+		var sNonce string
+		var did *w3c.DID
+		var paymentRequestInfoBytes []byte
+		var paymentCredentials []byte
+		if err := rows.Scan(
+			&pr.ID,
+			&pr.Description,
+			&paymentCredentials,
+			&strIssuerDID,
+			&strUserDID,
+			&pr.PaymentOptionID,
+			&pr.CreatedAt,
+			&item.ID,
+			&sNonce,
+			&item.PaymentRequestID,
+			&paymentRequestInfoBytes,
+			&item.PaymentOptionID,
+			&item.SigningKeyID,
+		); err != nil {
+			return nil, fmt.Errorf("could not scan payment request: %w", err)
+		}
+
+		item.Payment, err = p.paymentRequestItem(paymentRequestInfoBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal payment request info: %w", err)
+		}
+
+		const base10 = 10
+		nonce, ok := new(big.Int).SetString(sNonce, base10)
+		if !ok {
+			return nil, fmt.Errorf("could not parse nonce: %w", err)
+		}
+		item.Nonce = *nonce
+		if did, err = w3c.ParseDID(strIssuerDID); err != nil {
+			return nil, fmt.Errorf("could not parse issuer DID: %w", err)
+		}
+		pr.IssuerDID = *did
+		if did, err = w3c.ParseDID(strUserDID); err != nil {
+			return nil, fmt.Errorf("could not parse recipient DID: %w", err)
+		}
+		pr.UserDID = *did
+		pr.Credentials, err = p.paymentRequestCredentials(paymentCredentials)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal payment credentials info: %w", err)
+		}
+		pr.Payments = append(pr.Payments, item)
+
+		requests = append(requests, pr)
+	}
+	return requests, nil
 }
 
 // GetPaymentRequestItem returns a payment request item
@@ -286,4 +383,12 @@ func (p *payment) paymentRequestItem(payload []byte) (protocol.PaymentRequestInf
 		return nil, errors.New("payment request info is empty")
 	}
 	return data[0], nil
+}
+
+func (p *payment) paymentRequestCredentials(credentials []byte) ([]protocol.PaymentRequestInfoCredentials, error) {
+	var data []protocol.PaymentRequestInfoCredentials
+	if err := json.Unmarshal(credentials, &data); err != nil {
+		return nil, fmt.Errorf("could not unmarshal payment request info: %w", err)
+	}
+	return data, nil
 }

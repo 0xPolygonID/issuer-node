@@ -51,7 +51,7 @@ func (s *Server) CreatePaymentOption(ctx context.Context, request CreatePaymentO
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	payOptConf, err := newPaymentOptionConfig(request.Body.Config)
+	payOptConf, err := newPaymentOptionConfig(request.Body.PaymentOptions)
 	if err != nil {
 		log.Error(ctx, "creating payment option config", "err", err)
 		return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid config: %s", err)}}, nil
@@ -108,7 +108,7 @@ func (s *Server) GetPaymentOption(ctx context.Context, request GetPaymentOptionR
 	return GetPaymentOption200JSONResponse(option), nil
 }
 
-// CreatePaymentRequest is the controller to get qr bodies
+// CreatePaymentRequest is the controller to create payment request
 func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePaymentRequestRequestObject) (CreatePaymentRequestResponseObject, error) {
 	var err error
 	issuerDID, err := w3c.ParseDID(request.Identifier)
@@ -139,6 +139,48 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 	return CreatePaymentRequest201JSONResponse(toCreatePaymentRequestResponse(payReq)), nil
 }
 
+// GetPaymentRequests is the controller to get all payment requests for an issuer
+func (s *Server) GetPaymentRequests(ctx context.Context, request GetPaymentRequestsRequestObject) (GetPaymentRequestsResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return GetPaymentRequests400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	paymentRequests, err := s.paymentService.GetPaymentRequests(ctx, issuerDID)
+	if err != nil {
+		return GetPaymentRequests500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-requests: %s", err)}}, nil
+	}
+	return GetPaymentRequests200JSONResponse(toGetPaymentRequestsResponse(paymentRequests)), nil
+}
+
+// GetPaymentRequest is the controller to get payment request by ID
+func (s *Server) GetPaymentRequest(ctx context.Context, request GetPaymentRequestRequestObject) (GetPaymentRequestResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return GetPaymentRequest400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	paymentRequest, err := s.paymentService.GetPaymentRequest(ctx, issuerDID, request.Id)
+	if err != nil {
+		return GetPaymentRequest500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-request: %s", err)}}, nil
+	}
+	return GetPaymentRequest200JSONResponse(toCreatePaymentRequestResponse(paymentRequest)), nil
+}
+
+// DeletePaymentRequest is the controller to delete payment request
+func (s *Server) DeletePaymentRequest(ctx context.Context, request DeletePaymentRequestRequestObject) (DeletePaymentRequestResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return DeletePaymentRequest400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	err = s.paymentService.DeletePaymentRequest(ctx, issuerDID, request.Id)
+	if err != nil {
+		return DeletePaymentRequest500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't delete payment-request: %s", err)}}, nil
+	}
+	return DeletePaymentRequest200JSONResponse{Message: "deleted"}, nil
+}
+
 // GetPaymentSettings is the controller to get payment settings
 func (s *Server) GetPaymentSettings(_ context.Context, _ GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error) {
 	return GetPaymentSettings200JSONResponse(s.paymentService.GetSettings()), nil
@@ -157,10 +199,26 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 		log.Error(ctx, "parsing nonce on verify payment", "err", err, "nonce", request.Nonce)
 		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid nonce: <%s>", request.Nonce)}}, nil
 	}
-	status, err := s.paymentService.VerifyPayment(ctx, *issuerDID, nonce, request.Body.TxHash)
+
+	var userDID *w3c.DID
+	var txHash *string
+
+	if request.Body != nil {
+		if request.Body.TxHash != nil && *request.Body.TxHash != "" {
+			txHash = request.Body.TxHash
+		}
+		if request.Body.UserDID != nil && *request.Body.UserDID != "" {
+			userDID, err = w3c.ParseDID(*request.Body.UserDID)
+			if err != nil {
+				log.Error(ctx, "parsing user did", "err", err, "did", request.Body.UserDID)
+				return VerifyPayment400JSONResponse{N400JSONResponse{Message: "invalid user did"}}, nil
+			}
+		}
+	}
+	status, err := s.paymentService.VerifyPayment(ctx, *issuerDID, nonce, txHash, userDID)
 	if err != nil {
-		log.Error(ctx, "can't verify payment", "err", err, "nonce", request.Nonce, "txID", request.Body.TxHash)
-		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("can't verify payment: <%s>", err.Error())}}, nil
+		log.Error(ctx, "can't verify payment", "err", err, "nonce", request.Nonce, "txID", txHash)
+		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("can't verify payment: %s", err.Error())}}, nil
 	}
 	return toVerifyPaymentResponse(status)
 }
@@ -168,7 +226,7 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 func newPaymentOptionConfig(config PaymentOptionConfig) (*domain.PaymentOptionConfig, error) {
 	const base10 = 10
 	cfg := &domain.PaymentOptionConfig{
-		Config: make([]domain.PaymentOptionConfigItem, len(config)),
+		PaymentOptions: make([]domain.PaymentOptionConfigItem, len(config)),
 	}
 	for i, item := range config {
 		if !common.IsHexAddress(item.Recipient) {
@@ -179,11 +237,12 @@ func newPaymentOptionConfig(config PaymentOptionConfig) (*domain.PaymentOptionCo
 			return nil, fmt.Errorf("could not parse amount: %s", item.Amount)
 		}
 
-		cfg.Config[i] = domain.PaymentOptionConfigItem{
+		cfg.PaymentOptions[i] = domain.PaymentOptionConfigItem{
 			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionID),
 			Amount:          *amount,
 			Recipient:       common.HexToAddress(item.Recipient),
 			SigningKeyID:    item.SigningKeyID,
+			Expiration:      item.Expiration,
 		}
 	}
 	return cfg, nil

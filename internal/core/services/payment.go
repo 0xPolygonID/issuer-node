@@ -21,6 +21,7 @@ import (
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/eth"
@@ -104,9 +105,9 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 	}
 
 	paymentRequest := &domain.PaymentRequest{
-		ID:           uuid.New(),
-		IssuerDID:    req.IssuerDID,
-		RecipientDID: req.UserDID,
+		ID:        uuid.New(),
+		IssuerDID: req.IssuerDID,
+		UserDID:   req.UserDID,
 		Credentials: []protocol.PaymentRequestInfoCredentials{
 			{
 				Context: schema.ContextURL,
@@ -117,7 +118,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		PaymentOptionID: req.OptionID,
 		CreatedAt:       time.Now(),
 	}
-	for _, chainConfig := range option.Config.Config {
+	for _, chainConfig := range option.Config.PaymentOptions {
 		setting, found := p.settings[chainConfig.PaymentOptionID]
 		if !found {
 			log.Error(ctx, "chain not found in configuration", "paymentOptionID", chainConfig.PaymentOptionID)
@@ -155,6 +156,36 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 	return paymentRequest, nil
 }
 
+// GetPaymentRequests returns all payment requests of a issuer
+func (p *payment) GetPaymentRequests(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentRequest, error) {
+	paymentRequests, err := p.paymentsStore.GetAllPaymentRequests(ctx, *issuerDID)
+	if err != nil {
+		log.Error(ctx, "failed to get payment requests", "err", err, "issuerDID", issuerDID)
+		return nil, fmt.Errorf("failed to get payment requests: %w", err)
+	}
+	return paymentRequests, nil
+}
+
+// GetPaymentRequest returns payment request by ID and issuer DID
+func (p *payment) GetPaymentRequest(ctx context.Context, issuerDID *w3c.DID, ID uuid.UUID) (*domain.PaymentRequest, error) {
+	paymentRequests, err := p.paymentsStore.GetPaymentRequestByID(ctx, *issuerDID, ID)
+	if err != nil {
+		log.Error(ctx, "failed to get payment request", "err", err, "issuerDID", issuerDID)
+		return nil, fmt.Errorf("failed to get payment request: %w", err)
+	}
+	return paymentRequests, nil
+}
+
+// DeletePaymentRequest deletes a payment request
+func (p *payment) DeletePaymentRequest(ctx context.Context, issuerDID *w3c.DID, ID uuid.UUID) error {
+	err := p.paymentsStore.DeletePaymentRequest(ctx, *issuerDID, ID)
+	if err != nil {
+		log.Error(ctx, "failed to delete payment request", "err", err, "issuerDID", issuerDID)
+		return fmt.Errorf("failed to delete payment request: %w", err)
+	}
+	return nil
+}
+
 // CreatePaymentRequestForProposalRequest creates a payment request for a proposal request
 func (p *payment) CreatePaymentRequestForProposalRequest(_ context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error) {
 	basicMessage := comm.BasicMessage{
@@ -173,10 +204,21 @@ func (p *payment) GetSettings() payments.Config {
 }
 
 // VerifyPayment verifies a payment
-func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash string) (ports.BlockchainPaymentStatus, error) {
+func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash *string, userDID *w3c.DID) (ports.BlockchainPaymentStatus, error) {
 	paymentReqItem, err := p.paymentsStore.GetPaymentRequestItem(ctx, issuerDID, nonce)
 	if err != nil {
 		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment request: %w", err)
+	}
+
+	if userDID != nil {
+		paymentReq, err := p.paymentsStore.GetPaymentRequestByID(ctx, issuerDID, paymentReqItem.PaymentRequestID)
+		if err != nil {
+			return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment request: %w", err)
+		}
+
+		if userDID.String() != paymentReq.UserDID.String() {
+			return ports.BlockchainPaymentStatusFailed, fmt.Errorf("userDID %s does not match to User DID %s in payment-request", userDID, paymentReq.UserDID)
+		}
 	}
 
 	setting, found := p.settings[paymentReqItem.PaymentOptionID]
@@ -216,23 +258,27 @@ func (p *payment) verifyPaymentOnBlockchain(
 	contract *eth.PaymentContract,
 	recipient common.Address,
 	nonce *big.Int,
-	txID string,
+	txID *string,
 ) (ports.BlockchainPaymentStatus, error) {
-	_, isPending, err := client.GetTransactionByID(ctx, txID)
-	if err != nil {
-		if err.Error() == "not found" {
-			return ports.BlockchainPaymentStatusCancelled, nil
+	txIdProvided := txID != nil && *txID != ""
+	var receipt *types.Receipt
+	if txIdProvided {
+		_, isPending, err := client.GetTransactionByID(ctx, *txID)
+		if err != nil {
+			if err.Error() == "not found" {
+				return ports.BlockchainPaymentStatusCancelled, nil
+			}
+			return ports.BlockchainPaymentStatusUnknown, err
 		}
-		return ports.BlockchainPaymentStatusUnknown, err
+		if isPending {
+			return ports.BlockchainPaymentStatusPending, nil
+		}
+		receipt, err = client.GetTransactionReceiptByID(ctx, *txID)
+		if err != nil {
+			return ports.BlockchainPaymentStatusUnknown, err
+		}
 	}
-	if isPending {
-		return ports.BlockchainPaymentStatusPending, nil
-	}
-	receipt, err := client.GetTransactionReceiptByID(ctx, txID)
-	if err != nil {
-		return ports.BlockchainPaymentStatusUnknown, err
-	}
-	if receipt.Status == 1 {
+	if !txIdProvided || receipt.Status == 1 {
 		isPaid, err := contract.IsPaymentDone(&bind.CallOpts{Context: ctx}, recipient, nonce)
 		if err != nil {
 			return ports.BlockchainPaymentStatusPending, nil
@@ -267,6 +313,10 @@ func (p *payment) paymentOptionConfigItem(ctx context.Context, issuerDID w3c.DID
 func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig, chainConfig *domain.PaymentOptionConfigItem, nonce *big.Int) (protocol.PaymentRequestInfoDataItem, error) {
 	const defaultExpirationDate = 1 * time.Hour
 	expirationTime := time.Now().Add(defaultExpirationDate)
+
+	if chainConfig.Expiration != nil {
+		expirationTime = *chainConfig.Expiration
+	}
 
 	metadata := "0x"
 	signature, err := p.paymentRequestSignature(ctx, setting, chainConfig, expirationTime, nonce, metadata)
