@@ -1140,8 +1140,6 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - displayMethodID
               properties:
                 displayMethodID:
                   type: string

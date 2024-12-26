@@ -872,7 +872,7 @@ type GetSchemasParams struct {
 
 // UpdateSchemaJSONBody defines parameters for UpdateSchema.
 type UpdateSchemaJSONBody struct {
-	DisplayMethodID uuid.UUID `json:"displayMethodID"`
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
 }
 
 // GetStateTransactionsParams defines parameters for GetStateTransactions.

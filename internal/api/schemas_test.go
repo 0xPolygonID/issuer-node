@@ -601,7 +601,7 @@ func TestServer_UpdateSchema(t *testing.T) {
 			auth: authOk,
 			id:   uuid.NewString(),
 			request: &UpdateSchemaJSONRequestBody{
-				DisplayMethodID: *displayMethodToUpdateID,
+				DisplayMethodID: displayMethodToUpdateID,
 			},
 			expected: expected{
 				httpCode: http.StatusNotFound,
@@ -613,7 +613,7 @@ func TestServer_UpdateSchema(t *testing.T) {
 			auth: authOk,
 			id:   s.ID.String(),
 			request: &UpdateSchemaJSONRequestBody{
-				DisplayMethodID: *displayMethodToUpdateID,
+				DisplayMethodID: displayMethodToUpdateID,
 			},
 			expected: expected{
 				httpCode: http.StatusOK,
@@ -624,11 +624,22 @@ func TestServer_UpdateSchema(t *testing.T) {
 			auth: authOk,
 			id:   s.ID.String(),
 			request: &UpdateSchemaJSONRequestBody{
-				DisplayMethodID: uuid.New(),
+				DisplayMethodID: common.ToPointer(uuid.New()),
 			},
 			expected: expected{
 				httpCode: http.StatusNotFound,
 				errorMsg: "display method not found",
+			},
+		},
+		{
+			name: "schema should be updated with null display method",
+			auth: authOk,
+			id:   s.ID.String(),
+			request: &UpdateSchemaJSONRequestBody{
+				DisplayMethodID: nil,
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
 			},
 		},
 	} {

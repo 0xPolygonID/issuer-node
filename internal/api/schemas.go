@@ -86,7 +86,7 @@ func (s *Server) UpdateSchema(ctx context.Context, request UpdateSchemaRequestOb
 	if err := s.schemaService.Update(ctx, &domain.Schema{
 		ID:              request.Id,
 		IssuerDID:       *issuerDID,
-		DisplayMethodID: &request.Body.DisplayMethodID,
+		DisplayMethodID: request.Body.DisplayMethodID,
 	}); err != nil {
 		log.Error(ctx, "updating schema", "err", err)
 
