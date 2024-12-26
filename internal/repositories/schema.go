@@ -95,7 +95,7 @@ func (r *schema) Update(ctx context.Context, schema *domain.Schema) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolationErrorCode {
-			return ErrDisplayMethodNotFound
+			return DisplayMethodAssignedErr
 		}
 		return err
 	}
