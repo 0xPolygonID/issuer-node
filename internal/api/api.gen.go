@@ -17,6 +17,8 @@ import (
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+	openapi_types "github.com/oapi-codegen/runtime/types"
+	payments "github.com/polygonid/sh-id-platform/internal/payments"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
@@ -102,6 +104,14 @@ const (
 	LinkStatusInactive LinkStatus = "inactive"
 )
 
+// Defines values for PaymentStatusStatus.
+const (
+	PaymentStatusStatusCanceled PaymentStatusStatus = "canceled"
+	PaymentStatusStatusFailed   PaymentStatusStatus = "failed"
+	PaymentStatusStatusPending  PaymentStatusStatus = "pending"
+	PaymentStatusStatusSuccess  PaymentStatusStatus = "success"
+)
+
 // Defines values for RefreshServiceType.
 const (
 	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
@@ -109,10 +119,10 @@ const (
 
 // Defines values for StateTransactionStatus.
 const (
-	Created   StateTransactionStatus = "created"
-	Failed    StateTransactionStatus = "failed"
-	Pending   StateTransactionStatus = "pending"
-	Published StateTransactionStatus = "published"
+	StateTransactionStatusCreated   StateTransactionStatus = "created"
+	StateTransactionStatusFailed    StateTransactionStatus = "failed"
+	StateTransactionStatusPending   StateTransactionStatus = "pending"
+	StateTransactionStatusPublished StateTransactionStatus = "published"
 )
 
 // Defines values for GetConnectionsParamsSort.
@@ -194,15 +204,7 @@ const (
 )
 
 // AgentResponse defines model for AgentResponse.
-type AgentResponse struct {
-	Body     interface{} `json:"body"`
-	From     string      `json:"from"`
-	Id       string      `json:"id"`
-	ThreadID string      `json:"threadID"`
-	To       string      `json:"to"`
-	Typ      string      `json:"typ"`
-	Type     string      `json:"type"`
-}
+type AgentResponse = BasicMessage
 
 // AuthenticationConnection defines model for AuthenticationConnection.
 type AuthenticationConnection struct {
@@ -217,6 +219,17 @@ type AuthenticationConnection struct {
 type AuthenticationResponse struct {
 	Message   string     `json:"message"`
 	SessionID UUIDString `json:"sessionID"`
+}
+
+// BasicMessage defines model for BasicMessage.
+type BasicMessage struct {
+	Body     interface{} `json:"body"`
+	From     string      `json:"from"`
+	Id       string      `json:"id"`
+	ThreadID string      `json:"threadID"`
+	To       string      `json:"to"`
+	Typ      string      `json:"typ"`
+	Type     string      `json:"type"`
 }
 
 // ConnectionsPaginated defines model for ConnectionsPaginated.
@@ -339,6 +352,24 @@ type CreateLinkRequest struct {
 	RefreshService       *RefreshService   `json:"refreshService,omitempty"`
 	SchemaID             uuid.UUID         `json:"schemaID"`
 	SignatureProof       bool              `json:"signatureProof"`
+}
+
+// CreatePaymentRequest defines model for CreatePaymentRequest.
+type CreatePaymentRequest struct {
+	Description string    `json:"description"`
+	OptionID    uuid.UUID `json:"optionID"`
+	SchemaID    uuid.UUID `json:"schemaID"`
+	UserDID     string    `json:"userDID"`
+}
+
+// CreatePaymentRequestResponse defines model for CreatePaymentRequestResponse.
+type CreatePaymentRequestResponse struct {
+	CreatedAt       time.Time            `json:"createdAt"`
+	Id              openapi_types.UUID   `json:"id"`
+	IssuerDID       string               `json:"issuerDID"`
+	PaymentOptionID openapi_types.UUID   `json:"paymentOptionID"`
+	Payments        []PaymentRequestInfo `json:"payments"`
+	UserDID         string               `json:"userDID"`
 }
 
 // Credential defines model for Credential.
@@ -555,6 +586,63 @@ type PaginatedMetadata struct {
 	Total      uint `json:"total"`
 }
 
+// PaymentOption defines model for PaymentOption.
+type PaymentOption struct {
+	Config      PaymentOptionConfig `json:"config"`
+	CreatedAt   TimeUTC             `json:"createdAt"`
+	Description string              `json:"description"`
+	Id          uuid.UUID           `json:"id"`
+	IssuerDID   string              `json:"issuerDID"`
+	ModifiedAt  TimeUTC             `json:"modifiedAt"`
+	Name        string              `json:"name"`
+}
+
+// PaymentOptionConfig defines model for PaymentOptionConfig.
+type PaymentOptionConfig = []PaymentOptionConfigItem
+
+// PaymentOptionConfigItem defines model for PaymentOptionConfigItem.
+type PaymentOptionConfigItem struct {
+	Amount          string `json:"amount"`
+	PaymentOptionID int    `json:"paymentOptionID"`
+	Recipient       string `json:"recipient"`
+	SigningKeyID    string `json:"signingKeyID"`
+}
+
+// PaymentOptionRequest defines model for PaymentOptionRequest.
+type PaymentOptionRequest struct {
+	Config      PaymentOptionConfig `json:"config"`
+	Description string              `json:"description"`
+	Name        string              `json:"name"`
+}
+
+// PaymentOptions defines model for PaymentOptions.
+type PaymentOptions = []PaymentOption
+
+// PaymentOptionsPaginated defines model for PaymentOptionsPaginated.
+type PaymentOptionsPaginated struct {
+	Items PaymentOptions    `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
+}
+
+// PaymentRequestInfo defines model for PaymentRequestInfo.
+type PaymentRequestInfo = protocol.PaymentRequestInfo
+
+// PaymentStatus defines model for PaymentStatus.
+type PaymentStatus struct {
+	Status PaymentStatusStatus `json:"status"`
+}
+
+// PaymentStatusStatus defines model for PaymentStatus.Status.
+type PaymentStatusStatus string
+
+// PaymentVerifyRequest defines model for PaymentVerifyRequest.
+type PaymentVerifyRequest struct {
+	TxHash string `json:"txHash"`
+}
+
+// PaymentsConfiguration defines model for PaymentsConfiguration.
+type PaymentsConfiguration = payments.Config
+
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {
 	ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
@@ -599,6 +687,7 @@ type RevokeClaimResponse struct {
 // Schema defines model for Schema.
 type Schema struct {
 	BigInt      string  `json:"bigInt"`
+	ContextURL  string  `json:"contextURL"`
 	CreatedAt   TimeUTC `json:"createdAt"`
 	Description *string `json:"description"`
 	Hash        string  `json:"hash"`
@@ -948,6 +1037,15 @@ type CreateKeyJSONRequestBody = CreateKeyRequest
 // UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
 type UpdateKeyJSONRequestBody UpdateKeyJSONBody
 
+// CreatePaymentRequestJSONRequestBody defines body for CreatePaymentRequest for application/json ContentType.
+type CreatePaymentRequestJSONRequestBody = CreatePaymentRequest
+
+// CreatePaymentOptionJSONRequestBody defines body for CreatePaymentOption for application/json ContentType.
+type CreatePaymentOptionJSONRequestBody = PaymentOptionRequest
+
+// VerifyPaymentJSONRequestBody defines body for VerifyPayment for application/json ContentType.
+type VerifyPaymentJSONRequestBody = PaymentVerifyRequest
+
 // ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
 
@@ -1076,6 +1174,24 @@ type ServerInterface interface {
 	// Update a Key
 	// (PATCH /v2/identities/{identifier}/keys/{id})
 	UpdateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
+	// Create Payment Request
+	// (POST /v2/identities/{identifier}/payment-request)
+	CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Payment Options
+	// (GET /v2/identities/{identifier}/payment/options)
+	GetPaymentOptions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Create Payment Option
+	// (POST /v2/identities/{identifier}/payment/options)
+	CreatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Delete Payment Option
+	// (DELETE /v2/identities/{identifier}/payment/options/{id})
+	DeletePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Get Payment Option
+	// (GET /v2/identities/{identifier}/payment/options/{id})
+	GetPaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Verify Payment
+	// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+	VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -1097,6 +1213,9 @@ type ServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
+	// Payments Configuration
+	// (GET /v2/payment/settings)
+	GetPaymentSettings(w http.ResponseWriter, r *http.Request)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
@@ -1358,6 +1477,42 @@ func (_ Unimplemented) UpdateKey(w http.ResponseWriter, r *http.Request, identif
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Create Payment Request
+// (POST /v2/identities/{identifier}/payment-request)
+func (_ Unimplemented) CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Payment Options
+// (GET /v2/identities/{identifier}/payment/options)
+func (_ Unimplemented) GetPaymentOptions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Payment Option
+// (POST /v2/identities/{identifier}/payment/options)
+func (_ Unimplemented) CreatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete Payment Option
+// (DELETE /v2/identities/{identifier}/payment/options/{id})
+func (_ Unimplemented) DeletePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Payment Option
+// (GET /v2/identities/{identifier}/payment/options/{id})
+func (_ Unimplemented) GetPaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Verify Payment
+// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+func (_ Unimplemented) VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get Schemas
 // (GET /v2/identities/{identifier}/schemas)
 func (_ Unimplemented) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
@@ -1397,6 +1552,12 @@ func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request, id
 // Get Identity State Transactions
 // (GET /v2/identities/{identifier}/state/transactions)
 func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Payments Configuration
+// (GET /v2/payment/settings)
+func (_ Unimplemented) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2999,6 +3160,219 @@ func (siw *ServerInterfaceWrapper) UpdateKey(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// CreatePaymentRequest operation middleware
+func (siw *ServerInterfaceWrapper) CreatePaymentRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePaymentRequest(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentOptions operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentOptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentOptions(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePaymentOption operation middleware
+func (siw *ServerInterfaceWrapper) CreatePaymentOption(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePaymentOption(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePaymentOption operation middleware
+func (siw *ServerInterfaceWrapper) DeletePaymentOption(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePaymentOption(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentOption operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentOption(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentOption(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// VerifyPayment operation middleware
+func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VerifyPayment(w, r, identifier, nonce)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSchemas operation middleware
 func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
 
@@ -3262,6 +3636,26 @@ func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetStateTransactions(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentSettings(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3599,6 +3993,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/v2/identities/{identifier}/keys/{id}", wrapper.UpdateKey)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/payment-request", wrapper.CreatePaymentRequest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/payment/options", wrapper.GetPaymentOptions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/payment/options", wrapper.CreatePaymentOption)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/payment/options/{id}", wrapper.DeletePaymentOption)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/payment/options/{id}", wrapper.GetPaymentOption)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/payment/verify/{nonce}", wrapper.VerifyPayment)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
 	})
 	r.Group(func(r chi.Router) {
@@ -3618,6 +4030,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/state/transactions", wrapper.GetStateTransactions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/payment/settings", wrapper.GetPaymentSettings)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/qr-store", wrapper.GetQrFromStore)
@@ -5417,6 +5832,267 @@ func (response UpdateKey500JSONResponse) VisitUpdateKeyResponse(w http.ResponseW
 	return json.NewEncoder(w).Encode(response)
 }
 
+type CreatePaymentRequestRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreatePaymentRequestJSONRequestBody
+}
+
+type CreatePaymentRequestResponseObject interface {
+	VisitCreatePaymentRequestResponse(w http.ResponseWriter) error
+}
+
+type CreatePaymentRequest201JSONResponse CreatePaymentRequestResponse
+
+func (response CreatePaymentRequest201JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentRequest400JSONResponse struct{ N400JSONResponse }
+
+func (response CreatePaymentRequest400JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentRequest401JSONResponse struct{ N401JSONResponse }
+
+func (response CreatePaymentRequest401JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentRequest500JSONResponse struct{ N500JSONResponse }
+
+func (response CreatePaymentRequest500JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptionsRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type GetPaymentOptionsResponseObject interface {
+	VisitGetPaymentOptionsResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentOptions200JSONResponse PaymentOptionsPaginated
+
+func (response GetPaymentOptions200JSONResponse) VisitGetPaymentOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptions400JSONResponse struct{ N400JSONResponse }
+
+func (response GetPaymentOptions400JSONResponse) VisitGetPaymentOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptions401JSONResponse struct{ N401JSONResponse }
+
+func (response GetPaymentOptions401JSONResponse) VisitGetPaymentOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptions500JSONResponse struct{ N500JSONResponse }
+
+func (response GetPaymentOptions500JSONResponse) VisitGetPaymentOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOptionRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreatePaymentOptionJSONRequestBody
+}
+
+type CreatePaymentOptionResponseObject interface {
+	VisitCreatePaymentOptionResponse(w http.ResponseWriter) error
+}
+
+type CreatePaymentOption201JSONResponse UUIDResponse
+
+func (response CreatePaymentOption201JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOption400JSONResponse struct{ N400JSONResponse }
+
+func (response CreatePaymentOption400JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOption401JSONResponse struct{ N401JSONResponse }
+
+func (response CreatePaymentOption401JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOption500JSONResponse struct{ N500JSONResponse }
+
+func (response CreatePaymentOption500JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentOptionRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type DeletePaymentOptionResponseObject interface {
+	VisitDeletePaymentOptionResponse(w http.ResponseWriter) error
+}
+
+type DeletePaymentOption200JSONResponse GenericMessage
+
+func (response DeletePaymentOption200JSONResponse) VisitDeletePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentOption400JSONResponse struct{ N400JSONResponse }
+
+func (response DeletePaymentOption400JSONResponse) VisitDeletePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentOption500JSONResponse struct{ N500JSONResponse }
+
+func (response DeletePaymentOption500JSONResponse) VisitDeletePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptionRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type GetPaymentOptionResponseObject interface {
+	VisitGetPaymentOptionResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentOption200JSONResponse PaymentOption
+
+func (response GetPaymentOption200JSONResponse) VisitGetPaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOption400JSONResponse struct{ N400JSONResponse }
+
+func (response GetPaymentOption400JSONResponse) VisitGetPaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOption404JSONResponse struct{ N404JSONResponse }
+
+func (response GetPaymentOption404JSONResponse) VisitGetPaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOption500JSONResponse struct{ N500JSONResponse }
+
+func (response GetPaymentOption500JSONResponse) VisitGetPaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPaymentRequestObject struct {
+	Identifier string `json:"identifier"`
+	Nonce      string `json:"nonce"`
+	Body       *VerifyPaymentJSONRequestBody
+}
+
+type VerifyPaymentResponseObject interface {
+	VisitVerifyPaymentResponse(w http.ResponseWriter) error
+}
+
+type VerifyPayment200JSONResponse PaymentStatus
+
+func (response VerifyPayment200JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment400JSONResponse struct{ N400JSONResponse }
+
+func (response VerifyPayment400JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment401JSONResponse struct{ N401JSONResponse }
+
+func (response VerifyPayment401JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment500JSONResponse struct{ N500JSONResponse }
+
+func (response VerifyPayment500JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetSchemasRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Params     GetSchemasParams
@@ -5693,6 +6369,22 @@ func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsRes
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetPaymentSettingsRequestObject struct {
+}
+
+type GetPaymentSettingsResponseObject interface {
+	VisitGetPaymentSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentSettings200JSONResponse PaymentsConfiguration
+
+func (response GetPaymentSettings200JSONResponse) VisitGetPaymentSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetQrFromStoreRequestObject struct {
 	Params GetQrFromStoreParams
 }
@@ -5959,6 +6651,24 @@ type StrictServerInterface interface {
 	// Update a Key
 	// (PATCH /v2/identities/{identifier}/keys/{id})
 	UpdateKey(ctx context.Context, request UpdateKeyRequestObject) (UpdateKeyResponseObject, error)
+	// Create Payment Request
+	// (POST /v2/identities/{identifier}/payment-request)
+	CreatePaymentRequest(ctx context.Context, request CreatePaymentRequestRequestObject) (CreatePaymentRequestResponseObject, error)
+	// Get Payment Options
+	// (GET /v2/identities/{identifier}/payment/options)
+	GetPaymentOptions(ctx context.Context, request GetPaymentOptionsRequestObject) (GetPaymentOptionsResponseObject, error)
+	// Create Payment Option
+	// (POST /v2/identities/{identifier}/payment/options)
+	CreatePaymentOption(ctx context.Context, request CreatePaymentOptionRequestObject) (CreatePaymentOptionResponseObject, error)
+	// Delete Payment Option
+	// (DELETE /v2/identities/{identifier}/payment/options/{id})
+	DeletePaymentOption(ctx context.Context, request DeletePaymentOptionRequestObject) (DeletePaymentOptionResponseObject, error)
+	// Get Payment Option
+	// (GET /v2/identities/{identifier}/payment/options/{id})
+	GetPaymentOption(ctx context.Context, request GetPaymentOptionRequestObject) (GetPaymentOptionResponseObject, error)
+	// Verify Payment
+	// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+	VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
@@ -5980,6 +6690,9 @@ type StrictServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
+	// Payments Configuration
+	// (GET /v2/payment/settings)
+	GetPaymentSettings(ctx context.Context, request GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
@@ -7213,6 +7926,186 @@ func (sh *strictHandler) UpdateKey(w http.ResponseWriter, r *http.Request, ident
 	}
 }
 
+// CreatePaymentRequest operation middleware
+func (sh *strictHandler) CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreatePaymentRequestRequestObject
+
+	request.Identifier = identifier
+
+	var body CreatePaymentRequestJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePaymentRequest(ctx, request.(CreatePaymentRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePaymentRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePaymentRequestResponseObject); ok {
+		if err := validResponse.VisitCreatePaymentRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentOptions operation middleware
+func (sh *strictHandler) GetPaymentOptions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request GetPaymentOptionsRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentOptions(ctx, request.(GetPaymentOptionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentOptions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentOptionsResponseObject); ok {
+		if err := validResponse.VisitGetPaymentOptionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePaymentOption operation middleware
+func (sh *strictHandler) CreatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreatePaymentOptionRequestObject
+
+	request.Identifier = identifier
+
+	var body CreatePaymentOptionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePaymentOption(ctx, request.(CreatePaymentOptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePaymentOption")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePaymentOptionResponseObject); ok {
+		if err := validResponse.VisitCreatePaymentOptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePaymentOption operation middleware
+func (sh *strictHandler) DeletePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request DeletePaymentOptionRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePaymentOption(ctx, request.(DeletePaymentOptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePaymentOption")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePaymentOptionResponseObject); ok {
+		if err := validResponse.VisitDeletePaymentOptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentOption operation middleware
+func (sh *strictHandler) GetPaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request GetPaymentOptionRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentOption(ctx, request.(GetPaymentOptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentOption")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentOptionResponseObject); ok {
+		if err := validResponse.VisitGetPaymentOptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VerifyPayment operation middleware
+func (sh *strictHandler) VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string) {
+	var request VerifyPaymentRequestObject
+
+	request.Identifier = identifier
+	request.Nonce = nonce
+
+	var body VerifyPaymentJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifyPayment(ctx, request.(VerifyPaymentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyPayment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VerifyPaymentResponseObject); ok {
+		if err := validResponse.VisitVerifyPaymentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetSchemas operation middleware
 func (sh *strictHandler) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
 	var request GetSchemasRequestObject
@@ -7398,6 +8291,30 @@ func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetStateTransactionsResponseObject); ok {
 		if err := validResponse.VisitGetStateTransactionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentSettings operation middleware
+func (sh *strictHandler) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetPaymentSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentSettings(ctx, request.(GetPaymentSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentSettingsResponseObject); ok {
+		if err := validResponse.VisitGetPaymentSettingsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

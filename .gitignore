@@ -11,6 +11,7 @@ bin/
 .env-issuer
 .env-ui
 resolvers_settings.yaml
+payment_settings.yaml
 
 infrastructure/local/.vault/data
 infrastructure/local/.vault/plugins
