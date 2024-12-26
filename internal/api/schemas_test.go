@@ -525,3 +525,135 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_UpdateSchema(t *testing.T) {
+	ctx := context.Background()
+	server := newTestServer(t, nil)
+	fixture := repositories.NewFixture(storage)
+
+	iden, err := server.Services.identity.Create(ctx, "http://issuer-node", &ports.DIDCreationOptions{Method: "iden3", Blockchain: "privado", Network: "main", KeyType: "BJJ"})
+	require.NoError(t, err)
+	did, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	displayMethodID, err := server.Services.displayMethod.Save(ctx, *did, "display method", "display method description", nil)
+	require.NoError(t, err)
+
+	displayMethodToUpdateID, err := server.Services.displayMethod.Save(ctx, *did, "display method 2", "display method description 2", nil)
+	require.NoError(t, err)
+
+	s := &domain.Schema{
+		ID:        uuid.New(),
+		IssuerDID: *did,
+		URL:       "https://domain.org/this/is/an/url",
+		Type:      "schemaType",
+		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+		CreatedAt: time.Now(),
+	}
+	s.Hash = common.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
+
+	s.DisplayMethodID = displayMethodID
+	fixture.CreateSchema(t, ctx, s)
+
+	s2 := &domain.Schema{
+		ID:        uuid.New(),
+		IssuerDID: *did,
+		URL:       "https://domain.org/this/is/an/url_2",
+		Type:      "schemaType",
+		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+		CreatedAt: time.Now(),
+	}
+	s2.Hash = common.CreateSchemaHash([]byte(s2.URL + "#" + s2.Type))
+	fixture.CreateSchema(t, ctx, s2)
+
+	handler := getHandler(ctx, server)
+	type expected struct {
+		httpCode int
+		errorMsg string
+	}
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		id       string
+		request  *UpdateSchemaJSONRequestBody
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "not authorized",
+			auth: authWrong,
+			id:   uuid.NewString(),
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "invalid uuid",
+			auth: authOk,
+			id:   "someInvalidDID",
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "Invalid format for parameter id: error unmarshaling 'someInvalidDID' text as *uuid.UUID: invalid UUID length: 14",
+			},
+		},
+		{
+			name: "non existing schema uuid",
+			auth: authOk,
+			id:   uuid.NewString(),
+			request: &UpdateSchemaJSONRequestBody{
+				DisplayMethodID: *displayMethodToUpdateID,
+			},
+			expected: expected{
+				httpCode: http.StatusNotFound,
+				errorMsg: "schema not found",
+			},
+		},
+		{
+			name: "schema should be updated",
+			auth: authOk,
+			id:   s.ID.String(),
+			request: &UpdateSchemaJSONRequestBody{
+				DisplayMethodID: *displayMethodToUpdateID,
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name: "wrong display method id",
+			auth: authOk,
+			id:   s.ID.String(),
+			request: &UpdateSchemaJSONRequestBody{
+				DisplayMethodID: uuid.New(),
+			},
+			expected: expected{
+				httpCode: http.StatusNotFound,
+				errorMsg: "display method not found",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/v2/identities/%s/schemas/%s", did, tc.id), tests.JSONBody(t, tc.request))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response UpdateSchema200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			case http.StatusNotFound:
+				var response UpdateSchema404JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
+			case http.StatusBadRequest:
+				var response UpdateSchema400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
+			}
+		})
+	}
+}

@@ -91,3 +91,14 @@ func (s *schema) ImportSchema(ctx context.Context, did w3c.DID, req *ports.Impor
 	}
 	return schema, nil
 }
+
+// Update updates a schema
+func (s *schema) Update(ctx context.Context, schema *domain.Schema) error {
+	_, err := s.displayMethodService.GetByID(ctx, schema.IssuerDID, *schema.DisplayMethodID)
+	if err != nil {
+		log.Error(ctx, "getting display method", "err", err)
+		return ErrDisplayMethodNotFound
+	}
+
+	return s.repo.Update(ctx, schema)
+}

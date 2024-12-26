@@ -40,3 +40,8 @@ func (s *schemaInMemory) GetAll(_ context.Context, _ w3c.DID, _ *string) ([]doma
 	}
 	return schemas, nil
 }
+
+func (s *schemaInMemory) Update(_ context.Context, schema *domain.Schema) error {
+	s.schemas[schema.ID] = *schema
+	return nil
+}

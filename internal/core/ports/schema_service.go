@@ -14,6 +14,7 @@ type SchemaService interface {
 	ImportSchema(ctx context.Context, issuerDID w3c.DID, req *ImportSchemaRequest) (*domain.Schema, error)
 	GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.Schema, error)
 	GetAll(ctx context.Context, issuerDID w3c.DID, query *string) ([]domain.Schema, error)
+	Update(ctx context.Context, schema *domain.Schema) error
 }
 
 // ImportSchemaRequest defines the request for importing a schema

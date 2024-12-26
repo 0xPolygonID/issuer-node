@@ -83,6 +83,30 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 	return nil
 }
 
+func (r *schema) Update(ctx context.Context, schema *domain.Schema) error {
+	const updateSchema = `UPDATE schemas SET display_method_id=$3 WHERE id=$2 AND issuer_id=$1`
+	res, err := r.conn.Pgx.Exec(
+		ctx,
+		updateSchema,
+		schema.IssuerDID.String(),
+		schema.ID,
+		schema.DisplayMethodID,
+	)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolationErrorCode {
+			return ErrDisplayMethodNotFound
+		}
+		return err
+	}
+
+	if res.RowsAffected() == 0 {
+		return ErrSchemaDoesNotExist
+	}
+
+	return nil
+}
+
 func (r *schema) toFullTextSearchDocument(sType string, attrs domain.SchemaWords) string {
 	out := make([]string, 0, len(attrs)+1)
 	out = append(out, sType)
