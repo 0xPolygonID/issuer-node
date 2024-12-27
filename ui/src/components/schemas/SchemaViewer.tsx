@@ -1,11 +1,14 @@
 import { Button, Card, Dropdown, Flex, Form, Row, Select, Space, Typography } from "antd";
 import { ReactNode, useState } from "react";
+import { generatePath } from "react-router-dom";
 import { UpdateSchema } from "src/adapters/api/schemas";
 
 import ChevronDownIcon from "src/assets/icons/chevron-down.svg?react";
+import IconLink from "src/assets/icons/link-external-01.svg?react";
 import { JSONHighlighter } from "src/components/schemas/JSONHighlighter";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
 import { DisplayMethod, Json, JsonLdType, JsonSchema } from "src/domain";
+import { ROUTES } from "src/routes";
 
 type JsonView = "formatted" | "jsonLdContext" | "jsonSchema";
 
@@ -63,16 +66,31 @@ export function SchemaViewer({
               onEdit(formValues);
             }}
           >
-            <Form.Item label="Default display method" name="displayMethodID">
-              <Select className="full-width" placeholder="Choose the default display method">
-                <Select.Option value={null}>None</Select.Option>
-                {Object.values(displayMethods).map((displayMethods) => (
-                  <Select.Option key={displayMethods.id} value={displayMethods.id}>
-                    {displayMethods.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
+            <Flex align="flex-end" gap={8} justify="space-between">
+              <Form.Item
+                label="Default display method"
+                name="displayMethodID"
+                style={{ marginBottom: 0, width: "100%" }}
+              >
+                <Select className="full-width" placeholder="Choose the default display method">
+                  <Select.Option value={null}>None</Select.Option>
+                  {Object.values(displayMethods).map((displayMethods) => (
+                    <Select.Option key={displayMethods.id} value={displayMethods.id}>
+                      {displayMethods.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Button
+                disabled={!displayMethodID}
+                href={generatePath(ROUTES.displayMethodDetails.path, {
+                  displayMethodID: displayMethodID ?? "",
+                })}
+                icon={<IconLink />}
+                target="_blank"
+              />
+            </Flex>
           </Form>
         )}
 

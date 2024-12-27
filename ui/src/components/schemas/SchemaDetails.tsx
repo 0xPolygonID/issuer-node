@@ -233,7 +233,6 @@ export function SchemaDetails() {
           const displayMethodsList = isAsyncTaskDataAvailable(displayMethods)
             ? displayMethods.data
             : [];
-          const displayMethod = displayMethodsList.find(({ id }) => id === displayMethodID);
 
           return (
             <SchemaViewer
@@ -271,15 +270,6 @@ export function SchemaDetails() {
                     label="URL"
                     text={url}
                   />
-
-                  {displayMethod && (
-                    <Detail
-                      copyable
-                      href={generatePath(ROUTES.displayMethodDetails.path, { displayMethodID })}
-                      label="Default display method"
-                      text={displayMethod.name}
-                    />
-                  )}
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
 
