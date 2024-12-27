@@ -137,5 +137,10 @@ func (s *schema) Update(ctx context.Context, schema *domain.Schema) error {
 			return ErrDisplayMethodNotFound
 		}
 	}
-	return s.repo.Update(ctx, schema)
+	schemaInDatabase, err := s.repo.GetByID(ctx, schema.IssuerDID, schema.ID)
+	if err != nil {
+		return err
+	}
+	schemaInDatabase.DisplayMethodID = schema.DisplayMethodID
+	return s.repo.Save(ctx, schemaInDatabase)
 }

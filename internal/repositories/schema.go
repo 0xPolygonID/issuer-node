@@ -49,7 +49,11 @@ func NewSchema(conn db.Storage) *schema {
 
 // Save stores a new entry in schemas table
 func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
-	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  context_url, hash,  words, created_at, version, title, description, display_method_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11,$12);`
+	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  context_url, hash,  words, created_at, version, title, description, display_method_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+ 	ON CONFLICT (id) DO
+    UPDATE 
+	SET issuer_id=$2, url=$3, type=$4, context_url=$5, hash=$6,  words=$7, created_at=$8, version=$9, title=$10, description=$11, display_method_id=$12`
+
 	hash, err := s.Hash.MarshalText()
 	if err != nil {
 		return err
@@ -86,9 +90,9 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 
 func (r *schema) Update(ctx context.Context, schema *domain.Schema) error {
 	const updateSchema = `
-UPDATE schemas 
-SET issuer_id=$2, url=$3, type=$4, context_url=$5, hash=$6,  words=$7, created_at=$8, version=$9, title=$10, description=$11, display_method_id=$12
-WHERE schemas.id = $1;`
+	UPDATE schemas 
+	SET issuer_id=$2, url=$3, type=$4, context_url=$5, hash=$6,  words=$7, created_at=$8, version=$9, title=$10, description=$11, display_method_id=$12
+	WHERE schemas.id = $1;`
 	hash, err := schema.Hash.MarshalText()
 	if err != nil {
 		return err
