@@ -23,14 +23,6 @@ const (
 // SchemaFormat type
 type SchemaFormat string
 
-const (
-	// JSONLD JSON-LD schema format
-	JSONLD SchemaFormat = "json-ld"
-
-	// JSON JSON schema format
-	JSON SchemaFormat = "json"
-)
-
 // SchemaWords is a collection of schema attributes
 type SchemaWords []string
 
@@ -61,6 +53,7 @@ type Schema struct {
 	IssuerDID       w3c.DID
 	URL             string
 	Type            string
+	ContextURL      string
 	Title           *string
 	Description     *string
 	Version         string

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,6 +37,35 @@ func (s *schema) GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (
 	if err != nil {
 		return nil, err
 	}
+	schemaID := schema.ID
+	schema, err = s.fixSchemaContext(ctx, schema)
+	if err != nil {
+		log.Error(ctx, "fixing schema context", "err", err, "schema", schemaID)
+		return nil, fmt.Errorf("fixing schema context: %w", err)
+	}
+	return schema, nil
+}
+
+// fixSchemaContext updates the schema context url if it is empty. This will happen in old installations
+// that did not have the context url stored in the database
+// There is no action in DB if the context url is already stored
+func (s *schema) fixSchemaContext(ctx context.Context, schema *domain.Schema) (*domain.Schema, error) {
+	if schema.ContextURL == "" {
+		remoteSchema, err := jsonschema.Load(ctx, schema.URL, s.loader)
+		if err != nil {
+			log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", schema.URL)
+			return nil, ErrLoadingSchema
+		}
+		contextUrl, err := remoteSchema.JSONLdContext()
+		if err != nil {
+			log.Error(ctx, "getting jsonld context", "err", err, "jsonschema", schema.URL)
+			return nil, ErrProcessSchema
+		}
+		schema.ContextURL = contextUrl
+		if err := s.repo.Update(ctx, schema); err != nil {
+			return nil, fmt.Errorf("updating schema: %w", err)
+		}
+	}
 	return schema, nil
 }
 
@@ -62,6 +92,11 @@ func (s *schema) ImportSchema(ctx context.Context, did w3c.DID, req *ports.Impor
 		log.Error(ctx, "hashing schema", "err", err, "jsonschema", req.URL)
 		return nil, ErrProcessSchema
 	}
+	contextUrl, err := remoteSchema.JSONLdContext()
+	if err != nil {
+		log.Error(ctx, "getting jsonld context", "err", err, "jsonschema", req.URL)
+		return nil, ErrProcessSchema
+	}
 
 	if req.DisplayMethodID != nil {
 		_, err := s.displayMethodService.GetByID(ctx, did, *req.DisplayMethodID)
@@ -76,6 +111,7 @@ func (s *schema) ImportSchema(ctx context.Context, did w3c.DID, req *ports.Impor
 		IssuerDID:       did,
 		URL:             req.URL,
 		Type:            req.SType,
+		ContextURL:      contextUrl,
 		Version:         req.Version,
 		Title:           req.Title,
 		Description:     req.Description,
