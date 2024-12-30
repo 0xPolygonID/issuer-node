@@ -143,7 +143,7 @@ export function IdentityAuthCredentials({
     {
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (issuanceDate: AuthCredential["issuanceDate"]) => (
+      render: (_, { issuanceDate }: AuthCredential) => (
         <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
       sorter: ({ issuanceDate: a }, { issuanceDate: b }) => b.getTime() - a.getTime(),
