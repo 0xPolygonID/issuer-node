@@ -97,7 +97,10 @@ func (ls *localEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byt
 	}
 
 	sig, err := crypto.Sign(data, privKey)
-	return sig, err
+	if err != nil {
+		return nil, err
+	}
+	return sig, nil
 }
 
 func (ls *localEthKeyProvider) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {

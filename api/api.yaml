@@ -1727,6 +1727,197 @@ paths:
 
 
 
+  /v2/identities/{identifier}/payment-request:
+    post:
+      summary: Create Payment Request
+      operationId: CreatePaymentRequest
+      description: Create a payment request for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment Request Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentRequestResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/payment/settings:
+    get:
+      summary: Payments Configuration
+      operationId: GetPaymentSettings
+      description: Returns the server payments configuration
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      responses:
+        '200':
+          description: Payment settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentsConfiguration'
+
+  /v2/identities/{identifier}/payment/options:
+    get:
+      summary: Get Payment Options
+      operationId: GetPaymentOptions
+      description: Get the payment options for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Payment options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOptionsPaginated'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+    post:
+      summary: Create Payment Option
+      operationId: CreatePaymentOption
+      description: Create a payment option for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentOptionRequest'
+      responses:
+        '201':
+          description: Payment Option Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v2/identities/{identifier}/payment/options/{id}:
+    get:
+      summary: Get Payment Option
+      operationId: GetPaymentOption
+      description: Get a specific payment option for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Payment option
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOption'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+    delete:
+      summary: Delete Payment Option
+      operationId: DeletePaymentOption
+      description: Remove a specific payment option for the provided identity.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Payment option deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+
+  /v2/identities/{identifier}/payment/verify/{nonce}:
+    post:
+      summary: Verify Payment
+      operationId: VerifyPayment
+      description: Verify a payment by nonce.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - name: identifier
+          schema:
+            type: string
+          required: true
+          in: path
+        - name: nonce
+          schema:
+            type: string
+          in: path
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentVerifyRequest'
+      responses:
+        '200':
+          description: Payment verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatus'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
 components:
   securitySchemes:
     basicAuth:
@@ -2124,6 +2315,7 @@ components:
         - bigInt
         - url
         - type
+        - contextURL
         - createdAt
         - version
       properties:
@@ -2147,6 +2339,8 @@ components:
           type: string
           x-omitempty: false
           example: KYCCountryOfResidenceCredential
+        contextURL:
+          type: string
         createdAt:
           $ref: '#/components/schemas/TimeUTC'
           x-omitempty: false
@@ -2406,8 +2600,16 @@ components:
                 value:
                   type: string
 
-    #Agent
-    AgentResponse:
+    PaymentVerifyRequest:
+      type: object
+      required:
+        - txHash
+      properties:
+        txHash:
+          type: string
+          example: "0x8f271174b45ba7892d83..."
+
+    BasicMessage:
       type: object
       required:
         - body
@@ -2432,6 +2634,167 @@ components:
           type: string
         to:
           type: string
+
+    AgentResponse:
+      $ref: '#/components/schemas/BasicMessage'
+
+    PaymentOptionsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          $ref: '#/components/schemas/PaymentOptions'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
+    PaymentOptions:
+      type: array
+      items:
+        $ref: '#/components/schemas/PaymentOption'
+
+    PaymentStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ success, failed, pending, canceled ]
+
+    PaymentsConfiguration:
+      type: object
+      x-go-type: payments.Config
+      x-go-type-import:
+        name: payments
+        path: github.com/polygonid/sh-id-platform/internal/payments
+
+    PaymentOption:
+      type: object
+      required:
+        - id
+        - issuerDID
+        - name
+        - description
+        - config
+        - modifiedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+        issuerDID:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        config:
+          $ref: '#/components/schemas/PaymentOptionConfig'
+        modifiedAt:
+          $ref: '#/components/schemas/TimeUTC'
+        createdAt:
+          $ref: '#/components/schemas/TimeUTC'
+
+    PaymentOptionConfig:
+      type: array
+      items:
+        $ref: '#/components/schemas/PaymentOptionConfigItem'
+
+    PaymentOptionConfigItem:
+      type: object
+      required:
+        - paymentOptionID
+        - amount
+        - recipient
+        - signingKeyID
+      properties:
+        paymentOptionID:
+         type: integer
+        amount:
+          type: string
+        recipient:
+          type: string
+        signingKeyID:
+          type: string
+
+    PaymentOptionRequest:
+      type: object
+      required:
+        - name
+        - description
+        - config
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        config:
+          $ref: '#/components/schemas/PaymentOptionConfig'
+
+    CreatePaymentRequest:
+      type: object
+      required:
+        - optionID
+        - schemaID
+        - description
+        - userDID
+      properties:
+        optionID:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+        schemaID:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+        description:
+          type: string
+          example: "Payment for AML"
+        userDID:
+          type: string
+          example: "<user did>"
+
+    CreatePaymentRequestResponse:
+      type: object
+      required:
+        - id
+        - issuerDID
+        - userDID
+        - paymentOptionID
+        - payments
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        issuerDID:
+          type: string
+        userDID:
+          type: string
+        paymentOptionID:
+          type: string
+          format: uuid
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentRequestInfo'
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentRequestInfo:
+      type: object
+      x-go-type: protocol.PaymentRequestInfo
+      x-go-type-import:
+        name: protocol
+        path: github.com/iden3/iden3comm/v2/protocol
 
     TimeUTC:
       type: string

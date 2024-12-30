@@ -13,6 +13,10 @@ type schemaInMemory struct {
 	schemas map[uuid.UUID]domain.Schema
 }
 
+func (s *schemaInMemory) Update(ctx context.Context, schema *domain.Schema) error {
+	return s.Save(ctx, schema)
+}
+
 // NewSchemaInMemory returns schemaRepository implemented in memory convenient for testing
 func NewSchemaInMemory() *schemaInMemory {
 	return &schemaInMemory{schemas: make(map[uuid.UUID]domain.Schema)}
@@ -39,9 +43,4 @@ func (s *schemaInMemory) GetAll(_ context.Context, _ w3c.DID, _ *string) ([]doma
 		i++
 	}
 	return schemas, nil
-}
-
-func (s *schemaInMemory) Update(_ context.Context, schema *domain.Schema) error {
-	s.schemas[schema.ID] = *schema
-	return nil
 }

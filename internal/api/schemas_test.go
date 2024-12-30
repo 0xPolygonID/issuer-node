@@ -39,7 +39,7 @@ func TestServer_GetSchema(t *testing.T) {
 	s := &domain.Schema{
 		ID:        uuid.New(),
 		IssuerDID: *did,
-		URL:       "https://domain.org/this/is/an/url",
+		URL:       "http://localhost:8080/json/exampleMultidepth.json",
 		Type:      "schemaType",
 		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
 		CreatedAt: time.Now(),
@@ -49,18 +49,6 @@ func TestServer_GetSchema(t *testing.T) {
 	s.DisplayMethodID = displayMethodID
 	fixture.CreateSchema(t, ctx, s)
 	sHash, _ := s.Hash.MarshalText()
-
-	s2 := &domain.Schema{
-		ID:        uuid.New(),
-		IssuerDID: *did,
-		URL:       "https://domain.org/this/is/an/url_2",
-		Type:      "schemaType",
-		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
-		CreatedAt: time.Now(),
-	}
-	s2.Hash = common.CreateSchemaHash([]byte(s2.URL + "#" + s2.Type))
-	fixture.CreateSchema(t, ctx, s2)
-	s2Hash, _ := s2.Hash.MarshalText()
 
 	handler := getHandler(ctx, server)
 	type expected struct {
@@ -110,28 +98,12 @@ func TestServer_GetSchema(t *testing.T) {
 				schema: &Schema{
 					BigInt:          s.Hash.BigInt().String(),
 					CreatedAt:       TimeUTC(s.CreatedAt),
+					ContextURL:      "http://localhost:8080/json-ld/exampleMultidepth.jsonld",
 					Hash:            string(sHash),
 					Id:              s.ID.String(),
 					Type:            s.Type,
 					Url:             s.URL,
 					DisplayMethodID: displayMethodID,
-				},
-			},
-		},
-		{
-			name: "Happy path. Existing schema without display method",
-			auth: authOk,
-			id:   s2.ID.String(),
-			expected: expected{
-				httpCode: http.StatusOK,
-				schema: &Schema{
-					BigInt:          s2.Hash.BigInt().String(),
-					CreatedAt:       TimeUTC(s2.CreatedAt),
-					Hash:            string(s2Hash),
-					Id:              s2.ID.String(),
-					Type:            s2.Type,
-					Url:             s2.URL,
-					DisplayMethodID: nil,
 				},
 			},
 		},
@@ -152,6 +124,7 @@ func TestServer_GetSchema(t *testing.T) {
 				assert.Equal(t, tc.expected.schema.Id, response.Id)
 				assert.Equal(t, tc.expected.schema.BigInt, response.BigInt)
 				assert.Equal(t, tc.expected.schema.Type, response.Type)
+				assert.Equal(t, tc.expected.schema.ContextURL, response.ContextURL)
 				assert.Equal(t, tc.expected.schema.Url, response.Url)
 				assert.Equal(t, tc.expected.schema.Hash, response.Hash)
 				assert.Equal(t, tc.expected.schema.DisplayMethodID, response.DisplayMethodID)

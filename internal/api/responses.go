@@ -1,13 +1,17 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/pagination"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
 )
@@ -135,6 +139,7 @@ func schemaResponse(s *domain.Schema) Schema {
 	return Schema{
 		Id:              s.ID.String(),
 		Type:            s.Type,
+		ContextURL:      s.ContextURL,
 		Url:             s.URL,
 		BigInt:          s.Hash.BigInt().String(),
 		Hash:            string(hash),
@@ -279,5 +284,98 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 		return "published"
 	default:
 		return "failed"
+	}
+}
+
+func toGetPaymentOptionsResponse(opts []domain.PaymentOption) (PaymentOptions, error) {
+	var err error
+	res := make([]PaymentOption, len(opts))
+	for i, opt := range opts {
+		res[i], err = toPaymentOption(&opt)
+		if err != nil {
+			return PaymentOptions{}, err
+		}
+	}
+	return res, nil
+}
+
+func toPaymentOption(opt *domain.PaymentOption) (PaymentOption, error) {
+	var config map[string]interface{}
+	raw, err := json.Marshal(opt.Config)
+	if err != nil {
+		return PaymentOption{}, err
+	}
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return PaymentOption{}, err
+	}
+	return PaymentOption{
+		Id:          opt.ID,
+		IssuerDID:   opt.IssuerDID.String(),
+		Name:        opt.Name,
+		Description: opt.Description,
+		Config:      toPaymentOptionConfig(opt.Config),
+		CreatedAt:   TimeUTC(opt.CreatedAt),
+		ModifiedAt:  TimeUTC(opt.UpdatedAt),
+	}, nil
+}
+
+func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfig {
+	cfg := make([]PaymentOptionConfigItem, len(config.Config))
+	for i, item := range config.Config {
+		cfg[i] = PaymentOptionConfigItem{
+			PaymentOptionID: int(item.PaymentOptionID),
+			Amount:          item.Amount.String(),
+			Recipient:       item.Recipient.String(),
+			SigningKeyID:    item.SigningKeyID,
+		}
+	}
+	return cfg
+}
+
+func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePaymentRequestResponse {
+	creds := make([]struct {
+		Context string `json:"context"`
+		Type    string `json:"type"`
+	}, len(payReq.Credentials))
+	for i, cred := range payReq.Credentials {
+		creds[i] = struct {
+			Context string `json:"context"`
+			Type    string `json:"type"`
+		}{
+			Context: cred.Context,
+			Type:    cred.Type,
+		}
+	}
+	payment := PaymentRequestInfo{
+		Credentials: payReq.Credentials,
+		Description: payReq.Description,
+	}
+	payment.Data = make([]protocol.PaymentRequestInfoDataItem, len(payReq.Payments))
+	for i, pay := range payReq.Payments {
+		payment.Data[i] = pay.Payment
+	}
+	resp := CreatePaymentRequestResponse{
+		CreatedAt:       payReq.CreatedAt,
+		Id:              payReq.ID,
+		IssuerDID:       payReq.IssuerDID.String(),
+		UserDID:         payReq.RecipientDID.String(),
+		PaymentOptionID: payReq.PaymentOptionID,
+		Payments:        []PaymentRequestInfo{payment},
+	}
+	return resp
+}
+
+func toVerifyPaymentResponse(status ports.BlockchainPaymentStatus) (VerifyPaymentResponseObject, error) {
+	switch status {
+	case ports.BlockchainPaymentStatusPending:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusPending}, nil
+	case ports.BlockchainPaymentStatusSuccess:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess}, nil
+	case ports.BlockchainPaymentStatusCancelled:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusCanceled}, nil
+	case ports.BlockchainPaymentStatusFailed:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusFailed}, nil
+	default:
+		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unknown blockchain payment status <%d>", status)}}, nil
 	}
 }
