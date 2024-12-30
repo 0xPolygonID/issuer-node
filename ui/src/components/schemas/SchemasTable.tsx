@@ -13,7 +13,7 @@ import {
 } from "antd";
 
 import { useCallback, useEffect, useState } from "react";
-import { Link, generatePath, useSearchParams } from "react-router-dom";
+import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { notifyErrors } from "src/adapters/parsers";
@@ -40,7 +40,7 @@ import { formatDate } from "src/utils/forms";
 export function SchemasTable() {
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
-
+  const navigate = useNavigate();
   const [apiSchemas, setApiSchemas] = useState<AsyncTask<ApiSchema[], AppError>>({
     status: "pending",
   });
@@ -56,12 +56,23 @@ export function SchemasTable() {
       dataIndex: "type",
       ellipsis: { showTitle: false },
       key: "type",
-      render: (type: ApiSchema["type"], { description, title }: ApiSchema) => (
+      render: (type: ApiSchema["type"], { description, id, title }: ApiSchema) => (
         <Tooltip
           placement="topLeft"
           title={title && description ? `${title}: ${description}` : title || description}
         >
-          <Typography.Text strong>{type}</Typography.Text>
+          <Typography.Link
+            onClick={() =>
+              navigate(
+                generatePath(ROUTES.schemaDetails.path, {
+                  schemaID: id,
+                })
+              )
+            }
+            strong
+          >
+            {type}
+          </Typography.Link>
         </Tooltip>
       ),
       sorter: {
@@ -74,7 +85,7 @@ export function SchemasTable() {
       dataIndex: "version",
       key: "version",
       render: (version: ApiSchema["version"]) => (
-        <Typography.Text strong>{version || "-"}</Typography.Text>
+        <Typography.Text>{version || "-"}</Typography.Text>
       ),
       sorter: {
         compare: ({ version: a }, { version: b }) => (a && b ? a.localeCompare(b) : 0),

@@ -229,7 +229,7 @@ export function LinkDetails() {
                     />
 
                     <Detail
-                      copyable
+                      copyable={!!displayMethod}
                       label="Display Method"
                       text={displayMethod ? displayMethod.id : "-"}
                     />
