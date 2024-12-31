@@ -127,7 +127,7 @@ func Test_link_issueClaim(t *testing.T) {
 					Typ:  packers.MediaTypePlainMessage,
 					Type: protocol.CredentialOfferMessageType,
 					Body: protocol.CredentialsOfferMessageBody{
-						URL: "host_url/v2/agent",
+						URL: "host_url/public/v2/agent",
 						Credentials: []protocol.CredentialOffer{
 							{
 								ID:          "1",

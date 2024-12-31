@@ -218,8 +218,26 @@ func (s *Server) GetRevocationStatusV2(ctx context.Context, request GetRevocatio
 		return GetRevocationStatusV2200JSONResponse(response), nil
 	case GetRevocationStatus500JSONResponse:
 		return GetRevocationStatusV2500JSONResponse(response), nil
+	default:
+		log.Error(ctx, "getting revocation status", "err", "unexpected response type")
+		return GetRevocationStatusV2500JSONResponse{N500JSONResponse{"unexpected response type"}}, nil
 	}
-	return nil, nil
+}
+
+// GetRevocationStatusV2Public is the controller to get revocation status
+func (s *Server) GetRevocationStatusV2Public(ctx context.Context, request GetRevocationStatusV2PublicRequestObject) (GetRevocationStatusV2PublicResponseObject, error) {
+	resp, err := s.GetRevocationStatusV2(ctx, GetRevocationStatusV2RequestObject(request))
+	if err != nil {
+		return nil, err
+	}
+	switch response := resp.(type) {
+	case GetRevocationStatusV2200JSONResponse:
+		return GetRevocationStatusV2Public200JSONResponse(response), nil
+	case GetRevocationStatusV2500JSONResponse:
+		return GetRevocationStatusV2Public500JSONResponse(response), nil
+	default:
+		return GetRevocationStatusV2Public500JSONResponse{N500JSONResponse{"unexpected response type"}}, nil
+	}
 }
 
 // GetCredentials returns a collection of credentials that matches the request.

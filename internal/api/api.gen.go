@@ -796,6 +796,33 @@ type N500CreateIdentity struct {
 	RequestID *string `json:"requestID,omitempty"`
 }
 
+// AgentPublicTextBody defines parameters for AgentPublic.
+type AgentPublicTextBody = string
+
+// AuthCallbackPublicTextBody defines parameters for AuthCallbackPublic.
+type AuthCallbackPublicTextBody = string
+
+// AuthCallbackPublicParams defines parameters for AuthCallbackPublic.
+type AuthCallbackPublicParams struct {
+	// SessionID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
+	SessionID SessionID `form:"sessionID" json:"sessionID"`
+}
+
+// CreateLinkQrCodeCallbackPublicTextBody defines parameters for CreateLinkQrCodeCallbackPublic.
+type CreateLinkQrCodeCallbackPublicTextBody = string
+
+// CreateLinkQrCodeCallbackPublicParams defines parameters for CreateLinkQrCodeCallbackPublic.
+type CreateLinkQrCodeCallbackPublicParams struct {
+	// LinkID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
+	LinkID LinkID `form:"linkID" json:"linkID"`
+}
+
+// GetQrFromStorePublicParams defines parameters for GetQrFromStorePublic.
+type GetQrFromStorePublicParams struct {
+	Id     *uuid.UUID `form:"id,omitempty" json:"id,omitempty"`
+	Issuer *string    `form:"issuer,omitempty" json:"issuer,omitempty"`
+}
+
 // AgentV1TextBody defines parameters for AgentV1.
 type AgentV1TextBody = string
 
@@ -992,6 +1019,15 @@ type AuthenticationParams struct {
 // AuthenticationParamsType defines parameters for Authentication.
 type AuthenticationParamsType string
 
+// AgentPublicTextRequestBody defines body for AgentPublic for text/plain ContentType.
+type AgentPublicTextRequestBody = AgentPublicTextBody
+
+// AuthCallbackPublicTextRequestBody defines body for AuthCallbackPublic for text/plain ContentType.
+type AuthCallbackPublicTextRequestBody = AuthCallbackPublicTextBody
+
+// CreateLinkQrCodeCallbackPublicTextRequestBody defines body for CreateLinkQrCodeCallbackPublic for text/plain ContentType.
+type CreateLinkQrCodeCallbackPublicTextRequestBody = CreateLinkQrCodeCallbackPublicTextBody
+
 // AgentV1TextRequestBody defines body for AgentV1 for text/plain ContentType.
 type AgentV1TextRequestBody = AgentV1TextBody
 
@@ -1051,6 +1087,21 @@ type ImportSchemaJSONRequestBody = ImportSchemaRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Agent
+	// (POST /public/v2/agent)
+	AgentPublic(w http.ResponseWriter, r *http.Request)
+	// Authentication Callback
+	// (POST /public/v2/authentication/callback)
+	AuthCallbackPublic(w http.ResponseWriter, r *http.Request, params AuthCallbackPublicParams)
+	// Create Link QR Code Callback
+	// (POST /public/v2/identities/{identifier}/credentials/links/callback)
+	CreateLinkQrCodeCallbackPublic(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params CreateLinkQrCodeCallbackPublicParams)
+	// Get Revocation Status
+	// (GET /public/v2/identities/{identifier}/credentials/revocation/status/{nonce})
+	GetRevocationStatusV2Public(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
+	// Get QrCode from store
+	// (GET /public/v2/qr-store)
+	GetQrFromStorePublic(w http.ResponseWriter, r *http.Request, params GetQrFromStorePublicParams)
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
@@ -1230,6 +1281,36 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Agent
+// (POST /public/v2/agent)
+func (_ Unimplemented) AgentPublic(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Authentication Callback
+// (POST /public/v2/authentication/callback)
+func (_ Unimplemented) AuthCallbackPublic(w http.ResponseWriter, r *http.Request, params AuthCallbackPublicParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Link QR Code Callback
+// (POST /public/v2/identities/{identifier}/credentials/links/callback)
+func (_ Unimplemented) CreateLinkQrCodeCallbackPublic(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params CreateLinkQrCodeCallbackPublicParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Revocation Status
+// (GET /public/v2/identities/{identifier}/credentials/revocation/status/{nonce})
+func (_ Unimplemented) GetRevocationStatusV2Public(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get QrCode from store
+// (GET /public/v2/qr-store)
+func (_ Unimplemented) GetQrFromStorePublic(w http.ResponseWriter, r *http.Request, params GetQrFromStorePublicParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Healthcheck
 // (GET /status)
@@ -1587,6 +1668,166 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// AgentPublic operation middleware
+func (siw *ServerInterfaceWrapper) AgentPublic(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AgentPublic(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AuthCallbackPublic operation middleware
+func (siw *ServerInterfaceWrapper) AuthCallbackPublic(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthCallbackPublicParams
+
+	// ------------- Required query parameter "sessionID" -------------
+
+	if paramValue := r.URL.Query().Get("sessionID"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sessionID"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "sessionID", r.URL.Query(), &params.SessionID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthCallbackPublic(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateLinkQrCodeCallbackPublic operation middleware
+func (siw *ServerInterfaceWrapper) CreateLinkQrCodeCallbackPublic(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateLinkQrCodeCallbackPublicParams
+
+	// ------------- Required query parameter "linkID" -------------
+
+	if paramValue := r.URL.Query().Get("linkID"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "linkID"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "linkID", r.URL.Query(), &params.LinkID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "linkID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateLinkQrCodeCallbackPublic(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRevocationStatusV2Public operation middleware
+func (siw *ServerInterfaceWrapper) GetRevocationStatusV2Public(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce PathNonce
+
+	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRevocationStatusV2Public(w, r, identifier, nonce)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetQrFromStorePublic operation middleware
+func (siw *ServerInterfaceWrapper) GetQrFromStorePublic(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetQrFromStorePublicParams
+
+	// ------------- Optional query parameter "id" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "id", r.URL.Query(), &params.Id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "issuer" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "issuer", r.URL.Query(), &params.Issuer)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "issuer", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetQrFromStorePublic(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // Health operation middleware
 func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request) {
@@ -3870,6 +4111,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/public/v2/agent", wrapper.AgentPublic)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/public/v2/authentication/callback", wrapper.AuthCallbackPublic)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/public/v2/identities/{identifier}/credentials/links/callback", wrapper.CreateLinkQrCodeCallbackPublic)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/public/v2/identities/{identifier}/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatusV2Public)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/public/v2/qr-store", wrapper.GetQrFromStorePublic)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
 	r.Group(func(r chi.Router) {
@@ -4067,6 +4323,202 @@ type N500CreateIdentityJSONResponse struct {
 	Code      *int    `json:"code,omitempty"`
 	Error     *string `json:"error,omitempty"`
 	RequestID *string `json:"requestID,omitempty"`
+}
+
+type AgentPublicRequestObject struct {
+	Body *AgentPublicTextRequestBody
+}
+
+type AgentPublicResponseObject interface {
+	VisitAgentPublicResponse(w http.ResponseWriter) error
+}
+
+type AgentPublic200JSONResponse AgentResponse
+
+func (response AgentPublic200JSONResponse) VisitAgentPublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AgentPublic400JSONResponse struct{ N400JSONResponse }
+
+func (response AgentPublic400JSONResponse) VisitAgentPublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AgentPublic500JSONResponse struct{ N500JSONResponse }
+
+func (response AgentPublic500JSONResponse) VisitAgentPublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthCallbackPublicRequestObject struct {
+	Params AuthCallbackPublicParams
+	Body   *AuthCallbackPublicTextRequestBody
+}
+
+type AuthCallbackPublicResponseObject interface {
+	VisitAuthCallbackPublicResponse(w http.ResponseWriter) error
+}
+
+type AuthCallbackPublic200Response struct {
+}
+
+func (response AuthCallbackPublic200Response) VisitAuthCallbackPublicResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type AuthCallbackPublic400JSONResponse struct{ N400JSONResponse }
+
+func (response AuthCallbackPublic400JSONResponse) VisitAuthCallbackPublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthCallbackPublic500JSONResponse struct{ N500JSONResponse }
+
+func (response AuthCallbackPublic500JSONResponse) VisitAuthCallbackPublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCodeCallbackPublicRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     CreateLinkQrCodeCallbackPublicParams
+	Body       *CreateLinkQrCodeCallbackPublicTextRequestBody
+}
+
+type CreateLinkQrCodeCallbackPublicResponseObject interface {
+	VisitCreateLinkQrCodeCallbackPublicResponse(w http.ResponseWriter) error
+}
+
+type CreateLinkQrCodeCallbackPublic200JSONResponse Offer
+
+func (response CreateLinkQrCodeCallbackPublic200JSONResponse) VisitCreateLinkQrCodeCallbackPublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCodeCallbackPublic400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateLinkQrCodeCallbackPublic400JSONResponse) VisitCreateLinkQrCodeCallbackPublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCodeCallbackPublic500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateLinkQrCodeCallbackPublic500JSONResponse) VisitCreateLinkQrCodeCallbackPublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatusV2PublicRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Nonce      PathNonce      `json:"nonce"`
+}
+
+type GetRevocationStatusV2PublicResponseObject interface {
+	VisitGetRevocationStatusV2PublicResponse(w http.ResponseWriter) error
+}
+
+type GetRevocationStatusV2Public200JSONResponse RevocationStatusResponse
+
+func (response GetRevocationStatusV2Public200JSONResponse) VisitGetRevocationStatusV2PublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatusV2Public400JSONResponse struct{ N400JSONResponse }
+
+func (response GetRevocationStatusV2Public400JSONResponse) VisitGetRevocationStatusV2PublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatusV2Public500JSONResponse struct{ N500JSONResponse }
+
+func (response GetRevocationStatusV2Public500JSONResponse) VisitGetRevocationStatusV2PublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStorePublicRequestObject struct {
+	Params GetQrFromStorePublicParams
+}
+
+type GetQrFromStorePublicResponseObject interface {
+	VisitGetQrFromStorePublicResponse(w http.ResponseWriter) error
+}
+
+type GetQrFromStorePublic200JSONResponse map[string]interface{}
+
+func (response GetQrFromStorePublic200JSONResponse) VisitGetQrFromStorePublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStorePublic400JSONResponse struct{ N400JSONResponse }
+
+func (response GetQrFromStorePublic400JSONResponse) VisitGetQrFromStorePublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStorePublic404JSONResponse struct{ N404JSONResponse }
+
+func (response GetQrFromStorePublic404JSONResponse) VisitGetQrFromStorePublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStorePublic410JSONResponse struct{ N410JSONResponse }
+
+func (response GetQrFromStorePublic410JSONResponse) VisitGetQrFromStorePublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(410)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStorePublic500JSONResponse struct{ N500JSONResponse }
+
+func (response GetQrFromStorePublic500JSONResponse) VisitGetQrFromStorePublicResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type HealthRequestObject struct {
@@ -6528,6 +6980,21 @@ func (response Authentication500JSONResponse) VisitAuthenticationResponse(w http
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Agent
+	// (POST /public/v2/agent)
+	AgentPublic(ctx context.Context, request AgentPublicRequestObject) (AgentPublicResponseObject, error)
+	// Authentication Callback
+	// (POST /public/v2/authentication/callback)
+	AuthCallbackPublic(ctx context.Context, request AuthCallbackPublicRequestObject) (AuthCallbackPublicResponseObject, error)
+	// Create Link QR Code Callback
+	// (POST /public/v2/identities/{identifier}/credentials/links/callback)
+	CreateLinkQrCodeCallbackPublic(ctx context.Context, request CreateLinkQrCodeCallbackPublicRequestObject) (CreateLinkQrCodeCallbackPublicResponseObject, error)
+	// Get Revocation Status
+	// (GET /public/v2/identities/{identifier}/credentials/revocation/status/{nonce})
+	GetRevocationStatusV2Public(ctx context.Context, request GetRevocationStatusV2PublicRequestObject) (GetRevocationStatusV2PublicResponseObject, error)
+	// Get QrCode from store
+	// (GET /public/v2/qr-store)
+	GetQrFromStorePublic(ctx context.Context, request GetQrFromStorePublicRequestObject) (GetQrFromStorePublicResponseObject, error)
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
@@ -6731,6 +7198,160 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// AgentPublic operation middleware
+func (sh *strictHandler) AgentPublic(w http.ResponseWriter, r *http.Request) {
+	var request AgentPublicRequestObject
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := AgentPublicTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AgentPublic(ctx, request.(AgentPublicRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AgentPublic")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AgentPublicResponseObject); ok {
+		if err := validResponse.VisitAgentPublicResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AuthCallbackPublic operation middleware
+func (sh *strictHandler) AuthCallbackPublic(w http.ResponseWriter, r *http.Request, params AuthCallbackPublicParams) {
+	var request AuthCallbackPublicRequestObject
+
+	request.Params = params
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := AuthCallbackPublicTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthCallbackPublic(ctx, request.(AuthCallbackPublicRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthCallbackPublic")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthCallbackPublicResponseObject); ok {
+		if err := validResponse.VisitAuthCallbackPublicResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateLinkQrCodeCallbackPublic operation middleware
+func (sh *strictHandler) CreateLinkQrCodeCallbackPublic(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params CreateLinkQrCodeCallbackPublicParams) {
+	var request CreateLinkQrCodeCallbackPublicRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := CreateLinkQrCodeCallbackPublicTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateLinkQrCodeCallbackPublic(ctx, request.(CreateLinkQrCodeCallbackPublicRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateLinkQrCodeCallbackPublic")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateLinkQrCodeCallbackPublicResponseObject); ok {
+		if err := validResponse.VisitCreateLinkQrCodeCallbackPublicResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRevocationStatusV2Public operation middleware
+func (sh *strictHandler) GetRevocationStatusV2Public(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
+	var request GetRevocationStatusV2PublicRequestObject
+
+	request.Identifier = identifier
+	request.Nonce = nonce
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRevocationStatusV2Public(ctx, request.(GetRevocationStatusV2PublicRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRevocationStatusV2Public")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRevocationStatusV2PublicResponseObject); ok {
+		if err := validResponse.VisitGetRevocationStatusV2PublicResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetQrFromStorePublic operation middleware
+func (sh *strictHandler) GetQrFromStorePublic(w http.ResponseWriter, r *http.Request, params GetQrFromStorePublicParams) {
+	var request GetQrFromStorePublicRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetQrFromStorePublic(ctx, request.(GetQrFromStorePublicRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetQrFromStorePublic")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetQrFromStorePublicResponseObject); ok {
+		if err := validResponse.VisitGetQrFromStorePublicResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // Health operation middleware

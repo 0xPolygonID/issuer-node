@@ -712,7 +712,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 					_, err = url.Parse(values.Get("request_uri"))
 					assert.NoError(t, err)
 				case "deepLink":
-					assert.True(t, strings.HasPrefix(response.UniversalLink, "iden3comm://?request_uri="+url.QueryEscape("https://testing.env/v2/qr-store?id=")))
+					assert.True(t, strings.HasPrefix(response.UniversalLink, "iden3comm://?request_uri="+url.QueryEscape("https://testing.env/public/v2/qr-store?id=")))
 					parsedURL, err := url.Parse(strings.Replace(response.UniversalLink, "iden3comm://", "http://anurl", 1))
 					require.NoError(t, err)
 					queryParams := parsedURL.Query()

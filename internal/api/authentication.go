@@ -26,6 +26,28 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 	return AuthCallback200Response{}, nil
 }
 
+// AuthCallbackPublic receives the authentication information of a holder
+func (s *Server) AuthCallbackPublic(ctx context.Context, request AuthCallbackPublicRequestObject) (AuthCallbackPublicResponseObject, error) {
+	resp, err := s.AuthCallback(ctx, AuthCallbackRequestObject{
+		Body:   request.Body,
+		Params: AuthCallbackParams(request.Params),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	switch response := resp.(type) {
+	case AuthCallback200Response:
+		return AuthCallbackPublic200Response{}, nil
+	case AuthCallback400JSONResponse:
+		return AuthCallbackPublic400JSONResponse(response), nil
+	case AuthCallback500JSONResponse:
+		return AuthCallbackPublic500JSONResponse(response), nil
+	default:
+		return AuthCallbackPublic500JSONResponse{N500JSONResponse{"unexpected response"}}, nil
+	}
+}
+
 // Authentication returns the qr code for authenticating a user
 func (s *Server) Authentication(ctx context.Context, req AuthenticationRequestObject) (AuthenticationResponseObject, error) {
 	did, err := w3c.ParseDID(req.Identifier)

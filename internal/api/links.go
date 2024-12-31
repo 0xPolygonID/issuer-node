@@ -127,6 +127,33 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 	return offerResponse, nil
 }
 
+// CreateLinkQrCodeCallbackPublic - Callback endpoint for the link qr code creation.
+func (s *Server) CreateLinkQrCodeCallbackPublic(ctx context.Context, request CreateLinkQrCodeCallbackPublicRequestObject) (CreateLinkQrCodeCallbackPublicResponseObject, error) {
+	resp, err := s.CreateLinkQrCodeCallback(ctx, CreateLinkQrCodeCallbackRequestObject{
+		Identifier: request.Identifier,
+		Params:     CreateLinkQrCodeCallbackParams(request.Params),
+		Body:       request.Body,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	switch response := resp.(type) {
+	case CreateLinkQrCodeCallback200JSONResponse:
+		return CreateLinkQrCodeCallbackPublic200JSONResponse(response), nil
+	case CreateLinkQrCodeCallback400JSONResponse:
+		return CreateLinkQrCodeCallbackPublic400JSONResponse(response), nil
+	case CreateLinkQrCodeCallback500JSONResponse:
+		return CreateLinkQrCodeCallbackPublic500JSONResponse(response), nil
+	default:
+		return CreateLinkQrCodeCallbackPublic500JSONResponse{
+			N500JSONResponse: N500JSONResponse{
+				Message: "unexpected response",
+			},
+		}, nil
+	}
+}
+
 // DeleteLink - delete a link
 func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error) {
 	issuerDID, err := w3c.ParseDID(request.Identifier)
