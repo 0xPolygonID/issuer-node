@@ -128,7 +128,7 @@ export function CredentialsTable() {
     {
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (issuanceDate: Credential["issuanceDate"]) => (
+      render: (_, { issuanceDate }: Credential) => (
         <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
       sorter: {
