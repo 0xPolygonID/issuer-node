@@ -126,8 +126,12 @@ export function IssueCredentialForm({
 
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
-  const [refreshServiceChecked, setRefreshServiceChecked] = useState(false);
-  const [displayMethodChecked, setDisplayMethodChecked] = useState(false);
+  const [refreshServiceChecked, setRefreshServiceChecked] = useState(
+    initialValues.refreshService.enabled
+  );
+  const [displayMethodChecked, setDisplayMethodChecked] = useState(
+    initialValues.displayMethod.enabled
+  );
 
   const isPositiveBigInt = (x: string) => {
     try {
@@ -305,6 +309,10 @@ export function IssueCredentialForm({
             status: "successful",
           });
           const credentialSubject = extractCredentialSubjectAttributeWithoutId(jsonSchema);
+          const schemaDefaultDisplayMethod = isAsyncTaskDataAvailable(displayMethods)
+            ? displayMethods.data.find(({ id }) => id === schema.displayMethodID)
+            : undefined;
+
           const initialValuesWithSchemaValues: Store = credentialSubject
             ? {
                 ...initialValues,
@@ -312,9 +320,17 @@ export function IssueCredentialForm({
                   credentialSubject,
                   initialValues.credentialSubject || {}
                 ),
+                displayMethod: {
+                  enabled: initialValues.displayMethod.enabled,
+                  ...(schemaDefaultDisplayMethod
+                    ? { type: schemaDefaultDisplayMethod.type, url: schemaDefaultDisplayMethod.url }
+                    : { type: "", url: "" }),
+                },
               }
             : initialValues;
           form.setFieldsValue(initialValuesWithSchemaValues);
+          setRefreshServiceChecked(initialValues.refreshService.enabled);
+          setDisplayMethodChecked(initialValues.displayMethod.enabled);
         } else {
           if (!isAbortedError(response.error)) {
             setJsonSchema({ error: response.error, status: "failed" });
@@ -322,7 +338,7 @@ export function IssueCredentialForm({
         }
       });
     },
-    [computeFormObjectInitialValues, env, form, initialValues]
+    [computeFormObjectInitialValues, env, form, initialValues, displayMethods]
   );
 
   const fetchSchemas = useCallback(

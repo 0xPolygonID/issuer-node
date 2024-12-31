@@ -505,11 +505,12 @@ type IdentityState struct {
 
 // ImportSchemaRequest defines model for ImportSchemaRequest.
 type ImportSchemaRequest struct {
-	Description *string `json:"description,omitempty"`
-	SchemaType  string  `json:"schemaType"`
-	Title       *string `json:"title,omitempty"`
-	Url         string  `json:"url"`
-	Version     string  `json:"version"`
+	Description     *string    `json:"description,omitempty"`
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
+	SchemaType      string     `json:"schemaType"`
+	Title           *string    `json:"title,omitempty"`
+	Url             string     `json:"url"`
+	Version         string     `json:"version"`
 }
 
 // IssuerDescription defines model for IssuerDescription.
@@ -686,16 +687,17 @@ type RevokeClaimResponse struct {
 
 // Schema defines model for Schema.
 type Schema struct {
-	BigInt      string  `json:"bigInt"`
-	ContextURL  string  `json:"contextURL"`
-	CreatedAt   TimeUTC `json:"createdAt"`
-	Description *string `json:"description"`
-	Hash        string  `json:"hash"`
-	Id          string  `json:"id"`
-	Title       *string `json:"title"`
-	Type        string  `json:"type"`
-	Url         string  `json:"url"`
-	Version     string  `json:"version"`
+	BigInt          string     `json:"bigInt"`
+	ContextURL      string     `json:"contextURL"`
+	CreatedAt       TimeUTC    `json:"createdAt"`
+	Description     *string    `json:"description"`
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
+	Hash            string     `json:"hash"`
+	Id              string     `json:"id"`
+	Title           *string    `json:"title"`
+	Type            string     `json:"type"`
+	Url             string     `json:"url"`
+	Version         string     `json:"version"`
 }
 
 // StateStatusResponse defines model for StateStatusResponse.
@@ -957,6 +959,11 @@ type GetSchemasParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
+// UpdateSchemaJSONBody defines parameters for UpdateSchema.
+type UpdateSchemaJSONBody struct {
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
+}
+
 // GetStateTransactionsParams defines parameters for GetStateTransactions.
 type GetStateTransactionsParams struct {
 	Filter *GetStateTransactionsParamsFilter `form:"filter,omitempty" json:"filter,omitempty"`
@@ -1048,6 +1055,9 @@ type VerifyPaymentJSONRequestBody = PaymentVerifyRequest
 
 // ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
+
+// UpdateSchemaJSONRequestBody defines body for UpdateSchema for application/json ContentType.
+type UpdateSchemaJSONRequestBody UpdateSchemaJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1201,6 +1211,9 @@ type ServerInterface interface {
 	// Get Schema
 	// (GET /v2/identities/{identifier}/schemas/{id})
 	GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Update Schema
+	// (PATCH /v2/identities/{identifier}/schemas/{id})
+	UpdateSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Publish Identity State
 	// (POST /v2/identities/{identifier}/state/publish)
 	PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -1528,6 +1541,12 @@ func (_ Unimplemented) ImportSchema(w http.ResponseWriter, r *http.Request, iden
 // Get Schema
 // (GET /v2/identities/{identifier}/schemas/{id})
 func (_ Unimplemented) GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update Schema
+// (PATCH /v2/identities/{identifier}/schemas/{id})
+func (_ Unimplemented) UpdateSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3486,6 +3505,46 @@ func (siw *ServerInterfaceWrapper) GetSchema(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// UpdateSchema operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSchema(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSchema(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PublishIdentityState operation middleware
 func (siw *ServerInterfaceWrapper) PublishIdentityState(w http.ResponseWriter, r *http.Request) {
 
@@ -4018,6 +4077,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas/{id}", wrapper.GetSchema)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}/schemas/{id}", wrapper.UpdateSchema)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/state/publish", wrapper.PublishIdentityState)
@@ -6210,6 +6272,52 @@ func (response GetSchema500JSONResponse) VisitGetSchemaResponse(w http.ResponseW
 	return json.NewEncoder(w).Encode(response)
 }
 
+type UpdateSchemaRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+	Body       *UpdateSchemaJSONRequestBody
+}
+
+type UpdateSchemaResponseObject interface {
+	VisitUpdateSchemaResponse(w http.ResponseWriter) error
+}
+
+type UpdateSchema200JSONResponse GenericMessage
+
+func (response UpdateSchema200JSONResponse) VisitUpdateSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateSchema400JSONResponse) VisitUpdateSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchema404JSONResponse struct{ N404JSONResponse }
+
+func (response UpdateSchema404JSONResponse) VisitUpdateSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response UpdateSchema500JSONResponse) VisitUpdateSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type PublishIdentityStateRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 }
@@ -6678,6 +6786,9 @@ type StrictServerInterface interface {
 	// Get Schema
 	// (GET /v2/identities/{identifier}/schemas/{id})
 	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
+	// Update Schema
+	// (PATCH /v2/identities/{identifier}/schemas/{id})
+	UpdateSchema(ctx context.Context, request UpdateSchemaRequestObject) (UpdateSchemaResponseObject, error)
 	// Publish Identity State
 	// (POST /v2/identities/{identifier}/state/publish)
 	PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error)
@@ -8186,6 +8297,40 @@ func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, ident
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetSchemaResponseObject); ok {
 		if err := validResponse.VisitGetSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateSchema operation middleware
+func (sh *strictHandler) UpdateSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request UpdateSchemaRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	var body UpdateSchemaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSchema(ctx, request.(UpdateSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateSchemaResponseObject); ok {
+		if err := validResponse.VisitUpdateSchemaResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -1123,6 +1123,43 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+    patch:
+      summary: Update Schema
+      operationId: UpdateSchema
+      description: Update a specific schema for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayMethodID:
+                  type: string
+                  x-go-type: uuid.UUID
+                  x-omitempty: false
+
+      responses:
+        '200':
+          description: Schema information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
 
   # Links
   /v2/identities/{identifier}/credentials/links:
@@ -2265,6 +2302,10 @@ components:
         version:
           type: string
           example: "1.0.0"
+        displayMethodID:
+          type: string
+          x-go-type: uuid.UUID
+          x-omitempty: false
 
     Schema:
       type: object
@@ -2315,6 +2356,10 @@ components:
           type: string
           x-omitempty: false
           example: "1.0.0"
+        displayMethodID:
+          type: string
+          x-go-type: uuid.UUID
+          x-omitempty: false
 
     # display method
     DisplayMethod:

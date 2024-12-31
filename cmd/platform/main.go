@@ -158,10 +158,10 @@ func main() {
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	proofService := services.NewProver(circuitsLoaderService)
-	schemaService := services.NewSchema(schemaRepository, schemaLoader)
+	displayMethodService := services.NewDisplayMethod(repositories.NewDisplayMethod(*storage))
+	schemaService := services.NewSchema(schemaRepository, schemaLoader, displayMethodService)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
 	paymentService := services.NewPaymentService(paymentsRepo, *networkResolver, schemaService, paymentSettings, keyStore)
-	displayMethodService := services.NewDisplayMethod(repositories.NewDisplayMethod(*storage))
 	keyService := services.NewKey(keyStore, claimsService, keyRepository)
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {

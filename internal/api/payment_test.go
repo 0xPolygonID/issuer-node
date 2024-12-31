@@ -521,7 +521,7 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 	receiverDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
 	require.NoError(t, err)
 
-	iReq := ports.NewImportSchemaRequest(url, schemaType, nil, "1.0", nil)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, nil, "1.0", nil, nil)
 	schema, err := server.schemaService.ImportSchema(ctx, *issuerDID, iReq)
 	require.NoError(t, err)
 

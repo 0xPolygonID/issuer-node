@@ -949,7 +949,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, claimsService.Revoke(ctx, *id, uint64(revoked.RevNonce), "because I can"))
 
-	iReq := ports.NewImportSchemaRequest(schemaURL, typeC, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
+	iReq := ports.NewImportSchemaRequest(schemaURL, typeC, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil)
 	_, err = server.schemaService.ImportSchema(ctx, *did, iReq)
 	require.NoError(t, err)
 

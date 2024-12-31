@@ -17,4 +17,4 @@ data:
   ISSUER_UI_INSECURE: {{ .Values.issuerUiInsecure | quote }}
   ISSUER_UI_AUTH_PASSWORD: {{ .Values.uiPassword }}
   ISSUER_UI_AUTH_USERNAME: {{ .Values.uiIssuerNode.configMap.issuerUiAuthUsername }}
-  ISSUER_UI_BASE_URL: "/"
+  ISSUER_UI_BASE_URL: "/{{ .Release.Namespace }}"

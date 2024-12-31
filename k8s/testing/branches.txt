@@ -1,1 +1,2 @@
 feat/multichain-payment=multichain-payment
+IN-128-add-display-method-for-schemas=display-method

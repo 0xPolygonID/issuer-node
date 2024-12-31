@@ -137,16 +137,17 @@ func getProofs(credential *domain.Claim) []string {
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
 	return Schema{
-		Id:          s.ID.String(),
-		Type:        s.Type,
-		ContextURL:  s.ContextURL,
-		Url:         s.URL,
-		BigInt:      s.Hash.BigInt().String(),
-		Hash:        string(hash),
-		CreatedAt:   TimeUTC(s.CreatedAt),
-		Version:     s.Version,
-		Title:       s.Title,
-		Description: s.Description,
+		Id:              s.ID.String(),
+		Type:            s.Type,
+		ContextURL:      s.ContextURL,
+		Url:             s.URL,
+		BigInt:          s.Hash.BigInt().String(),
+		Hash:            string(hash),
+		CreatedAt:       TimeUTC(s.CreatedAt),
+		Version:         s.Version,
+		Title:           s.Title,
+		Description:     s.Description,
+		DisplayMethodID: s.DisplayMethodID,
 	}
 }
 

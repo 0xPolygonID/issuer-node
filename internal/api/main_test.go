@@ -351,7 +351,8 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver, repos.keyRepository)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
-	schemaService := services.NewSchema(repos.schemas, schemaLoader)
+	displayMethodService := services.NewDisplayMethod(repos.displayMethod)
+	schemaService := services.NewSchema(repos.schemas, schemaLoader, displayMethodService)
 	paymentService := services.NewPaymentService(repos.payments, *networkResolver, schemaService, paymentSettings, keyStore)
 
 	mediaTypeManager := services.NewMediaTypeManager(
@@ -365,7 +366,6 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	displayMethodService := services.NewDisplayMethod(repos.displayMethod)
 	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
 	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService)
 

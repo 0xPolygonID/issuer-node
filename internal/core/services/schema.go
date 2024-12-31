@@ -18,13 +18,14 @@ import (
 )
 
 type schema struct {
-	repo   ports.SchemaRepository
-	loader loader.DocumentLoader
+	repo                 ports.SchemaRepository
+	loader               loader.DocumentLoader
+	displayMethodService ports.DisplayMethodService
 }
 
 // NewSchema is the schema service constructor
-func NewSchema(repo ports.SchemaRepository, loader loader.DocumentLoader) *schema {
-	return &schema{repo: repo, loader: loader}
+func NewSchema(repo ports.SchemaRepository, loader loader.DocumentLoader, displayMethodService ports.DisplayMethodService) *schema {
+	return &schema{repo: repo, loader: loader, displayMethodService: displayMethodService}
 }
 
 // GetByID returns a domain.Schema by ID
@@ -97,18 +98,27 @@ func (s *schema) ImportSchema(ctx context.Context, did w3c.DID, req *ports.Impor
 		return nil, ErrProcessSchema
 	}
 
+	if req.DisplayMethodID != nil {
+		_, err := s.displayMethodService.GetByID(ctx, did, *req.DisplayMethodID)
+		if err != nil {
+			log.Error(ctx, "getting display method", "err", err)
+			return nil, ErrDisplayMethodNotFound
+		}
+	}
+
 	schema := &domain.Schema{
-		ID:          uuid.New(),
-		IssuerDID:   did,
-		URL:         req.URL,
-		Type:        req.SType,
-		ContextURL:  contextUrl,
-		Version:     req.Version,
-		Title:       req.Title,
-		Description: req.Description,
-		Hash:        hash,
-		Words:       attributeNames.SchemaAttrs(),
-		CreatedAt:   time.Now(),
+		ID:              uuid.New(),
+		IssuerDID:       did,
+		URL:             req.URL,
+		Type:            req.SType,
+		ContextURL:      contextUrl,
+		Version:         req.Version,
+		Title:           req.Title,
+		Description:     req.Description,
+		Hash:            hash,
+		Words:           attributeNames.SchemaAttrs(),
+		DisplayMethodID: req.DisplayMethodID,
+		CreatedAt:       time.Now(),
 	}
 
 	if err := s.repo.Save(ctx, schema); err != nil {
@@ -116,4 +126,21 @@ func (s *schema) ImportSchema(ctx context.Context, did w3c.DID, req *ports.Impor
 		return nil, err
 	}
 	return schema, nil
+}
+
+// Update updates a schema
+func (s *schema) Update(ctx context.Context, schema *domain.Schema) error {
+	if schema.DisplayMethodID != nil {
+		_, err := s.displayMethodService.GetByID(ctx, schema.IssuerDID, *schema.DisplayMethodID)
+		if err != nil {
+			log.Error(ctx, "getting display method", "err", err)
+			return ErrDisplayMethodNotFound
+		}
+	}
+	schemaInDatabase, err := s.repo.GetByID(ctx, schema.IssuerDID, schema.ID)
+	if err != nil {
+		return err
+	}
+	schemaInDatabase.DisplayMethodID = schema.DisplayMethodID
+	return s.repo.Save(ctx, schemaInDatabase)
 }
