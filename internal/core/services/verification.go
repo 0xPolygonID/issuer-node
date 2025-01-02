@@ -29,15 +29,6 @@ type scope struct {
 	Id        uint32          `json:"id"`
 	Params    json.RawMessage `json:"params,omitempty"`
 	Query     json.RawMessage `json:"query"`
-	// TransactionData *transactionData `json:"transactionData,omitempty"`
-}
-
-// TransactionData is a property of Scope, and it's required for the authRequest
-type transactionData struct {
-	ChainID         int    `json:"chainID"`
-	ContractAddress string `json:"contractAddress"`
-	MethodID        string `json:"methodID"`
-	Network         string `json:"network"`
 }
 
 const (
@@ -91,7 +82,7 @@ func (vs *VerificationService) CreateVerificationQuery(ctx context.Context, issu
 
 	verificationQuery.ID = queryID
 
-	authRequest, err := vs.getAuthRequestOffChain(&verificationQuery, serverURL)
+	authRequest, err := vs.getAuthRequestOffChain(ctx, &verificationQuery, serverURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate auth request: %w", err)
 	}
@@ -171,7 +162,7 @@ func (s *VerificationService) key(id uuid.UUID) string {
 	return "issuer-node:qr-code:" + id.String()
 }
 
-func (vs *VerificationService) getAuthRequestOffChain(req *domain.VerificationQuery, serverURL string) (protocol.AuthorizationRequestMessage, error) {
+func (vs *VerificationService) getAuthRequestOffChain(ctx context.Context, req *domain.VerificationQuery, serverURL string) (protocol.AuthorizationRequestMessage, error) {
 	id := uuid.NewString()
 	authReq := auth.CreateAuthorizationRequest(vs.getReason(nil), req.IssuerDID, vs.getUri(serverURL, req.IssuerDID, req.ID))
 	authReq.ID = id
@@ -182,7 +173,7 @@ func (vs *VerificationService) getAuthRequestOffChain(req *domain.VerificationQu
 	if req.Scope.Status == pgtype.Present {
 		err := json.Unmarshal(req.Scope.Bytes, &scopes)
 		if err != nil {
-			log.Error(context.Background(), "failed to unmarshal scope", "error", err)
+			log.Error(ctx, "failed to unmarshal scope", "error", err)
 			return protocol.AuthorizationRequestMessage{}, fmt.Errorf("failed to unmarshal scope: %w", err)
 		}
 	}

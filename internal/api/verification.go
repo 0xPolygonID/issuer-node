@@ -43,7 +43,7 @@ func (s *Server) CheckVerification(ctx context.Context, request CheckVerificatio
 	// Use the VerificationService to check for existing response or query
 	response, query, err := s.verificationService.GetVerificationStatus(ctx, *issuerDID, verificationQueryID)
 	if err != nil {
-		//if error is not found, return 404
+		// if error is not found, return 404
 		if err.Error() == "verification query not found" {
 			log.Error(ctx, "checking verification, not found", "err", err, "issuerDID", issuerDID, "id", verificationQueryID)
 			return CheckVerification404JSONResponse{N404JSONResponse{Message: "Verification query not found"}}, nil
@@ -51,7 +51,6 @@ func (s *Server) CheckVerification(ctx context.Context, request CheckVerificatio
 			log.Error(ctx, "checking verification", "err", err, "issuerDID", issuerDID, "id", verificationQueryID)
 			return CheckVerification500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 		}
-
 	}
 
 	// Check if a response exists

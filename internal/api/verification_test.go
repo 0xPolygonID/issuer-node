@@ -9,10 +9,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgtype"
-
 	core "github.com/iden3/go-iden3-core/v2"
-
+	"github.com/jackc/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
