@@ -309,27 +309,36 @@ func toPaymentOption(opt *domain.PaymentOption) (PaymentOption, error) {
 		return PaymentOption{}, err
 	}
 	return PaymentOption{
-		Id:          opt.ID,
-		IssuerDID:   opt.IssuerDID.String(),
-		Name:        opt.Name,
-		Description: opt.Description,
-		Config:      toPaymentOptionConfig(opt.Config),
-		CreatedAt:   TimeUTC(opt.CreatedAt),
-		ModifiedAt:  TimeUTC(opt.UpdatedAt),
+		Id:             opt.ID,
+		IssuerDID:      opt.IssuerDID.String(),
+		Name:           opt.Name,
+		Description:    opt.Description,
+		PaymentOptions: toPaymentOptionConfig(opt.Config),
+		CreatedAt:      TimeUTC(opt.CreatedAt),
+		ModifiedAt:     TimeUTC(opt.UpdatedAt),
 	}, nil
 }
 
 func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfig {
-	cfg := make([]PaymentOptionConfigItem, len(config.Config))
-	for i, item := range config.Config {
+	cfg := make([]PaymentOptionConfigItem, len(config.PaymentOptions))
+	for i, item := range config.PaymentOptions {
 		cfg[i] = PaymentOptionConfigItem{
 			PaymentOptionID: int(item.PaymentOptionID),
 			Amount:          item.Amount.String(),
 			Recipient:       item.Recipient.String(),
 			SigningKeyID:    item.SigningKeyID,
+			Expiration:      item.Expiration,
 		}
 	}
 	return cfg
+}
+
+func toGetPaymentRequestsResponse(payReq []domain.PaymentRequest) GetPaymentRequestsResponse {
+	res := make([]CreatePaymentRequestResponse, len(payReq))
+	for i, pay := range payReq {
+		res[i] = toCreatePaymentRequestResponse(&pay)
+	}
+	return res
 }
 
 func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePaymentRequestResponse {
@@ -358,7 +367,7 @@ func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePayment
 		CreatedAt:       payReq.CreatedAt,
 		Id:              payReq.ID,
 		IssuerDID:       payReq.IssuerDID.String(),
-		UserDID:         payReq.RecipientDID.String(),
+		UserDID:         payReq.UserDID.String(),
 		PaymentOptionID: payReq.PaymentOptionID,
 		Payments:        []PaymentRequestInfo{payment},
 	}
