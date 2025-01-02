@@ -7103,6 +7103,15 @@ func (response SubmitVerificationResponse400JSONResponse) VisitSubmitVerificatio
 	return json.NewEncoder(w).Encode(response)
 }
 
+type SubmitVerificationResponse404JSONResponse struct{ N404JSONResponse }
+
+func (response SubmitVerificationResponse404JSONResponse) VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type SubmitVerificationResponse500JSONResponse struct{ N500JSONResponse }
 
 func (response SubmitVerificationResponse500JSONResponse) VisitSubmitVerificationResponseResponse(w http.ResponseWriter) error {

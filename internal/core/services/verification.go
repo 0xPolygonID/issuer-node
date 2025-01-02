@@ -25,11 +25,11 @@ import (
 
 // Scope is a property of VerificationQuery, and it's required for the authRequest
 type scope struct {
-	CircuitId       string           `json:"circuitId"`
-	Id              uint32           `json:"id"`
-	Params          json.RawMessage  `json:"params,omitempty"`
-	Query           json.RawMessage  `json:"query"`
-	TransactionData *transactionData `json:"transactionData,omitempty"`
+	CircuitId string          `json:"circuitId"`
+	Id        uint32          `json:"id"`
+	Params    json.RawMessage `json:"params,omitempty"`
+	Query     json.RawMessage `json:"query"`
+	// TransactionData *transactionData `json:"transactionData,omitempty"`
 }
 
 // TransactionData is a property of Scope, and it's required for the authRequest
@@ -80,7 +80,7 @@ func (vs *VerificationService) CreateVerificationQuery(ctx context.Context, issu
 		IssuerDID:           issuerID.String(),
 		ChainID:             chainID,
 		SkipCheckRevocation: skipCheckRevocation,
-		Scope:               scopeJSON,
+		Scope:               &scopeJSON,
 		CreatedAt:           time.Now(),
 	}
 
@@ -109,8 +109,8 @@ func (vs *VerificationService) CreateVerificationQuery(ctx context.Context, issu
 func (vs *VerificationService) GetVerificationStatus(ctx context.Context, issuerID w3c.DID, verificationQueryID uuid.UUID) (*domain.VerificationResponse, *domain.VerificationQuery, error) {
 	query, err := vs.repo.Get(ctx, issuerID, verificationQueryID)
 	if err != nil {
-		if err == repositories.VerificationQueryNotFoundError {
-			return nil, nil, fmt.Errorf("verification query not found: %w", err)
+		if err == repositories.ErrVerificationQueryNotFound {
+			return nil, nil, err
 		}
 		return nil, nil, fmt.Errorf("failed to get verification query: %w", err)
 	}
@@ -152,7 +152,7 @@ func (vs *VerificationService) SubmitVerificationResponse(ctx context.Context, v
 		ID:                  uuid.New(), // Generate a new UUID for the response
 		VerificationQueryID: verificationQueryID,
 		UserDID:             authRespMsg.From,
-		Response:            jsonbResponse,
+		Response:            &jsonbResponse,
 		Pass:                true, // Assuming this field is present to indicate verification success
 		CreatedAt:           time.Now(),
 	}
@@ -182,7 +182,8 @@ func (vs *VerificationService) getAuthRequestOffChain(req *domain.VerificationQu
 	if req.Scope.Status == pgtype.Present {
 		err := json.Unmarshal(req.Scope.Bytes, &scopes)
 		if err != nil {
-			return protocol.AuthorizationRequestMessage{}, err
+			log.Error(context.Background(), "failed to unmarshal scope", "error", err)
+			return protocol.AuthorizationRequestMessage{}, fmt.Errorf("failed to unmarshal scope: %w", err)
 		}
 	}
 

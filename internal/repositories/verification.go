@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/jackc/pgconn"
+	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -16,10 +17,10 @@ import (
 const foreignKeyViolationErrorCode = "23503"
 
 var (
-	// VerificationQueryNotFoundError is returned when a verification query is not found
-	VerificationQueryNotFoundError = errors.New("verification query not found")
-	// VerificationResponseNotFoundError is returned when a verification query is not found
-	VerificationResponseNotFoundError = errors.New("verification response not found")
+	// ErrVerificationQueryNotFound is returned when a verification query is not found
+	ErrVerificationQueryNotFound = errors.New("verification query not found")
+	// ErrVerificationResponseNotFound is returned when a verification query is not found
+	ErrVerificationResponseNotFound = errors.New("verification response not found")
 )
 
 // VerificationRepository is a repository for verification queries
@@ -39,6 +40,12 @@ func (r *VerificationRepository) Save(ctx context.Context, issuerID w3c.DID, que
 			UPDATE SET issuer_id=$2, chain_id=$3, scope=$4, skip_check_revocation=$5
 			RETURNING id`
 
+	if query.Scope == nil {
+		query.Scope = &pgtype.JSONB{
+			Status: pgtype.Null,
+		}
+	}
+
 	var queryID uuid.UUID
 	if err := r.conn.Pgx.QueryRow(ctx, sql, query.ID, issuerID.String(), query.ChainID, query.Scope, query.SkipCheckRevocation).Scan(&queryID); err != nil {
 		return uuid.Nil, err
@@ -56,10 +63,17 @@ func (r *VerificationRepository) Get(ctx context.Context, issuerID w3c.DID, id u
 	err := r.conn.Pgx.QueryRow(ctx, sql, issuerID.String(), id).Scan(&query.ID, &query.IssuerDID, &query.ChainID, &query.Scope, &query.SkipCheckRevocation, &query.CreatedAt)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
-			return nil, VerificationQueryNotFoundError
+			return nil, ErrVerificationQueryNotFound
 		}
 		return nil, err
 	}
+
+	if query.Scope == nil {
+		query.Scope = &pgtype.JSONB{
+			Status: pgtype.Null,
+		}
+	}
+
 	return &query, nil
 }
 
@@ -99,7 +113,7 @@ func (r *VerificationRepository) AddResponse(ctx context.Context, queryID uuid.U
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolationErrorCode {
-			return uuid.Nil, VerificationQueryNotFoundError
+			return uuid.Nil, ErrVerificationQueryNotFound
 		}
 		return uuid.Nil, err
 	}
@@ -123,7 +137,7 @@ func (r *VerificationRepository) GetVerificationResponse(ctx context.Context, qu
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
-			return nil, VerificationResponseNotFoundError
+			return nil, ErrVerificationResponseNotFound
 		}
 		return nil, err
 	}

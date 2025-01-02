@@ -13,7 +13,7 @@ type VerificationQuery struct {
 	IssuerDID           string
 	ChainID             int
 	SkipCheckRevocation bool
-	Scope               pgtype.JSONB `json:"scopes"`
+	Scope               *pgtype.JSONB `json:"scopes"`
 	CreatedAt           time.Time
 }
 
@@ -22,7 +22,7 @@ type VerificationResponse struct {
 	ID                  uuid.UUID
 	VerificationQueryID uuid.UUID
 	UserDID             string
-	Response            pgtype.JSONB `json:"response"`
+	Response            *pgtype.JSONB `json:"response"`
 	Pass                bool
 	CreatedAt           time.Time
 }

@@ -34,7 +34,7 @@ func TestSaveVerificationQuery(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               scope,
+			Scope:               &scope,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -63,7 +63,7 @@ func TestGetVerification(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               scope,
+			Scope:               nil,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -91,7 +91,7 @@ func TestGetVerification(t *testing.T) {
 	t.Run("should not get the verification", func(t *testing.T) {
 		verificationQueryFromDB, err := verificationRepository.Get(ctx, *did, uuid.New())
 		require.Error(t, err)
-		require.Equal(t, VerificationQueryNotFoundError, err)
+		require.Equal(t, ErrVerificationQueryNotFound, err)
 		assert.Nil(t, verificationQueryFromDB)
 	})
 }
@@ -125,14 +125,14 @@ func TestUpdateVerificationQuery(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               scope,
+			Scope:               nil,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
 		require.NoError(t, err)
 		assert.Equal(t, verificationQuery.ID, verificationQueryID)
 
-		verificationQuery.Scope = scope2
+		verificationQuery.Scope = &scope2
 		verificationQuery.SkipCheckRevocation = true
 		verificationQuery.ChainID = 137
 		_, err = verificationRepository.Save(ctx, *did, verificationQuery)
@@ -181,14 +181,14 @@ func TestGetAllVerification(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               scope,
+			Scope:               nil,
 		}
 
 		verificationQuery2 := domain.VerificationQuery{
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               scope2,
+			Scope:               &scope2,
 		}
 		verificationQueryID1, err := verificationRepository.Save(ctx, *did, verificationQuery1)
 		require.NoError(t, err)
@@ -255,7 +255,7 @@ func TestAddVerification(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               scope,
+			Scope:               nil,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -273,7 +273,7 @@ func TestAddVerification(t *testing.T) {
 			ID:                  uuid.New(),
 			VerificationQueryID: verificationQueryFromDB.ID,
 			UserDID:             "did:iden3:privado:main:2SizDYDWBViKXRfp1VgUAMqhz5SDvP7D1MYiPfwJV3",
-			Response:            response,
+			Response:            &response,
 		}
 
 		responseID, err := verificationRepository.AddResponse(ctx, verificationQueryFromDB.ID, verificationResponse)
@@ -288,11 +288,11 @@ func TestAddVerification(t *testing.T) {
 		verificationResponse := domain.VerificationResponse{
 			ID:       uuid.New(),
 			UserDID:  "did:iden3:privado:main:2SizDYDWBViKXRfp1VgUAMqhz5SDvP7D1MYiPfwJV3",
-			Response: response,
+			Response: &response,
 		}
 		responseID, err := verificationRepository.AddResponse(ctx, uuid.New(), verificationResponse)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, VerificationQueryNotFoundError))
+		require.True(t, errors.Is(err, ErrVerificationQueryNotFound))
 		assert.Equal(t, uuid.Nil, responseID)
 	})
 }
