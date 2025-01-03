@@ -63,7 +63,7 @@ func TestGetVerification(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               nil,
+			Scope:               &scope,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -125,7 +125,7 @@ func TestUpdateVerificationQuery(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               nil,
+			Scope:               &scope,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -181,7 +181,7 @@ func TestGetAllVerification(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               nil,
+			Scope:               &scope,
 		}
 
 		verificationQuery2 := domain.VerificationQuery{
@@ -255,7 +255,7 @@ func TestAddVerification(t *testing.T) {
 			ID:                  uuid.New(),
 			ChainID:             8002,
 			SkipCheckRevocation: false,
-			Scope:               nil,
+			Scope:               &scope,
 		}
 
 		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
@@ -294,5 +294,58 @@ func TestAddVerification(t *testing.T) {
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrVerificationQueryNotFound))
 		assert.Equal(t, uuid.Nil, responseID)
+	})
+}
+
+func TestGetVerificationResponse(t *testing.T) {
+	ctx := context.Background()
+	didStr := "did:iden3:polygon:amoy:xCd1tRmXnqbgiT3QC2CuDddUoHK4S9iXwq5xFDJGb"
+	verificationRepository := NewVerification(*storage)
+
+	did, err := w3c.ParseDID(didStr)
+	require.NoError(t, err)
+
+	t.Run("should get a response to verification", func(t *testing.T) {
+		credentialSubject := pgtype.JSONB{}
+		err = credentialSubject.Set(`{"birthday": {"$eq": 19791109}}`)
+		require.NoError(t, err)
+
+		scope := pgtype.JSONB{}
+		err = scope.Set(`[{"ID": 1, "circuitID": "credentialAtomicQuerySigV2", "query": {"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld", "allowedIssuers": ["*"], "type": "KYCAgeCredential", "credentialSubject": {"birthday": {"$eq": 19791109}}}}]`)
+		require.NoError(t, err)
+		verificationQuery := domain.VerificationQuery{
+			ID:                  uuid.New(),
+			ChainID:             8002,
+			SkipCheckRevocation: false,
+			Scope:               nil,
+		}
+
+		verificationQueryID, err := verificationRepository.Save(ctx, *did, verificationQuery)
+		require.NoError(t, err)
+		assert.Equal(t, verificationQuery.ID, verificationQueryID)
+
+		verificationQueryFromDB, err := verificationRepository.Get(ctx, *did, verificationQueryID)
+		require.NoError(t, err)
+		assert.Equal(t, verificationQuery.ID, verificationQueryFromDB.ID)
+
+		response := pgtype.JSONB{}
+		err = response.Set(`{"something": {"proof": 1}}`)
+		require.NoError(t, err)
+		verificationResponse := domain.VerificationResponse{
+			ID:                  uuid.New(),
+			VerificationQueryID: verificationQueryFromDB.ID,
+			UserDID:             "did:iden3:privado:main:2SizDYDWBVi",
+			Response:            &response,
+		}
+
+		responseID, err := verificationRepository.AddResponse(ctx, verificationQueryFromDB.ID, verificationResponse)
+		require.NoError(t, err)
+		assert.Equal(t, verificationResponse.ID, responseID)
+
+		verificationResponseFromDB, err := verificationRepository.GetVerificationResponse(ctx, verificationQueryFromDB.ID)
+		require.NoError(t, err)
+		assert.Equal(t, verificationResponse.ID, verificationResponseFromDB.ID)
+		assert.Equal(t, verificationResponse.UserDID, verificationResponseFromDB.UserDID)
+		assert.NotNil(t, verificationResponseFromDB.Response)
 	})
 }
