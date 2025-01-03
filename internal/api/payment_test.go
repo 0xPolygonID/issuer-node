@@ -84,6 +84,14 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 
 	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
 
+	_, err = server.Services.payments.CreatePaymentOption(
+		ctx,
+		issuerDID,
+		"duplicated name",
+		"Payment Option explanation",
+		&domain.PaymentOptionConfig{})
+	require.NoError(t, err)
+
 	type expected struct {
 		httpCode int
 		msg      string
@@ -103,7 +111,7 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 			body: CreatePaymentOptionJSONRequestBody{
 				PaymentOptions: config,
 				Description:    "Payment Option explanation",
-				Name:           "1 POL Payment",
+				Name:           "3 POL Payment",
 			},
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -117,7 +125,7 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 			body: CreatePaymentOptionJSONRequestBody{
 				PaymentOptions: config,
 				Description:    "Payment Option explanation",
-				Name:           "1 POL Payment",
+				Name:           "4 POL Payment",
 			},
 			expected: expected{
 				httpCode: http.StatusCreated,
@@ -130,11 +138,25 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 			body: CreatePaymentOptionJSONRequestBody{
 				PaymentOptions: config,
 				Description:    "Payment Option explanation",
-				Name:           "1 POL Payment",
+				Name:           "5 POL Payment",
 			},
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				msg:      "invalid issuer did",
+			},
+		},
+		{
+			name:      "Duplicated name",
+			auth:      authOk,
+			issuerDID: *issuerDID,
+			body: CreatePaymentOptionJSONRequestBody{
+				PaymentOptions: config,
+				Description:    "Payment Option explanation",
+				Name:           "duplicated name",
+			},
+			expected: expected{
+				httpCode: http.StatusConflict,
+				msg:      "payment option name already exists",
 			},
 		},
 	} {
@@ -157,7 +179,10 @@ func TestServer_CreatePaymentOption(t *testing.T) {
 				var response CreatePaymentOption400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.msg, response.Message)
-
+			case http.StatusConflict:
+				var response CreatePaymentOption409JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.msg, response.Message)
 			}
 		})
 	}
@@ -422,7 +447,7 @@ func TestServer_DeletePaymentOption(t *testing.T) {
 	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
 	require.NoError(t, err)
 
-	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "1 POL Payment", "Payment Option explanation", &config)
+	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, "10 POL Payment", "Payment Option explanation", &config)
 	require.NoError(t, err)
 	type expected struct {
 		httpCode int

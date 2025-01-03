@@ -62,6 +62,9 @@ func (s *Server) CreatePaymentOption(ctx context.Context, request CreatePaymentO
 		if errors.Is(err, repositories.ErrIdentityNotFound) {
 			return CreatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 		}
+		if errors.Is(err, repositories.ErrPaymentOptionAlreadyExists) {
+			return CreatePaymentOption409JSONResponse{N409JSONResponse{Message: "payment option name already exists"}}, nil
+		}
 		return CreatePaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't create payment-option: <%s>", err.Error())}}, nil
 	}
 	return CreatePaymentOption201JSONResponse{Id: id.String()}, nil

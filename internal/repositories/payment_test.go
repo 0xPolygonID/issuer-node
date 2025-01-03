@@ -139,7 +139,8 @@ func TestPayment_GetPaymentOptionByID(t *testing.T) {
 
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	repo := NewPayment(*storage)
-	id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &paymentOptionConfig))
+	paymentOption := domain.NewPaymentOption(*issuerID, "payment option name "+uuid.NewString(), "description", &paymentOptionConfig)
+	id, err := repo.SavePaymentOption(ctx, paymentOption)
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, id)
 
@@ -147,7 +148,7 @@ func TestPayment_GetPaymentOptionByID(t *testing.T) {
 		opt, err := repo.GetPaymentOptionByID(ctx, issuerID, id)
 		assert.NoError(t, err)
 		assert.Equal(t, id, opt.ID)
-		assert.Equal(t, "name", opt.Name)
+		assert.Equal(t, paymentOption.Name, opt.Name)
 		assert.Equal(t, "description", opt.Description)
 		assert.Equal(t, paymentOptionConfig, opt.Config)
 	})
@@ -166,7 +167,7 @@ func TestPayment_DeletePaymentOption(t *testing.T) {
 
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	repo := NewPayment(*storage)
-	id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &domain.PaymentOptionConfig{}))
+	id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
 	assert.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, id)
 
@@ -190,7 +191,7 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	repo := NewPayment(*storage)
 
-	payymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &domain.PaymentOptionConfig{}))
+	payymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
 	require.NoError(t, err)
 
 	t.Run("Save payment to not existing payment option id", func(t *testing.T) {
@@ -266,7 +267,7 @@ func TestPayment_GetPaymentRequestByID(t *testing.T) {
 	require.NoError(t, err)
 
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
-	paymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &domain.PaymentOptionConfig{}))
+	paymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
 	require.NoError(t, err)
 	expected := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, paymentOptionID, 10)
 
@@ -298,7 +299,7 @@ func TestPayment_GetPaymentRequestItem(t *testing.T) {
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	repo := NewPayment(*storage)
 
-	payymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name", "description", &domain.PaymentOptionConfig{}))
+	payymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
 	require.NoError(t, err)
 	expected := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, payymentOptionID, 10)
 
