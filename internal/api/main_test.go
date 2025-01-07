@@ -385,7 +385,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 
 	verificationService := services.NewVerificationService(networkResolver, cachex, repos.verification, verifier)
 
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService, verificationService, mediaTypeManager)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService, verificationService)
 
 	return &testServer{
 		Server: server,

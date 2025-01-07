@@ -33,11 +33,10 @@ type Server struct {
 	displayMethodService ports.DisplayMethodService
 	keyService           ports.KeyService
 	verificationService  ports.VerificationService
-	mediaTypeManager     ports.MediaTypeManager
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, connectionsService ports.ConnectionService, claimsService ports.ClaimService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status, schemaService ports.SchemaService, linkService ports.LinkService, displayMethodService ports.DisplayMethodService, keyService ports.KeyService, paymentService ports.PaymentService, verificationService ports.VerificationService, mediaTypeManager ports.MediaTypeManager) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, connectionsService ports.ConnectionService, claimsService ports.ClaimService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status, schemaService ports.SchemaService, linkService ports.LinkService, displayMethodService ports.DisplayMethodService, keyService ports.KeyService, paymentService ports.PaymentService, verificationService ports.VerificationService) *Server {
 	return &Server{
 		cfg:                  cfg,
 		accountService:       accountService,
@@ -55,7 +54,6 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		keyService:           keyService,
 		paymentService:       paymentService,
 		verificationService:  verificationService,
-		mediaTypeManager:     mediaTypeManager,
 	}
 }
 
