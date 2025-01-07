@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/vault/api"
+	auth "github.com/iden3/go-iden3-auth/v2"
+	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
@@ -27,6 +29,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/packagemanager"
 	"github.com/polygonid/sh-id-platform/internal/payments"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
@@ -122,6 +125,7 @@ func TestMain(m *testing.M) {
 	cfg.ServerUrl = "https://testing.env"
 	cfg.Ethereum = cfgForTesting.Ethereum
 	cfg.UniversalLinks = config.UniversalLinks{BaseUrl: "https://testing.env"}
+	cfg.Circuit.Path = "../../pkg/credentials/circuits"
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL, false)
 	m.Run()
 }
@@ -239,6 +243,7 @@ type repos struct {
 	revocation     ports.RevocationRepository
 	displayMethod  ports.DisplayMethodRepository
 	keyRepository  ports.KeyRepository
+	verification   ports.VerificationRepository
 }
 
 type servicex struct {
@@ -282,6 +287,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		revocation:     repositories.NewRevocation(),
 		displayMethod:  repositories.NewDisplayMethod(*st),
 		keyRepository:  repositories.NewKey(*st),
+		verification:   repositories.NewVerification(*st),
 	}
 
 	pubSub := pubsub.NewMock()
@@ -367,7 +373,19 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
 	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService)
+
+	universalDIDResolverUrl := auth.UniversalResolverURL
+	if cfg.UniversalDIDResolver.UniversalResolverURL != nil && *cfg.UniversalDIDResolver.UniversalResolverURL != "" {
+		universalDIDResolverUrl = *cfg.UniversalDIDResolver.UniversalResolverURL
+	}
+	universalDIDResolverHandler := packagemanager.NewUniversalDIDResolverHandler(universalDIDResolverUrl)
+	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
+	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
+	require.NoError(t, err)
+
+	verificationService := services.NewVerificationService(networkResolver, cachex, repos.verification, verifier)
+
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService, verificationService)
 
 	return &testServer{
 		Server: server,

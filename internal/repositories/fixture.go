@@ -19,6 +19,7 @@ type Fixture struct {
 	schemaRepository        ports.SchemaRepository
 	identityStateRepository ports.IdentityStateRepository
 	paymentRepository       ports.PaymentRepository
+	verificationRepository  ports.VerificationRepository
 }
 
 // NewFixture - constructor
@@ -31,6 +32,7 @@ func NewFixture(storage *db.Storage) *Fixture {
 		schemaRepository:        NewSchema(*storage),
 		identityStateRepository: NewIdentityState(),
 		paymentRepository:       NewPayment(*storage),
+		verificationRepository:  NewVerification(*storage),
 	}
 }
 

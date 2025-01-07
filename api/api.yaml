@@ -1991,6 +1991,111 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  # Verification
+
+  /v2/identities/{identifier}/verification:
+    get:
+      summary: Check Verification Response or Provide Query
+      operationId: CheckVerification
+      description: |
+        Checks if a verification response already exists for the given identifier.
+        If no response is found, it returns the verification query request to be completed by the user.
+      tags:
+        - Verification
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: User's DID identifier
+          schema:
+            type: string
+        - $ref: '#/components/parameters/verificationQueryId'
+      responses:
+        '200':
+          description: Verification Response or Query Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckVerificationResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    post:
+      summary: Create a Verification query
+      operationId: CreateVerification
+      description: |
+        Endpoint to create a verification query.
+      tags:
+        - Verification
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: Issuer's DID Identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVerificationQueryRequest'
+      responses:
+        '201':
+          description: Verification query created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateVerificationQueryResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'    
+
+  /v2/identities/{identifier}/verification/callback:
+    post:
+      summary: Submit Verification Response
+      operationId: SubmitVerificationResponse
+      description: |
+        Endpoint to submit a verification response for the given verification query request.
+        The response will be validated and stored in the verification_responses table.
+      tags:
+        - Verification
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          description: User's DID identifier
+          schema:
+            type: string
+        - $ref: '#/components/parameters/verificationQueryId'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: Verification response submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponseStatus'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    
+  
 components:
   securitySchemes:
     basicAuth:
@@ -3166,6 +3271,96 @@ components:
         name: protocol
         path: github.com/iden3/iden3comm/v2/protocol
 
+    #Verification
+    CreateVerificationQueryRequest:
+      type: object
+      required:
+        - chain_id
+        - skip_revocation_check
+        - scopes
+      properties:
+        chain_id:
+          type: integer
+          example: 1
+        skip_revocation_check:
+          type: boolean
+          example: false
+        scopes:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            description: A dynamic JSON object representing a scope.
+          description: An array of dynamic JSON objects for scopes.
+    
+    CreateVerificationQueryResponse:
+      type: object
+      required:
+        - verificationQueryId
+      properties:
+        verificationQueryId:
+          type: string
+          description: The ID of the created verification query.
+
+    VerificationResponse:
+      type: object
+      required:
+        - verification_scope_id
+        - user_did
+        - response
+        - pass
+      properties:
+        verification_scope_id:
+          type: string
+          description: Scope ID for the verification query.
+        user_did:
+          type: string
+          description: Decentralized identifier of the user.
+        response:
+          type: object
+          description: The response from the user as a JSON object.
+        pass:
+          type: boolean
+          description: Indicates if the verification passed.
+
+    VerificationQueryRequest:
+      type: object
+      required:
+        - verification_query_id
+        - scopes
+      properties:
+        verification_query_id:
+          type: string
+          description: The ID of the verification query.
+        scopes:
+          type: object
+          additionalProperties: true
+          description: "Dynamic JSON object for scopes"
+
+    CheckVerificationResponse:
+      type: object
+      description: Response that includes either a verification response or a verification query request.
+      properties:
+        verification_response:
+          $ref: '#/components/schemas/VerificationResponse'
+        verification_query_request:
+          $ref: '#/components/schemas/VerificationQueryRequest'
+      additionalProperties: false
+
+    VerificationResponseStatus:
+      type: object
+      required:
+        - status
+        - pass
+      properties:
+        status:
+          type: string
+          enum: [ submitted, validated, error ]
+          description: The status of the submitted verification response.
+        pass:
+          type: boolean
+          description: Whether the query response passed the check
+
     CreateDisplayMethodRequest:
       type: object
       required:
@@ -3275,6 +3470,7 @@ components:
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
+
   parameters:
     credentialStatusType:
       name: credentialStatusType
@@ -3369,6 +3565,17 @@ components:
       schema:
         type: string
 
+    verificationQueryId:
+      name: id
+      in: query
+      required: true
+      description: The verification query ID to check for a response
+      schema:
+        type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
 
   responses:
     '400':
