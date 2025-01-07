@@ -14,8 +14,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-const foreignKeyViolationErrorCode = "23503"
-
 var (
 	// ErrVerificationQueryNotFound is returned when a verification query is not found
 	ErrVerificationQueryNotFound = errors.New("verification query not found")
