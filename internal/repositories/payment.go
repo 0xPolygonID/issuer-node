@@ -20,6 +20,9 @@ import (
 // ErrPaymentOptionDoesNotExists error
 var ErrPaymentOptionDoesNotExists = errors.New("payment option not found")
 
+// ErrPaymentOptionAlreadyExists error
+var ErrPaymentOptionAlreadyExists = errors.New("payment option already exists")
+
 // ErrPaymentRequestDoesNotExists error
 var ErrPaymentRequestDoesNotExists = errors.New("payment request not found")
 
@@ -289,6 +292,10 @@ VALUES ($1, $2, $3, $4, $5, $6, $7);
 		if strings.Contains(err.Error(), "violates foreign key constraint") {
 			return uuid.Nil, ErrIdentityNotFound
 		}
+		if strings.Contains(err.Error(), "violates unique constraint") {
+			return uuid.Nil, ErrPaymentOptionAlreadyExists
+		}
+		return uuid.Nil, err
 	}
 	return opt.ID, nil
 }
