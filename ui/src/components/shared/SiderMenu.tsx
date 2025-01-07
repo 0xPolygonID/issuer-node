@@ -3,10 +3,13 @@ import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
 import IconCredentials from "src/assets/icons/credit-card-refresh.svg?react";
+import IconDisplayMethod from "src/assets/icons/display-method.svg?react";
 import IconFile from "src/assets/icons/file-05.svg?react";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
 import IconIdentities from "src/assets/icons/fingerprint-02.svg?react";
+import IconKeys from "src/assets/icons/keys.svg?react";
 import IconLink from "src/assets/icons/link-external-01.svg?react";
+import IconPaymentOptions from "src/assets/icons/payment-options.svg?react";
 import IconSettings from "src/assets/icons/settings-01.svg?react";
 import IconIssuerState from "src/assets/icons/switch-horizontal.svg?react";
 import IconConnections from "src/assets/icons/users-01.svg?react";
@@ -26,6 +29,7 @@ import {
   IDENTITIES,
   ISSUER_STATE,
   KEYS,
+  PAYMENT_OPTIONS,
   SCHEMAS,
 } from "src/utils/constants";
 
@@ -52,6 +56,7 @@ export function SiderMenu({
   const identitiesPath = ROUTES.identities.path;
   const displayMethodsPath = ROUTES.displayMethods.path;
   const keysPath = ROUTES.keys.path;
+  const paymentOptionsPath = ROUTES.paymentOptions.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -112,6 +117,17 @@ export function SiderMenu({
       )
     ) {
       return [keysPath];
+    } else if (
+      matchRoutes(
+        [
+          { path: paymentOptionsPath },
+          { path: ROUTES.createPaymentOption.path },
+          { path: ROUTES.paymentOptionDetails.path },
+        ],
+        pathname
+      )
+    ) {
+      return [paymentOptionsPath];
     }
 
     return [];
@@ -144,7 +160,7 @@ export function SiderMenu({
                 title: "",
               },
               {
-                icon: <IconIdentities />,
+                icon: <IconDisplayMethod />,
                 key: displayMethodsPath,
                 label: DISPLAY_METHODS,
                 onClick: () => onMenuClick(displayMethodsPath),
@@ -186,10 +202,17 @@ export function SiderMenu({
               },
 
               {
-                icon: <IconIdentities />,
+                icon: <IconKeys />,
                 key: keysPath,
                 label: KEYS,
                 onClick: () => onMenuClick(keysPath),
+                title: "",
+              },
+              {
+                icon: <IconPaymentOptions />,
+                key: paymentOptionsPath,
+                label: PAYMENT_OPTIONS,
+                onClick: () => onMenuClick(paymentOptionsPath),
                 title: "",
               },
             ]}

@@ -13,10 +13,10 @@ import {
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
-import IconIssuers from "src/assets/icons/building-08.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";
 import IconCopy from "src/assets/icons/copy-01.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
+import IconIssuers from "src/assets/icons/fingerprint-02.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -208,14 +208,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
       }
       table={
         <Table
-          columns={tableColumns.map(({ title, ...column }) => ({
-            title: (
-              <Typography.Text type="secondary">
-                <>{title}</>
-              </Typography.Text>
-            ),
-            ...column,
-          }))}
+          columns={tableColumns}
           dataSource={filteredIdentifiers}
           locale={{
             emptyText:

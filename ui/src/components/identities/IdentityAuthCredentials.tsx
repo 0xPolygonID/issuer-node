@@ -235,14 +235,7 @@ export function IdentityAuthCredentials({
         showDefaultContents={showDefaultContent}
         table={
           <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
-              ),
-              ...column,
-            }))}
+            columns={tableColumns}
             dataSource={credentialsList}
             loading={credentials.status === "reloading"}
             pagination={false}

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { Sorter } from "src/adapters/api";
 import { CreateCredential, CreateLink } from "src/adapters/api/credentials";
+import { UpsertPaymentOption } from "src/adapters/api/payments";
 import { jsonParser } from "src/adapters/json";
 import { getStrictParser } from "src/adapters/parsers";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
@@ -297,6 +298,46 @@ export const credentialFormParser = getStrictParser<
         };
       }
     })
+);
+
+export type PaymentConfigFormData = {
+  amount: string;
+  paymentOptionID: string;
+  recipient: string;
+  signingKeyID: string;
+};
+
+export type PaymentOptionFormData = Omit<UpsertPaymentOption, "config"> & {
+  config: Array<PaymentConfigFormData>;
+};
+
+export const paymentOptionFormParser = getStrictParser<
+  PaymentOptionFormData,
+  UpsertPaymentOption
+>()(
+  z
+    .object({
+      config: z.array(
+        z.object({
+          amount: z.string(),
+          paymentOptionID: z
+            .string()
+            .refine((value) => !isNaN(Number(value)), { message: "Must be a valid number" }),
+          recipient: z.string(),
+          signingKeyID: z.string(),
+        })
+      ),
+      description: z.string(),
+      name: z.string(),
+    })
+    .transform(({ config, description, name }) => ({
+      config: config.map(({ paymentOptionID, ...other }) => ({
+        ...other,
+        paymentOptionID: parseInt(paymentOptionID),
+      })),
+      description,
+      name,
+    }))
 );
 
 // Serializers

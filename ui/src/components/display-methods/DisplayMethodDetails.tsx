@@ -15,7 +15,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { z } from "zod";
-import { DISPLAY_METHOD_DETAILS, DISPLAY_METHOD_EDIT, VALUE_REQUIRED } from "../../utils/constants";
+import {
+  DISPLAY_METHOD_DETAILS,
+  DISPLAY_METHOD_EDIT,
+  SAVE,
+  VALUE_REQUIRED,
+} from "../../utils/constants";
 import {
   UpsertDisplayMethod,
   deleteDisplayMethod,
@@ -152,8 +157,8 @@ export function DisplayMethodDetails() {
     return <ErrorResult error="No display method provided." />;
   }
 
-  const handleEdit = () => {
-    const { name, url } = form.getFieldsValue();
+  const handleEdit = (values: UpsertDisplayMethod) => {
+    const { name, url } = values;
     const parsedUrl = z.string().url().safeParse(url);
 
     if (parsedUrl.success) {
@@ -167,8 +172,10 @@ export function DisplayMethodDetails() {
         },
       }).then((response) => {
         if (response.success) {
-          void fetchDisplayMethod();
-          setIsEditModalOpen(false);
+          void fetchDisplayMethod().then(() => {
+            setIsEditModalOpen(false);
+            void message.success("Display method edited successfully");
+          });
         } else {
           void notifyError(buildAppError(response.error.message));
         }
@@ -192,7 +199,6 @@ export function DisplayMethodDetails() {
   const editModal = isAsyncTaskDataAvailable(displayMethod) && (
     <EditModal
       onClose={() => setIsEditModalOpen(false)}
-      onSubmit={handleEdit}
       open={isEditModalOpen}
       title="Edit display method"
     >
@@ -200,6 +206,7 @@ export function DisplayMethodDetails() {
         form={form}
         initialValues={{ name: displayMethod.data.name, url: displayMethod.data.url }}
         layout="vertical"
+        onFinish={handleEdit}
       >
         <Form.Item label="Name" name="name" rules={[{ message: VALUE_REQUIRED, required: true }]}>
           <Input placeholder="Enter name" />
@@ -208,6 +215,14 @@ export function DisplayMethodDetails() {
         <Form.Item label="URL" name="url" rules={[{ message: VALUE_REQUIRED, required: true }]}>
           <Input placeholder="Enter URL" />
         </Form.Item>
+
+        <Divider />
+
+        <Flex justify="flex-end">
+          <Button htmlType="submit" type="primary">
+            {SAVE}
+          </Button>
+        </Flex>
       </Form>
     </EditModal>
   );

@@ -15,7 +15,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { AppError, IdentityDetails } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { IDENTITY_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
+import { IDENTITY_DETAILS, SAVE, VALUE_REQUIRED } from "src/utils/constants";
 import { formatIdentifier } from "src/utils/forms";
 
 export function Identity() {
@@ -64,16 +64,16 @@ export function Identity() {
     return <ErrorResult error="No identifier provided." />;
   }
 
-  const handleEdit = () => {
-    const { displayName } = form.getFieldsValue();
+  const handleEdit = (values: { displayName: string }) => {
+    const { displayName } = values;
     void updateIdentityDisplayName({
       displayName,
       env,
       identifier,
     }).then((response) => {
-      setIsEditModalOpen(false);
       if (response.success) {
         void fetchIdentity().then(() => {
+          setIsEditModalOpen(false);
           void message.success("Identity edited successfully");
         });
       } else {
@@ -161,7 +161,6 @@ export function Identity() {
 
               <EditModal
                 onClose={() => setIsEditModalOpen(false)}
-                onSubmit={handleEdit}
                 open={isEditModalOpen}
                 title="Edit identity"
               >
@@ -169,6 +168,7 @@ export function Identity() {
                   form={form}
                   initialValues={{ displayName: identity.data.displayName }}
                   layout="vertical"
+                  onFinish={handleEdit}
                 >
                   <Form.Item
                     name="displayName"
@@ -176,6 +176,14 @@ export function Identity() {
                   >
                     <Input placeholder="Enter name" />
                   </Form.Item>
+
+                  <Divider />
+
+                  <Flex justify="flex-end">
+                    <Button htmlType="submit" type="primary">
+                      {SAVE}
+                    </Button>
+                  </Flex>
                 </Form>
               </EditModal>
             </>
