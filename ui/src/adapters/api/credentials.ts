@@ -301,6 +301,7 @@ export async function getAuthCredentialsByIDs({
 
 export type CreateCredential = {
   credentialSchema: string;
+  credentialStatusType: CredentialStatusType | null;
   credentialSubject: Json;
   displayMethod: CredentialDisplayMethod | null;
   expiration: number | null;
@@ -556,6 +557,7 @@ export async function deleteLink({
 
 export type CreateLink = {
   credentialExpiration: string | null;
+  credentialStatusType: CredentialStatusType | null;
   credentialSubject: Json;
   displayMethod: CredentialDisplayMethod | null;
   expiration: string | null;

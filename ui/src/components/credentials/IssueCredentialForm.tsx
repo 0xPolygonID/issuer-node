@@ -24,6 +24,7 @@ import { generatePath } from "react-router-dom";
 import { z } from "zod";
 
 import { getDisplayMethods } from "src/adapters/api/display-method";
+import { getSupportedBlockchains } from "src/adapters/api/identities";
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { buildAppError, jsonSchemaErrorToString, notifyError } from "src/adapters/parsers";
@@ -45,6 +46,7 @@ import {
   ApiSchema,
   AppError,
   Attribute,
+  CredentialStatusType,
   DisplayMethod,
   JsonSchema,
   ObjectAttribute,
@@ -121,6 +123,12 @@ export function IssueCredentialForm({
   });
 
   const [displayMethods, setDisplayMethods] = useState<AsyncTask<DisplayMethod[], AppError>>({
+    status: "pending",
+  });
+
+  const [credentialStatusTypes, setCredentialStatusTypes] = useState<
+    AsyncTask<CredentialStatusType[], AppError>
+  >({
     status: "pending",
   });
 
@@ -405,6 +413,40 @@ export function IssueCredentialForm({
     [env, identifier]
   );
 
+  const fetchBlockChains = useCallback(
+    async (signal: AbortSignal) => {
+      setCredentialStatusTypes((previousState) =>
+        isAsyncTaskDataAvailable(previousState)
+          ? { data: previousState.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
+      const response = await getSupportedBlockchains({
+        env,
+        signal,
+      });
+
+      if (response.success) {
+        const [, , blockchain = "", network = ""] = identifier.split(":");
+        const identityBlockchainNetworks =
+          response.data.successful.find(({ name }) => name === blockchain)?.networks || [];
+        const identityNetworkCredentialStatusTypes =
+          identityBlockchainNetworks.find(({ name }) => name === network)?.credentialStatus || [];
+
+        setCredentialStatusTypes({
+          data: identityNetworkCredentialStatusTypes,
+          status: "successful",
+        });
+      } else {
+        if (!isAbortedError(response.error)) {
+          setCredentialStatusTypes({ error: response.error, status: "failed" });
+          void message.error(response.error.message);
+        }
+      }
+    },
+    [env, message, identifier]
+  );
+
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchSchemas);
 
@@ -416,6 +458,12 @@ export function IssueCredentialForm({
 
     return aborter;
   }, [fetchDisplayMethods]);
+
+  useEffect(() => {
+    const { aborter } = makeRequestAbortable(fetchBlockChains);
+
+    return aborter;
+  }, [fetchBlockChains]);
 
   return (
     <Form
@@ -578,6 +626,28 @@ export function IssueCredentialForm({
                       </Form.Item>
                     </Space>
                     <Divider />
+
+                    <Form.Item
+                      label="Revocation status"
+                      name="credentialStatusType"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select
+                        className="full-width"
+                        loading={isAsyncTaskStarting(credentialStatusTypes)}
+                        placeholder="Valid URL of the display method"
+                      >
+                        {isAsyncTaskDataAvailable(credentialStatusTypes) &&
+                          credentialStatusTypes.data.map((status) => (
+                            <Select.Option key={status} value={status}>
+                              {status}
+                            </Select.Option>
+                          ))}
+                      </Select>
+                    </Form.Item>
+
+                    <Divider />
+
                     <Form.Item style={{ marginBottom: 0 }}>
                       <Space direction="vertical">
                         <Form.Item
