@@ -3,6 +3,7 @@ package repositories
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -13,7 +14,7 @@ func tokenizeQuery(query string) []string {
 	terms := make([]string, 0, len(words))
 	for _, word := range words {
 		word = strings.TrimSpace(word)
-		if word != "" && !inArray(word, terms) {
+		if word != "" && !slices.Contains(word, terms) {
 			terms = append(terms, word)
 		}
 	}
@@ -58,13 +59,4 @@ func buildPartialQueryLikes(field string, cond string, first int, n int) string 
 
 func escapeDID(s string) string {
 	return didCharacters.ReplaceAllString(s, "")
-}
-
-func inArray(needle string, haystack []string) bool {
-	for _, word := range haystack {
-		if needle == word {
-			return true
-		}
-	}
-	return false
 }
