@@ -15,7 +15,13 @@ type PaymentOptionInput = Omit<PaymentOption, "modifiedAt" | "createdAt"> & {
 
 export const paymentOptionParser = getStrictParser<PaymentOptionInput, PaymentOption>()(
   z.object({
-    config: z.array(
+    createdAt: datetimeParser,
+    description: z.string(),
+    id: z.string(),
+    issuerDID: z.string(),
+    modifiedAt: datetimeParser,
+    name: z.string(),
+    paymentOptions: z.array(
       z.object({
         amount: z.string(),
         paymentOptionID: z.number(),
@@ -23,12 +29,6 @@ export const paymentOptionParser = getStrictParser<PaymentOptionInput, PaymentOp
         signingKeyID: z.string(),
       })
     ),
-    createdAt: datetimeParser,
-    description: z.string(),
-    id: z.string(),
-    issuerDID: z.string(),
-    modifiedAt: datetimeParser,
-    name: z.string(),
   })
 );
 
@@ -80,7 +80,7 @@ export async function getPaymentOptions({
   }
 }
 
-export type UpsertPaymentOption = Pick<PaymentOption, "name" | "description" | "config">;
+export type UpsertPaymentOption = Pick<PaymentOption, "name" | "description" | "paymentOptions">;
 
 export async function createPaymentOption({
   env,

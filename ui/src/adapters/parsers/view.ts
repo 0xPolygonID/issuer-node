@@ -307,8 +307,8 @@ export type PaymentConfigFormData = {
   signingKeyID: string;
 };
 
-export type PaymentOptionFormData = Omit<UpsertPaymentOption, "config"> & {
-  config: Array<PaymentConfigFormData>;
+export type PaymentOptionFormData = Omit<UpsertPaymentOption, "paymentOptions"> & {
+  paymentOptions: Array<PaymentConfigFormData>;
 };
 
 export const paymentOptionFormParser = getStrictParser<
@@ -317,7 +317,9 @@ export const paymentOptionFormParser = getStrictParser<
 >()(
   z
     .object({
-      config: z.array(
+      description: z.string(),
+      name: z.string(),
+      paymentOptions: z.array(
         z.object({
           amount: z.string(),
           paymentOptionID: z
@@ -327,16 +329,14 @@ export const paymentOptionFormParser = getStrictParser<
           signingKeyID: z.string(),
         })
       ),
-      description: z.string(),
-      name: z.string(),
     })
-    .transform(({ config, description, name }) => ({
-      config: config.map(({ paymentOptionID, ...other }) => ({
+    .transform(({ description, name, paymentOptions }) => ({
+      description,
+      name,
+      paymentOptions: paymentOptions.map(({ paymentOptionID, ...other }) => ({
         ...other,
         paymentOptionID: parseInt(paymentOptionID),
       })),
-      description,
-      name,
     }))
 );
 

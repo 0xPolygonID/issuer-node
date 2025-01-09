@@ -50,9 +50,9 @@ export function CreatePaymentOption() {
       <Card className="centered" title="Payment option details">
         <PaymentOptionForm
           initialValies={{
-            config: [],
             description: "",
             name: "",
+            paymentOptions: [],
           }}
           onSubmit={handleSubmit}
         />

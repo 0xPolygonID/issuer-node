@@ -118,7 +118,7 @@ export function PaymentOptionForm({
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
   const [form] = Form.useForm<PaymentOptionFormData>();
-  const configs = Form.useWatch<PaymentOptionFormData["config"]>("config", form);
+  const configs = Form.useWatch<PaymentOptionFormData["paymentOptions"]>("paymentOptions", form);
 
   const [showConfigForm, setShowConfigForm] = useState(false);
   const [paymentConfigurations, setPaymentConfigurations] = useState<
@@ -188,16 +188,16 @@ export function PaymentOptionForm({
 
   const handleAddConfig = (values: PaymentConfigFormData) => {
     const formValues = form.getFieldsValue();
-    form.setFieldsValue({ ...formValues, config: [...formValues.config, values] });
+    form.setFieldsValue({ ...formValues, paymentOptions: [...formValues.paymentOptions, values] });
   };
 
   const handleDeleteConfig = (index: number) => {
     const formValues = form.getFieldsValue();
-    const updatedConfigs = formValues.config.filter((_, idx) => index !== idx);
+    const updatedConfigs = formValues.paymentOptions.filter((_, idx) => index !== idx);
 
     form.setFieldsValue({
       ...formValues,
-      config: updatedConfigs,
+      paymentOptions: updatedConfigs,
     });
   };
 
@@ -254,7 +254,7 @@ export function PaymentOptionForm({
 
                 <Form.Item
                   label="Choose Configs"
-                  name="config"
+                  name="paymentOptions"
                   rules={[
                     {
                       message: "Please add at least one config",

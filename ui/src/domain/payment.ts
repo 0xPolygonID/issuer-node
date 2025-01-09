@@ -6,13 +6,13 @@ export type PaymentConfig = {
 };
 
 export type PaymentOption = {
-  config: Array<PaymentConfig>;
   createdAt: Date;
   description: string;
   id: string;
   issuerDID: string;
   modifiedAt: Date;
   name: string;
+  paymentOptions: Array<PaymentConfig>;
 };
 
 export type PaymentConfiguration = {

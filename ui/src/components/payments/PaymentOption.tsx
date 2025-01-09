@@ -193,7 +193,7 @@ export function PaymentOption() {
                     </Space>
                   </Card>
 
-                  <PaymentConfigTable configs={paymentOption.data.config} />
+                  <PaymentConfigTable configs={paymentOption.data.paymentOptions} />
                 </Flex>
               </Card>
 
@@ -204,12 +204,14 @@ export function PaymentOption() {
               >
                 <PaymentOptionForm
                   initialValies={{
-                    config: paymentOption.data.config.map(({ paymentOptionID, ...other }) => ({
-                      paymentOptionID: paymentOptionID.toString(),
-                      ...other,
-                    })),
                     description: paymentOption.data.description,
                     name: paymentOption.data.name,
+                    paymentOptions: paymentOption.data.paymentOptions.map(
+                      ({ paymentOptionID, ...other }) => ({
+                        paymentOptionID: paymentOptionID.toString(),
+                        ...other,
+                      })
+                    ),
                   }}
                   onSubmit={handleEdit}
                 />
