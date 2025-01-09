@@ -1902,6 +1902,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+
   /v2/identities/{identifier}/payment/options/{id}:
     get:
       summary: Get Payment Option
@@ -1950,6 +1951,36 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+    patch:
+      summary: Update Payment Option
+      operationId: UpdatePaymentOption
+      description: Update payment option for the provided identity.
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Payment
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePaymentOptionRequest'
+      responses:
+        '200':
+          description: Schema information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
 
   /v2/identities/{identifier}/payment/verify/{nonce}:
     post:
@@ -2815,6 +2846,17 @@ components:
           type: string
         paymentOptions:
           $ref: '#/components/schemas/PaymentOptionConfig'
+
+    UpdatePaymentOptionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        paymentOptions:
+          $ref: '#/components/schemas/PaymentOptionConfig'
+
 
     CreatePaymentRequest:
       type: object
