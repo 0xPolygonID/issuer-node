@@ -5,6 +5,7 @@ import { UpdateSchema } from "src/adapters/api/schemas";
 
 import ChevronDownIcon from "src/assets/icons/chevron-down.svg?react";
 import IconLink from "src/assets/icons/link-external-01.svg?react";
+import IconClose from "src/assets/icons/x.svg?react";
 import { JSONHighlighter } from "src/components/schemas/JSONHighlighter";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
 import { DisplayMethod, Json, JsonLdType, JsonSchema } from "src/domain";
@@ -44,6 +45,10 @@ export function SchemaViewer({
     }
 )) {
   const [form] = Form.useForm<UpdateSchema>();
+  const selectedDisplayMethod = Form.useWatch<UpdateSchema["displayMethodID"]>(
+    "displayMethodID",
+    form
+  );
   const [jsonView, setJsonView] = useState<JsonView>("formatted");
 
   const {
@@ -73,7 +78,6 @@ export function SchemaViewer({
                 style={{ marginBottom: 0, width: "100%" }}
               >
                 <Select className="full-width" placeholder="Choose the default display method">
-                  <Select.Option value={null}>None</Select.Option>
                   {Object.values(displayMethods).map((displayMethods) => (
                     <Select.Option key={displayMethods.id} value={displayMethods.id}>
                       {displayMethods.name}
@@ -83,11 +87,21 @@ export function SchemaViewer({
               </Form.Item>
 
               <Button
-                disabled={!displayMethodID}
+                disabled={!selectedDisplayMethod}
+                icon={<IconClose />}
+                onClick={() => {
+                  onEdit({ ...form.getFieldsValue(), displayMethodID: null });
+                }}
+                style={{ flexShrink: 0 }}
+              />
+
+              <Button
+                disabled={!selectedDisplayMethod}
                 href={generatePath(ROUTES.displayMethodDetails.path, {
                   displayMethodID: displayMethodID ?? "",
                 })}
                 icon={<IconLink />}
+                style={{ flexShrink: 0 }}
                 target="_blank"
               />
             </Flex>
