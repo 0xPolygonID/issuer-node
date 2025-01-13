@@ -226,6 +226,34 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 	return toVerifyPaymentResponse(status)
 }
 
+// UpdatePaymentOption - updates a payment option
+func (s *Server) UpdatePaymentOption(ctx context.Context, request UpdatePaymentOptionRequestObject) (UpdatePaymentOptionResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return UpdatePaymentOption400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+
+	var payOptConf *domain.PaymentOptionConfig
+	if request.Body.PaymentOptions != nil {
+		payOptConf, err = newPaymentOptionConfig(*request.Body.PaymentOptions)
+		if err != nil {
+			log.Error(ctx, "creating payment option config", "err", err)
+			return UpdatePaymentOption400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid config: %s", err)}}, nil
+		}
+	}
+
+	err = s.paymentService.UpdatePaymentOption(ctx, issuerDID, request.Id, request.Body.Name, request.Body.Description, payOptConf)
+	if err != nil {
+		log.Error(ctx, "updating payment option", "err", err, "issuer", issuerDID, "request", request.Body)
+		if errors.Is(err, repositories.ErrPaymentOptionDoesNotExists) {
+			return UpdatePaymentOption400JSONResponse{N400JSONResponse{Message: "payment option not found"}}, nil
+		}
+		return UpdatePaymentOption500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't update payment-option: <%s>", err.Error())}}, nil
+	}
+	return UpdatePaymentOption200JSONResponse{}, nil
+}
+
 func newPaymentOptionConfig(config PaymentOptionConfig) (*domain.PaymentOptionConfig, error) {
 	const base10 = 10
 	cfg := &domain.PaymentOptionConfig{

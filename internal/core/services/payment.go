@@ -91,6 +91,29 @@ func (p *payment) DeletePaymentOption(ctx context.Context, issuerDID *w3c.DID, i
 	return nil
 }
 
+func (p *payment) UpdatePaymentOption(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID, name, description *string, config *domain.PaymentOptionConfig) error {
+	paymentOption, err := p.GetPaymentOptionByID(ctx, issuerDID, id)
+	if err != nil {
+		log.Error(ctx, "failed to get payment option", "err", err, "issuerDID", issuerDID, "id", id)
+		return err
+	}
+
+	if name != nil {
+		paymentOption.Name = *name
+	}
+
+	if description != nil {
+		paymentOption.Description = *description
+	}
+
+	if config != nil {
+		paymentOption.Config = *config
+	}
+
+	_, err = p.paymentsStore.SavePaymentOption(ctx, paymentOption)
+	return err
+}
+
 // CreatePaymentRequest creates a payment request
 func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePaymentRequestReq) (*domain.PaymentRequest, error) {
 	option, err := p.paymentsStore.GetPaymentOptionByID(ctx, &req.IssuerDID, req.OptionID)

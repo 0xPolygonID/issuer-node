@@ -20,7 +20,10 @@ export type RouteID =
   | "createDisplayMethod"
   | "keys"
   | "keyDetails"
-  | "createKey";
+  | "createKey"
+  | "createPaymentOption"
+  | "paymentOptions"
+  | "paymentOptionDetails";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -56,6 +59,10 @@ export const ROUTES: Routes = {
   createKey: {
     layout: "sider",
     path: "/keys/create",
+  },
+  createPaymentOption: {
+    layout: "sider",
+    path: "/payments/create",
   },
   credentialDetails: {
     layout: "sider",
@@ -112,6 +119,14 @@ export const ROUTES: Routes = {
   onboarding: {
     layout: "fullWidthGrey",
     path: "/onboarding",
+  },
+  paymentOptionDetails: {
+    layout: "sider",
+    path: "/payments/:paymentOptionID",
+  },
+  paymentOptions: {
+    layout: "sider",
+    path: "/payments",
   },
   schemaDetails: {
     layout: "sider",

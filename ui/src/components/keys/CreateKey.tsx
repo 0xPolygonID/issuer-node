@@ -7,7 +7,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
 import { KeyType } from "src/domain";
 import { ROUTES } from "src/routes";
-import { KEY_ADD_NEW, VALUE_REQUIRED } from "src/utils/constants";
+import { KEY_ADD_NEW, SAVE, VALUE_REQUIRED } from "src/utils/constants";
 
 export function CreateKey() {
   const env = useEnvContext();
@@ -75,7 +75,7 @@ export function CreateKey() {
 
             <Flex justify="flex-end">
               <Button htmlType="submit" type="primary">
-                Submit
+                {SAVE}
               </Button>
             </Flex>
           </Form>

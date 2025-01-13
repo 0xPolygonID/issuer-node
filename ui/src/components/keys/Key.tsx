@@ -1,4 +1,16 @@
-import { App, Button, Card, Dropdown, Flex, Form, Input, Row, Space, Typography } from "antd";
+import {
+  App,
+  Button,
+  Card,
+  Divider,
+  Dropdown,
+  Flex,
+  Form,
+  Input,
+  Row,
+  Space,
+  Typography,
+} from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -17,7 +29,7 @@ import { AppError, Key as KeyType } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { KEY_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
+import { KEY_DETAILS, SAVE, VALUE_REQUIRED } from "src/utils/constants";
 
 export function Key() {
   const env = useEnvContext();
@@ -68,17 +80,17 @@ export function Key() {
     return <ErrorResult error="No key provided." />;
   }
 
-  const handleEdit = () => {
-    const { name } = form.getFieldsValue();
+  const handleEdit = (values: UpdateKey) => {
+    const { name } = values;
     void updateKeyName({
       env,
       identifier,
       keyID,
       payload: { name: name.trim() },
     }).then((response) => {
-      setIsEditModalOpen(false);
       if (response.success) {
         void fetchKey().then(() => {
+          setIsEditModalOpen(false);
           void message.success("Key edited successfully");
         });
       } else {
@@ -183,11 +195,15 @@ export function Key() {
 
               <EditModal
                 onClose={() => setIsEditModalOpen(false)}
-                onSubmit={handleEdit}
                 open={isEditModalOpen}
                 title="Edit key"
               >
-                <Form form={form} initialValues={{ name: key.data.name }} layout="vertical">
+                <Form
+                  form={form}
+                  initialValues={{ name: key.data.name }}
+                  layout="vertical"
+                  onFinish={handleEdit}
+                >
                   <Form.Item
                     label="Name"
                     name="name"
@@ -195,6 +211,14 @@ export function Key() {
                   >
                     <Input placeholder="Enter name" />
                   </Form.Item>
+
+                  <Divider />
+
+                  <Flex justify="flex-end">
+                    <Button htmlType="submit" type="primary">
+                      {SAVE}
+                    </Button>
+                  </Flex>
                 </Form>
               </EditModal>
             </>

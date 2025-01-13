@@ -211,14 +211,7 @@ export function SchemasTable() {
       }
       table={
         <Table
-          columns={tableColumns.map(({ title, ...column }) => ({
-            title: (
-              <Typography.Text type="secondary">
-                <>{title}</>
-              </Typography.Text>
-            ),
-            ...column,
-          }))}
+          columns={tableColumns}
           dataSource={schemaList}
           locale={{
             emptyText:

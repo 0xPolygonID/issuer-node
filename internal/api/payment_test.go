@@ -18,8 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	inCommon "github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/payments"
 )
@@ -709,4 +711,154 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServer_UpdatePaymentOption(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+
+	ctx := context.Background()
+
+	server := newTestServer(t, nil)
+	handler := getHandler(ctx, server)
+
+	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	issuerDID, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	otherDID, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qRYvPBNBTkPaHk1mKBkcLTequfAdsHzXv549ktnL5")
+	require.NoError(t, err)
+
+	var config PaymentOptionConfig
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionConfigurationTesting), &config))
+	domainConfig := domain.PaymentOptionConfig{}
+	for _, item := range config {
+		amount, ok := new(big.Int).SetString(item.Amount, 10)
+		require.True(t, ok)
+		domainConfig.PaymentOptions = append(domainConfig.PaymentOptions, domain.PaymentOptionConfigItem{
+			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionID),
+			Amount:          *amount,
+			Recipient:       common.HexToAddress(item.Recipient),
+			SigningKeyID:    item.SigningKeyID,
+			Expiration:      item.Expiration,
+		})
+	}
+
+	paymentOptionName := "1 POL Payment" + uuid.New().String()
+	optionID, err := server.Services.payments.CreatePaymentOption(ctx, issuerDID, paymentOptionName, "Payment Option explanation", &domainConfig)
+	require.NoError(t, err)
+
+	t.Run("should update name", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/payment/options/%s", issuerDID.String(), optionID.String())
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, &UpdatePaymentOptionRequest{
+			Name: inCommon.ToPointer("a new name"),
+		}))
+		assert.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+		var response UpdatePaymentOption200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+
+		updatedPaymentOption, err := server.Services.payments.GetPaymentOptionByID(ctx, issuerDID, optionID)
+		require.NoError(t, err)
+		assert.Equal(t, "a new name", updatedPaymentOption.Name)
+	})
+
+	t.Run("should update description", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/payment/options/%s", issuerDID.String(), optionID.String())
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, &UpdatePaymentOptionRequest{
+			Description: inCommon.ToPointer("a new description"),
+		}))
+		assert.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+		var response UpdatePaymentOption200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		updatedPaymentOption, err := server.Services.payments.GetPaymentOptionByID(ctx, issuerDID, optionID)
+		require.NoError(t, err)
+		assert.Equal(t, "a new description", updatedPaymentOption.Description)
+	})
+
+	t.Run("should update config", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/payment/options/%s", issuerDID.String(), optionID.String())
+
+		newConfig := make(PaymentOptionConfig, 1)
+		newConfig[0] = config[0]
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, &UpdatePaymentOptionRequest{
+			PaymentOptions: &newConfig,
+		}))
+		assert.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+		var response UpdatePaymentOption200JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		updatedPaymentOption, err := server.Services.payments.GetPaymentOptionByID(ctx, issuerDID, optionID)
+		require.NoError(t, err)
+		assert.Equal(t, config[0].PaymentOptionID, int(updatedPaymentOption.Config.PaymentOptions[0].PaymentOptionID))
+		assert.Equal(t, config[0].Amount, updatedPaymentOption.Config.PaymentOptions[0].Amount.String())
+		assert.Equal(t, config[0].Recipient, updatedPaymentOption.Config.PaymentOptions[0].Recipient.String())
+		assert.Equal(t, config[0].SigningKeyID, updatedPaymentOption.Config.PaymentOptions[0].SigningKeyID)
+	})
+
+	t.Run("should get an error - wrong auth", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/payment/options/%s", issuerDID.String(), optionID.String())
+
+		newConfig := make(PaymentOptionConfig, 1)
+		newConfig[0] = config[0]
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, &UpdatePaymentOptionRequest{
+			PaymentOptions: &newConfig,
+		}))
+		assert.NoError(t, err)
+		req.SetBasicAuth(authWrong())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+
+	t.Run("should get an error - wrong did", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/payment/options/%s", otherDID.String(), optionID.String())
+
+		newConfig := make(PaymentOptionConfig, 1)
+		newConfig[0] = config[0]
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, &UpdatePaymentOptionRequest{
+			PaymentOptions: &newConfig,
+		}))
+		assert.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusBadRequest, rr.Code)
+		var response UpdatePaymentOption400JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "payment option not found", response.Message)
+	})
+
+	t.Run("should get an error - wrong payment option id", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		url := fmt.Sprintf("/v2/identities/%s/payment/options/%s", issuerDID.String(), uuid.New())
+
+		newConfig := make(PaymentOptionConfig, 1)
+		newConfig[0] = config[0]
+		req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, &UpdatePaymentOptionRequest{
+			PaymentOptions: &newConfig,
+		}))
+		assert.NoError(t, err)
+		req.SetBasicAuth(authOk())
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusBadRequest, rr.Code)
+		var response UpdatePaymentOption400JSONResponse
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "payment option not found", response.Message)
+	})
 }

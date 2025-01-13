@@ -351,6 +351,12 @@
   overflow: auto;
 }
 
+.ant-table-content {
+  .ant-table-thead > tr > th {
+    color: $text-color-secondary;
+  }
+}
+
 /* CUSTOM */
 
 .background-grey {
@@ -403,6 +409,7 @@
 .menu-sider-layout {
   height: 100%;
   flex-flow: column;
+  min-height: fit-content;
 
   .ant-menu-title-content {
     width: 100%;

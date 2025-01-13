@@ -55,7 +55,7 @@ export function SchemaViewer({
         <Card.Meta description={description} />
         <Card className="background-grey">{contents}</Card>
 
-        {displayMethods?.length && (
+        {!!displayMethods?.length && (
           <Form
             form={form}
             initialValues={{

@@ -51,4 +51,5 @@ type PaymentService interface {
 	GetPaymentOptions(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentOption, error)
 	GetPaymentOptionByID(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentOption, error)
 	DeletePaymentOption(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error
+	UpdatePaymentOption(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID, name, description *string, config *domain.PaymentOptionConfig) error
 }

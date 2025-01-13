@@ -19,40 +19,39 @@ import (
 )
 
 const paymentOptionTest = `
-{
-    "Chains": [
-      {
-        "ChainId": 137,
-        "Recipient": "0x..",
-        "SigningKeyId": "<key id>",
-        "Iden3PaymentRailsRequestV1": {
-          "Amount": "0.01",
-          "Currency": "POL" 
-        },
-        "Iden3PaymentRailsERC20RequestV1": {
-          "USDT": {
-            "Amount": "3"
-          },
-          "USDC": {
-            "Amount": "3"
-          }
-        }
-      },
-      {
-        "ChainId": 1101,
-        "Recipient": "0x..",
-        "SigningKeyId": "<key id>",
-        "Iden3PaymentRailsRequestV1": {
-          "Amount": "0.5",
-          "Currency": "ETH"
-        }
-      }
-    ]
-  }
+ [
+    {
+      "paymentOptionId": 1,
+      "amount": 500000000000000000,
+      "Recipient": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+      "SigningKeyId": "pubId",
+	  "Expiration": "2025-04-17T11:40:43.681857-03:00"
+    },
+    {
+      "paymentOptionId": 2,
+      "amount": 1500000000000000000,
+      "Recipient": "0x53d284357ec70cE289D6D64134DfAc8E511c8a3D",
+      "SigningKeyId": "pubId",
+	  "Expiration": "2025-04-17T11:40:43.681857-03:00"
+    }
+]
+`
+
+const paymentOptionTest2 = `
+ [
+    {
+      "paymentOptionId": 3,
+      "amount": 400000000000000000,
+      "Recipient": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+      "SigningKeyId": "pubId",
+	  "Expiration": "2025-04-17T11:40:43.681857-03:00"
+    }
+]
 `
 
 func TestPayment_SavePaymentOption(t *testing.T) {
 	var paymentOptionConfig domain.PaymentOptionConfig
+	var paymentOptionConfigToUpdate domain.PaymentOptionConfig
 	ctx := context.Background()
 
 	fixture := NewFixture(storage)
@@ -63,7 +62,8 @@ func TestPayment_SavePaymentOption(t *testing.T) {
 
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 
-	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig))
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig.PaymentOptions))
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest2), &paymentOptionConfigToUpdate.PaymentOptions))
 
 	repo := NewPayment(*storage)
 	t.Run("Save payment option", func(t *testing.T) {
@@ -71,10 +71,57 @@ func TestPayment_SavePaymentOption(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEqual(t, uuid.Nil, id)
 	})
+
 	t.Run("Save payment option linked to non existing issuer", func(t *testing.T) {
 		id, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerDIDOther, "name 2", "description 2", &paymentOptionConfig))
 		require.Error(t, err)
 		assert.Equal(t, uuid.Nil, id)
+	})
+
+	t.Run("Save existing payment option - new name", func(t *testing.T) {
+		paymentOptionName := "payment-option-" + uuid.NewString()
+		paymentOption := domain.NewPaymentOption(*issuerID, paymentOptionName, "description", &paymentOptionConfig)
+		id, err := repo.SavePaymentOption(ctx, paymentOption)
+		assert.NoError(t, err)
+		assert.NotEqual(t, uuid.Nil, id)
+		paymentOption.ID = id
+		paymentOption.Name = "new-name"
+		id, err = repo.SavePaymentOption(ctx, paymentOption)
+		assert.NoError(t, err)
+		updatedPaymentOption, err := repo.GetPaymentOptionByID(ctx, issuerID, id)
+		assert.NoError(t, err)
+		assert.Equal(t, "new-name", updatedPaymentOption.Name)
+	})
+
+	t.Run("Save existing payment option - new description", func(t *testing.T) {
+		paymentOptionName := "payment-option-" + uuid.NewString()
+		paymentOption := domain.NewPaymentOption(*issuerID, paymentOptionName, "description", &paymentOptionConfig)
+		id, err := repo.SavePaymentOption(ctx, paymentOption)
+		assert.NoError(t, err)
+		assert.NotEqual(t, uuid.Nil, id)
+		paymentOption.ID = id
+		paymentOption.Description = "new-description"
+		id, err = repo.SavePaymentOption(ctx, paymentOption)
+		assert.NoError(t, err)
+		updatedPaymentOption, err := repo.GetPaymentOptionByID(ctx, issuerID, id)
+		assert.NoError(t, err)
+		assert.Equal(t, "new-description", updatedPaymentOption.Description)
+	})
+
+	t.Run("Save existing payment option - new config", func(t *testing.T) {
+		paymentOptionName := "payment-option-" + uuid.NewString()
+		paymentOption := domain.NewPaymentOption(*issuerID, paymentOptionName, "description", &paymentOptionConfig)
+		id, err := repo.SavePaymentOption(ctx, paymentOption)
+		assert.NoError(t, err)
+		assert.NotEqual(t, uuid.Nil, id)
+		paymentOption.ID = id
+		paymentOption.Config = paymentOptionConfigToUpdate
+		id, err = repo.SavePaymentOption(ctx, paymentOption)
+		assert.NoError(t, err)
+		updatedPaymentOption, err := repo.GetPaymentOptionByID(ctx, issuerID, id)
+		assert.NoError(t, err)
+		assert.Equal(t, paymentOptionConfigToUpdate.PaymentOptions[0].PaymentOptionID, updatedPaymentOption.Config.PaymentOptions[0].PaymentOptionID)
+		assert.Equal(t, paymentOptionConfigToUpdate.PaymentOptions[0].Amount, updatedPaymentOption.Config.PaymentOptions[0].Amount)
 	})
 }
 
@@ -88,7 +135,7 @@ func TestPayment_GetAllPaymentOptions(t *testing.T) {
 	issuerDIDOther, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qYQdd1yqFyrM9ZPqYTE4WHAQH2PX5Rjtj7YDYPppj")
 	require.NoError(t, err)
 
-	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig))
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig.PaymentOptions))
 
 	repo := NewPayment(*storage)
 	ids := make([]uuid.UUID, 0)
@@ -135,7 +182,7 @@ func TestPayment_GetPaymentOptionByID(t *testing.T) {
 	issuerDIDOther, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qYQdd1yqFyrM9ZPqYTE4WHAQH2PX5Rjtj7YDYPppj")
 	require.NoError(t, err)
 
-	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig))
+	require.NoError(t, json.Unmarshal([]byte(paymentOptionTest), &paymentOptionConfig.PaymentOptions))
 
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	repo := NewPayment(*storage)

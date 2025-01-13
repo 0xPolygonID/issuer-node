@@ -283,9 +283,11 @@ WHERE payment_requests.issuer_did = $1 AND nonce = $2;`
 // SavePaymentOption saves a payment option
 func (p *payment) SavePaymentOption(ctx context.Context, opt *domain.PaymentOption) (uuid.UUID, error) {
 	const query = `
-INSERT INTO payment_options (id, issuer_did, name, description, configuration, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7);
-`
+		INSERT INTO payment_options (id, issuer_did, name, description, configuration, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+ 		ON CONFLICT (id) DO UPDATE SET name=$3, description=$4, configuration=$5, updated_at=NOW()
+		RETURNING id;
+		`
 
 	_, err := p.conn.Pgx.Exec(ctx, query, opt.ID, opt.IssuerDID.String(), opt.Name, opt.Description, opt.Config, opt.CreatedAt, opt.UpdatedAt)
 	if err != nil {
