@@ -1,8 +1,9 @@
-import { Button, Card, Divider, Flex, Form, Input, Modal, Select, Tag } from "antd";
+import { Button, Card, Divider, Flex, Form, Input, Modal, Select } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { getKeys } from "src/adapters/api/keys";
 import { getPaymentConfigurations } from "src/adapters/api/payments";
 import { PaymentConfigFormData, PaymentOptionFormData } from "src/adapters/parsers/view";
+import { PaymentConfigTable } from "src/components/payments/PaymentConfigTable";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
@@ -18,12 +19,14 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SAVE, VALUE_REQUIRED } from "src/utils/constants";
 
 function ConfigForm({
+  initialValues,
   keys,
   onCancel,
   onSubmit,
   open,
   paymentConfigurations,
 }: {
+  initialValues?: PaymentConfigFormData;
   keys: Key[];
   onCancel: () => void;
   onSubmit: (formValues: PaymentConfigFormData) => void;
@@ -32,10 +35,9 @@ function ConfigForm({
 }) {
   const [form] = Form.useForm<PaymentConfigFormData>();
 
-  const handleAddConfig = () => {
+  const handleSubmit = () => {
     void form.validateFields().then((values) => {
       onSubmit(values);
-      form.resetFields();
       onCancel();
     });
   };
@@ -44,13 +46,14 @@ function ConfigForm({
     <Modal
       cancelText="Cancel"
       centered
-      okText="Add"
+      destroyOnClose={true}
+      okText={SAVE}
       onCancel={onCancel}
-      onOk={handleAddConfig}
+      onOk={handleSubmit}
       open={open}
       title="Add Configuration"
     >
-      <Form form={form} layout="vertical">
+      <Form form={form} initialValues={initialValues} layout="vertical" preserve={false}>
         <Form.Item
           label="Payment option"
           name="paymentOptionID"
@@ -121,6 +124,11 @@ export function PaymentOptionForm({
   const configs = Form.useWatch<PaymentOptionFormData["paymentOptions"]>("paymentOptions", form);
 
   const [showConfigForm, setShowConfigForm] = useState(false);
+  const [editableConfig, setEditableConfig] = useState<{
+    index: number;
+    initialValues: PaymentConfigFormData;
+  } | null>(null);
+
   const [paymentConfigurations, setPaymentConfigurations] = useState<
     AsyncTask<PaymentConfigurations, AppError>
   >({
@@ -186,20 +194,53 @@ export function PaymentOptionForm({
     [env, identifier]
   );
 
-  const handleAddConfig = (values: PaymentConfigFormData) => {
-    const formValues = form.getFieldsValue();
-    form.setFieldsValue({ ...formValues, paymentOptions: [...formValues.paymentOptions, values] });
-  };
+  const handleUpsertConfig = useCallback(
+    (values: PaymentConfigFormData) => {
+      const formValues = form.getFieldsValue();
 
-  const handleDeleteConfig = (index: number) => {
-    const formValues = form.getFieldsValue();
-    const updatedConfigs = formValues.paymentOptions.filter((_, idx) => index !== idx);
+      if (editableConfig) {
+        form.setFieldsValue({
+          ...formValues,
+          paymentOptions: formValues.paymentOptions.map((paymentOption, idx) =>
+            idx === editableConfig.index ? values : paymentOption
+          ),
+        });
+      } else {
+        form.setFieldsValue({
+          ...formValues,
+          paymentOptions: [...formValues.paymentOptions, values],
+        });
+      }
+    },
+    [editableConfig, form]
+  );
 
-    form.setFieldsValue({
-      ...formValues,
-      paymentOptions: updatedConfigs,
-    });
-  };
+  const handleDeleteConfig = useCallback(
+    (index: number) => {
+      const formValues = form.getFieldsValue();
+      const updatedConfigs = formValues.paymentOptions.filter((_, idx) => index !== idx);
+
+      form.setFieldsValue({
+        ...formValues,
+        paymentOptions: updatedConfigs,
+      });
+    },
+    [form]
+  );
+
+  const handleEditConfig = useCallback(
+    (index: number) => {
+      const config = configs.find((_, idx) => idx === index);
+      if (config) {
+        setShowConfigForm(true);
+        setEditableConfig({
+          index,
+          initialValues: config,
+        });
+      }
+    },
+    [configs]
+  );
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchKeys);
@@ -264,38 +305,21 @@ export function PaymentOptionForm({
                   ]}
                 >
                   <Flex vertical>
-                    {configs && (
-                      <Flex>
-                        {configs.map((config, index) => {
-                          const option = Object.entries(paymentConfigurations.data).find(
-                            ([key]) => key === config.paymentOptionID
-                          );
+                    <PaymentConfigTable
+                      configs={
+                        configs
+                          ? configs.map(({ paymentOptionID, ...other }) => ({
+                              paymentOptionID: parseInt(paymentOptionID),
+                              ...other,
+                            }))
+                          : []
+                      }
+                      onDelete={handleDeleteConfig}
+                      onEdit={handleEditConfig}
+                      showTitle={false}
+                    />
 
-                          if (option) {
-                            const [
-                              ,
-                              {
-                                PaymentOption: { Name },
-                              },
-                            ] = option;
-
-                            return (
-                              <Tag
-                                closable
-                                key={`${Name}/${index}`}
-                                onClose={() => handleDeleteConfig(index)}
-                                style={{ margin: 8 }}
-                              >
-                                {Name}
-                              </Tag>
-                            );
-                          }
-                          return;
-                        })}
-                      </Flex>
-                    )}
-
-                    <Flex justify="center" style={{ margin: 8 }}>
+                    <Flex justify="center" style={{ marginTop: 16 }}>
                       <Button onClick={() => setShowConfigForm(true)}>Add config</Button>
                     </Flex>
                   </Flex>
@@ -309,10 +333,15 @@ export function PaymentOptionForm({
                   </Button>
                 </Flex>
               </Form>
+
               <ConfigForm
+                initialValues={editableConfig?.initialValues}
                 keys={keys.data}
-                onCancel={() => setShowConfigForm(false)}
-                onSubmit={handleAddConfig}
+                onCancel={() => {
+                  setEditableConfig(null);
+                  setShowConfigForm(false);
+                }}
+                onSubmit={handleUpsertConfig}
                 open={showConfigForm}
                 paymentConfigurations={paymentConfigurations.data}
               />

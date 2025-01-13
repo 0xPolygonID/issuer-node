@@ -1,4 +1,15 @@
-import { Card, Row, Space, Table, TableColumnsType, Tag, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Flex,
+  Row,
+  Space,
+  Table,
+  TableColumnsType,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
 import { getKeys } from "src/adapters/api/keys";
@@ -6,6 +17,8 @@ import { getPaymentConfigurations } from "src/adapters/api/payments";
 import { notifyErrors } from "src/adapters/parsers";
 import IconCheckMark from "src/assets/icons/check.svg?react";
 import IconCopy from "src/assets/icons/copy-01.svg?react";
+import EditIcon from "src/assets/icons/edit-02.svg?react";
+import IconTrash from "src/assets/icons/trash-01.svg?react";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
@@ -14,7 +27,17 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
-export function PaymentConfigTable({ configs }: { configs: PaymentConfig[] }) {
+export function PaymentConfigTable({
+  configs,
+  onDelete,
+  onEdit,
+  showTitle,
+}: {
+  configs: PaymentConfig[];
+  onDelete?: (index: number) => void;
+  onEdit?: (index: number) => void;
+  showTitle: boolean;
+}) {
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
   const navigate = useNavigate();
@@ -119,16 +142,18 @@ export function PaymentConfigTable({ configs }: { configs: PaymentConfig[] }) {
       dataIndex: "recipient",
       key: "recipient",
       render: (recipient: PaymentConfig["recipient"]) => (
-        <Typography.Text
-          copyable={{
-            icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
-          }}
-          ellipsis={{
-            suffix: recipient.slice(-5),
-          }}
-        >
-          {recipient}
-        </Typography.Text>
+        <Tooltip title={recipient}>
+          <Typography.Text
+            copyable={{
+              icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
+            }}
+            ellipsis={{
+              suffix: recipient.slice(-5),
+            }}
+          >
+            {recipient}
+          </Typography.Text>
+        </Tooltip>
       ),
       title: "Recipient",
     },
@@ -158,6 +183,28 @@ export function PaymentConfigTable({ configs }: { configs: PaymentConfig[] }) {
     },
   ];
 
+  if (onEdit || onDelete) {
+    tableColumns.push({
+      key: "actions",
+      render: (_, __, index) => {
+        return (
+          <Flex>
+            {onEdit && (
+              <Button onClick={() => onEdit(index)} type="text">
+                <EditIcon className="icon-secondary" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button onClick={() => onDelete(index)} type="text">
+                <IconTrash className="icon-secondary" />
+              </Button>
+            )}
+          </Flex>
+        );
+      },
+    });
+  }
+
   return (
     <TableCard
       defaultContents={<Typography.Text strong>No configurations</Typography.Text>}
@@ -174,13 +221,15 @@ export function PaymentConfigTable({ configs }: { configs: PaymentConfig[] }) {
         />
       }
       title={
-        <Row justify="space-between">
-          <Space size="middle">
-            <Card.Meta title="Configurations" />
+        showTitle && (
+          <Row justify="space-between">
+            <Space size="middle">
+              <Card.Meta title="Configurations" />
 
-            <Tag>{configs.length}</Tag>
-          </Space>
-        </Row>
+              <Tag>{configs.length}</Tag>
+            </Space>
+          </Row>
+        )
       }
     />
   );

@@ -193,7 +193,10 @@ export function PaymentOption() {
                     </Space>
                   </Card>
 
-                  <PaymentConfigTable configs={paymentOption.data.paymentOptions} />
+                  <PaymentConfigTable
+                    configs={paymentOption.data.paymentOptions}
+                    showTitle={true}
+                  />
                 </Flex>
               </Card>
 
