@@ -16,6 +16,7 @@ type ApiSchemaInput = Omit<ApiSchema, "createdAt"> & {
 const apiSchemaParser = getStrictParser<ApiSchemaInput, ApiSchema>()(
   z.object({
     bigInt: z.string(),
+    contextURL: z.string(),
     createdAt: datetimeParser,
     description: z.string().nullable(),
     displayMethodID: z.string().nullable(),
