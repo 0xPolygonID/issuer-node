@@ -17,11 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_CreateIdentity(t *testing.T) {
@@ -275,14 +273,24 @@ func TestServer_CreateIdentity(t *testing.T) {
 }
 
 func TestServer_GetIdentities(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+		ETH        = "ETH"
+	)
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
-	identity1 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"}
-	identity2 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qMHFTHn2SC3XkBEJrR4eH4Yk8jRGg5bzYYG1ZGECa"}
-	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity1)
-	fixture.CreateIdentity(t, identity2)
+	identity1, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
+
+	identity2, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
+
+	identity3, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
+	assert.NoError(t, err)
 
 	type expected struct {
 		httpCode int
@@ -321,7 +329,13 @@ func TestServer_GetIdentities(t *testing.T) {
 				var response GetIdentities200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.httpCode, rr.Code)
-				assert.True(t, len(response) >= 2)
+				assert.True(t, len(response) >= 3)
+				assert.Equal(t, identity1.Identifier, response[len(response)-3].Identifier)
+				assert.NotNil(t, response[len(response)-3].CredentialStatusType)
+				assert.Equal(t, identity2.Identifier, response[len(response)-2].Identifier)
+				assert.NotNil(t, response[len(response)-2].CredentialStatusType)
+				assert.Equal(t, identity3.Identifier, response[len(response)-1].Identifier)
+				assert.NotNil(t, response[len(response)-1].CredentialStatusType)
 			}
 		})
 	}
@@ -423,18 +437,15 @@ func TestServer_UpdateIdentity(t *testing.T) {
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
-	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qQ8S2VKdQv7xYgzCn7KW2xgzUWrTRQjoZDYavJHBq"}
-	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
 
-	state := domain.IdentityState{
-		Identifier: identity.Identifier,
-		State:      common.ToPointer("state"),
-		Status:     domain.StatusCreated,
-		ModifiedAt: time.Now(),
-		CreatedAt:  time.Now(),
-	}
-	fixture.CreateIdentityStatus(t, state)
+	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
 
 	type expected struct {
 		httpCode    int

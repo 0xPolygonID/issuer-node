@@ -223,6 +223,7 @@ type ClaimService interface {
 	GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (*GetCredentialQrCodeResponse, error)
 	Agent(ctx context.Context, req *AgentRequest, mediatype iden3comm.MediaType) (*domain.Agent, error)
 	GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error)
+	GetFirstNonRevokedAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error)
 	GetAuthClaimForPublishing(ctx context.Context, did *w3c.DID, state string) (*domain.Claim, error)
 	UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error
 	Delete(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error

@@ -450,6 +450,20 @@ func (c *claim) GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, 
 	return c.icRepo.FindOneClaimBySchemaHash(ctx, c.storage.Pgx, did, string(authHash))
 }
 
+// GetFirstNonRevokedAuthClaim returns the first non-revoked authentication claim for the given DID. The AuthClaim may not be published
+func (c *claim) GetFirstNonRevokedAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error) {
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	authClaims, err := c.icRepo.GetAuthCoreClaims(ctx, c.storage.Pgx, did, string(authHash))
+	if err != nil {
+		return nil, err
+	}
+
+	return authClaims[0], nil
+}
+
 func (c *claim) GetAll(ctx context.Context, did w3c.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, uint, error) {
 	claims, total, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
 	if err != nil {

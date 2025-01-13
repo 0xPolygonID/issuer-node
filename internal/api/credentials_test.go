@@ -559,19 +559,22 @@ func TestServer_DeleteCredential(t *testing.T) {
 }
 
 func TestServer_GetCredentialQrCode(t *testing.T) {
-	idStr := "did:polygonid:polygon:mumbai:2qPrv5Yx8s1qAmEnPym68LfT7gTbASGampiGU7TseL"
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
 	idNoClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
-	identity := &domain.Identity{
-		Identifier: idStr,
-	}
-
 	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
-	claim := fixture.NewClaim(t, identity.Identifier)
-	fixture.CreateClaim(t, claim)
-
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
+
+	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
+
+	claim := fixture.NewClaim(t, identity.Identifier)
+	fixture.CreateClaim(t, claim)
 
 	type expected struct {
 		response GetCredentialOfferResponseObject
@@ -591,7 +594,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:  "No auth",
 			auth:  authWrong,
-			did:   idStr,
+			did:   identity.Identifier,
 			claim: claim.ID,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -600,7 +603,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:  "should get an error non existing claimID",
 			auth:  authOk,
-			did:   idStr,
+			did:   identity.Identifier,
 			claim: uuid.New(),
 			expected: expected{
 				response: GetCredentialOffer404JSONResponse{N404JSONResponse{
@@ -636,7 +639,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:   "Happy path, no type",
 			auth:   authOk,
-			did:    idStr,
+			did:    identity.Identifier,
 			claim:  claim.ID,
 			qrType: nil,
 			expected: expected{
@@ -648,7 +651,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:   "Happy path, type universalLink",
 			auth:   authOk,
-			did:    idStr,
+			did:    identity.Identifier,
 			claim:  claim.ID,
 			qrType: common.ToPointer("universalLink"),
 			expected: expected{
@@ -660,7 +663,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:   "Happy path, type deeplink",
 			auth:   authOk,
-			did:    idStr,
+			did:    identity.Identifier,
 			claim:  claim.ID,
 			qrType: common.ToPointer("deepLink"),
 			expected: expected{
@@ -672,7 +675,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:   "Happy path, type raw",
 			auth:   authOk,
-			did:    idStr,
+			did:    identity.Identifier,
 			claim:  claim.ID,
 			qrType: common.ToPointer("raw"),
 			expected: expected{
@@ -740,29 +743,21 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 func TestServer_GetCredential(t *testing.T) {
 	server := newTestServer(t, nil)
-	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
-	identity := &domain.Identity{
-		Identifier: idStr,
-	}
 	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+
+	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
 
 	claim := fixture.NewClaim(t, identity.Identifier)
 	claim.MtProof = true
 	fixture.CreateClaim(t, claim)
-
-	query := repositories.ExecQueryParams{
-		Query: `INSERT INTO identity_mts (identifier, type) VALUES 
-                                                    ($1, 0),
-                                                    ($1, 1),
-                                                    ($1, 2),
-                                                    ($1, 3)`,
-		Arguments: []interface{}{idStr},
-	}
-
-	fixture.ExecQuery(t, query)
-
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -782,7 +777,7 @@ func TestServer_GetCredential(t *testing.T) {
 		{
 			name: "No auth header",
 			auth: authWrong,
-			did:  idStr,
+			did:  identity.Identifier,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
 			},
@@ -790,7 +785,7 @@ func TestServer_GetCredential(t *testing.T) {
 		{
 			name:    "should get an error non existing claimID",
 			auth:    authOk,
-			did:     idStr,
+			did:     identity.Identifier,
 			claimID: uuid.New(),
 			expected: expected{
 				httpCode: http.StatusNotFound,
@@ -826,7 +821,7 @@ func TestServer_GetCredential(t *testing.T) {
 		{
 			name:    "should get the credentials",
 			auth:    authOk,
-			did:     idStr,
+			did:     identity.Identifier,
 			claimID: claim.ID,
 			expected: expected{
 				httpCode: http.StatusOK,
@@ -839,7 +834,7 @@ func TestServer_GetCredential(t *testing.T) {
 							Type: "JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v2/%s/credentials/revocation/status/%d", idStr, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v2/%s/credentials/revocation/status/%d", identity.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -851,7 +846,7 @@ func TestServer_GetCredential(t *testing.T) {
 						},
 						ID:           fmt.Sprintf("http://localhost/api/v2/credentials/%s", claim.ID),
 						IssuanceDate: common.ToPointer(time.Now()),
-						Issuer:       idStr,
+						Issuer:       identity.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 						RefreshService: &verifiable.RefreshService{
 							ID:   "https://refresh-service.xyz",
