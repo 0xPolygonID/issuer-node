@@ -145,7 +145,6 @@ export function Identity() {
                     <Detail label="Network" text={network} />
 
                     <Detail label="Type" text={identity.data.keyType} />
-                    <Detail label="Credential status" text={identity.data.credentialStatusType} />
                   </Space>
                 </Card>
               </Card>
