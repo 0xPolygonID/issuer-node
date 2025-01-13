@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -76,7 +77,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	}
 
 	var credentialStatusType *verifiable.CredentialStatusType
-	credentialStatusType, err = validateStatusType((*string)(request.Body.CredentialStatusType))
+	credentialStatusType, err = s.validateStatusType(ctx, did, (*string)(request.Body.CredentialStatusType))
 	if err != nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
@@ -347,6 +348,30 @@ func (s *Server) GetCredentialOffer(ctx context.Context, request GetCredentialOf
 		UniversalLink: qrContent,
 		SchemaType:    resp.SchemaType,
 	}, nil
+}
+
+// validateStatusType - validate credential status type.
+// If credentialStatusTypeRequest is nil or empty, it will return the credential status type from the auth claim (first non revoked).
+func (s *Server) validateStatusType(ctx context.Context, did *w3c.DID, credentialStatusTypeRequest *string) (*verifiable.CredentialStatusType, error) {
+	var credentialStatusType verifiable.CredentialStatusType
+	if credentialStatusTypeRequest != nil && *credentialStatusTypeRequest != "" {
+		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
+		if !slices.Contains(allowedCredentialStatuses, *credentialStatusTypeRequest) {
+			return nil, fmt.Errorf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *credentialStatusTypeRequest)
+		}
+		credentialStatusType = (verifiable.CredentialStatusType)(*credentialStatusTypeRequest)
+	} else {
+		credentialStatusType = verifiable.Iden3commRevocationStatusV1
+		authClaim, _ := s.claimService.GetAuthClaim(ctx, did)
+		if authClaim != nil {
+			credentialStatus, _ := authClaim.GetCredentialStatus()
+
+			if credentialStatus != nil {
+				credentialStatusType = credentialStatus.Type
+			}
+		}
+	}
+	return &credentialStatusType, nil
 }
 
 func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {

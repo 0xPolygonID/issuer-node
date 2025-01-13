@@ -211,6 +211,24 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 				credStatusType := GetIdentitiesResponseCredentialStatusType(credentialStatus.Type)
 				authBjjCredStatus = &credStatusType
 			}
+		} else {
+			// this case handle eth identity without published auth claim
+			authClaim, err := s.claimService.GetFirstNonRevokedAuthClaim(ctx, did)
+			if err != nil {
+				log.Error(ctx, "get identities. Getting first non revoked auth claim", "err", err)
+				return GetIdentities500JSONResponse{N500JSONResponse{
+					Message: err.Error(),
+				}}, nil
+			}
+			credentialStatus, err := authClaim.GetCredentialStatus()
+			if err != nil {
+				log.Error(ctx, "get identities. Getting credential status", "err", err)
+				return GetIdentities500JSONResponse{N500JSONResponse{
+					Message: err.Error(),
+				}}, nil
+			}
+			credStatusType := GetIdentitiesResponseCredentialStatusType(credentialStatus.Type)
+			authBjjCredStatus = &credStatusType
 		}
 
 		items := strings.Split(identity.Identifier, ":")
