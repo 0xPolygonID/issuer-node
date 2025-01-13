@@ -226,8 +226,10 @@ export function SchemaDetails() {
             </Card>
           );
         } else {
-          const { bigInt, createdAt, displayMethodID, hash, url, version } = schema.data;
+          const { bigInt, contextURL, createdAt, displayMethodID, hash, url, version } =
+            schema.data;
           const processedSchemaUrl = processUrl(url, env);
+          const processedContextSchemaUrl = processUrl(contextURL, env);
           const [jsonSchema, jsonSchemaObject] = jsonSchemaTuple.data;
           const [jsonLdType, jsonLdContextObject] = contextTuple.data;
           const displayMethodsList = isAsyncTaskDataAvailable(displayMethods)
@@ -269,6 +271,12 @@ export function SchemaDetails() {
                     href={processedSchemaUrl.success ? processedSchemaUrl.data : url}
                     label="URL"
                     text={url}
+                  />
+                  <Detail
+                    copyable
+                    href={processedContextSchemaUrl.success ? processedContextSchemaUrl.data : url}
+                    label="Context URL"
+                    text={contextURL}
                   />
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
