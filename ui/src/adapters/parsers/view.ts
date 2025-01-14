@@ -201,7 +201,7 @@ export type IssueCredentialFormData = {
   credentialExpiration?: dayjs.Dayjs | null;
   credentialStatusType: CredentialStatusType | null;
   credentialSubject?: Record<string, unknown>;
-  displayMethod: { enabled: boolean; type: DisplayMethodType | ""; url: string };
+  displayMethod: { enabled: boolean; type: DisplayMethodType | ""; url: string | null };
   proofTypes: ProofType[];
   refreshService: { enabled: boolean; url: string };
   schemaID?: string;
@@ -215,7 +215,7 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     displayMethod: z.object({
       enabled: z.boolean(),
       type: z.union([z.nativeEnum(DisplayMethodType), z.literal("")]),
-      url: z.union([z.string().url(), z.literal("")]),
+      url: z.union([z.string().url().nullable(), z.literal("")]),
     }),
     proofTypes: z.array(z.nativeEnum(ProofType)).min(1, "At least one proof type is required"),
     refreshService: z.object({
@@ -253,7 +253,7 @@ export const credentialFormParser = getStrictParser<
 
       const baseIssuance = {
         credentialDisplayMethod:
-          displayMethod.enabled && displayMethod.type !== ""
+          displayMethod.enabled && displayMethod.type !== "" && displayMethod.url
             ? { type: displayMethod.type, url: displayMethod.url }
             : undefined,
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,

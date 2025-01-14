@@ -332,7 +332,7 @@ export function IssueCredentialForm({
                   enabled: initialValues.displayMethod.enabled,
                   ...(schemaDefaultDisplayMethod
                     ? { type: schemaDefaultDisplayMethod.type, url: schemaDefaultDisplayMethod.url }
-                    : { type: "", url: "" }),
+                    : { type: "", url: null }),
                 },
               }
             : initialValues;
@@ -635,7 +635,7 @@ export function IssueCredentialForm({
                       <Select
                         className="full-width"
                         loading={isAsyncTaskStarting(credentialStatusTypes)}
-                        placeholder="Valid URL of the display method"
+                        placeholder="Choose revocation status"
                       >
                         {isAsyncTaskDataAvailable(credentialStatusTypes) &&
                           credentialStatusTypes.data.map((status) => (
@@ -714,7 +714,7 @@ export function IssueCredentialForm({
                           <Select
                             className="full-width"
                             loading={isAsyncTaskStarting(displayMethods)}
-                            placeholder="Valid URL of the display method"
+                            placeholder="Select display method"
                           >
                             {isAsyncTaskDataAvailable(displayMethods) &&
                               displayMethods.data.map(({ id, name, url }) => (
