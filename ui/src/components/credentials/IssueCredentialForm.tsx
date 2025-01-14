@@ -134,12 +134,17 @@ export function IssueCredentialForm({
 
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
-  const [refreshServiceChecked, setRefreshServiceChecked] = useState(
-    initialValues.refreshService.enabled
-  );
-  const [displayMethodChecked, setDisplayMethodChecked] = useState(
-    initialValues.displayMethod.enabled
-  );
+  const displayMethodChecked =
+    Form.useWatch<IssueCredentialFormData["displayMethod"]["enabled"]>(
+      ["displayMethod", "enabled"],
+      form
+    ) || initialValues.displayMethod.enabled;
+
+  const refreshServiceChecked =
+    Form.useWatch<IssueCredentialFormData["refreshService"]["enabled"]>(
+      ["refreshService", "enabled"],
+      form
+    ) || initialValues.refreshService.enabled;
 
   const isPositiveBigInt = (x: string) => {
     try {
@@ -329,7 +334,7 @@ export function IssueCredentialForm({
                   initialValues.credentialSubject || {}
                 ),
                 displayMethod: {
-                  enabled: initialValues.displayMethod.enabled,
+                  enabled: !!schemaDefaultDisplayMethod,
                   ...(schemaDefaultDisplayMethod
                     ? { type: schemaDefaultDisplayMethod.type, url: schemaDefaultDisplayMethod.url }
                     : { type: "", url: "" }),
@@ -337,8 +342,6 @@ export function IssueCredentialForm({
               }
             : initialValues;
           form.setFieldsValue(initialValuesWithSchemaValues);
-          setRefreshServiceChecked(initialValues.refreshService.enabled);
-          setDisplayMethodChecked(initialValues.displayMethod.enabled);
         } else {
           if (!isAbortedError(response.error)) {
             setJsonSchema({ error: response.error, status: "failed" });
@@ -655,12 +658,7 @@ export function IssueCredentialForm({
                           noStyle
                           valuePropName="checked"
                         >
-                          <Checkbox
-                            checked={refreshServiceChecked}
-                            onChange={() => {
-                              setRefreshServiceChecked(!refreshServiceChecked);
-                            }}
-                          >
+                          <Checkbox checked={refreshServiceChecked}>
                             Refresh Service{" ("}
                             <Typography.Link
                               href="https://docs.privado.id/docs/category/refresh-service"
@@ -701,14 +699,7 @@ export function IssueCredentialForm({
                           noStyle
                           valuePropName="checked"
                         >
-                          <Checkbox
-                            checked={displayMethodChecked}
-                            onChange={() => {
-                              setDisplayMethodChecked(!displayMethodChecked);
-                            }}
-                          >
-                            Display Method
-                          </Checkbox>
+                          <Checkbox checked={displayMethodChecked}>Display Method</Checkbox>
                         </Form.Item>
                         <Form.Item hidden={!displayMethodChecked} name={["displayMethod", "url"]}>
                           <Select
