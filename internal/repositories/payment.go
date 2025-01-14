@@ -250,7 +250,7 @@ WHERE pr.issuer_did = $1`
 // GetPaymentRequestItem returns a payment request item
 func (p *payment) GetPaymentRequestItem(ctx context.Context, issuerDID w3c.DID, nonce *big.Int) (*domain.PaymentRequestItem, error) {
 	const query = `
-SELECT payment_request_items.id, nonce, payment_request_id, payment_request_info, payment_request_items.payment_option_id
+SELECT payment_request_items.id, nonce, payment_request_id, payment_request_info, payment_request_items.payment_option_id, payment_request_items.signing_key
 FROM payment_request_items 
 LEFT JOIN payment_requests ON payment_requests.id = payment_request_items.payment_request_id
 WHERE payment_requests.issuer_did = $1 AND nonce = $2;`
@@ -263,6 +263,7 @@ WHERE payment_requests.issuer_did = $1 AND nonce = $2;`
 		&item.PaymentRequestID,
 		&paymentRequestInfoBytes,
 		&item.PaymentOptionID,
+		&item.SigningKeyID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("could not get payment request item: %w", err)
