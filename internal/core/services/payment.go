@@ -261,7 +261,7 @@ func (p *payment) verifyPaymentOnBlockchain(
 	txIdProvided := txID != nil && *txID != ""
 
 	if txIdProvided {
-		status, err := handleTransaction(ctx, client, *txID)
+		status, err := handlePaymentTransaction(ctx, client, *txID)
 		if err != nil || status != ports.BlockchainPaymentStatusSuccess {
 			return status, err
 		}
@@ -279,7 +279,7 @@ func (p *payment) verifyPaymentOnBlockchain(
 	return ports.BlockchainPaymentStatusFailed, nil
 }
 
-func handleTransaction(
+func handlePaymentTransaction(
 	ctx context.Context,
 	client *eth.Client,
 	txID string,
