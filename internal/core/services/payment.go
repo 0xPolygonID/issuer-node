@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/google/uuid"
@@ -250,12 +249,6 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 		return ports.BlockchainPaymentStatusPending, fmt.Errorf("payment Option <%d> not found in payment configuration", paymentReqItem.PaymentOptionID)
 	}
 
-	payOptConfItem, err := p.paymentOptionConfigItem(ctx, issuerDID, paymentReqItem)
-	if err != nil {
-		log.Error(ctx, "failed to get payment option config", "err", err)
-		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment option config: %w", err)
-	}
-
 	client, err := p.networkResolver.GetEthClientByChainID(core.ChainID(setting.ChainID))
 	if err != nil {
 		log.Error(ctx, "failed to get ethereum client from resolvers", "err", err, "key", paymentReqItem.SigningKeyID)
@@ -267,7 +260,12 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 		return ports.BlockchainPaymentStatusPending, err
 	}
 
-	status, err := p.verifyPaymentOnBlockchain(ctx, client, instance, payOptConfItem.Recipient, nonce, txHash)
+	signerAddress, err := p.getSignerAddress(ctx, paymentReqItem.SigningKeyID)
+	if err != nil {
+		return ports.BlockchainPaymentStatusPending, err
+	}
+
+	status, err := p.verifyPaymentOnBlockchain(ctx, client, instance, signerAddress, nonce, txHash)
 	if err != nil {
 		log.Error(ctx, "failed to verify payment on blockchain", "err", err, "txHash", txHash, "nonce", nonce)
 		return ports.BlockchainPaymentStatusPending, err
@@ -279,58 +277,58 @@ func (p *payment) verifyPaymentOnBlockchain(
 	ctx context.Context,
 	client *eth.Client,
 	contract *eth.PaymentContract,
-	recipient common.Address,
+	signerAddress common.Address,
 	nonce *big.Int,
 	txID *string,
 ) (ports.BlockchainPaymentStatus, error) {
 	txIdProvided := txID != nil && *txID != ""
-	var receipt *types.Receipt
+
 	if txIdProvided {
-		_, isPending, err := client.GetTransactionByID(ctx, *txID)
-		if err != nil {
-			if err.Error() == "not found" {
-				return ports.BlockchainPaymentStatusCancelled, nil
-			}
-			return ports.BlockchainPaymentStatusUnknown, err
-		}
-		if isPending {
-			return ports.BlockchainPaymentStatusPending, nil
-		}
-		receipt, err = client.GetTransactionReceiptByID(ctx, *txID)
-		if err != nil {
-			return ports.BlockchainPaymentStatusUnknown, err
+		status, err := handlePaymentTransaction(ctx, client, *txID)
+		if err != nil || status != ports.BlockchainPaymentStatusSuccess {
+			return status, err
 		}
 	}
-	if !txIdProvided || receipt.Status == 1 {
-		isPaid, err := contract.IsPaymentDone(&bind.CallOpts{Context: ctx}, recipient, nonce)
-		if err != nil {
-			return ports.BlockchainPaymentStatusPending, nil
-		}
-		if isPaid {
-			return ports.BlockchainPaymentStatusSuccess, nil
-		}
+
+	isPaid, err := contract.IsPaymentDone(&bind.CallOpts{Context: ctx}, signerAddress, nonce)
+	if err != nil {
 		return ports.BlockchainPaymentStatusPending, nil
 	}
+
+	if isPaid {
+		return ports.BlockchainPaymentStatusSuccess, nil
+	}
+
 	return ports.BlockchainPaymentStatusFailed, nil
 }
 
-// paymentOptionConfigItem finds the payment option config item used to pay using the payment id stored in PaymentRequest database
-func (p *payment) paymentOptionConfigItem(ctx context.Context, issuerDID w3c.DID, item *domain.PaymentRequestItem) (*domain.PaymentOptionConfigItem, error) {
-	paymentReq, err := p.paymentsStore.GetPaymentRequestByID(ctx, issuerDID, item.PaymentRequestID)
+func handlePaymentTransaction(
+	ctx context.Context,
+	client *eth.Client,
+	txID string,
+) (ports.BlockchainPaymentStatus, error) {
+	_, isPending, err := client.GetTransactionByID(ctx, txID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get payment request: %w", err)
+		if err.Error() == "not found" {
+			return ports.BlockchainPaymentStatusCancelled, nil
+		}
+		return ports.BlockchainPaymentStatusUnknown, err
 	}
 
-	option, err := p.paymentsStore.GetPaymentOptionByID(ctx, &issuerDID, paymentReq.PaymentOptionID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get payment option: %w", err)
+	if isPending {
+		return ports.BlockchainPaymentStatusPending, nil
 	}
 
-	configItem := option.Config.GetByID(item.PaymentOptionID)
-	if configItem == nil {
-		return nil, fmt.Errorf("payment option config item for id <%d> not found", item.PaymentOptionID)
+	receipt, err := client.GetTransactionReceiptByID(ctx, txID)
+	if err != nil {
+		return ports.BlockchainPaymentStatusUnknown, err
 	}
-	return configItem, nil
+
+	if receipt.Status == 1 {
+		return ports.BlockchainPaymentStatusSuccess, nil
+	}
+
+	return ports.BlockchainPaymentStatusFailed, nil
 }
 
 func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig, chainConfig *domain.PaymentOptionConfigItem, nonce *big.Int) (protocol.PaymentRequestInfoDataItem, error) {
