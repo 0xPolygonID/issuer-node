@@ -31,7 +31,7 @@ import {
 } from "src/utils/constants";
 
 type IdentityState = {
-  fetchIdentities: (signal: AbortSignal) => void;
+  fetchIdentities: (signal?: AbortSignal) => void;
   getSelectedIdentity: () => Identity | undefined;
   identifier: string;
   identityList: AsyncTask<Identity[], AppError>;
@@ -61,7 +61,7 @@ export function IdentityProvider(props: PropsWithChildren) {
   const identifierParam = searchParams.get(IDENTIFIER_SEARCH_PARAM);
 
   const fetchIdentities = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       setIdentityList((previousState) =>
         isAsyncTaskDataAvailable(previousState)
           ? { data: previousState.data, status: "reloading" }
