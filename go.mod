@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/vault/api v1.14.0
 	github.com/hashicorp/vault/api/auth/userpass v0.7.0
-	github.com/iden3/contracts-abi/multi-chain-payment/go/abi v0.0.0-20250116155653-e62429d13d84
+	github.com/iden3/contracts-abi/multi-chain-payment/go/abi v0.0.0-20250116162607-8fec43acf817
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20230911112726-4533c5701af1
 	github.com/iden3/driver-did-iden3 v0.0.7
