@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	b64 "encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -427,9 +428,15 @@ func (p *payment) paymentRequestSignature(
 ) ([]byte, error) {
 	paymentType := string(setting.PaymentOption.Type)
 
+	decodedKeyID, err := b64.StdEncoding.DecodeString(chainConfig.SigningKeyID)
+	if err != nil {
+		log.Error(ctx, "decoding base64 key id", "err", err)
+		return nil, err
+	}
+
 	keyID := kms.KeyID{
 		Type: kms.KeyTypeEthereum,
-		ID:   chainConfig.SigningKeyID,
+		ID:   string(decodedKeyID),
 	}
 
 	typedData := apitypes.TypedData{
@@ -529,9 +536,15 @@ func (p *payment) paymentRequestSignature(
 }
 
 func (p *payment) getSignerAddress(ctx context.Context, signingKeyID string) (common.Address, error) {
+	decodedKeyID, err := b64.StdEncoding.DecodeString(signingKeyID)
+	if err != nil {
+		log.Error(ctx, "decoding base64 key id", "err", err)
+		return common.Address{}, err
+	}
+
 	bytesPubKey, err := p.kms.PublicKey(kms.KeyID{
 		Type: kms.KeyTypeEthereum,
-		ID:   signingKeyID,
+		ID:   string(decodedKeyID),
 	})
 	if err != nil {
 		return common.Address{}, err

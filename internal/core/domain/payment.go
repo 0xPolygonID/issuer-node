@@ -30,7 +30,7 @@ type PaymentRequestItem struct {
 	Nonce            big.Int
 	PaymentRequestID uuid.UUID
 	PaymentOptionID  payments.OptionConfigIDType // The numeric id that identify a payment option in payments config file.
-	SigningKeyID     string
+	SigningKeyID     string                      // Base64 encoded key id
 	Payment          protocol.PaymentRequestInfoDataItem
 }
 
