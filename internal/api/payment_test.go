@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -566,13 +567,13 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 				PaymentOptionID: 1,
 				Amount:          *amount,
 				Recipient:       common.Address{},
-				SigningKeyID:    signingKeyID.ID,
+				SigningKeyID:    b64.StdEncoding.EncodeToString([]byte(signingKeyID.ID)),
 			},
 			{
 				PaymentOptionID: 2,
 				Amount:          *amount,
 				Recipient:       common.Address{},
-				SigningKeyID:    signingKeyID.ID,
+				SigningKeyID:    b64.StdEncoding.EncodeToString([]byte(signingKeyID.ID)),
 			},
 		},
 	}
