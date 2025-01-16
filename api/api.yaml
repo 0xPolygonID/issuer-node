@@ -2826,6 +2826,7 @@ components:
           type: string
         signingKeyID:
           type: string
+          description: base64 encoded keyID
         expiration:
           type: string
           format: date-time

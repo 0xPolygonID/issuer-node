@@ -612,7 +612,9 @@ type PaymentOptionConfigItem struct {
 	Expiration      *time.Time `json:"expiration,omitempty"`
 	PaymentOptionID int        `json:"paymentOptionID"`
 	Recipient       string     `json:"recipient"`
-	SigningKeyID    string     `json:"signingKeyID"`
+
+	// SigningKeyID base64 encoded keyID
+	SigningKeyID string `json:"signingKeyID"`
 }
 
 // PaymentOptionRequest defines model for PaymentOptionRequest.
