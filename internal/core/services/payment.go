@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/google/uuid"
+	abi "github.com/iden3/contracts-abi/multi-chain-payment/go/abi"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
@@ -256,7 +257,7 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get ethereum client from resolvers settings for key <%s>", paymentReqItem.SigningKeyID)
 	}
 
-	instance, err := eth.NewPaymentContract(setting.PaymentRails, client.GetEthereumClient())
+	instance, err := abi.NewMCPayment(setting.PaymentRails, client.GetEthereumClient())
 	if err != nil {
 		return ports.BlockchainPaymentStatusPending, err
 	}
@@ -277,7 +278,7 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 func (p *payment) verifyPaymentOnBlockchain(
 	ctx context.Context,
 	client *eth.Client,
-	contract *eth.PaymentContract,
+	contract *abi.MCPayment,
 	signerAddress common.Address,
 	nonce *big.Int,
 	txID *string,

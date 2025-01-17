@@ -414,6 +414,8 @@ github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpO
 github.com/huin/goupnp v1.3.0 h1:UvLUlWDNpoUdYzb2TCn+MuTWtcjXKSza2n6CBdQ0xXc=
 github.com/huin/goupnp v1.3.0/go.mod h1:gnGPsThkYa7bFi/KWmEysQRf48l2dvR5bxr2OFckNX8=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
+github.com/iden3/contracts-abi/multi-chain-payment/go/abi v0.0.0-20250116162607-8fec43acf817 h1:xuYOzprI4R11ty8CpFAO8cmsDpLpMBkTaAo4Jb640Po=
+github.com/iden3/contracts-abi/multi-chain-payment/go/abi v0.0.0-20250116162607-8fec43acf817/go.mod h1:T3jzISOZAzewRmzTxzGzj91V8MP+usTdPYbRE68hLyA=
 github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0 h1:Fu1/tAINi9FzZ0nKoEVOGXWzL1l15tR1loJx5sQEQ8k=
 github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0/go.mod h1:8fkd2xyUG/V7ovpvZRyD2LyK2zZ4ALbgf5vJGyhzKdg=
 github.com/iden3/contracts-abi/rhs-storage/go/abi v0.0.0-20231006141557-7d13ef7e3c48 h1:/g4rru+OM5WAhVNXEpowKH+vWZLGjgpk5+O8Stu4QBo=
