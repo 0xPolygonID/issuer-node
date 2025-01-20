@@ -20,6 +20,11 @@ ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH := ${ISSUER_KMS_PROVIDER_LOCAL_STORA
 ISSUER_KMS_ETH_PROVIDER := ${ISSUER_KMS_ETH_PROVIDER}
 ISSUER_KMS_BJJ_PROVIDER := ${ISSUER_KMS_BJJ_PROVIDER}
 
+aws_access_key := ${ISSUER_KMS_AWS_ACCESS_KEY}
+aws_secret_key := ${ISSUER_KMS_AWS_SECRET_KEY}
+aws_region := ${ISSUER_KMS_AWS_REGION}
+aws_endpoint := ${ISSUER_KMS_AWS_URL}
+
 ISSUER_RESOLVER_FILE := ${ISSUER_RESOLVER_FILE}
 REQUIRED_FILE := ${ISSUER_RESOLVER_PATH}
 
@@ -197,8 +202,7 @@ lint-fix: $(BIN)/golangci-lint
 		  $(BIN)/golangci-lint run --fix
 
 ## Usage:
-## AWS: make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region [aws_endpoint=custom-aws-endpoint] import-private-key-to-kms
-## localstorage and vault: make private_key=XXX import-private-key-to-kms
+## make private_key=XXX import-private-key-to-kms
 .PHONY: import-private-key-to-kms
 import-private-key-to-kms:
 ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws-kms)
