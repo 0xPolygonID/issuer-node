@@ -203,6 +203,7 @@ export function PaymentOption() {
               <EditModal
                 onClose={() => setIsEditModalOpen(false)}
                 open={isEditModalOpen}
+                size="large"
                 title="Edit payment option"
               >
                 <PaymentOptionForm
