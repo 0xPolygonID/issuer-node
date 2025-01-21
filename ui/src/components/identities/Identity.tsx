@@ -12,6 +12,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, IdentityDetails } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -20,6 +21,7 @@ import { formatIdentifier } from "src/utils/forms";
 
 export function Identity() {
   const env = useEnvContext();
+  const { fetchIdentities } = useIdentityContext();
   const [identity, setIdentity] = useState<AsyncTask<IdentityDetails, AppError>>({
     status: "pending",
   });
@@ -74,6 +76,7 @@ export function Identity() {
       if (response.success) {
         void fetchIdentity().then(() => {
           setIsEditModalOpen(false);
+          void fetchIdentities();
           void message.success("Identity edited successfully");
         });
       } else {
