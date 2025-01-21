@@ -31,6 +31,7 @@ func TestSettingsFromConfig(t *testing.T) {
 				Type:            protocol.Iden3PaymentRailsRequestV1Type,
 				ContractAddress: ethCommon.HexToAddress(""),
 				Features:        nil,
+				Decimals:        18,
 			},
 		},
 		2: ChainConfig{
@@ -39,8 +40,9 @@ func TestSettingsFromConfig(t *testing.T) {
 			PaymentOption: PaymentOptionConfig{
 				Name:            "Amoy USDT",
 				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
-				ContractAddress: ethCommon.HexToAddress("0x2FE40749812FAC39a0F380649eF59E01bccf3a1A"),
+				ContractAddress: ethCommon.HexToAddress("0x71dcc8Dc5Eb138003d3571255458Bc5692a60eD4"),
 				Features:        nil,
+				Decimals:        6,
 			},
 		},
 		3: ChainConfig{
@@ -49,8 +51,9 @@ func TestSettingsFromConfig(t *testing.T) {
 			PaymentOption: PaymentOptionConfig{
 				Name:            "Amoy USDC",
 				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
-				ContractAddress: ethCommon.HexToAddress("0x2FE40749812FAC39a0F380649eF59E01bccf3a1A"),
+				ContractAddress: ethCommon.HexToAddress("0x71dcc8Dc5Eb138003d3571255458Bc5692a60eD4"),
 				Features:        []protocol.PaymentFeatures{"EIP-2612"},
+				Decimals:        6,
 			},
 		},
 		4: ChainConfig{
@@ -61,6 +64,7 @@ func TestSettingsFromConfig(t *testing.T) {
 				Type:            protocol.Iden3PaymentRailsRequestV1Type,
 				ContractAddress: ethCommon.HexToAddress(""),
 				Features:        nil,
+				Decimals:        18,
 			},
 		},
 		5: ChainConfig{
@@ -71,6 +75,7 @@ func TestSettingsFromConfig(t *testing.T) {
 				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
 				ContractAddress: ethCommon.HexToAddress("0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C"),
 				Features:        nil,
+				Decimals:        18,
 			},
 		},
 		6: ChainConfig{
@@ -81,6 +86,7 @@ func TestSettingsFromConfig(t *testing.T) {
 				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
 				ContractAddress: ethCommon.HexToAddress("0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C"),
 				Features:        []protocol.PaymentFeatures{"EIP-2612"},
+				Decimals:        18,
 			},
 		},
 		7: ChainConfig{
@@ -91,6 +97,7 @@ func TestSettingsFromConfig(t *testing.T) {
 				Type:            protocol.Iden3PaymentRailsRequestV1Type,
 				ContractAddress: ethCommon.HexToAddress(""),
 				Features:        nil,
+				Decimals:        18,
 			},
 		},
 		8: ChainConfig{
@@ -101,6 +108,7 @@ func TestSettingsFromConfig(t *testing.T) {
 				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
 				ContractAddress: ethCommon.HexToAddress("0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db"),
 				Features:        nil,
+				Decimals:        18,
 			},
 		},
 		9: ChainConfig{
@@ -111,6 +119,7 @@ func TestSettingsFromConfig(t *testing.T) {
 				Type:            protocol.Iden3PaymentRailsERC20RequestV1Type,
 				ContractAddress: ethCommon.HexToAddress("0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db"),
 				Features:        []protocol.PaymentFeatures{"EIP-2612"},
+				Decimals:        18,
 			},
 		},
 	}

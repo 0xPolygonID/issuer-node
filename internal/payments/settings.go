@@ -37,6 +37,7 @@ type PaymentOptionConfig struct {
 	Type            protocol.PaymentRequestType
 	ContractAddress common.Address
 	Features        []protocol.PaymentFeatures `json:"features,omitempty"`
+	Decimals        int
 }
 
 // configDTO is the data transfer object for the configuration. It maps to payment configuration file
@@ -53,6 +54,7 @@ type paymentOptionConfigDTO struct {
 	Type            protocol.PaymentRequestType `yaml:"Type" json:"type"`
 	ContractAddress string                      `yaml:"ContractAddress,omitempty" json:"contractAddress,omitempty"`
 	Features        []string                    `yaml:"Features,omitempty" json:"features,omitempty"`
+	Decimals        int                         `yaml:"Decimals" json:"decimals"`
 }
 
 // CustomDecoder wraps yaml.Decoder to add custom functionality
@@ -107,6 +109,7 @@ func (d *configDecoder) Decode() (*Config, error) {
 					Type:            option.Type,
 					ContractAddress: common.HexToAddress(option.ContractAddress),
 					Features:        features,
+					Decimals:        option.Decimals,
 				},
 			}
 		}
