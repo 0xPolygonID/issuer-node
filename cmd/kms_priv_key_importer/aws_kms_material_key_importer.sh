@@ -21,6 +21,7 @@ openssl pkcs8 -topk8 -outform DER -nocrypt -inform DER -in <(echo "${ASN1_PRIV_K
 printf "private key successfully written to: %s\n" "${OUT_FILE}"
 
 if [[ -n "${aws_endpoint}" ]]; then
+  echo "Using endpoint: ${aws_endpoint}"
   export KEY=`aws kms get-parameters-for-import --profile ${aws_profile} --endpoint-url ${aws_endpoint}\
   --key-id ${key_id} \
   --wrapping-algorithm RSAES_OAEP_SHA_256 \
@@ -28,6 +29,7 @@ if [[ -n "${aws_endpoint}" ]]; then
   --query '{Key:PublicKey,Token:ImportToken}' \
   --output text`
 else
+  echo "non endpoint"
   export KEY=`aws kms get-parameters-for-import --profile ${aws_profile} \
   --key-id ${key_id} \
   --wrapping-algorithm RSAES_OAEP_SHA_256 \
@@ -50,7 +52,8 @@ openssl pkeyutl \
 -keyform DER \
 -pubin -encrypt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
 
-if [[ -z "${aws_endpoint}" ]]; then
+if [[ -n "${aws_endpoint}" ]]; then
+  echo "Using endpoint: ${aws_endpoint}"
   aws kms import-key-material --profile ${aws_profile} \
   --key-id ${key_id} \
   --encrypted-key-material fileb://EncryptedKeyMaterial.bin \
@@ -58,6 +61,7 @@ if [[ -z "${aws_endpoint}" ]]; then
   --expiration-model KEY_MATERIAL_DOES_NOT_EXPIRE \
   --endpoint-url ${aws_endpoint}
 else
+  echo "non endpoint"
   aws kms import-key-material --profile ${aws_profile} \
   --key-id ${key_id} \
   --encrypted-key-material fileb://EncryptedKeyMaterial.bin \

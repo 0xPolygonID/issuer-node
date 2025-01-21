@@ -28,6 +28,9 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
     - [Install and run Issuer Node API and UI (docker compose and build from source)](#install-and-run-issuer-node-api-and-ui---docker-compose-and-build-from-source)
     - [Running only Issuer Node API (docker compose and build from source)](#running-only-issuer-node-api-docker-compose-and-build-from-source)
   - [KMS Providers Configuration](#kms-providers-configuration)
+    - [Vault](#Running-issuer-node-with-vault-instead-of-local-storage-file)
+    - [AWS Secret Manager](#Running-issuer-node-with-AWS-Secret-Manager)
+    - [AWS KMS](#Running-issuer-node-with-AWS-KMS)
   - [Quick Start Demo](#quick-start-demo)
   - [Documentation](#documentation)
   - [Tools](#tools)
@@ -247,11 +250,68 @@ make up
 ``` 
 In this case, the docker container for vault will be created.
 
-To import the private key (if you have changed the kms provider you have to import the private key again) necessary to 
+To import the ethereum private key (if you have changed the kms provider you have to import the private key again) necessary to 
 transition issuer node states onchain, the command is the same as explained before:
 
 ```shell
 make private_key <private-key> import-private-key-to-kms
+```
+You should get something like this:
+
+```shell
+ ... private key saved to vault: path:=pbkey
+```
+
+#### Running issuer node with AWS Secret Manager
+Another alternative is to configure the issuer node to store the private keys of the identities in the AWS Secret Manager service. 
+Both babyjubjub type keys and ethereum keys can be stored using this service. To configure the issuer node, you must 
+change the following variables in the .env-issuer file:
+
+```shell
+ISSUER_KMS_BJJ_PROVIDER=aws-sm
+ISSUER_KMS_ETH_PROVIDER=aws-sm
+ISSUER_KMS_AWS_ACCESS_KEY=<your-aws-access-key>
+ISSUER_KMS_AWS_SECRET_KEY=<your-aws-secret-key>
+ISSUER_KMS_AWS_REGION=<your-aws-region>
+```
+
+After configuring the variables, run the following commands:
+```shell
+make up
+```
+
+Then you must run the command to import the ethereum private key to the kms.:
+
+```shell
+make private_key <private-key> import-private-key-to-kms`
+ ```
+If all went well, you should see something like this:
+```shell
+ ... private key saved to aws: path:=pbkey
+```
+
+#### Running issuer node with AWS KMS
+Another alternative is to configure the issuer node to store the private keys of the identities in the AWS KMS service.
+**Only ethereum keys** can be stored using this service. To configure the issuer node, you must change the following variables in the .env-issuer file:
+
+```shell
+
+```shell
+ISSUER_KMS_BJJ_PROVIDER= [localstorage | vault | aws-sm] 
+ISSUER_KMS_ETH_PROVIDER=aws-kms
+ISSUER_KMS_AWS_ACCESS_KEY=<your-aws-access-key>
+ISSUER_KMS_AWS_SECRET_KEY=<your-aws-secret-key>
+ISSUER_KMS_AWS_REGION=<your-aws-region>
+```
+After configuring the variables, run the following commands:
+```shell
+make up
+```
+then you must run the command `make private_key <private-key> import-private-key-to-kms` to import the ethereum private key to the kms.
+If all went well, you should see something like this:
+
+```bash
+ ... Key material successfully imported!!!
 ```
 
 ## Quick Start Demo
