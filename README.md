@@ -81,7 +81,11 @@ then modify the file with the proper values. The most important fields to run th
 In this file you can define customizations for each type of blockchain and network. For this example, we only need to
 define the RPCs that we will use.
 
-4. Run
+4. Create a file with payments configuration. You can copy and modify the provided sample file:
+```shell
+cp payment_settings_sample.yaml payment_settings.yaml
+```
+5. Run
 ```shell
 make run-all-registry
 ```
@@ -98,14 +102,11 @@ bd7b69984f1c   privadoid/issuernode-api        "sh -c './migrate &&…"   38 sec
 a4a1d3ec9159   redis:6-alpine                  "docker-entrypoint.s…"   38 seconds ago   Up 36 seconds (healthy)   6379/tcp                                     issuer-redis-1
 ```
 
-
-5. Import your Ethereum private key
+6. Import your Ethereum private key
 
 ```shell
 make private_key=<private-key> import-private-key-to-kms 
 ```
-
-**_TODO_**: Add section to configure payments
 
 then visit:
 * http://localhost:8088/ to access the UI (default username / password are: user-ui, password-ui). You can set them using env [vars](.env-ui.sample).
@@ -144,9 +145,12 @@ then modify the file with the proper values. The most important fields to run th
 In this file you can define customizations for each type of blockchain and network. For this example, we only need to 
 define the RPCs. that will use.
 
-**_TODO_**: Add section to configure payments****
+4. Create a file with payments configuration. You can copy and modify the provided sample file:
+```shell
+cp payment_settings_sample.yaml payment_settings.yaml
+```
 
-4. Copy .env-ui sample file and fill the needed env variables:
+5. Copy .env-ui sample file and fill the needed env variables:
 
 ```bash 
 cp .env-ui.sample .env-ui
@@ -159,7 +163,7 @@ ISSUER_UI_AUTH_USERNAME=<your-username>
 ISSUER_UI_AUTH_PASSWORD=<your-password>
 ```
 
-5. Run API, UI and infrastructure (Postgres, localstorage and Redis)
+6. Run API, UI and infrastructure (Postgres, localstorage and Redis)
 
 To do a build and start both the API and the UI in a single step, you can use the following command:
 ```bash
@@ -169,13 +173,12 @@ then visit
 * http://localhost:8088/ to access the UI
 * <PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>:3001/ to access the API.
 
-6. Import your Ethereum private Key:
+7. Import your Ethereum private Key:
 Configure the private key. This step is needed in order to be able to transit the issuer's state. To perform that
 action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
 ```bash
 make private_key=<private-key> import-private-key-to-kms
 ```
-
 
 ### Running only Issuer Node API (docker compose and build from source)
 
