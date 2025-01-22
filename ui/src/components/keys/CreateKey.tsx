@@ -1,5 +1,5 @@
 import { App, Button, Card, Divider, Flex, Form, Input, Select, Space } from "antd";
-import { useNavigate } from "react-router-dom";
+import { generatePath, useNavigate } from "react-router-dom";
 
 import { CreateKey as CreateKeyType, createKey } from "src/adapters/api/keys";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
@@ -24,7 +24,11 @@ export function CreateKey() {
     }).then((response) => {
       if (response.success) {
         void message.success("Key added successfully");
-        navigate(ROUTES.keys.path);
+        navigate(
+          generatePath(ROUTES.identityDetails.path, {
+            identityID: identifier,
+          })
+        );
       } else {
         void message.error(response.error.message);
       }

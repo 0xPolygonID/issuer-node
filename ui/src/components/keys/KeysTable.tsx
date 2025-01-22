@@ -4,8 +4,8 @@ import {
   Button,
   Card,
   Dropdown,
+  Flex,
   Row,
-  Space,
   Table,
   TableColumnsType,
   Tag,
@@ -40,6 +40,7 @@ import {
   DEFAULT_PAGINATION_TOTAL,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
+  KEYS,
   KEY_ADD_NEW,
   PAGINATION_MAX_RESULTS_PARAM,
   PAGINATION_PAGE_PARAM,
@@ -299,15 +300,23 @@ export function KeysTable() {
           rowKey="id"
           showSorterTooltip
           sortDirections={["ascend", "descend"]}
+          style={{ width: "100%" }}
         />
       }
       title={
-        <Row justify="space-between">
-          <Space size="middle">
-            <Card.Meta title="Keys" />
+        <Flex align="center" justify="space-between" style={{ padding: "12px 0" }}>
+          <Flex align="center" gap={16}>
+            <Card.Meta title={KEYS} />
             <Tag>{paginationTotal}</Tag>
-          </Space>
-        </Row>
+          </Flex>
+          <Button
+            icon={<IconPlus />}
+            onClick={() => navigate(ROUTES.createKey.path)}
+            type="primary"
+          >
+            Create key
+          </Button>
+        </Flex>
       }
     />
   );

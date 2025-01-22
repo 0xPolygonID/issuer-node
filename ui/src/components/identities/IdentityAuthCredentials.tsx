@@ -6,7 +6,6 @@ import {
   Dropdown,
   Flex,
   Row,
-  Space,
   Table,
   TableColumnsType,
   Tag,
@@ -204,20 +203,7 @@ export function IdentityAuthCredentials({
   const showDefaultContent = credentials.status === "successful" && credentialsList.length === 0;
 
   return (
-    <Card
-      style={{ width: "100%" }}
-      title={
-        <Flex align="center" justify="flex-end" style={{ padding: 12 }}>
-          <Button
-            icon={<IconPlus />}
-            onClick={() => navigate(ROUTES.createAuthCredential.path)}
-            type="primary"
-          >
-            Create auth credential
-          </Button>
-        </Flex>
-      }
-    >
+    <>
       <TableCard
         defaultContents={
           <>
@@ -245,13 +231,19 @@ export function IdentityAuthCredentials({
           />
         }
         title={
-          <Row gutter={[0, 8]} justify="space-between">
-            <Space size="middle">
+          <Flex align="center" justify="space-between" style={{ padding: "12px 0" }}>
+            <Flex align="center" gap={16}>
               <Card.Meta title="Auth credentials" />
-
               <Tag>{credentialsList.length}</Tag>
-            </Space>
-          </Row>
+            </Flex>
+            <Button
+              icon={<IconPlus />}
+              onClick={() => navigate(ROUTES.createAuthCredential.path)}
+              type="primary"
+            >
+              Create auth credential
+            </Button>
+          </Flex>
         }
       />
       {credentialToRevoke && (
@@ -261,6 +253,6 @@ export function IdentityAuthCredentials({
           onRevoke={() => void fetchAuthCredentials()}
         />
       )}
-    </Card>
+    </>
   );
 }
