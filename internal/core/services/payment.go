@@ -445,7 +445,7 @@ func (p *payment) paymentRequestSignature(
 	}
 
 	types := apitypes.Types{}
-	fileBytes, err := os.ReadFile(fmt.Sprintf("%s/schemas/%s.json", getWorkingDirectory(), paymentType))
+	fileBytes, err := os.ReadFile(fmt.Sprintf("schemas/%s.json", paymentType))
 	if err != nil {
 		log.Error(ctx, "reading payment schema", "err", err)
 		return nil, err
