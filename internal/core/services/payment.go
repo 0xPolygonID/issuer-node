@@ -6,8 +6,10 @@ import (
 	"crypto/rand"
 	b64 "encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
 	"strconv"
 	"time"
 
@@ -429,6 +431,7 @@ func (p *payment) paymentRequestSignature(
 ) ([]byte, error) {
 	paymentType := string(setting.PaymentOption.Type)
 
+	log.Info(ctx, "signing key id", chainConfig.SigningKeyID)
 	decodedKeyID, err := b64.StdEncoding.DecodeString(chainConfig.SigningKeyID)
 	if err != nil {
 		log.Error(ctx, "decoding base64 key id", "err", err)
@@ -440,37 +443,19 @@ func (p *payment) paymentRequestSignature(
 		ID:   string(decodedKeyID),
 	}
 
+	types := apitypes.Types{}
+	fileBytes, err := os.ReadFile(fmt.Sprintf("/schemas/%s.json", paymentType))
+	if err != nil {
+		log.Error(ctx, "reading payment schema", "err", err)
+		return nil, err
+	}
+	err = json.Unmarshal(fileBytes, &types)
+	if err != nil {
+		log.Error(ctx, "unmarshaling payment apitypes.Types struct", "err", err)
+		return nil, err
+	}
 	typedData := apitypes.TypedData{
-		Types: apitypes.Types{
-			"EIP712Domain": []apitypes.Type{
-				{Name: "name", Type: "string"},
-				{Name: "version", Type: "string"},
-				{Name: "chainId", Type: "uint256"},
-				{Name: "verifyingContract", Type: "address"},
-			},
-			paymentType: []apitypes.Type{
-				{
-					Name: "recipient",
-					Type: "address",
-				},
-				{
-					Name: "amount",
-					Type: "uint256",
-				},
-				{
-					Name: "expirationDate",
-					Type: "uint256",
-				},
-				{
-					Name: "nonce",
-					Type: "uint256",
-				},
-				{
-					Name: "metadata",
-					Type: "bytes",
-				},
-			},
-		},
+		Types:       types,
 		PrimaryType: paymentType,
 		Domain: apitypes.TypedDataDomain{
 			Name:              "MCPayment",
@@ -487,32 +472,6 @@ func (p *payment) paymentRequestSignature(
 		},
 	}
 	if paymentType == string(protocol.Iden3PaymentRailsERC20RequestV1Type) {
-		typedData.Types[paymentType] = []apitypes.Type{
-			{
-				Name: "tokenAddress",
-				Type: "address",
-			},
-			{
-				Name: "recipient",
-				Type: "address",
-			},
-			{
-				Name: "amount",
-				Type: "uint256",
-			},
-			{
-				Name: "expirationDate",
-				Type: "uint256",
-			},
-			{
-				Name: "nonce",
-				Type: "uint256",
-			},
-			{
-				Name: "metadata",
-				Type: "bytes",
-			},
-		}
 		typedData.Message["tokenAddress"] = setting.PaymentOption.ContractAddress.String()
 	}
 	typedDataBytes, _, err := apitypes.TypedDataAndHash(typedData)
