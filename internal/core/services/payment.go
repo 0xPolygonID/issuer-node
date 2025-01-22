@@ -431,7 +431,6 @@ func (p *payment) paymentRequestSignature(
 ) ([]byte, error) {
 	paymentType := string(setting.PaymentOption.Type)
 
-	log.Info(ctx, "signing key id", chainConfig.SigningKeyID)
 	decodedKeyID, err := b64.StdEncoding.DecodeString(chainConfig.SigningKeyID)
 	if err != nil {
 		log.Error(ctx, "decoding base64 key id", "err", err)
