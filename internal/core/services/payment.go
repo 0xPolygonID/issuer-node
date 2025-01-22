@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -494,11 +492,6 @@ func (p *payment) paymentRequestSignature(
 	}
 
 	return signature, nil
-}
-
-func getWorkingDirectory() string {
-	_, b, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(b), "../..") + "/"
 }
 
 func (p *payment) getSignerAddress(ctx context.Context, signingKeyID string) (common.Address, error) {
