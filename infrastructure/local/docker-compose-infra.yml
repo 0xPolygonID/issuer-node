@@ -41,7 +41,6 @@ services:
     volumes:
       - ./httpd-test/httpd.conf:/usr/local/apache2/conf/httpd.conf
       - ./test_data/schema:/usr/local/apache2/htdocs:ro
-      - ../../schemas:/schemas
   redis:
     image: redis:6-alpine
     ports:
