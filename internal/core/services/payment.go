@@ -44,11 +44,19 @@ type payment struct {
 }
 
 // NewPaymentService creates a new payment service
-func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType) ports.PaymentService {
+func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType) (ports.PaymentService, error) {
 	iden3PaymentRailsRequestV1Types := apitypes.Types{}
 	iden3PaymentRailsERC20RequestV1Types := apitypes.Types{}
-	_ = json.Unmarshal([]byte(domain.Iden3PaymentRailsRequestV1SchemaJSON), &iden3PaymentRailsRequestV1Types)
-	_ = json.Unmarshal([]byte(domain.Iden3PaymentRailsERC20RequestV1SchemaJSON), &iden3PaymentRailsERC20RequestV1Types)
+	err := json.Unmarshal([]byte(domain.Iden3PaymentRailsRequestV1SchemaJSON), &iden3PaymentRailsRequestV1Types)
+	if err != nil {
+		log.Error(context.Background(), "failed to unmarshal Iden3PaymentRailsRequestV1 schema", "err", err)
+		return nil, err
+	}
+	err = json.Unmarshal([]byte(domain.Iden3PaymentRailsERC20RequestV1SchemaJSON), &iden3PaymentRailsERC20RequestV1Types)
+	if err != nil {
+		log.Error(context.Background(), "failed to unmarshal Iden3PaymentRailsERC20RequestV1 schema", "err", err)
+		return nil, err
+	}
 	return &payment{
 		networkResolver:                      resolver,
 		settings:                             *settings,
@@ -57,7 +65,7 @@ func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Res
 		kms:                                  kms,
 		iden3PaymentRailsRequestV1Types:      iden3PaymentRailsRequestV1Types,
 		iden3PaymentRailsERC20RequestV1Types: iden3PaymentRailsERC20RequestV1Types,
-	}
+	}, nil
 }
 
 // CreatePaymentOption creates a payment option for a specific issuer
