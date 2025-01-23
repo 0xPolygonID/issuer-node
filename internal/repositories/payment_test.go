@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"slices"
 	"testing"
 	"time"
 
@@ -238,7 +239,7 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	repo := NewPayment(*storage)
 
-	payymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
+	paymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
 	require.NoError(t, err)
 
 	t.Run("Save payment to not existing payment option id", func(t *testing.T) {
@@ -262,7 +263,7 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 			UserDID:         *issuerID,
 			Description:     "this is a payment for cinema",
 			Credentials:     []protocol.PaymentRequestInfoCredentials{{Context: "context", Type: "type"}},
-			PaymentOptionID: payymentOptionID,
+			PaymentOptionID: paymentOptionID,
 			Payments:        nil,
 			CreatedAt:       time.Now(),
 		})
@@ -296,7 +297,7 @@ func TestPayment_SavePaymentRequest(t *testing.T) {
 			UserDID:         *issuerID,
 			Description:     "this is a payment for cinema",
 			Credentials:     []protocol.PaymentRequestInfoCredentials{{Context: "context", Type: "type"}},
-			PaymentOptionID: payymentOptionID,
+			PaymentOptionID: paymentOptionID,
 			Payments:        payments,
 			CreatedAt:       time.Now(),
 		})
@@ -355,4 +356,29 @@ func TestPayment_GetPaymentRequestItem(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expected.Payments[0].ID, paymentRequestItem.ID)
 	})
+}
+
+func TestPayment_GetManyPaymentRequests(t *testing.T) {
+	ctx := context.Background()
+	fixture := NewFixture(storage)
+	repo := NewPayment(*storage)
+	issuerID, err := w3c.ParseDID("did:iden3:privado:main:2SecTLMtYpAGa8dnD3Y6wZQrNvFSyQvcwWZBfNr4Bg")
+	require.NoError(t, err)
+
+	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
+
+	paymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
+	require.NoError(t, err)
+	ids := make([]string, 0)
+	for i := 0; i < 10; i++ {
+		pr := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, paymentOptionID, 10)
+		ids = append(ids, pr.ID.String())
+	}
+
+	all, err := repo.GetAllPaymentRequests(ctx, *issuerID)
+	require.NoError(t, err)
+	require.Len(t, all, len(ids))
+	for _, pr := range all {
+		assert.True(t, slices.Contains(ids, pr.ID.String()))
+	}
 }
