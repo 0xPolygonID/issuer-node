@@ -19,6 +19,7 @@ export type PaymentConfiguration = {
   ChainID: number;
   PaymentOption: {
     ContractAddress: string;
+    Decimals: number;
     Name: string;
     Type: string;
   };

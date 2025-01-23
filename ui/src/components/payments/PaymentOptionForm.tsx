@@ -1,8 +1,8 @@
 import { Button, Card, Divider, Flex, Form, Input, Modal, Select } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { getKeys } from "src/adapters/api/keys";
-import { getPaymentConfigurations } from "src/adapters/api/payments";
 import { PaymentConfigFormData, PaymentOptionFormData } from "src/adapters/parsers/view";
+import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
 import { PaymentConfigTable } from "src/components/payments/PaymentConfigTable";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -59,7 +59,16 @@ function ConfigForm({
           name="paymentOptionID"
           rules={[{ message: VALUE_REQUIRED, required: true }]}
         >
-          <Select className="full-width" placeholder="Choose a payment option">
+          <Select
+            className="full-width"
+            onChange={(value: string) => {
+              const paymentOption = paymentConfigurations[value];
+              form.setFieldsValue({
+                decimals: paymentOption?.PaymentOption.Decimals,
+              });
+            }}
+            placeholder="Choose a payment option"
+          >
             {Object.entries(paymentConfigurations).map(([optionID, optionDetail]) => (
               <Select.Option key={optionID} value={optionID}>
                 {optionDetail.PaymentOption.Name}
@@ -74,12 +83,18 @@ function ConfigForm({
           rules={[
             { message: VALUE_REQUIRED, required: true },
             {
-              message: "Please enter a valid positive integer",
+              message: "Please enter a valid positive number",
               validator: (_, value: string) => {
-                return !value || /^[1-9]\d*$/.test(value) ? Promise.resolve() : Promise.reject();
+                return !value || /^\d*\.?\d+$/.test(value) ? Promise.resolve() : Promise.reject();
               },
             },
           ]}
+          tooltip={{
+            icon: <IconInfoCircle style={{ width: 14 }} />,
+            placement: "right",
+            title:
+              "Enter the amount in native currency (e.g., ETH, POL) or tokens (e.g., USDT, USDC) in a standard readable format, not in smallest units.",
+          }}
         >
           <Input placeholder="Enter amount" />
         </Form.Item>
@@ -88,6 +103,11 @@ function ConfigForm({
           label="Recipient"
           name="recipient"
           rules={[{ message: VALUE_REQUIRED, required: true }]}
+          tooltip={{
+            icon: <IconInfoCircle style={{ width: 14 }} />,
+            placement: "right",
+            title: "Enter the recipient's EOA address allowed to withdraw funds.",
+          }}
         >
           <Input placeholder="Enter recipient" />
         </Form.Item>
@@ -105,6 +125,11 @@ function ConfigForm({
             ))}
           </Select>
         </Form.Item>
+
+        <Form.Item hidden name="decimals">
+          <Input type="number" />
+        </Form.Item>
+
         <Divider />
       </Form>
     </Modal>
@@ -114,9 +139,11 @@ function ConfigForm({
 export function PaymentOptionForm({
   initialValies,
   onSubmit,
+  paymentConfigurations,
 }: {
   initialValies: PaymentOptionFormData;
   onSubmit: (values: PaymentOptionFormData) => void;
+  paymentConfigurations: PaymentConfigurations;
 }) {
   const env = useEnvContext();
   const { identifier } = useIdentityContext();
@@ -129,40 +156,9 @@ export function PaymentOptionForm({
     initialValues: PaymentConfigFormData;
   } | null>(null);
 
-  const [paymentConfigurations, setPaymentConfigurations] = useState<
-    AsyncTask<PaymentConfigurations, AppError>
-  >({
-    status: "pending",
-  });
   const [keys, setKeys] = useState<AsyncTask<Key[], AppError>>({
     status: "pending",
   });
-
-  const fetchPaymentConfigurations = useCallback(
-    async (signal?: AbortSignal) => {
-      setPaymentConfigurations((previousConfigurations) =>
-        isAsyncTaskDataAvailable(previousConfigurations)
-          ? { data: previousConfigurations.data, status: "reloading" }
-          : { status: "loading" }
-      );
-
-      const response = await getPaymentConfigurations({
-        env,
-        signal,
-      });
-      if (response.success) {
-        setPaymentConfigurations({
-          data: response.data,
-          status: "successful",
-        });
-      } else {
-        if (!isAbortedError(response.error)) {
-          setPaymentConfigurations({ error: response.error, status: "failed" });
-        }
-      }
-    },
-    [env]
-  );
 
   const fetchKeys = useCallback(
     async (signal?: AbortSignal) => {
@@ -248,26 +244,21 @@ export function PaymentOptionForm({
     return aborter;
   }, [fetchKeys]);
 
-  useEffect(() => {
-    const { aborter } = makeRequestAbortable(fetchPaymentConfigurations);
-
-    return aborter;
-  }, [fetchPaymentConfigurations]);
-
   return (
     <>
       {(() => {
-        if (hasAsyncTaskFailed(keys) || hasAsyncTaskFailed(paymentConfigurations)) {
+        if (hasAsyncTaskFailed(keys)) {
           return (
             <Card className="centered">
-              {hasAsyncTaskFailed(keys) && <ErrorResult error={keys.error.message} />};
-              {hasAsyncTaskFailed(paymentConfigurations) && (
-                <ErrorResult error={paymentConfigurations.error.message} />
-              )}
-              ;
+              <ErrorResult
+                error={[
+                  "An error occurred while downloading a keys from the API:",
+                  keys.error.message,
+                ].join("\n")}
+              />
             </Card>
           );
-        } else if (isAsyncTaskStarting(keys) || isAsyncTaskStarting(paymentConfigurations)) {
+        } else if (isAsyncTaskStarting(keys)) {
           return (
             <Card className="centered">
               <LoadingResult />
@@ -343,7 +334,7 @@ export function PaymentOptionForm({
                 }}
                 onSubmit={handleUpsertConfig}
                 open={showConfigForm}
-                paymentConfigurations={paymentConfigurations.data}
+                paymentConfigurations={paymentConfigurations}
               />
             </>
           );
