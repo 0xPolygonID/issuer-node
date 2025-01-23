@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"os"
 	"strconv"
 	"time"
 
@@ -35,21 +34,32 @@ import (
 )
 
 type payment struct {
-	networkResolver network.Resolver
-	settings        payments.Config
-	schemaService   ports.SchemaService
-	paymentsStore   ports.PaymentRepository
-	kms             kms.KMSType
+	networkResolver                      network.Resolver
+	settings                             payments.Config
+	schemaService                        ports.SchemaService
+	paymentsStore                        ports.PaymentRepository
+	kms                                  kms.KMSType
+	iden3PaymentRailsRequestV1Types      apitypes.Types
+	iden3PaymentRailsERC20RequestV1Types apitypes.Types
 }
+
+const Iden3PaymentRailsRequestV1SchemaJson = `{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Iden3PaymentRailsRequestV1":[{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"expirationDate","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"metadata","type":"bytes"}]}`
+const Iden3PaymentRailsERC20RequestV1SchemaJson = `{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Iden3PaymentRailsERC20RequestV1":[{"name":"tokenAddress","type":"address"},{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"expirationDate","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"metadata","type":"bytes"}]}`
 
 // NewPaymentService creates a new payment service
 func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType) ports.PaymentService {
+	iden3PaymentRailsRequestV1Types := apitypes.Types{}
+	iden3PaymentRailsERC20RequestV1Types := apitypes.Types{}
+	_ = json.Unmarshal([]byte(Iden3PaymentRailsRequestV1SchemaJson), &iden3PaymentRailsRequestV1Types)
+	_ = json.Unmarshal([]byte(Iden3PaymentRailsERC20RequestV1SchemaJson), &iden3PaymentRailsERC20RequestV1Types)
 	return &payment{
-		networkResolver: resolver,
-		settings:        *settings,
-		schemaService:   schemaSrv,
-		paymentsStore:   payOptsRepo,
-		kms:             kms,
+		networkResolver:                      resolver,
+		settings:                             *settings,
+		schemaService:                        schemaSrv,
+		paymentsStore:                        payOptsRepo,
+		kms:                                  kms,
+		iden3PaymentRailsRequestV1Types:      iden3PaymentRailsRequestV1Types,
+		iden3PaymentRailsERC20RequestV1Types: iden3PaymentRailsERC20RequestV1Types,
 	}
 }
 
@@ -442,17 +452,17 @@ func (p *payment) paymentRequestSignature(
 		ID:   string(decodedKeyID),
 	}
 
-	types := apitypes.Types{}
-	fileBytes, err := os.ReadFile(fmt.Sprintf("schemas/%s.json", paymentType))
-	if err != nil {
-		log.Error(ctx, "reading payment schema", "err", err)
-		return nil, err
+	var types apitypes.Types
+	switch paymentType {
+	case string(protocol.Iden3PaymentRailsRequestV1Type):
+		types = p.iden3PaymentRailsRequestV1Types
+	case string(protocol.Iden3PaymentRailsERC20RequestV1Type):
+		types = p.iden3PaymentRailsERC20RequestV1Types
+	default:
+		log.Error(ctx, fmt.Sprintf("unsupported payment type '%s'", paymentType), "err", err)
+		return nil, fmt.Errorf("unsupported payment type '%s:'", paymentType)
 	}
-	err = json.Unmarshal(fileBytes, &types)
-	if err != nil {
-		log.Error(ctx, "unmarshaling payment apitypes.Types struct", "err", err)
-		return nil, err
-	}
+
 	typedData := apitypes.TypedData{
 		Types:       types,
 		PrimaryType: paymentType,
