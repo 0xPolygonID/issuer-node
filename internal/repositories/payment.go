@@ -243,7 +243,7 @@ GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,
 		if err := requestItems.AssignTo(&itemDtoCol); err != nil {
 			return nil, fmt.Errorf("could not assign to payment request items: %w", err)
 		}
-		pr.Payments = make([]domain.PaymentRequestItem, len(itemDtoCol), len(itemDtoCol))
+		pr.Payments = make([]domain.PaymentRequestItem, len(itemDtoCol))
 		for i, itemDto := range itemDtoCol {
 			pr.Payments[i].ID, err = uuid.Parse(itemDto.ID)
 			if err != nil {
