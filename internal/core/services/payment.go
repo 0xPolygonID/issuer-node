@@ -43,15 +43,12 @@ type payment struct {
 	iden3PaymentRailsERC20RequestV1Types apitypes.Types
 }
 
-const Iden3PaymentRailsRequestV1SchemaJson = `{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Iden3PaymentRailsRequestV1":[{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"expirationDate","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"metadata","type":"bytes"}]}`
-const Iden3PaymentRailsERC20RequestV1SchemaJson = `{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Iden3PaymentRailsERC20RequestV1":[{"name":"tokenAddress","type":"address"},{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"expirationDate","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"metadata","type":"bytes"}]}`
-
 // NewPaymentService creates a new payment service
 func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType) ports.PaymentService {
 	iden3PaymentRailsRequestV1Types := apitypes.Types{}
 	iden3PaymentRailsERC20RequestV1Types := apitypes.Types{}
-	_ = json.Unmarshal([]byte(Iden3PaymentRailsRequestV1SchemaJson), &iden3PaymentRailsRequestV1Types)
-	_ = json.Unmarshal([]byte(Iden3PaymentRailsERC20RequestV1SchemaJson), &iden3PaymentRailsERC20RequestV1Types)
+	_ = json.Unmarshal([]byte(domain.Iden3PaymentRailsRequestV1SchemaJSON), &iden3PaymentRailsRequestV1Types)
+	_ = json.Unmarshal([]byte(domain.Iden3PaymentRailsERC20RequestV1SchemaJSON), &iden3PaymentRailsERC20RequestV1Types)
 	return &payment{
 		networkResolver:                      resolver,
 		settings:                             *settings,
