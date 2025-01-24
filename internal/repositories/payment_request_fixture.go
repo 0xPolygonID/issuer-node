@@ -2,8 +2,8 @@ package repositories
 
 import (
 	"context"
+	"crypto/rand"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -24,7 +24,10 @@ func (f *Fixture) CreatePaymentRequest(t *testing.T, issuerDID, userDID w3c.DID,
 	var paymentList []domain.PaymentRequestItem
 	paymentRequestID := uuid.New()
 	for i := 0; i < nPayments; i++ {
-		nonce := big.NewInt(rand.Int63())
+		nonceBytes := make([]byte, 16) // nolint:mnd
+		_, err := rand.Read(nonceBytes)
+		require.NoError(t, err)
+		nonce := new(big.Int).SetBytes(nonceBytes)
 		paymentList = append(paymentList, domain.PaymentRequestItem{
 			ID:               uuid.New(),
 			Nonce:            *nonce,

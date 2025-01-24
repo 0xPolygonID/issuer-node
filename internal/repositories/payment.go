@@ -194,7 +194,7 @@ SELECT pr.id,
         JSON_AGG(
             JSON_BUILD_OBJECT(
                 'id', pri.id,
-                'nc', pri.nonce,
+                'nc', pri.nonce::text,
                 'rid', pri.payment_request_id,
                 'rnfo', pri.payment_request_info,
                 'optid', pri.payment_option_id,
@@ -234,7 +234,7 @@ GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,
 		}
 		var itemDtoCol []struct {
 			ID                 string                          `json:"id"`
-			Nonce              int64                           `json:"nc"`
+			Nonce              string                          `json:"nc"`
 			PaymentRequestID   string                          `json:"rid"`
 			PaymentRequestInfo protocol.PaymentRequestInfoData `json:"rnfo"`
 			PaymentOptionID    int                             `json:"optid"`
@@ -253,11 +253,15 @@ GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,
 			if err != nil {
 				return nil, fmt.Errorf("could not parse payment request ID: %w", err)
 			}
+			nonce, ok := new(big.Int).SetString(itemDto.Nonce, 10) //nolint:mnd
+			if !ok {
+				return nil, fmt.Errorf("could not parse nonce into big.Int: %s", itemDto.Nonce)
+			}
+			pr.Payments[i].Nonce = *nonce
 			pr.Payments[i].PaymentOptionID = payments.OptionConfigIDType(itemDto.PaymentOptionID)
 			pr.Payments[i].SigningKeyID = itemDto.SigningKey
 			pr.Payments[i].Payment = itemDto.PaymentRequestInfo[0]
-			nonce := big.NewInt(itemDto.Nonce)
-			pr.Payments[i].Nonce = *nonce
+
 		}
 		if did, err = w3c.ParseDID(strIssuerDID); err != nil {
 			return nil, fmt.Errorf("could not parse issuer DID: %w", err)
