@@ -12,6 +12,7 @@ export type Env = {
     logo: string;
     name: string;
   };
+  paymentPagesEnabled: boolean;
   schemaExplorerAndBuilderUrl?: string;
   warningMessage?: string;
 };

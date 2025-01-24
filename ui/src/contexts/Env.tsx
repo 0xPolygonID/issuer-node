@@ -19,6 +19,7 @@ const defaultEnvContext: Env = {
     logo: "",
     name: "",
   },
+  paymentPagesEnabled: false,
 };
 
 const EnvContext = createContext(defaultEnvContext);

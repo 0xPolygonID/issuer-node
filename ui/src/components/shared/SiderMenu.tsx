@@ -40,7 +40,7 @@ export function SiderMenu({
   isBreakpoint?: boolean;
   onClick: () => void;
 }) {
-  const { buildTag } = useEnvContext();
+  const { buildTag, paymentPagesEnabled } = useEnvContext();
   const { status } = useIssuerStateContext();
 
   const { pathname } = useLocation();
@@ -208,13 +208,17 @@ export function SiderMenu({
                 onClick: () => onMenuClick(keysPath),
                 title: "",
               },
-              {
-                icon: <IconPaymentOptions />,
-                key: paymentOptionsPath,
-                label: PAYMENT_OPTIONS,
-                onClick: () => onMenuClick(paymentOptionsPath),
-                title: "",
-              },
+              ...(paymentPagesEnabled
+                ? [
+                    {
+                      icon: <IconPaymentOptions />,
+                      key: paymentOptionsPath,
+                      label: PAYMENT_OPTIONS,
+                      onClick: () => onMenuClick(paymentOptionsPath),
+                      title: "",
+                    },
+                  ]
+                : []),
             ]}
             selectedKeys={getSelectedKey()}
             style={{ marginTop: 16 }}
