@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@iden3/js-crypto": "^1.1.0",
+    "@iden3/js-iden3-core": "^1.4.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "ajv-formats-draft2019": "^1.6.1",
