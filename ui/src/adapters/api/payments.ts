@@ -38,6 +38,7 @@ export const paymentConfigurationsParser = getStrictParser<PaymentConfigurations
       ChainID: z.number(),
       PaymentOption: z.object({
         ContractAddress: z.string(),
+        Decimals: z.number(),
         Name: z.string(),
         Type: z.string(),
       }),

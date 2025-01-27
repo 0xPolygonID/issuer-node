@@ -5,10 +5,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useIdentityContext } from "../../contexts/Identity";
 import {
   deletePaymentOption,
+  getPaymentConfigurations,
   getPaymentOption,
   updatePaymentOption,
 } from "src/adapters/api/payments";
-import { notifyParseError } from "src/adapters/parsers";
+import { buildAppError, notifyError, notifyParseError } from "src/adapters/parsers";
 import { PaymentOptionFormData, paymentOptionFormParser } from "src/adapters/parsers/view";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
@@ -21,9 +22,14 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, PaymentOption as PaymentOptionType } from "src/domain";
+import { AppError, PaymentConfigurations, PaymentOption as PaymentOptionType } from "src/domain";
 import { ROUTES } from "src/routes";
-import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
+import {
+  AsyncTask,
+  hasAsyncTaskFailed,
+  isAsyncTaskDataAvailable,
+  isAsyncTaskStarting,
+} from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { PAYMENT_OPTIONS_DETAILS } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
@@ -39,7 +45,39 @@ export function PaymentOption() {
     status: "pending",
   });
 
+  const [paymentConfigurations, setPaymentConfigurations] = useState<
+    AsyncTask<PaymentConfigurations, AppError>
+  >({
+    status: "pending",
+  });
+
   const { paymentOptionID } = useParams();
+
+  const fetchPaymentConfigurations = useCallback(
+    async (signal?: AbortSignal) => {
+      setPaymentConfigurations((previousConfigurations) =>
+        isAsyncTaskDataAvailable(previousConfigurations)
+          ? { data: previousConfigurations.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
+      const response = await getPaymentConfigurations({
+        env,
+        signal,
+      });
+      if (response.success) {
+        setPaymentConfigurations({
+          data: response.data,
+          status: "successful",
+        });
+      } else {
+        if (!isAbortedError(response.error)) {
+          setPaymentConfigurations({ error: response.error, status: "failed" });
+        }
+      }
+    },
+    [env]
+  );
 
   const fetchPaymentOption = useCallback(
     async (signal?: AbortSignal) => {
@@ -55,6 +93,7 @@ export function PaymentOption() {
 
         if (response.success) {
           setPaymentOption({ data: response.data, status: "successful" });
+          void fetchPaymentConfigurations(signal);
         } else {
           if (!isAbortedError(response.error)) {
             setPaymentOption({ error: response.error, status: "failed" });
@@ -62,7 +101,7 @@ export function PaymentOption() {
         }
       }
     },
-    [env, paymentOptionID, identifier]
+    [env, paymentOptionID, identifier, fetchPaymentConfigurations]
   );
 
   useEffect(() => {
@@ -118,18 +157,31 @@ export function PaymentOption() {
       title={PAYMENT_OPTIONS_DETAILS}
     >
       {(() => {
-        if (hasAsyncTaskFailed(paymentOption)) {
+        if (hasAsyncTaskFailed(paymentOption) || hasAsyncTaskFailed(paymentConfigurations)) {
           return (
             <Card className="centered">
-              <ErrorResult
-                error={[
-                  "An error occurred while downloading a payment option from the API:",
-                  paymentOption.error.message,
-                ].join("\n")}
-              />
+              {hasAsyncTaskFailed(paymentOption) && (
+                <ErrorResult
+                  error={[
+                    "An error occurred while downloading a payment option from the API:",
+                    paymentOption.error.message,
+                  ].join("\n")}
+                />
+              )}
+              {hasAsyncTaskFailed(paymentConfigurations) && (
+                <ErrorResult
+                  error={[
+                    "An error occurred while downloading a payments configuration from the API:",
+                    paymentConfigurations.error.message,
+                  ].join("\n")}
+                />
+              )}
             </Card>
           );
-        } else if (isAsyncTaskStarting(paymentOption)) {
+        } else if (
+          isAsyncTaskStarting(paymentOption) ||
+          isAsyncTaskStarting(paymentConfigurations)
+        ) {
           return (
             <Card className="centered">
               <LoadingResult />
@@ -201,7 +253,29 @@ export function PaymentOption() {
                   </Card>
 
                   <PaymentConfigTable
-                    configs={paymentOption.data.paymentOptions}
+                    configs={paymentOption.data.paymentOptions.map(
+                      ({ amount, paymentOptionID, ...other }) => {
+                        const configuration = paymentConfigurations.data[paymentOptionID];
+                        if (!configuration) {
+                          void notifyError(
+                            buildAppError(
+                              `Can't find payment configuration for ID: ${paymentOptionID}`
+                            )
+                          );
+                        }
+
+                        return {
+                          amount: configuration
+                            ? (
+                                parseFloat(amount) /
+                                Math.pow(10, configuration.PaymentOption.Decimals)
+                              ).toString()
+                            : amount,
+                          paymentOptionID,
+                          ...other,
+                        };
+                      }
+                    )}
                     showTitle={true}
                   />
                 </Flex>
@@ -216,14 +290,25 @@ export function PaymentOption() {
                   initialValies={{
                     description: paymentOption.data.description,
                     name: paymentOption.data.name,
-                    paymentOptions: paymentOption.data.paymentOptions.map(
-                      ({ paymentOptionID, ...other }) => ({
-                        paymentOptionID: paymentOptionID.toString(),
-                        ...other,
+                    paymentOptions: paymentOption.data.paymentOptions
+                      .map(({ amount, paymentOptionID, ...other }) => {
+                        const configuration = paymentConfigurations.data[paymentOptionID];
+                        return configuration
+                          ? {
+                              amount: (
+                                parseFloat(amount) /
+                                Math.pow(10, configuration.PaymentOption.Decimals)
+                              ).toString(),
+                              decimals: configuration.PaymentOption.Decimals,
+                              paymentOptionID: paymentOptionID.toString(),
+                              ...other,
+                            }
+                          : null;
                       })
-                    ),
+                      .filter((option) => !!option),
                   }}
                   onSubmit={handleEdit}
+                  paymentConfigurations={paymentConfigurations.data}
                 />
               </EditModal>
             </>

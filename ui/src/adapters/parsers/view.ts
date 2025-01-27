@@ -312,6 +312,7 @@ export const credentialFormParser = getStrictParser<
 
 export type PaymentConfigFormData = {
   amount: string;
+  decimals: number;
   paymentOptionID: string;
   recipient: string;
   signingKeyID: string;
@@ -332,6 +333,7 @@ export const paymentOptionFormParser = getStrictParser<
       paymentOptions: z.array(
         z.object({
           amount: z.string(),
+          decimals: z.number(),
           paymentOptionID: z
             .string()
             .refine((value) => !isNaN(Number(value)), { message: "Must be a valid number" }),
@@ -343,8 +345,9 @@ export const paymentOptionFormParser = getStrictParser<
     .transform(({ description, name, paymentOptions }) => ({
       description,
       name,
-      paymentOptions: paymentOptions.map(({ paymentOptionID, ...other }) => ({
+      paymentOptions: paymentOptions.map(({ amount, decimals, paymentOptionID, ...other }) => ({
         ...other,
+        amount: (parseFloat(amount) * Math.pow(10, decimals)).toString(),
         paymentOptionID: parseInt(paymentOptionID),
       })),
     }))
