@@ -249,6 +249,11 @@ export function IdentityAuthCredentials({
       {credentialToRevoke && (
         <CredentialRevokeModal
           credential={credentialToRevoke}
+          extra={
+            <Typography.Text type="danger">
+              All BJJSignature2021 proofs signed with this key will be invalid
+            </Typography.Text>
+          }
           onClose={() => setCredentialToRevoke(undefined)}
           onRevoke={() => void fetchAuthCredentials()}
         />
