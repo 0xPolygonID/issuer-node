@@ -335,15 +335,15 @@ func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfi
 	return cfg
 }
 
-func toGetPaymentRequestsResponse(payReq []domain.PaymentRequest) GetPaymentRequestsResponse {
+func toGetPaymentRequestsResponse(ctx context.Context, payReq []domain.PaymentRequest) GetPaymentRequestsResponse {
 	res := make([]CreatePaymentRequestResponse, len(payReq))
 	for i, pay := range payReq {
-		res[i] = toCreatePaymentRequestResponse(&pay)
+		res[i] = toCreatePaymentRequestResponse(ctx, &pay)
 	}
 	return res
 }
 
-func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePaymentRequestResponse {
+func toCreatePaymentRequestResponse(ctx context.Context, payReq *domain.PaymentRequest) CreatePaymentRequestResponse {
 	creds := make([]struct {
 		Context string `json:"context"`
 		Type    string `json:"type"`
@@ -367,7 +367,7 @@ func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePayment
 	}
 	status, err := toCreatePaymentRequestResponseStatus(payReq.Status)
 	if err != nil {
-		log.Warn(context.Background(), "unknown payment status type in payment-request", "status", payReq.Status)
+		log.Warn(ctx, "unknown payment status type in payment-request", "status", payReq.Status)
 	}
 	var paidNonce *string
 	if payReq.PaidNonce != nil {
