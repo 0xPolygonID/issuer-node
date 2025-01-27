@@ -142,7 +142,14 @@ export function PaymentOption() {
                 className="centered"
                 title={
                   <Flex align="center" gap={8} justify="space-between">
-                    <Typography.Text style={{ fontWeight: 600 }}>
+                    <Typography.Text
+                      style={{
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {paymentOption.data.name}
                     </Typography.Text>
                     <Flex gap={8}>
