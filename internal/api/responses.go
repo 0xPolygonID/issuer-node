@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/pagination"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
 )
@@ -363,8 +365,19 @@ func toCreatePaymentRequestResponse(payReq *domain.PaymentRequest) CreatePayment
 	for i, pay := range payReq.Payments {
 		payment.Data[i] = pay.Payment
 	}
+	status, err := toCreatePaymentRequestResponseStatus(payReq.Status)
+	if err != nil {
+		log.Warn(context.Background(), "unknown payment status type in payment-request", "status", payReq.Status)
+	}
+	var paidNonce *string
+	if payReq.PaidNonce != nil {
+		paidNonce = common.ToPointer(payReq.PaidNonce.String())
+	}
 	resp := CreatePaymentRequestResponse{
 		CreatedAt:       payReq.CreatedAt,
+		ModifiedAt:      payReq.ModifietAt,
+		Status:          status,
+		PaidNonce:       paidNonce,
 		Id:              payReq.ID,
 		IssuerDID:       payReq.IssuerDID.String(),
 		UserDID:         payReq.UserDID.String(),
@@ -386,5 +399,22 @@ func toVerifyPaymentResponse(status ports.BlockchainPaymentStatus) (VerifyPaymen
 		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusFailed}, nil
 	default:
 		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unknown blockchain payment status <%d>", status)}}, nil
+	}
+}
+
+func toCreatePaymentRequestResponseStatus(status domain.PaymentRequestStatus) (CreatePaymentRequestResponseStatus, error) {
+	switch status {
+	case domain.PaymentRequestStatusPending:
+		return CreatePaymentRequestResponseStatusPending, nil
+	case domain.PaymentRequestStatusSuccess:
+		return CreatePaymentRequestResponseStatusSuccess, nil
+	case domain.PaymentRequestStatusCanceled:
+		return CreatePaymentRequestResponseStatusCanceled, nil
+	case domain.PaymentRequestStatusFailed:
+		return CreatePaymentRequestResponseStatusFailed, nil
+	case domain.PaymentRequestStatusNotVerified:
+		return CreatePaymentRequestResponseStatusNotVerified, nil
+	default:
+		return CreatePaymentRequestResponseStatusNotVerified, fmt.Errorf("unknown payment status <%s>", status)
 	}
 }

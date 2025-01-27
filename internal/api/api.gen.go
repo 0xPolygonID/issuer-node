@@ -72,6 +72,15 @@ const (
 	CreateKeyRequestKeyTypeSecp256k1  CreateKeyRequestKeyType = "secp256k1"
 )
 
+// Defines values for CreatePaymentRequestResponseStatus.
+const (
+	CreatePaymentRequestResponseStatusCanceled    CreatePaymentRequestResponseStatus = "canceled"
+	CreatePaymentRequestResponseStatusFailed      CreatePaymentRequestResponseStatus = "failed"
+	CreatePaymentRequestResponseStatusNotVerified CreatePaymentRequestResponseStatus = "not-verified"
+	CreatePaymentRequestResponseStatusPending     CreatePaymentRequestResponseStatus = "pending"
+	CreatePaymentRequestResponseStatusSuccess     CreatePaymentRequestResponseStatus = "success"
+)
+
 // Defines values for DisplayMethodType.
 const (
 	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
@@ -119,10 +128,10 @@ const (
 
 // Defines values for StateTransactionStatus.
 const (
-	StateTransactionStatusCreated   StateTransactionStatus = "created"
-	StateTransactionStatusFailed    StateTransactionStatus = "failed"
-	StateTransactionStatusPending   StateTransactionStatus = "pending"
-	StateTransactionStatusPublished StateTransactionStatus = "published"
+	Created   StateTransactionStatus = "created"
+	Failed    StateTransactionStatus = "failed"
+	Pending   StateTransactionStatus = "pending"
+	Published StateTransactionStatus = "published"
 )
 
 // Defines values for GetConnectionsParamsSort.
@@ -364,13 +373,19 @@ type CreatePaymentRequest struct {
 
 // CreatePaymentRequestResponse defines model for CreatePaymentRequestResponse.
 type CreatePaymentRequestResponse struct {
-	CreatedAt       time.Time            `json:"createdAt"`
-	Id              openapi_types.UUID   `json:"id"`
-	IssuerDID       string               `json:"issuerDID"`
-	PaymentOptionID openapi_types.UUID   `json:"paymentOptionID"`
-	Payments        []PaymentRequestInfo `json:"payments"`
-	UserDID         string               `json:"userDID"`
+	CreatedAt       time.Time                          `json:"createdAt"`
+	Id              openapi_types.UUID                 `json:"id"`
+	IssuerDID       string                             `json:"issuerDID"`
+	ModifiedAt      time.Time                          `json:"modifiedAt"`
+	PaidNonce       *string                            `json:"paidNonce,omitempty"`
+	PaymentOptionID openapi_types.UUID                 `json:"paymentOptionID"`
+	Payments        []PaymentRequestInfo               `json:"payments"`
+	Status          CreatePaymentRequestResponseStatus `json:"status"`
+	UserDID         string                             `json:"userDID"`
 }
+
+// CreatePaymentRequestResponseStatus defines model for CreatePaymentRequestResponse.Status.
+type CreatePaymentRequestResponseStatus string
 
 // Credential defines model for Credential.
 type Credential struct {

@@ -43,8 +43,8 @@ func (p *payment) SavePaymentRequest(ctx context.Context, req *domain.PaymentReq
 	const (
 		insertPaymentRequest = `
 INSERT 
-INTO payment_requests (id, credentials, description, issuer_did, recipient_did, payment_option_id, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7);`
+INTO payment_requests (id, credentials, description, issuer_did, recipient_did, payment_option_id, created_at, modified_at, status, paid_nonce)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
 		insertPaymentRequestItem = `
 INSERT
 INTO payment_request_items (id, nonce, payment_request_id, payment_option_id, payment_request_info, signing_key)
@@ -65,6 +65,9 @@ VALUES ($1, $2, $3, $4, $5, $6);`
 		req.UserDID.String(),
 		req.PaymentOptionID,
 		req.CreatedAt,
+		req.ModifietAt,
+		req.Status,
+		req.PaidNonce,
 	)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("could not insert payment request: %w", err)
@@ -91,7 +94,7 @@ VALUES ($1, $2, $3, $4, $5, $6);`
 // GetPaymentRequestByID returns a payment request by ID
 func (p *payment) GetPaymentRequestByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error) {
 	const query = `
-SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
+SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pr.modified_at, pr.status, pr.paid_nonce, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
 WHERE pr.issuer_did = $1 AND pr.id = $2;`
@@ -102,6 +105,7 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 	defer rows.Close()
 	requestFound := false
 	var pr domain.PaymentRequest
+	var paidNonce *string
 	for rows.Next() {
 		requestFound = true
 		var item domain.PaymentRequestItem
@@ -118,6 +122,9 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 			&strUserDID,
 			&pr.PaymentOptionID,
 			&pr.CreatedAt,
+			&pr.ModifietAt,
+			&pr.Status,
+			&paidNonce,
 			&item.ID,
 			&sNonce,
 			&item.PaymentRequestID,
@@ -126,6 +133,14 @@ WHERE pr.issuer_did = $1 AND pr.id = $2;`
 			&item.SigningKeyID,
 		); err != nil {
 			return nil, fmt.Errorf("could not scan payment request: %w", err)
+		}
+
+		if paidNonce != nil {
+			paidNonceBigInt, ok := new(big.Int).SetString(*paidNonce, 10) //nolint:mnd
+			if !ok {
+				return nil, fmt.Errorf("could not parse paid nonce into big.Int: %s", *paidNonce)
+			}
+			pr.PaidNonce = paidNonceBigInt
 		}
 
 		item.Payment, err = p.paymentRequestItem(paymentRequestInfoBytes)
@@ -190,6 +205,9 @@ SELECT pr.id,
     pr.recipient_did,  
     pr.payment_option_id, 
     pr.created_at, 
+	pr.modified_at,
+	pr.status,
+	pr.paid_nonce,
     COALESCE(
         JSON_AGG(
             JSON_BUILD_OBJECT(
@@ -220,6 +238,7 @@ GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,
 		var did *w3c.DID
 		var paymentCredentials []byte
 		var requestItems pgtype.JSON
+		var paidNonce *string
 		if err := rows.Scan(
 			&pr.ID,
 			&pr.Description,
@@ -228,9 +247,19 @@ GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,
 			&strUserDID,
 			&pr.PaymentOptionID,
 			&pr.CreatedAt,
+			&pr.ModifietAt,
+			&pr.Status,
+			&paidNonce,
 			&requestItems,
 		); err != nil {
 			return nil, fmt.Errorf("could not scan payment request: %w", err)
+		}
+		if paidNonce != nil {
+			paidNonceBigInt, ok := new(big.Int).SetString(*paidNonce, 10) //nolint:mnd
+			if !ok {
+				return nil, fmt.Errorf("could not parse paid nonce into big.Int: %s", *paidNonce)
+			}
+			pr.PaidNonce = paidNonceBigInt
 		}
 		var itemDtoCol []struct {
 			ID                 string                          `json:"id"`
@@ -313,6 +342,24 @@ WHERE payment_requests.issuer_did = $1 AND nonce = $2;`
 	}
 	item.Nonce = *nonceInt
 	return &item, nil
+}
+
+// UpdatePaymentRequestStatus updates the payment request status
+func (p *payment) UpdatePaymentRequestStatus(ctx context.Context, issuerDID w3c.DID, id uuid.UUID, status domain.PaymentRequestStatus, paidNonce *big.Int) error {
+	var nonceValue *string
+	if paidNonce != nil {
+		nonceStr := paidNonce.String()
+		nonceValue = &nonceStr
+	}
+	const query = `UPDATE payment_requests SET status = $1, paid_nonce=$2, modified_at=NOW() WHERE id = $3 AND issuer_did = $4;`
+	cmd, err := p.conn.Pgx.Exec(ctx, query, string(status), nonceValue, id, issuerDID.String())
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() == 0 {
+		return ErrPaymentRequestDoesNotExists
+	}
+	return nil
 }
 
 // SavePaymentOption saves a payment option
