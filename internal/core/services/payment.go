@@ -301,7 +301,7 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 		}
 		err = p.paymentsStore.UpdatePaymentRequestStatus(ctx, issuerDID, paymentReq.ID, paymentReqStatus, paidNonce)
 		if err != nil {
-			log.Error(ctx, "failed to update payment-request with new status", "err", err, "txHash", txHash, "nonce", nonce)
+			log.Error(ctx, "failed to update payment-request with new status", "err", err, "txHash", txHash, "nonce", nonce, "status", status)
 			return status, err
 		}
 
