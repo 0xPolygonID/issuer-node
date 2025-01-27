@@ -12,7 +12,7 @@ import {
   Typography,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { generatePath, useNavigate, useParams } from "react-router-dom";
 
 import { useIdentityContext } from "../../contexts/Identity";
 import { UpdateKey, deleteKey, getKey, updateKeyName } from "src/adapters/api/keys";
@@ -102,7 +102,11 @@ export function Key() {
   const handleDeleteKey = () => {
     void deleteKey({ env, identifier, keyID }).then((response) => {
       if (response.success) {
-        navigate(ROUTES.keys.path);
+        navigate(
+          generatePath(ROUTES.identityDetails.path, {
+            identityID: identifier,
+          })
+        );
         void message.success(response.data.message);
       } else {
         void message.error(response.error.message);

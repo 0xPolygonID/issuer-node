@@ -18,7 +18,6 @@ export type RouteID =
   | "displayMethods"
   | "displayMethodDetails"
   | "createDisplayMethod"
-  | "keys"
   | "keyDetails"
   | "createKey"
   | "createPaymentOption"
@@ -103,10 +102,6 @@ export const ROUTES: Routes = {
   keyDetails: {
     layout: "sider",
     path: "/keys/:keyID",
-  },
-  keys: {
-    layout: "sider",
-    path: "/keys",
   },
   linkDetails: {
     layout: "sider",

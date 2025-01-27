@@ -18,7 +18,6 @@ import { Onboarding } from "src/components/identities/Onboarding";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
 import { CreateKey } from "src/components/keys/CreateKey";
 import { Key } from "src/components/keys/Key";
-import { Keys } from "src/components/keys/Keys";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { CreatePaymentOption } from "src/components/payments/CreatePaymentOption";
@@ -50,7 +49,6 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   issueCredential: IssueCredential,
   issuerState: IssuerState,
   keyDetails: Key,
-  keys: Keys,
   linkDetails: LinkDetails,
   notFound: NotFound,
   onboarding: Onboarding,
