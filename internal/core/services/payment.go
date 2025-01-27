@@ -145,6 +145,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		return nil, fmt.Errorf("failed to get schema: %w", err)
 	}
 
+	createTime := time.Now()
 	paymentRequest := &domain.PaymentRequest{
 		ID:        uuid.New(),
 		IssuerDID: req.IssuerDID,
@@ -157,7 +158,9 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 		},
 		Description:     req.Description,
 		PaymentOptionID: req.OptionID,
-		CreatedAt:       time.Now(),
+		CreatedAt:       createTime,
+		ModifietAt:      createTime,
+		Status:          domain.PaymentRequestStatusNotVerified,
 	}
 	for _, chainConfig := range option.Config.PaymentOptions {
 		setting, found := p.settings[chainConfig.PaymentOptionID]
@@ -251,12 +254,12 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment request: %w", err)
 	}
 
-	if userDID != nil {
-		paymentReq, err := p.paymentsStore.GetPaymentRequestByID(ctx, issuerDID, paymentReqItem.PaymentRequestID)
-		if err != nil {
-			return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment request: %w", err)
-		}
+	paymentReq, err := p.paymentsStore.GetPaymentRequestByID(ctx, issuerDID, paymentReqItem.PaymentRequestID)
+	if err != nil {
+		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment request: %w", err)
+	}
 
+	if userDID != nil {
 		if userDID.String() != paymentReq.UserDID.String() {
 			return ports.BlockchainPaymentStatusFailed, fmt.Errorf("userDID %s does not match to User DID %s in payment-request", userDID, paymentReq.UserDID)
 		}
@@ -289,7 +292,37 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 		log.Error(ctx, "failed to verify payment on blockchain", "err", err, "txHash", txHash, "nonce", nonce)
 		return ports.BlockchainPaymentStatusPending, err
 	}
+
+	paymentReqStatus := getPaymentRequestStatusFromBlockChainStatus(status)
+	if paymentReqStatus != paymentReq.Status && paymentReq.Status != domain.PaymentRequestStatusSuccess {
+		var paidNonce *big.Int
+		if paymentReqStatus == domain.PaymentRequestStatusSuccess {
+			paidNonce = nonce
+		}
+		err = p.paymentsStore.UpdatePaymentRequestStatus(ctx, issuerDID, paymentReq.ID, paymentReqStatus, paidNonce)
+		if err != nil {
+			log.Error(ctx, "failed to update payment-request with new status", "err", err, "txHash", txHash, "nonce", nonce, "status", status)
+			return status, err
+		}
+
+	}
+
 	return status, nil
+}
+
+func getPaymentRequestStatusFromBlockChainStatus(status ports.BlockchainPaymentStatus) domain.PaymentRequestStatus {
+	switch status {
+	case ports.BlockchainPaymentStatusPending:
+		return domain.PaymentRequestStatusPending
+	case ports.BlockchainPaymentStatusSuccess:
+		return domain.PaymentRequestStatusSuccess
+	case ports.BlockchainPaymentStatusCancelled:
+		return domain.PaymentRequestStatusCanceled
+	case ports.BlockchainPaymentStatusFailed:
+		return domain.PaymentRequestStatusFailed
+	default:
+		return domain.PaymentRequestStatusNotVerified
+	}
 }
 
 func (p *payment) verifyPaymentOnBlockchain(

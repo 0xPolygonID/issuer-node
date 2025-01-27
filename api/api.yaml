@@ -2900,6 +2900,8 @@ components:
         - paymentOptionID
         - payments
         - createdAt
+        - modifiedAt
+        - status
       properties:
         id:
           type: string
@@ -2918,6 +2920,14 @@ components:
         createdAt:
           type: string
           format: date-time
+        modifiedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ not-verified, success, failed, pending, canceled ]
+        paidNonce:
+          type: string
 
     PaymentRequestInfo:
       type: object

@@ -139,7 +139,7 @@ func (s *Server) CreatePaymentRequest(ctx context.Context, request CreatePayment
 		log.Error(ctx, "creating payment request", "err", err)
 		return CreatePaymentRequest400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("can't create payment-request: %s", err)}}, nil
 	}
-	return CreatePaymentRequest201JSONResponse(toCreatePaymentRequestResponse(payReq)), nil
+	return CreatePaymentRequest201JSONResponse(toCreatePaymentRequestResponse(ctx, payReq)), nil
 }
 
 // GetPaymentRequests is the controller to get all payment requests for an issuer
@@ -153,7 +153,7 @@ func (s *Server) GetPaymentRequests(ctx context.Context, request GetPaymentReque
 	if err != nil {
 		return GetPaymentRequests500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-requests: %s", err)}}, nil
 	}
-	return GetPaymentRequests200JSONResponse(toGetPaymentRequestsResponse(paymentRequests)), nil
+	return GetPaymentRequests200JSONResponse(toGetPaymentRequestsResponse(ctx, paymentRequests)), nil
 }
 
 // GetPaymentRequest is the controller to get payment request by ID
@@ -167,7 +167,7 @@ func (s *Server) GetPaymentRequest(ctx context.Context, request GetPaymentReques
 	if err != nil {
 		return GetPaymentRequest500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-request: %s", err)}}, nil
 	}
-	return GetPaymentRequest200JSONResponse(toCreatePaymentRequestResponse(paymentRequest)), nil
+	return GetPaymentRequest200JSONResponse(toCreatePaymentRequestResponse(ctx, paymentRequest)), nil
 }
 
 // DeletePaymentRequest is the controller to delete payment request

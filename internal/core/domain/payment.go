@@ -22,7 +22,26 @@ type PaymentRequest struct {
 	PaymentOptionID uuid.UUID
 	Payments        []PaymentRequestItem
 	CreatedAt       time.Time
+	ModifietAt      time.Time
+	Status          PaymentRequestStatus
+	PaidNonce       *big.Int
 }
+
+// PaymentRequestStatus represents the status of a payment request stored in the repository
+type PaymentRequestStatus string
+
+const (
+	// PaymentRequestStatusCanceled - Payment is cancelled
+	PaymentRequestStatusCanceled PaymentRequestStatus = "canceled"
+	// PaymentRequestStatusFailed - Payment is failed
+	PaymentRequestStatusFailed PaymentRequestStatus = "failed"
+	// PaymentRequestStatusNotVerified - Payment not verified
+	PaymentRequestStatusNotVerified PaymentRequestStatus = "not-verified"
+	// PaymentRequestStatusPending - Payment is pending
+	PaymentRequestStatusPending PaymentRequestStatus = "pending"
+	// PaymentRequestStatusSuccess - Payment is successful
+	PaymentRequestStatusSuccess PaymentRequestStatus = "success"
+)
 
 // PaymentRequestItem represents a payment request item
 type PaymentRequestItem struct {
