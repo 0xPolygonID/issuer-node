@@ -34,6 +34,10 @@ function ConfigForm({
   paymentConfigurations: PaymentConfigurations;
 }) {
   const [form] = Form.useForm<PaymentConfigFormData>();
+  const currentPaymentOptionValue = Form.useWatch<PaymentConfigFormData["paymentOptionID"]>(
+    "paymentOptionID",
+    form
+  );
 
   const handleSubmit = () => {
     void form.validateFields().then((values) => {
@@ -92,8 +96,7 @@ function ConfigForm({
           tooltip={{
             icon: <IconInfoCircle style={{ width: 14 }} />,
             placement: "right",
-            title:
-              "Enter the amount in native currency (e.g., ETH, POL) or tokens (e.g., USDT, USDC) in a standard readable format, not in smallest units.",
+            title: `Enter the amount in native currency (e.g., ETH, POL) or tokens (e.g., USDT, USDC). Example: 0.1 - ETH, 1 - USDT. Currency will be converted: (e.g., 0.1 - ETH = 0.1 x ${currentPaymentOptionValue ? paymentConfigurations[currentPaymentOptionValue]?.PaymentOption.Decimals : "[Decimal Conversion Value, set after payment option selection]"})`,
           }}
         >
           <Input placeholder="Enter amount" />
