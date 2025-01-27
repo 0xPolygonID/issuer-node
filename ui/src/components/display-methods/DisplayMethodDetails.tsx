@@ -208,7 +208,14 @@ export function DisplayMethodDetails() {
         layout="vertical"
         onFinish={handleEdit}
       >
-        <Form.Item label="Name" name="name" rules={[{ message: VALUE_REQUIRED, required: true }]}>
+        <Form.Item
+          label="Name"
+          name="name"
+          rules={[
+            { message: VALUE_REQUIRED, required: true },
+            { max: 60, message: "Name cannot be longer than 60 characters" },
+          ]}
+        >
           <Input placeholder="Enter name" />
         </Form.Item>
 
@@ -229,7 +236,16 @@ export function DisplayMethodDetails() {
 
   const cardTitle = isAsyncTaskDataAvailable(displayMethod) && (
     <Flex align="center" gap={8} justify="space-between">
-      <Typography.Text style={{ fontWeight: 600 }}>{displayMethod.data.name}</Typography.Text>
+      <Typography.Text
+        style={{
+          fontWeight: 600,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {displayMethod.data.name}
+      </Typography.Text>
       <Flex gap={8}>
         <Button
           icon={<EditIcon />}

@@ -12,10 +12,12 @@ import { CLOSE, REVOKE } from "src/utils/constants";
 
 export function CredentialRevokeModal({
   credential,
+  extra,
   onClose,
   onRevoke,
 }: {
   credential: Credential;
+  extra?: React.ReactNode;
   onClose: () => void;
   onRevoke: () => void;
 }) {
@@ -66,6 +68,7 @@ export function CredentialRevokeModal({
       title="Are you sure you want to revoke this credential?"
     >
       <Space direction="vertical">
+        {extra}
         <Typography.Text type="secondary">
           Revoking of a credential must be accompanied by publishing of issuer state in order for
           the action to be effective. This action cannot be undone.

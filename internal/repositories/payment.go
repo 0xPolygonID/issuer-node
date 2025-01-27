@@ -11,10 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2/protocol"
+	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
 // ErrPaymentOptionDoesNotExists error
@@ -181,10 +183,31 @@ func (p *payment) DeletePaymentRequest(ctx context.Context, issuerDID w3c.DID, i
 // GetAllPaymentRequests returns all payment requests
 func (p *payment) GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID) ([]domain.PaymentRequest, error) {
 	const query = `
-SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
+SELECT pr.id, 
+    pr.description, 
+    pr.credentials, 
+    pr.issuer_did, 
+    pr.recipient_did,  
+    pr.payment_option_id, 
+    pr.created_at, 
+    COALESCE(
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'id', pri.id,
+                'nc', pri.nonce::text,
+                'rid', pri.payment_request_id,
+                'rnfo', pri.payment_request_info,
+                'optid', pri.payment_option_id,
+                'sk', pri.signing_key
+            )
+        ) FILTER (WHERE pri.id IS NOT NULL),
+        '[]'
+    ) AS payment_request_items
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
-WHERE pr.issuer_did = $1`
+WHERE pr.issuer_did = $1
+GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did, pr.payment_option_id, pr.created_at
+`
 	rows, err := p.conn.Pgx.Query(ctx, query, issuerDID.String())
 	if err != nil {
 		return nil, err
@@ -193,12 +216,10 @@ WHERE pr.issuer_did = $1`
 	var pr domain.PaymentRequest
 	var requests []domain.PaymentRequest
 	for rows.Next() {
-		var item domain.PaymentRequestItem
 		var strIssuerDID, strUserDID string
-		var sNonce string
 		var did *w3c.DID
-		var paymentRequestInfoBytes []byte
 		var paymentCredentials []byte
+		var requestItems pgtype.JSON
 		if err := rows.Scan(
 			&pr.ID,
 			&pr.Description,
@@ -207,27 +228,41 @@ WHERE pr.issuer_did = $1`
 			&strUserDID,
 			&pr.PaymentOptionID,
 			&pr.CreatedAt,
-			&item.ID,
-			&sNonce,
-			&item.PaymentRequestID,
-			&paymentRequestInfoBytes,
-			&item.PaymentOptionID,
-			&item.SigningKeyID,
+			&requestItems,
 		); err != nil {
 			return nil, fmt.Errorf("could not scan payment request: %w", err)
 		}
-
-		item.Payment, err = p.paymentRequestItem(paymentRequestInfoBytes)
-		if err != nil {
-			return nil, fmt.Errorf("could not unmarshal payment request info: %w", err)
+		var itemDtoCol []struct {
+			ID                 string                          `json:"id"`
+			Nonce              string                          `json:"nc"`
+			PaymentRequestID   string                          `json:"rid"`
+			PaymentRequestInfo protocol.PaymentRequestInfoData `json:"rnfo"`
+			PaymentOptionID    int                             `json:"optid"`
+			SigningKey         string                          `json:"sk"`
 		}
-
-		const base10 = 10
-		nonce, ok := new(big.Int).SetString(sNonce, base10)
-		if !ok {
-			return nil, fmt.Errorf("could not parse nonce: %w", err)
+		if err := requestItems.AssignTo(&itemDtoCol); err != nil {
+			return nil, fmt.Errorf("could not assign to payment request items: %w", err)
 		}
-		item.Nonce = *nonce
+		pr.Payments = make([]domain.PaymentRequestItem, len(itemDtoCol))
+		for i, itemDto := range itemDtoCol {
+			pr.Payments[i].ID, err = uuid.Parse(itemDto.ID)
+			if err != nil {
+				return nil, fmt.Errorf("could not parse payment request item ID: %w", err)
+			}
+			pr.Payments[i].PaymentRequestID, err = uuid.Parse(itemDto.PaymentRequestID)
+			if err != nil {
+				return nil, fmt.Errorf("could not parse payment request ID: %w", err)
+			}
+			nonce, ok := new(big.Int).SetString(itemDto.Nonce, 10) //nolint:mnd
+			if !ok {
+				return nil, fmt.Errorf("could not parse nonce into big.Int: %s", itemDto.Nonce)
+			}
+			pr.Payments[i].Nonce = *nonce
+			pr.Payments[i].PaymentOptionID = payments.OptionConfigIDType(itemDto.PaymentOptionID)
+			pr.Payments[i].SigningKeyID = itemDto.SigningKey
+			pr.Payments[i].Payment = itemDto.PaymentRequestInfo[0]
+
+		}
 		if did, err = w3c.ParseDID(strIssuerDID); err != nil {
 			return nil, fmt.Errorf("could not parse issuer DID: %w", err)
 		}
@@ -240,7 +275,6 @@ WHERE pr.issuer_did = $1`
 		if err != nil {
 			return nil, fmt.Errorf("could not unmarshal payment credentials info: %w", err)
 		}
-		pr.Payments = append(pr.Payments, item)
 
 		requests = append(requests, pr)
 	}

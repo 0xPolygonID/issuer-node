@@ -57,7 +57,10 @@ export function DisplayMethodForm({
               <Form.Item
                 label="Name"
                 name="name"
-                rules={[{ message: VALUE_REQUIRED, required: true }]}
+                rules={[
+                  { message: VALUE_REQUIRED, required: true },
+                  { max: 60, message: "Name cannot be longer than 60 characters" },
+                ]}
               >
                 <Input placeholder="Enter name" />
               </Form.Item>

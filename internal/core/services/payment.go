@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	b64 "encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -33,22 +34,38 @@ import (
 )
 
 type payment struct {
-	networkResolver network.Resolver
-	settings        payments.Config
-	schemaService   ports.SchemaService
-	paymentsStore   ports.PaymentRepository
-	kms             kms.KMSType
+	networkResolver                      network.Resolver
+	settings                             payments.Config
+	schemaService                        ports.SchemaService
+	paymentsStore                        ports.PaymentRepository
+	kms                                  kms.KMSType
+	iden3PaymentRailsRequestV1Types      apitypes.Types
+	iden3PaymentRailsERC20RequestV1Types apitypes.Types
 }
 
 // NewPaymentService creates a new payment service
-func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType) ports.PaymentService {
-	return &payment{
-		networkResolver: resolver,
-		settings:        *settings,
-		schemaService:   schemaSrv,
-		paymentsStore:   payOptsRepo,
-		kms:             kms,
+func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType) (ports.PaymentService, error) {
+	iden3PaymentRailsRequestV1Types := apitypes.Types{}
+	iden3PaymentRailsERC20RequestV1Types := apitypes.Types{}
+	err := json.Unmarshal([]byte(domain.Iden3PaymentRailsRequestV1SchemaJSON), &iden3PaymentRailsRequestV1Types)
+	if err != nil {
+		log.Error(context.Background(), "failed to unmarshal Iden3PaymentRailsRequestV1 schema", "err", err)
+		return nil, err
 	}
+	err = json.Unmarshal([]byte(domain.Iden3PaymentRailsERC20RequestV1SchemaJSON), &iden3PaymentRailsERC20RequestV1Types)
+	if err != nil {
+		log.Error(context.Background(), "failed to unmarshal Iden3PaymentRailsERC20RequestV1 schema", "err", err)
+		return nil, err
+	}
+	return &payment{
+		networkResolver:                      resolver,
+		settings:                             *settings,
+		schemaService:                        schemaSrv,
+		paymentsStore:                        payOptsRepo,
+		kms:                                  kms,
+		iden3PaymentRailsRequestV1Types:      iden3PaymentRailsRequestV1Types,
+		iden3PaymentRailsERC20RequestV1Types: iden3PaymentRailsERC20RequestV1Types,
+	}, nil
 }
 
 // CreatePaymentOption creates a payment option for a specific issuer
@@ -440,37 +457,19 @@ func (p *payment) paymentRequestSignature(
 		ID:   string(decodedKeyID),
 	}
 
+	var types apitypes.Types
+	switch paymentType {
+	case string(protocol.Iden3PaymentRailsRequestV1Type):
+		types = p.iden3PaymentRailsRequestV1Types
+	case string(protocol.Iden3PaymentRailsERC20RequestV1Type):
+		types = p.iden3PaymentRailsERC20RequestV1Types
+	default:
+		log.Error(ctx, fmt.Sprintf("unsupported payment type '%s'", paymentType), "err", err)
+		return nil, fmt.Errorf("unsupported payment type '%s:'", paymentType)
+	}
+
 	typedData := apitypes.TypedData{
-		Types: apitypes.Types{
-			"EIP712Domain": []apitypes.Type{
-				{Name: "name", Type: "string"},
-				{Name: "version", Type: "string"},
-				{Name: "chainId", Type: "uint256"},
-				{Name: "verifyingContract", Type: "address"},
-			},
-			paymentType: []apitypes.Type{
-				{
-					Name: "recipient",
-					Type: "address",
-				},
-				{
-					Name: "amount",
-					Type: "uint256",
-				},
-				{
-					Name: "expirationDate",
-					Type: "uint256",
-				},
-				{
-					Name: "nonce",
-					Type: "uint256",
-				},
-				{
-					Name: "metadata",
-					Type: "bytes",
-				},
-			},
-		},
+		Types:       types,
 		PrimaryType: paymentType,
 		Domain: apitypes.TypedDataDomain{
 			Name:              "MCPayment",
@@ -487,32 +486,6 @@ func (p *payment) paymentRequestSignature(
 		},
 	}
 	if paymentType == string(protocol.Iden3PaymentRailsERC20RequestV1Type) {
-		typedData.Types[paymentType] = []apitypes.Type{
-			{
-				Name: "tokenAddress",
-				Type: "address",
-			},
-			{
-				Name: "recipient",
-				Type: "address",
-			},
-			{
-				Name: "amount",
-				Type: "uint256",
-			},
-			{
-				Name: "expirationDate",
-				Type: "uint256",
-			},
-			{
-				Name: "nonce",
-				Type: "uint256",
-			},
-			{
-				Name: "metadata",
-				Type: "bytes",
-			},
-		}
 		typedData.Message["tokenAddress"] = setting.PaymentOption.ContractAddress.String()
 	}
 	typedDataBytes, _, err := apitypes.TypedDataAndHash(typedData)

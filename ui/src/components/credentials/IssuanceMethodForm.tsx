@@ -1,3 +1,4 @@
+import { DID } from "@iden3/js-iden3-core";
 import {
   AutoComplete,
   Button,
@@ -125,7 +126,20 @@ export function IssuanceMethodForm({
                   dependencies={["type"]}
                   label="Select connection/Paste identifier"
                   name="did"
-                  rules={[{ message: VALUE_REQUIRED, required: isDirectIssue }]}
+                  rules={[
+                    { message: VALUE_REQUIRED, required: isDirectIssue },
+                    {
+                      validator: (_, value: string) => {
+                        try {
+                          DID.parse(value);
+                        } catch (error) {
+                          return Promise.reject(error);
+                        }
+
+                        return Promise.resolve(true);
+                      },
+                    },
+                  ]}
                   style={{ paddingLeft: 28, paddingTop: 16 }}
                 >
                   <AutoComplete

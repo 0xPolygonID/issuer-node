@@ -1,5 +1,5 @@
 import { App, Button, Card, Divider, Flex, Form, Input, Select, Space } from "antd";
-import { useNavigate } from "react-router-dom";
+import { generatePath, useNavigate } from "react-router-dom";
 
 import { CreateKey as CreateKeyType, createKey } from "src/adapters/api/keys";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
@@ -24,7 +24,11 @@ export function CreateKey() {
     }).then((response) => {
       if (response.success) {
         void message.success("Key added successfully");
-        navigate(ROUTES.keys.path);
+        navigate(
+          generatePath(ROUTES.identityDetails.path, {
+            identityID: identifier,
+          })
+        );
       } else {
         void message.error(response.error.message);
       }
@@ -52,7 +56,10 @@ export function CreateKey() {
             <Form.Item
               label="Key name"
               name="name"
-              rules={[{ message: VALUE_REQUIRED, required: true }]}
+              rules={[
+                { message: VALUE_REQUIRED, required: true },
+                { max: 60, message: "Name cannot be longer than 60 characters" },
+              ]}
             >
               <Input placeholder="Enter name" />
             </Form.Item>

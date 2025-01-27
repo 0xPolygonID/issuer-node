@@ -1,4 +1,4 @@
-import { App, Button, Card, Divider, Flex, Form, Input, Space, Typography } from "antd";
+import { App, Button, Card, Divider, Flex, Form, Input, Space, Tabs, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -6,6 +6,7 @@ import { getIdentity, updateIdentityDisplayName } from "src/adapters/api/identit
 import { IdentityDetailsFormData } from "src/adapters/parsers/view";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
 import { IdentityAuthCredentials } from "src/components/identities/IdentityAuthCredentials";
+import { KeysTable } from "src/components/keys/KeysTable";
 import { Detail } from "src/components/shared/Detail";
 import { EditModal } from "src/components/shared/EditModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -118,7 +119,14 @@ export function Identity() {
                 className="centered"
                 title={
                   <Flex align="center" gap={8} justify="space-between">
-                    <Typography.Text style={{ fontWeight: 600 }}>
+                    <Typography.Text
+                      style={{
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {identity.data.displayName}
                     </Typography.Text>
                     <Flex gap={8}>
@@ -154,12 +162,28 @@ export function Identity() {
 
               <Divider />
 
-              {identity.data.authCredentialsIDs.length && (
-                <IdentityAuthCredentials
-                  identityID={identifier}
-                  IDs={identity.data.authCredentialsIDs}
-                />
-              )}
+              <Flex justify="center" style={{ margin: "0 auto", width: "100%" }}>
+                {identity.data.authCredentialsIDs.length ? (
+                  <Tabs
+                    items={[
+                      { children: <KeysTable />, key: "keys", label: "Keys" },
+                      {
+                        children: (
+                          <IdentityAuthCredentials
+                            identityID={identifier}
+                            IDs={identity.data.authCredentialsIDs}
+                          />
+                        ),
+                        key: "credentials",
+                        label: "Auth credentials",
+                      },
+                    ]}
+                    style={{ width: "100%" }}
+                  />
+                ) : (
+                  <KeysTable />
+                )}
+              </Flex>
 
               <EditModal
                 onClose={() => setIsEditModalOpen(false)}
@@ -174,7 +198,10 @@ export function Identity() {
                 >
                   <Form.Item
                     name="displayName"
-                    rules={[{ message: VALUE_REQUIRED, required: true }]}
+                    rules={[
+                      { message: VALUE_REQUIRED, required: true },
+                      { max: 60, message: "Name cannot be longer than 60 characters" },
+                    ]}
                   >
                     <Input placeholder="Enter name" />
                   </Form.Item>

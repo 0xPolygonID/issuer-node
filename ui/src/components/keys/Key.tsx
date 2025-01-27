@@ -12,7 +12,7 @@ import {
   Typography,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { generatePath, useNavigate, useParams } from "react-router-dom";
 
 import { useIdentityContext } from "../../contexts/Identity";
 import { UpdateKey, deleteKey, getKey, updateKeyName } from "src/adapters/api/keys";
@@ -102,7 +102,11 @@ export function Key() {
   const handleDeleteKey = () => {
     void deleteKey({ env, identifier, keyID }).then((response) => {
       if (response.success) {
-        navigate(ROUTES.keys.path);
+        navigate(
+          generatePath(ROUTES.identityDetails.path, {
+            identityID: identifier,
+          })
+        );
         void message.success(response.data.message);
       } else {
         void message.error(response.error.message);
@@ -142,7 +146,16 @@ export function Key() {
                 className="centered"
                 title={
                   <Flex align="center" gap={8} justify="space-between">
-                    <Typography.Text style={{ fontWeight: 600 }}>{key.data.name}</Typography.Text>
+                    <Typography.Text
+                      style={{
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {key.data.name}
+                    </Typography.Text>
                     <Flex gap={8}>
                       <Button
                         icon={<EditIcon />}
@@ -207,7 +220,10 @@ export function Key() {
                   <Form.Item
                     label="Name"
                     name="name"
-                    rules={[{ message: VALUE_REQUIRED, required: true }]}
+                    rules={[
+                      { message: VALUE_REQUIRED, required: true },
+                      { max: 60, message: "Name cannot be longer than 60 characters" },
+                    ]}
                   >
                     <Input placeholder="Enter name" />
                   </Form.Item>

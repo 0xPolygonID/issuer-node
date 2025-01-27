@@ -18,6 +18,9 @@ const (
 
 	AuthBJJCredentialJSONLDContext = "https://schema.iden3.io/core/jsonld/auth.jsonld"
 	AuthBJJCredentialTypeID        = "https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential"
+
+	Iden3PaymentRailsRequestV1SchemaJSON      = `{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Iden3PaymentRailsRequestV1":[{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"expirationDate","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"metadata","type":"bytes"}]}`
+	Iden3PaymentRailsERC20RequestV1SchemaJSON = `{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Iden3PaymentRailsERC20RequestV1":[{"name":"tokenAddress","type":"address"},{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"expirationDate","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"metadata","type":"bytes"}]}`
 )
 
 // SchemaFormat type
