@@ -22,7 +22,9 @@ export type RouteID =
   | "createKey"
   | "createPaymentOption"
   | "paymentOptions"
-  | "paymentOptionDetails";
+  | "paymentOptionDetails"
+  | "paymentRequestDetils"
+  | "paymentRequests";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -61,7 +63,7 @@ export const ROUTES: Routes = {
   },
   createPaymentOption: {
     layout: "sider",
-    path: "/payments/create",
+    path: "/payments/options/create",
   },
   credentialDetails: {
     layout: "sider",
@@ -117,11 +119,19 @@ export const ROUTES: Routes = {
   },
   paymentOptionDetails: {
     layout: "sider",
-    path: "/payments/:paymentOptionID",
+    path: "/payments/options/:paymentOptionID",
   },
   paymentOptions: {
     layout: "sider",
-    path: "/payments",
+    path: "/payments/options",
+  },
+  paymentRequestDetils: {
+    layout: "sider",
+    path: "/payments/requests/:paymentRequestID",
+  },
+  paymentRequests: {
+    layout: "sider",
+    path: "/payments/requests",
   },
   schemaDetails: {
     layout: "sider",

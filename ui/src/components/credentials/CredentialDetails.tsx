@@ -185,7 +185,11 @@ export function CredentialDetails() {
             </Card>
           );
         } else if (hasAsyncTaskFailed(issuedMessages)) {
-          return <ErrorResult error={issuedMessages.error.message} />;
+          return (
+            <Card className="centered">
+              <ErrorResult error={issuedMessages.error.message} />
+            </Card>
+          );
         } else if (hasAsyncTaskFailed(credentialSubjectValue)) {
           return (
             <Card className="centered">

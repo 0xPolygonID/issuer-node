@@ -28,6 +28,7 @@ import {
   IDENTITIES,
   ISSUER_STATE,
   PAYMENT_OPTIONS,
+  PAYMENT_REQUESTS,
   SCHEMAS,
 } from "src/utils/constants";
 
@@ -54,6 +55,7 @@ export function SiderMenu({
   const identitiesPath = ROUTES.identities.path;
   const displayMethodsPath = ROUTES.displayMethods.path;
   const paymentOptionsPath = ROUTES.paymentOptions.path;
+  const paymentRequestsPath = ROUTES.paymentRequests.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -120,6 +122,13 @@ export function SiderMenu({
       )
     ) {
       return [paymentOptionsPath];
+    } else if (
+      matchRoutes(
+        [{ path: paymentRequestsPath }, { path: ROUTES.paymentRequestDetils.path }],
+        pathname
+      )
+    ) {
+      return [paymentRequestsPath];
     }
 
     return [];
@@ -199,6 +208,13 @@ export function SiderMenu({
                       key: paymentOptionsPath,
                       label: PAYMENT_OPTIONS,
                       onClick: () => onMenuClick(paymentOptionsPath),
+                      title: "",
+                    },
+                    {
+                      icon: <IconPaymentOptions />,
+                      key: paymentRequestsPath,
+                      label: PAYMENT_REQUESTS,
+                      onClick: () => onMenuClick(paymentRequestsPath),
                       title: "",
                     },
                   ]

@@ -1,3 +1,5 @@
+import { Json } from "src/domain/json";
+
 export type PaymentConfig = {
   amount: string;
   paymentOptionID: number;
@@ -28,4 +30,22 @@ export type PaymentConfiguration = {
 
 export type PaymentConfigurations = {
   [key: string]: PaymentConfiguration;
+};
+
+export enum PaymentRequestStatus {
+  canceled = "canceled",
+  failed = "failed",
+  "not-verified" = "not-verified",
+  pending = "pending",
+  success = "success",
+}
+
+export type PaymentRequest = {
+  createdAt: Date;
+  id: string;
+  modifiedAt: Date;
+  paymentOptionID: string;
+  payments: Json;
+  status: PaymentRequestStatus;
+  userDID: string;
 };

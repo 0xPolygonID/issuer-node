@@ -17,7 +17,7 @@ export function EditModal({
   children: ReactNode;
   onClose: () => void;
   open: boolean;
-  size: "small" | "large";
+  size?: "small" | "large";
   title: string;
 }) {
   return (

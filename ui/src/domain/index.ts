@@ -76,4 +76,7 @@ export type {
   PaymentConfiguration,
   PaymentConfigurations,
   PaymentConfig,
+  PaymentRequest,
 } from "src/domain/payment";
+
+export { PaymentRequestStatus } from "src/domain/payment";

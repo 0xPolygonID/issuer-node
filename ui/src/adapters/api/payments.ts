@@ -3,10 +3,21 @@ import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
-import { datetimeParser, getResourceParser, getStrictParser } from "src/adapters/parsers";
-import { Env, PaymentConfigurations, PaymentOption } from "src/domain";
+import {
+  datetimeParser,
+  getListParser,
+  getResourceParser,
+  getStrictParser,
+} from "src/adapters/parsers";
+import {
+  Env,
+  PaymentConfigurations,
+  PaymentOption,
+  PaymentRequest,
+  PaymentRequestStatus,
+} from "src/domain";
 import { API_VERSION } from "src/utils/constants";
-import { Resource } from "src/utils/types";
+import { List, Resource } from "src/utils/types";
 
 type PaymentOptionInput = Omit<PaymentOption, "modifiedAt" | "createdAt"> & {
   createdAt: string;
@@ -29,6 +40,30 @@ export const paymentOptionParser = getStrictParser<PaymentOptionInput, PaymentOp
         signingKeyID: z.string(),
       })
     ),
+  })
+);
+
+type PaymentRequestInput = Omit<PaymentRequest, "createdAt" | "modifiedAt"> & {
+  createdAt: string;
+  modifiedAt: string;
+};
+
+export const paymentRequestParser = getStrictParser<PaymentRequestInput, PaymentRequest>()(
+  z.object({
+    createdAt: datetimeParser,
+    id: z.string(),
+    modifiedAt: datetimeParser,
+    paymentOptionID: z.string(),
+    payments: z.union([
+      z.object({}).catchall(z.any()),
+      z.array(z.any()),
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+    ]),
+    status: z.nativeEnum(PaymentRequestStatus),
+    userDID: z.string(),
   })
 );
 
@@ -205,6 +240,58 @@ export async function getPaymentConfigurations({
       url: `${API_VERSION}/payment/settings`,
     });
     return buildSuccessResponse(paymentConfigurationsParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function getPaymentRequests({
+  env,
+  identifier,
+  signal,
+}: {
+  env: Env;
+  identifier: string;
+  signal?: AbortSignal;
+}): Promise<Response<List<PaymentRequest>>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/identities/${identifier}/payment-request`,
+    });
+    return buildSuccessResponse(getListParser(paymentRequestParser).parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function getPaymentRequest({
+  env,
+  identifier,
+  paymentRequestID,
+  signal,
+}: {
+  env: Env;
+  identifier: string;
+  paymentRequestID: string;
+  signal?: AbortSignal;
+}): Promise<Response<PaymentRequest>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/identities/${identifier}/payment-request/${paymentRequestID}`,
+    });
+    return buildSuccessResponse(paymentRequestParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
