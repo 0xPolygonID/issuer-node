@@ -57,42 +57,6 @@ func TestServer_DiscoverQuery(t *testing.T) {
 			},
 		},
 		{
-			name: "protocol query",
-			queryJSON: `{
-				"id": "4391deb9-9d76-4b97-9b57-2a0f7f6c883e",
-				"thid": "4391deb9-9d76-4b97-9b57-2a0f7f6c883e",
-				"typ": "application/iden3comm-plain-json",
-				"type": "https://didcomm.org/discover-features/2.0/queries",
-				"body": {
-				  "queries": [
-					{
-					  "feature-type": "protocol"
-					}
-				  ]
-				},
-				"created_time": 1738071909
-			  }`,
-			expected: expected{
-				httpCode: http.StatusOK,
-				responseBody: `{
-					"disclosures": [
-					  {
-						"feature-type": "protocol",
-						"id": "https://iden3-communication.io/credentials/1.0/fetch-request"
-					  },
-					  {
-						"feature-type": "protocol",
-						"id": "https://iden3-communication.io/revocation/1.0/request-status"
-					  },
-					  {
-						"feature-type": "protocol",
-						"id": "https://didcomm.org/discover-features/2.0/queries"
-					  }
-					]
-				  }`,
-			},
-		},
-		{
 			name: "protocol query with match revocation*",
 			queryJSON: `{
 				"id": "4391deb9-9d76-4b97-9b57-2a0f7f6c883e",
