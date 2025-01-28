@@ -39,7 +39,6 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		}
 
 	} else {
-
 		req, err := ports.NewAgentRequest(basicMessage)
 		if err != nil {
 			log.Error(ctx, "agent parsing request", "err", err)

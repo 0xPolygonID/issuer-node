@@ -169,7 +169,7 @@ func main() {
 	}
 	keyService := services.NewKey(keyStore, claimsService, keyRepository)
 	transactionService, err := gateways.NewTransaction(*networkResolver)
-	discoveryService := services.NewDiscovery(mediaTypeManager, packageManager)
+	discoveryService := services.NewDiscovery(mediaTypeManager, packageManager, mediaTypeManager.GetSupportedProtocolMessages())
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
 		return

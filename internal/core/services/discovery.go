@@ -18,15 +18,17 @@ import (
 )
 
 type discovery struct {
-	mediatypeManager *MediaTypeManager
-	packerManager    *iden3comm.PackageManager
+	mediatypeManager   *MediaTypeManager
+	packerManager      *iden3comm.PackageManager
+	supportedProtocols []iden3comm.ProtocolMessage
 }
 
 // NewDiscovery is a constructor for the discovery service
-func NewDiscovery(mediatypeManager *MediaTypeManager, packerManager *iden3comm.PackageManager) *discovery {
+func NewDiscovery(mediatypeManager *MediaTypeManager, packerManager *iden3comm.PackageManager, supportedProtocols []iden3comm.ProtocolMessage) *discovery {
 	d := &discovery{
-		mediatypeManager: mediatypeManager,
-		packerManager:    packerManager,
+		mediatypeManager:   mediatypeManager,
+		packerManager:      packerManager,
+		supportedProtocols: supportedProtocols,
 	}
 	return d
 }
@@ -101,6 +103,12 @@ func (d *discovery) handleAccept(_ context.Context) ([]protocol.DiscoverFeatureD
 
 func (d *discovery) handleProtocol(_ context.Context) []protocol.DiscoverFeatureDisclosure {
 	disclosures := []protocol.DiscoverFeatureDisclosure{}
+	for _, protocolMessage := range d.supportedProtocols {
+		disclosures = append(disclosures, protocol.DiscoverFeatureDisclosure{
+			FeatureType: protocol.DiscoveryProtocolFeatureTypeProtocol,
+			ID:          string(protocolMessage),
+		})
+	}
 	return disclosures
 }
 

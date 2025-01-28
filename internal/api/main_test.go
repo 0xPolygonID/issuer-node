@@ -368,7 +368,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
 	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
-	discoveryService := services.NewDiscovery(mediaTypeManager, NewPackageManagerMock())
+	discoveryService := services.NewDiscovery(mediaTypeManager, NewPackageManagerMock(), mediaTypeManager.GetSupportedProtocolMessages())
 	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService, discoveryService)
 
 	return &testServer{
