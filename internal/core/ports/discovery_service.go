@@ -7,6 +7,7 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
+
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
