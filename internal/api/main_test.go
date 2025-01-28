@@ -200,8 +200,10 @@ func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identit
 }
 
 // TODO: add package manager mocks
-func NewPackageManagerMock() *iden3comm.PackageManager {
-	return &iden3comm.PackageManager{}
+func NewPackageManagerMock() (*iden3comm.PackageManager, error) {
+	packageManager := iden3comm.NewPackageManager()
+	err := packageManager.RegisterPackers(&packers.PlainMessagePacker{})
+	return packageManager, err
 }
 
 func NewPublisherMock() ports.Publisher {
@@ -364,12 +366,14 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		true,
 	)
 
+	packageManager, err := NewPackageManagerMock()
+	require.NoError(t, err)
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
 	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
-	discoveryService := services.NewDiscovery(mediaTypeManager, NewPackageManagerMock(), mediaTypeManager.GetSupportedProtocolMessages())
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService, discoveryService)
+	discoveryService := services.NewDiscovery(mediaTypeManager, packageManager, mediaTypeManager.GetSupportedProtocolMessages())
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), packageManager, *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService, discoveryService)
 
 	return &testServer{
 		Server: server,
