@@ -24,6 +24,7 @@ import { generatePath } from "react-router-dom";
 import { z } from "zod";
 
 import { getDisplayMethods } from "src/adapters/api/display-method";
+import { getSupportedBlockchains } from "src/adapters/api/identities";
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { buildAppError, jsonSchemaErrorToString, notifyError } from "src/adapters/parsers";
@@ -35,6 +36,7 @@ import {
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import IconLink from "src/assets/icons/link-external-01.svg?react";
+import { iso31661Countries } from "src/assets/iso31661Countries";
 import { InputErrors, ObjectAttributeForm } from "src/components/credentials/ObjectAttributeForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -44,6 +46,7 @@ import {
   ApiSchema,
   AppError,
   Attribute,
+  CredentialStatusType,
   DisplayMethod,
   JsonSchema,
   ObjectAttribute,
@@ -123,10 +126,25 @@ export function IssueCredentialForm({
     status: "pending",
   });
 
+  const [credentialStatusTypes, setCredentialStatusTypes] = useState<
+    AsyncTask<CredentialStatusType[], AppError>
+  >({
+    status: "pending",
+  });
+
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
-  const [refreshServiceChecked, setRefreshServiceChecked] = useState(false);
-  const [displayMethodChecked, setDisplayMethodChecked] = useState(false);
+  const displayMethodChecked =
+    Form.useWatch<IssueCredentialFormData["displayMethod"]["enabled"]>(
+      ["displayMethod", "enabled"],
+      form
+    ) || initialValues.displayMethod.enabled;
+
+  const refreshServiceChecked =
+    Form.useWatch<IssueCredentialFormData["refreshService"]["enabled"]>(
+      ["refreshService", "enabled"],
+      form
+    ) || initialValues.refreshService.enabled;
 
   const isPositiveBigInt = (x: string) => {
     try {
@@ -144,9 +162,8 @@ export function IssueCredentialForm({
     }
   };
 
-  const isCountryCode = (x: number) => {
-    const iso31661NumericRegex = /^\d{1,3}$/;
-    return iso31661NumericRegex.test(x.toString());
+  const isCountryCode = (code: number) => {
+    return iso31661Countries.some((country) => country.code === code);
   };
 
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
@@ -305,6 +322,10 @@ export function IssueCredentialForm({
             status: "successful",
           });
           const credentialSubject = extractCredentialSubjectAttributeWithoutId(jsonSchema);
+          const schemaDefaultDisplayMethod = isAsyncTaskDataAvailable(displayMethods)
+            ? displayMethods.data.find(({ id }) => id === schema.displayMethodID)
+            : undefined;
+
           const initialValuesWithSchemaValues: Store = credentialSubject
             ? {
                 ...initialValues,
@@ -312,6 +333,12 @@ export function IssueCredentialForm({
                   credentialSubject,
                   initialValues.credentialSubject || {}
                 ),
+                displayMethod: {
+                  enabled: !!schemaDefaultDisplayMethod,
+                  ...(schemaDefaultDisplayMethod
+                    ? { type: schemaDefaultDisplayMethod.type, url: schemaDefaultDisplayMethod.url }
+                    : { type: "", url: null }),
+                },
               }
             : initialValues;
           form.setFieldsValue(initialValuesWithSchemaValues);
@@ -322,7 +349,7 @@ export function IssueCredentialForm({
         }
       });
     },
-    [computeFormObjectInitialValues, env, form, initialValues]
+    [computeFormObjectInitialValues, env, form, initialValues, displayMethods]
   );
 
   const fetchSchemas = useCallback(
@@ -389,6 +416,40 @@ export function IssueCredentialForm({
     [env, identifier]
   );
 
+  const fetchBlockChains = useCallback(
+    async (signal: AbortSignal) => {
+      setCredentialStatusTypes((previousState) =>
+        isAsyncTaskDataAvailable(previousState)
+          ? { data: previousState.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
+      const response = await getSupportedBlockchains({
+        env,
+        signal,
+      });
+
+      if (response.success) {
+        const [, , blockchain = "", network = ""] = identifier.split(":");
+        const identityBlockchainNetworks =
+          response.data.successful.find(({ name }) => name === blockchain)?.networks || [];
+        const identityNetworkCredentialStatusTypes =
+          identityBlockchainNetworks.find(({ name }) => name === network)?.credentialStatus || [];
+
+        setCredentialStatusTypes({
+          data: identityNetworkCredentialStatusTypes,
+          status: "successful",
+        });
+      } else {
+        if (!isAbortedError(response.error)) {
+          setCredentialStatusTypes({ error: response.error, status: "failed" });
+          void message.error(response.error.message);
+        }
+      }
+    },
+    [env, message, identifier]
+  );
+
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchSchemas);
 
@@ -400,6 +461,12 @@ export function IssueCredentialForm({
 
     return aborter;
   }, [fetchDisplayMethods]);
+
+  useEffect(() => {
+    const { aborter } = makeRequestAbortable(fetchBlockChains);
+
+    return aborter;
+  }, [fetchBlockChains]);
 
   return (
     <Form
@@ -562,6 +629,28 @@ export function IssueCredentialForm({
                       </Form.Item>
                     </Space>
                     <Divider />
+
+                    <Form.Item
+                      label="Revocation status"
+                      name="credentialStatusType"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select
+                        className="full-width"
+                        loading={isAsyncTaskStarting(credentialStatusTypes)}
+                        placeholder="Choose revocation status"
+                      >
+                        {isAsyncTaskDataAvailable(credentialStatusTypes) &&
+                          credentialStatusTypes.data.map((status) => (
+                            <Select.Option key={status} value={status}>
+                              {status}
+                            </Select.Option>
+                          ))}
+                      </Select>
+                    </Form.Item>
+
+                    <Divider />
+
                     <Form.Item style={{ marginBottom: 0 }}>
                       <Space direction="vertical">
                         <Form.Item
@@ -569,12 +658,7 @@ export function IssueCredentialForm({
                           noStyle
                           valuePropName="checked"
                         >
-                          <Checkbox
-                            checked={refreshServiceChecked}
-                            onChange={() => {
-                              setRefreshServiceChecked(!refreshServiceChecked);
-                            }}
-                          >
+                          <Checkbox checked={refreshServiceChecked}>
                             Refresh Service{" ("}
                             <Typography.Link
                               href="https://docs.privado.id/docs/category/refresh-service"
@@ -615,20 +699,13 @@ export function IssueCredentialForm({
                           noStyle
                           valuePropName="checked"
                         >
-                          <Checkbox
-                            checked={displayMethodChecked}
-                            onChange={() => {
-                              setDisplayMethodChecked(!displayMethodChecked);
-                            }}
-                          >
-                            Display Method
-                          </Checkbox>
+                          <Checkbox checked={displayMethodChecked}>Display Method</Checkbox>
                         </Form.Item>
                         <Form.Item hidden={!displayMethodChecked} name={["displayMethod", "url"]}>
                           <Select
                             className="full-width"
                             loading={isAsyncTaskStarting(displayMethods)}
-                            placeholder="Valid URL of the display method"
+                            placeholder="Select display method"
                           >
                             {isAsyncTaskDataAvailable(displayMethods) &&
                               displayMethods.data.map(({ id, name, url }) => (

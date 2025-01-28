@@ -1,38 +1,40 @@
 import { Divider, Modal } from "antd";
 import { ReactNode } from "react";
 import IconClose from "src/assets/icons/x.svg?react";
-import { CLOSE, SAVE } from "src/utils/constants";
+
+const MODAL_SIZES = {
+  large: 800,
+  small: 520,
+};
 
 export function EditModal({
   children,
   onClose,
-  onSubmit,
   open,
+  size = "small",
   title,
 }: {
   children: ReactNode;
   onClose: () => void;
-  onSubmit: () => void;
   open: boolean;
+  size?: "small" | "large";
   title: string;
 }) {
   return (
     <Modal
-      cancelText={CLOSE}
       centered
       closable
       closeIcon={<IconClose />}
+      destroyOnClose
+      footer={null}
       maskClosable
-      okText={SAVE}
       onCancel={onClose}
-      onOk={onSubmit}
       open={open}
-      style={{ maxWidth: 600 }}
       title={title}
+      width={MODAL_SIZES[size]}
     >
       <Divider />
       {children}
-      <Divider />
     </Modal>
   );
 }

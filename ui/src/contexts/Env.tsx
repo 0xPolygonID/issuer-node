@@ -12,12 +12,14 @@ const defaultEnvContext: Env = {
     url: "",
     username: "",
   },
+  baseUrl: "",
   displayMethodBuilderUrl: "",
   ipfsGatewayUrl: "",
   issuer: {
     logo: "",
     name: "",
   },
+  paymentPagesEnabled: false,
 };
 
 const EnvContext = createContext(defaultEnvContext);

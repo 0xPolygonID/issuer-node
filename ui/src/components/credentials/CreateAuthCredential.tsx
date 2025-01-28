@@ -23,7 +23,7 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { VALUE_REQUIRED } from "src/utils/constants";
+import { SAVE, VALUE_REQUIRED } from "src/utils/constants";
 
 export function CreateAuthCredential() {
   const env = useEnvContext();
@@ -196,7 +196,7 @@ export function CreateAuthCredential() {
 
                   <Flex justify="flex-end">
                     <Button htmlType="submit" type="primary">
-                      Submit
+                      {SAVE}
                     </Button>
                   </Flex>
                 </Form>

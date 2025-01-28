@@ -1,37 +1,34 @@
-import { App, Button, Card, Divider, Flex, Form, Input, Space } from "antd";
+import { App, Button, Card, Divider, Flex, Form, Input, Space, Tabs, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useIdentityContext } from "../../contexts/Identity";
+
 import { getIdentity, updateIdentityDisplayName } from "src/adapters/api/identities";
 import { IdentityDetailsFormData } from "src/adapters/parsers/view";
-import CheckIcon from "src/assets/icons/check.svg?react";
 import EditIcon from "src/assets/icons/edit-02.svg?react";
-import CloseIcon from "src/assets/icons/x-close.svg?react";
 import { IdentityAuthCredentials } from "src/components/identities/IdentityAuthCredentials";
+import { KeysTable } from "src/components/keys/KeysTable";
 import { Detail } from "src/components/shared/Detail";
+import { EditModal } from "src/components/shared/EditModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, IdentityDetails } from "src/domain";
-import {
-  AsyncTask,
-  hasAsyncTaskFailed,
-  isAsyncTaskDataAvailable,
-  isAsyncTaskStarting,
-} from "src/utils/async";
+import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { IDENTITY_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
+import { IDENTITY_DETAILS, SAVE, VALUE_REQUIRED } from "src/utils/constants";
 import { formatIdentifier } from "src/utils/forms";
 
 export function Identity() {
   const env = useEnvContext();
+  const { fetchIdentities } = useIdentityContext();
   const [identity, setIdentity] = useState<AsyncTask<IdentityDetails, AppError>>({
     status: "pending",
   });
-  const { fetchIdentities, identityList } = useIdentityContext();
 
-  const [displayNameEditable, setDisplayNameEditable] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   const { message } = App.useApp();
   const [form] = Form.useForm<IdentityDetailsFormData>();
 
@@ -70,27 +67,17 @@ export function Identity() {
     return <ErrorResult error="No identifier provided." />;
   }
 
-  const handleEditDisplayName = (formValues: IdentityDetailsFormData) => {
-    const isUnique =
-      isAsyncTaskDataAvailable(identityList) &&
-      !identityList.data.some(
-        (identity) =>
-          identity.identifier !== identifier && identity.displayName === formValues.displayName
-      );
-
-    if (!isUnique) {
-      return void message.error(`${formValues.displayName} already exists`);
-    }
-
-    return void updateIdentityDisplayName({
-      displayName: formValues.displayName.trim(),
+  const handleEdit = (values: { displayName: string }) => {
+    const { displayName } = values;
+    void updateIdentityDisplayName({
+      displayName,
       env,
       identifier,
     }).then((response) => {
       if (response.success) {
         void fetchIdentity().then(() => {
-          setDisplayNameEditable(false);
-          makeRequestAbortable(fetchIdentities);
+          setIsEditModalOpen(false);
+          void fetchIdentities();
           void message.success("Identity edited successfully");
         });
       } else {
@@ -130,44 +117,26 @@ export function Identity() {
             <>
               <Card
                 className="centered"
-                styles={{ header: { border: "none" } }}
                 title={
-                  <Flex align="center" gap={8} style={{ paddingTop: "24px" }}>
-                    {displayNameEditable ? (
-                      <Form
-                        form={form}
-                        initialValues={{ displayName: identity.data.displayName }}
-                        onFinish={handleEditDisplayName}
-                        style={{ width: "100%" }}
-                      >
-                        <Flex gap={16}>
-                          <Form.Item
-                            name="displayName"
-                            rules={[{ message: VALUE_REQUIRED, required: true }]}
-                            style={{ marginBottom: 0, width: "50%" }}
-                          >
-                            <Input placeholder="Enter name" />
-                          </Form.Item>
-                          <Flex gap={8}>
-                            <Button
-                              icon={<CloseIcon />}
-                              onClick={() => setDisplayNameEditable(false)}
-                            />
-                            <Button htmlType="submit" icon={<CheckIcon />} onClick={() => {}} />
-                          </Flex>
-                        </Flex>
-                      </Form>
-                    ) : (
-                      <>
-                        {identity.data.displayName}
-                        <Button
-                          icon={<EditIcon />}
-                          onClick={() => setDisplayNameEditable(true)}
-                          size="small"
-                          type="text"
-                        />
-                      </>
-                    )}
+                  <Flex align="center" gap={8} justify="space-between">
+                    <Typography.Text
+                      style={{
+                        fontWeight: 600,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {identity.data.displayName}
+                    </Typography.Text>
+                    <Flex gap={8}>
+                      <Button
+                        icon={<EditIcon />}
+                        onClick={() => setIsEditModalOpen(true)}
+                        style={{ flexShrink: 0 }}
+                        type="text"
+                      />
+                    </Flex>
                   </Flex>
                 }
               >
@@ -187,16 +156,65 @@ export function Identity() {
                     <Detail label="Network" text={network} />
 
                     <Detail label="Type" text={identity.data.keyType} />
-                    <Detail label="Credential status" text={identity.data.credentialStatusType} />
                   </Space>
                 </Card>
               </Card>
 
               <Divider />
 
-              {identity.data.authCredentialsIDs.length && (
-                <IdentityAuthCredentials IDs={identity.data.authCredentialsIDs} />
-              )}
+              <Flex justify="center" style={{ margin: "0 auto", width: "100%" }}>
+                {identity.data.authCredentialsIDs.length ? (
+                  <Tabs
+                    items={[
+                      { children: <KeysTable />, key: "keys", label: "Keys" },
+                      {
+                        children: (
+                          <IdentityAuthCredentials
+                            identityID={identifier}
+                            IDs={identity.data.authCredentialsIDs}
+                          />
+                        ),
+                        key: "credentials",
+                        label: "Auth credentials",
+                      },
+                    ]}
+                    style={{ width: "100%" }}
+                  />
+                ) : (
+                  <KeysTable />
+                )}
+              </Flex>
+
+              <EditModal
+                onClose={() => setIsEditModalOpen(false)}
+                open={isEditModalOpen}
+                title="Edit identity"
+              >
+                <Form
+                  form={form}
+                  initialValues={{ displayName: identity.data.displayName }}
+                  layout="vertical"
+                  onFinish={handleEdit}
+                >
+                  <Form.Item
+                    name="displayName"
+                    rules={[
+                      { message: VALUE_REQUIRED, required: true },
+                      { max: 60, message: "Name cannot be longer than 60 characters" },
+                    ]}
+                  >
+                    <Input placeholder="Enter name" />
+                  </Form.Item>
+
+                  <Divider />
+
+                  <Flex justify="flex-end">
+                    <Button htmlType="submit" type="primary">
+                      {SAVE}
+                    </Button>
+                  </Flex>
+                </Form>
+              </EditModal>
             </>
           );
         }

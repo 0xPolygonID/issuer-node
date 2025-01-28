@@ -36,7 +36,7 @@ export async function getIdentities({
   signal,
 }: {
   env: Env;
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<Response<List<Identity>>> {
   try {
     const response = await axios({

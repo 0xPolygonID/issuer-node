@@ -2,7 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
-import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
+import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { ApiSchema, Env, JsonLdType } from "src/domain";
 import { getStorageByKey } from "src/utils/browser";
@@ -16,8 +16,10 @@ type ApiSchemaInput = Omit<ApiSchema, "createdAt"> & {
 const apiSchemaParser = getStrictParser<ApiSchemaInput, ApiSchema>()(
   z.object({
     bigInt: z.string(),
+    contextURL: z.string(),
     createdAt: datetimeParser,
     description: z.string().nullable(),
+    displayMethodID: z.string().nullable(),
     hash: z.string(),
     id: z.string(),
     title: z.string().nullable(),
@@ -75,7 +77,7 @@ export async function getApiSchema({
   env: Env;
   identifier: string;
   schemaID: string;
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<Response<ApiSchema>> {
   try {
     const response = await axios({
@@ -127,6 +129,38 @@ export async function getApiSchemas({
         }))
         .parse(response.data)
     );
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export type UpdateSchema = {
+  displayMethodID: string | null;
+};
+
+export async function updateSchema({
+  env,
+  identifier,
+  payload,
+  schemaID,
+}: {
+  env: Env;
+  identifier: string;
+  payload: UpdateSchema;
+  schemaID: string;
+}): Promise<Response<Message>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      data: payload,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "PATCH",
+      url: `${API_VERSION}/identities/${identifier}/schemas/${schemaID}`,
+    });
+
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

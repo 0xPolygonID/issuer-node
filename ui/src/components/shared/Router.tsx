@@ -18,9 +18,13 @@ import { Onboarding } from "src/components/identities/Onboarding";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
 import { CreateKey } from "src/components/keys/CreateKey";
 import { Key } from "src/components/keys/Key";
-import { Keys } from "src/components/keys/Keys";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
+import { CreatePaymentOption } from "src/components/payments/CreatePaymentOption";
+import { PaymentOption } from "src/components/payments/PaymentOption";
+import { PaymentOptions } from "src/components/payments/PaymentOptions";
+import { PaymentRequest } from "src/components/payments/PaymentRequest";
+import { PaymentRequests } from "src/components/payments/PaymentRequests";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
 import { SchemaDetails } from "src/components/schemas/SchemaDetails";
 import { Schemas } from "src/components/schemas/Schemas";
@@ -32,10 +36,11 @@ import { ROOT_PATH } from "src/utils/constants";
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
-    createAuthCredential: CreateAuthCredential,
+  createAuthCredential: CreateAuthCredential,
   createDisplayMethod: CreateDisplayMethod,
   createIdentity: CreateIdentity,
   createKey: CreateKey,
+  createPaymentOption: CreatePaymentOption,
   credentialDetails: CredentialDetails,
   credentials: Credentials,
   displayMethodDetails: DisplayMethodDetails,
@@ -46,10 +51,13 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   issueCredential: IssueCredential,
   issuerState: IssuerState,
   keyDetails: Key,
-  keys: Keys,
   linkDetails: LinkDetails,
   notFound: NotFound,
   onboarding: Onboarding,
+  paymentOptionDetails: PaymentOption,
+  paymentOptions: PaymentOptions,
+  paymentRequestDetils: PaymentRequest,
+  paymentRequests: PaymentRequests,
   schemaDetails: SchemaDetails,
   schemas: Schemas,
 };

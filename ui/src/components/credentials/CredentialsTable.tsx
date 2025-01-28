@@ -109,10 +109,15 @@ export function CredentialsTable() {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
       key: "schemaType",
-      render: (schemaType: Credential["schemaType"]) => (
-        <Tooltip placement="topLeft" title={schemaType}>
-          <Typography.Text strong>{schemaType}</Typography.Text>
-        </Tooltip>
+      render: (schemaType: Credential["schemaType"], credential: Credential) => (
+        <Typography.Link
+          onClick={() =>
+            navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: credential.id }))
+          }
+          strong
+        >
+          {schemaType}
+        </Typography.Link>
       ),
       sorter: {
         multiple: 1,
@@ -123,7 +128,7 @@ export function CredentialsTable() {
     {
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (issuanceDate: Credential["issuanceDate"]) => (
+      render: (_, { issuanceDate }: Credential) => (
         <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
       sorter: {
@@ -363,14 +368,7 @@ export function CredentialsTable() {
         showDefaultContents={showDefaultContent}
         table={
           <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
-              ),
-              ...column,
-            }))}
+            columns={tableColumns}
             dataSource={credentialsList}
             loading={credentials.status === "reloading"}
             locale={{

@@ -1,13 +1,15 @@
-import { Button, Card, Space, Typography } from "antd";
+import { App, Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
+import { getDisplayMethods } from "src/adapters/api/display-method";
 
-import { getApiSchema, processUrl } from "src/adapters/api/schemas";
+import { UpdateSchema, getApiSchema, processUrl, updateSchema } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import {
   buildAppError,
   jsonLdContextErrorToString,
   jsonSchemaErrorToString,
+  notifyErrors,
 } from "src/adapters/parsers";
 import CreditCardIcon from "src/assets/icons/credit-card-plus.svg?react";
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
@@ -18,9 +20,14 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
-import { ApiSchema, AppError, Json, JsonLdType, JsonSchema } from "src/domain";
+import { ApiSchema, AppError, DisplayMethod, Json, JsonLdType, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
-import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
+import {
+  AsyncTask,
+  hasAsyncTaskFailed,
+  isAsyncTaskDataAvailable,
+  isAsyncTaskStarting,
+} from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SCHEMA_SEARCH_PARAM } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
@@ -29,7 +36,7 @@ export function SchemaDetails() {
   const { identifier } = useIdentityContext();
   const navigate = useNavigate();
   const { schemaID } = useParams();
-
+  const { message } = App.useApp();
   const env = useEnvContext();
 
   const [jsonSchemaTuple, setJsonSchemaTuple] = useState<AsyncTask<[JsonSchema, Json], AppError>>({
@@ -39,6 +46,10 @@ export function SchemaDetails() {
     status: "pending",
   });
   const [contextTuple, setContextTuple] = useState<AsyncTask<[JsonLdType, Json], AppError>>({
+    status: "pending",
+  });
+
+  const [displayMethods, setDisplayMethods] = useState<AsyncTask<DisplayMethod[], AppError>>({
     status: "pending",
   });
 
@@ -90,8 +101,34 @@ export function SchemaDetails() {
     [env]
   );
 
+  const fetchDisplayMethods = useCallback(async () => {
+    setDisplayMethods((previousDisplayMethods) =>
+      isAsyncTaskDataAvailable(previousDisplayMethods)
+        ? { data: previousDisplayMethods.data, status: "reloading" }
+        : { status: "loading" }
+    );
+
+    const response = await getDisplayMethods({
+      env,
+      identifier,
+      params: {},
+    });
+    if (response.success) {
+      setDisplayMethods({
+        data: response.data.items.successful,
+        status: "successful",
+      });
+
+      void notifyErrors(response.data.items.failed);
+    } else {
+      if (!isAbortedError(response.error)) {
+        setDisplayMethods({ error: response.error, status: "failed" });
+      }
+    }
+  }, [env, identifier]);
+
   const fetchApiSchema = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       if (schemaID) {
         setSchema({ status: "loading" });
 
@@ -105,6 +142,7 @@ export function SchemaDetails() {
         if (response.success) {
           setSchema({ data: response.data, status: "successful" });
           fetchJsonSchemaFromUrl(response.data);
+          void fetchDisplayMethods();
         } else {
           if (!isAbortedError(response.error)) {
             setSchema({ error: response.error, status: "failed" });
@@ -112,7 +150,7 @@ export function SchemaDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, schemaID, identifier]
+    [env, fetchJsonSchemaFromUrl, schemaID, identifier, fetchDisplayMethods]
   );
 
   useEffect(() => {
@@ -126,11 +164,29 @@ export function SchemaDetails() {
   const loading =
     isAsyncTaskStarting(schema) ||
     isAsyncTaskStarting(jsonSchemaTuple) ||
-    isAsyncTaskStarting(contextTuple);
+    isAsyncTaskStarting(contextTuple) ||
+    isAsyncTaskStarting(displayMethods);
 
   if (!schemaID) {
     return <ErrorResult error="No schema ID provided." />;
   }
+
+  const handleEdit = (formValues: UpdateSchema) => {
+    void updateSchema({
+      env,
+      identifier,
+      payload: formValues,
+      schemaID,
+    }).then((response) => {
+      if (response.success) {
+        void fetchApiSchema().then(() => {
+          void message.success("Schema edited successfully");
+        });
+      } else {
+        void message.error(response.error.message);
+      }
+    });
+  };
 
   return (
     <SiderLayoutContent
@@ -170,10 +226,15 @@ export function SchemaDetails() {
             </Card>
           );
         } else {
-          const { bigInt, createdAt, hash, url, version } = schema.data;
+          const { bigInt, contextURL, createdAt, displayMethodID, hash, url, version } =
+            schema.data;
           const processedSchemaUrl = processUrl(url, env);
+          const processedContextSchemaUrl = processUrl(contextURL, env);
           const [jsonSchema, jsonSchemaObject] = jsonSchemaTuple.data;
           const [jsonLdType, jsonLdContextObject] = contextTuple.data;
+          const displayMethodsList = isAsyncTaskDataAvailable(displayMethods)
+            ? displayMethods.data
+            : [];
 
           return (
             <SchemaViewer
@@ -211,16 +272,25 @@ export function SchemaDetails() {
                     label="URL"
                     text={url}
                   />
+                  <Detail
+                    copyable
+                    href={processedContextSchemaUrl.success ? processedContextSchemaUrl.data : url}
+                    label="Context URL"
+                    text={contextURL}
+                  />
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
 
                   <DownloadSchema env={env} fileName={jsonSchema.name} url={url} />
                 </Space>
               }
+              displayMethodID={displayMethodID}
+              displayMethods={displayMethodsList}
               jsonLdContextObject={jsonLdContextObject}
               jsonLdType={jsonLdType}
               jsonSchema={jsonSchema}
               jsonSchemaObject={jsonSchemaObject}
+              onEdit={handleEdit}
             />
           );
         }

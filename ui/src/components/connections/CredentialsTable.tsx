@@ -76,11 +76,17 @@ export function CredentialsTable({ userID }: { userID: string }) {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
       key: "schemaType",
-      render: (schemaType: Credential["schemaType"]) => (
-        <Tooltip placement="topLeft" title={schemaType}>
-          <Typography.Text strong>{schemaType}</Typography.Text>
-        </Tooltip>
+      render: (schemaType: Credential["schemaType"], credential: Credential) => (
+        <Typography.Link
+          onClick={() =>
+            navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: credential.id }))
+          }
+          strong
+        >
+          {schemaType}
+        </Typography.Link>
       ),
+
       sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
       title: "Credential",
     },
@@ -254,14 +260,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         showDefaultContents={showDefaultContent}
         table={
           <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
-              ),
-              ...column,
-            }))}
+            columns={tableColumns}
             dataSource={credentialsList}
             locale={{
               emptyText:

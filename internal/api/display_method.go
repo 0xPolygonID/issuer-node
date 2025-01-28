@@ -35,7 +35,7 @@ func (s *Server) CreateDisplayMethod(ctx context.Context, request CreateDisplayM
 	id, err := s.displayMethodService.Save(ctx, *identityDID, request.Body.Name, request.Body.Url, request.Body.Type)
 	if err != nil {
 		log.Error(ctx, "Error saving display method", "err", err)
-		if errors.Is(err, repositories.DisplayMethodDuplicateNameError) {
+		if errors.Is(err, repositories.DisplayMethodDuplicateNameErr) {
 			return CreateDisplayMethod400JSONResponse{N400JSONResponse{Message: "name already exist"}}, nil
 		}
 		return CreateDisplayMethod500JSONResponse{N500JSONResponse{Message: "Error saving display method"}}, nil
@@ -128,7 +128,7 @@ func (s *Server) UpdateDisplayMethod(ctx context.Context, request UpdateDisplayM
 		if errors.Is(err, repositories.DisplayMethodNotFoundErr) {
 			return UpdateDisplayMethod404JSONResponse{N404JSONResponse{Message: "Display method not found"}}, nil
 		}
-		if errors.Is(err, repositories.DisplayMethodDuplicateNameError) {
+		if errors.Is(err, repositories.DisplayMethodDuplicateNameErr) {
 			return UpdateDisplayMethod400JSONResponse{N400JSONResponse{Message: "Duplicated name display method"}}, nil
 		}
 		return UpdateDisplayMethod500JSONResponse{N500JSONResponse{Message: "Error updating display method"}}, nil
@@ -156,6 +156,12 @@ func (s *Server) DeleteDisplayMethod(ctx context.Context, request DeleteDisplayM
 			log.Error(ctx, "Cannot delete default display method", "err", err)
 			return DeleteDisplayMethod400JSONResponse{N400JSONResponse{Message: "Cannot delete default display method"}}, nil
 		}
+
+		if errors.Is(err, repositories.DisplayMethodAssignedErr) {
+			log.Error(ctx, "Cannot delete display method assigned", "err", err)
+			return DeleteDisplayMethod400JSONResponse{N400JSONResponse{Message: "Cannot delete display method assigned"}}, nil
+		}
+
 		return DeleteDisplayMethod500JSONResponse{N500JSONResponse{Message: "Error deleting display method"}}, nil
 	}
 

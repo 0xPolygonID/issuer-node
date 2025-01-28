@@ -48,7 +48,7 @@ export function getListParser<Input, Output = Input>(
 
 const resourceMetaParser = getStrictParser<ResourceMeta>()(
   z.object({
-    max_results: z.number().int().min(1),
+    max_results: z.number().int().min(0),
     page: z.number().int().min(1),
     total: z.number().int().min(0),
   })

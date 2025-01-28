@@ -2,12 +2,12 @@ import { Button, Space } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 
 import IconPlus from "src/assets/icons/plus.svg?react";
-import { KeysTable } from "src/components/keys/KeysTable";
+import { PaymentOptionsTable } from "src/components/payments/PaymentOptionsTable";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { ROUTES } from "src/routes";
-import { KEYS, KEY_ADD } from "src/utils/constants";
+import { PAYMENT_OPTIONS, PAYMENT_OPTIONS_ADD } from "src/utils/constants";
 
-export function Keys() {
+export function PaymentOptions() {
   const navigate = useNavigate();
 
   return (
@@ -16,16 +16,16 @@ export function Keys() {
       extra={
         <Button
           icon={<IconPlus />}
-          onClick={() => navigate(generatePath(ROUTES.createKey.path))}
+          onClick={() => navigate(generatePath(ROUTES.createPaymentOption.path))}
           type="primary"
         >
-          {KEY_ADD}
+          {PAYMENT_OPTIONS_ADD}
         </Button>
       }
-      title={KEYS}
+      title={PAYMENT_OPTIONS}
     >
       <Space direction="vertical" size="large">
-        <KeysTable />
+        <PaymentOptionsTable />
       </Space>
     </SiderLayoutContent>
   );

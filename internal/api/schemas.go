@@ -9,9 +9,11 @@ import (
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // ImportSchema is the UI endpoint to import schema metadata
@@ -26,10 +28,15 @@ func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestOb
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return ImportSchema400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	iReq := ports.NewImportSchemaRequest(req.Url, req.SchemaType, req.Title, req.Version, req.Description)
+
+	iReq := ports.NewImportSchemaRequest(req.Url, req.SchemaType, req.Title, req.Version, req.Description, req.DisplayMethodID)
 	schema, err := s.schemaService.ImportSchema(ctx, *issuerDID, iReq)
 	if err != nil {
 		log.Error(ctx, "Importing schema", "err", err, "req", req)
+		if errors.Is(err, repositories.ErrDisplayMethodNotFound) || errors.Is(err, services.ErrDisplayMethodNotFound) {
+			return ImportSchema400JSONResponse{N400JSONResponse{Message: "display method not found"}}, nil
+		}
+
 		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return ImportSchema201JSONResponse{Id: schema.ID.String()}, nil
@@ -43,13 +50,15 @@ func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) 
 		return GetSchema400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
 	schema, err := s.schemaService.GetByID(ctx, *issuerDID, request.Id)
-	if errors.Is(err, services.ErrSchemaNotFound) {
-		log.Error(ctx, "schema not found", "id", request.Id)
-		return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
-	}
 	if err != nil {
+		if errors.Is(err, services.ErrSchemaNotFound) {
+			log.Error(ctx, "schema not found", "id", request.Id)
+			return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
+		}
 		log.Error(ctx, "loading schema", "err", err, "id", request.Id)
+		return GetSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
+
 	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
 
@@ -66,6 +75,36 @@ func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject
 		return GetSchemas500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return GetSchemas200JSONResponse(schemaCollectionResponse(col)), nil
+}
+
+// UpdateSchema updates the schema
+func (s *Server) UpdateSchema(ctx context.Context, request UpdateSchemaRequestObject) (UpdateSchemaResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return UpdateSchema400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+
+	if err := s.schemaService.Update(ctx, &domain.Schema{
+		ID:              request.Id,
+		IssuerDID:       *issuerDID,
+		DisplayMethodID: request.Body.DisplayMethodID,
+	}); err != nil {
+		log.Error(ctx, "updating schema", "err", err)
+
+		if errors.Is(err, repositories.ErrDisplayMethodNotFound) || errors.Is(err, services.ErrDisplayMethodNotFound) {
+			return UpdateSchema404JSONResponse{N404JSONResponse{Message: "display method not found"}}, nil
+		}
+
+		if errors.Is(err, repositories.ErrSchemaDoesNotExist) {
+			return UpdateSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
+		}
+
+		return UpdateSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return UpdateSchema200JSONResponse{
+		Message: "schema updated",
+	}, nil
 }
 
 func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {

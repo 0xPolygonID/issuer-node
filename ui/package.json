@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@iden3/js-crypto": "^1.1.0",
+    "@iden3/js-iden3-core": "^1.4.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "ajv-formats-draft2019": "^1.6.1",
@@ -28,6 +29,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/validator": "^13.12.2",
     "@vitejs/plugin-react": "^4.3.2",
+    "dotenv": "^16.4.7",
     "eslint": "^8.53.0",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",

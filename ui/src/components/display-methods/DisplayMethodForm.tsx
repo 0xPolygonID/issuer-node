@@ -8,7 +8,7 @@ import { DisplayMethodErrorResult } from "src/components/display-methods/Display
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, DisplayMethodMetadata } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
-import { VALUE_REQUIRED } from "src/utils/constants";
+import { SAVE, VALUE_REQUIRED } from "src/utils/constants";
 
 export function DisplayMethodForm({
   initialValues,
@@ -57,7 +57,10 @@ export function DisplayMethodForm({
               <Form.Item
                 label="Name"
                 name="name"
-                rules={[{ message: VALUE_REQUIRED, required: true }]}
+                rules={[
+                  { message: VALUE_REQUIRED, required: true },
+                  { max: 60, message: "Name cannot be longer than 60 characters" },
+                ]}
               >
                 <Input placeholder="Enter name" />
               </Form.Item>
@@ -74,7 +77,7 @@ export function DisplayMethodForm({
 
               <Flex justify="flex-end">
                 <Button htmlType="submit" type="primary">
-                  Submit
+                  {SAVE}
                 </Button>
               </Flex>
             </Form>

@@ -80,7 +80,7 @@ export function DisplayMethodCard({ metadata }: { metadata: DisplayMethodMetadat
           alt={metadata.logo.alt}
           preview={false}
           src={processedLogoImageUrl.success ? processedLogoImageUrl.data : metadata.logo.uri}
-          style={{ fontSize, width: getEmSize(44) }}
+          style={{ fontSize, maxHeight: getEmSize(44), maxWidth: getEmSize(44) }}
         />
         <Flex vertical>
           <Typography.Text

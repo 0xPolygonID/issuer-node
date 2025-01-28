@@ -36,7 +36,8 @@ const defaultCredentialFormInput: CredentialFormInput = {
     type: "directIssue",
   },
   issueCredential: {
-    displayMethod: { enabled: false, type: "", url: "" },
+    credentialStatusType: null,
+    displayMethod: { enabled: false, type: "", url: null },
     proofTypes: [ProofType.BJJSignature2021],
     refreshService: { enabled: false, url: "" },
   },

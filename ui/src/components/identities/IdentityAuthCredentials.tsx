@@ -6,7 +6,6 @@ import {
   Dropdown,
   Flex,
   Row,
-  Space,
   Table,
   TableColumnsType,
   Tag,
@@ -28,7 +27,6 @@ import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeMod
 import { TableCard } from "src/components/shared/TableCard";
 
 import { useEnvContext } from "src/contexts/Env";
-import { useIdentityContext } from "src/contexts/Identity";
 import { AppError, AuthCredential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -36,9 +34,14 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { DOTS_DROPDOWN_WIDTH, ISSUE_DATE, REVOCATION, REVOKE } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 
-export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
+export function IdentityAuthCredentials({
+  identityID,
+  IDs,
+}: {
+  IDs: Array<string>;
+  identityID: string;
+}) {
   const env = useEnvContext();
-  const { identifier } = useIdentityContext();
   const navigate = useNavigate();
 
   const [credentials, setCredentials] = useState<AsyncTask<AuthCredential[], AppError>>({
@@ -57,7 +60,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
 
       const response = await getAuthCredentialsByIDs({
         env,
-        identifier,
+        identifier: identityID,
         IDs,
         signal,
       });
@@ -74,7 +77,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
         }
       }
     },
-    [env, identifier, IDs]
+    [env, identityID, IDs]
   );
 
   const tableColumns: TableColumnsType<AuthCredential> = [
@@ -139,7 +142,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
     {
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (issuanceDate: AuthCredential["issuanceDate"]) => (
+      render: (_, { issuanceDate }: AuthCredential) => (
         <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
       sorter: ({ issuanceDate: a }, { issuanceDate: b }) => b.getTime() - a.getTime(),
@@ -200,20 +203,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
   const showDefaultContent = credentials.status === "successful" && credentialsList.length === 0;
 
   return (
-    <Card
-      style={{ width: "100%" }}
-      title={
-        <Flex align="center" justify="flex-end" style={{ padding: 12 }}>
-          <Button
-            icon={<IconPlus />}
-            onClick={() => navigate(ROUTES.createAuthCredential.path)}
-            type="primary"
-          >
-            Create auth credential
-          </Button>
-        </Flex>
-      }
-    >
+    <>
       <TableCard
         defaultContents={
           <>
@@ -231,14 +221,7 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
         showDefaultContents={showDefaultContent}
         table={
           <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
-              ),
-              ...column,
-            }))}
+            columns={tableColumns}
             dataSource={credentialsList}
             loading={credentials.status === "reloading"}
             pagination={false}
@@ -248,22 +231,33 @@ export function IdentityAuthCredentials({ IDs }: { IDs: Array<string> }) {
           />
         }
         title={
-          <Row gutter={[0, 8]} justify="space-between">
-            <Space size="middle">
+          <Flex align="center" justify="space-between" style={{ padding: "12px 0" }}>
+            <Flex align="center" gap={16}>
               <Card.Meta title="Auth credentials" />
-
               <Tag>{credentialsList.length}</Tag>
-            </Space>
-          </Row>
+            </Flex>
+            <Button
+              icon={<IconPlus />}
+              onClick={() => navigate(ROUTES.createAuthCredential.path)}
+              type="primary"
+            >
+              Create auth credential
+            </Button>
+          </Flex>
         }
       />
       {credentialToRevoke && (
         <CredentialRevokeModal
           credential={credentialToRevoke}
+          extra={
+            <Typography.Text type="danger">
+              All BJJSignature2021 proofs signed with this key will be invalid
+            </Typography.Text>
+          }
           onClose={() => setCredentialToRevoke(undefined)}
           onRevoke={() => void fetchAuthCredentials()}
         />
       )}
-    </Card>
+    </>
   );
 }

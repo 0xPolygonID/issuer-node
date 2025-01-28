@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/jackc/pgconn"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -17,8 +18,9 @@ import (
 var (
 	// DisplayMethodNotFoundErr is the error returned when the display method is not found
 	DisplayMethodNotFoundErr = errors.New("display method not found")
-	// DisplayMethodDuplicateNameError is the error returned when trying to save a display method with the same name
-	DisplayMethodDuplicateNameError = errors.New("display method with the same name already exists")
+	// DisplayMethodDuplicateNameErr is the error returned when trying to save a display method with the same name
+	DisplayMethodDuplicateNameErr = errors.New("display method with the same name already exists")
+	DisplayMethodAssignedErr      = errors.New("display method assigned") // DisplayMethodAssignedErr display method assigned
 )
 
 // DisplayMethod represents the display method repository
@@ -43,7 +45,7 @@ func (d DisplayMethod) Save(ctx context.Context, displayMethod domain.DisplayMet
 	err := d.conn.Pgx.QueryRow(ctx, sql, displayMethod.ID, displayMethod.Name, displayMethod.URL, displayMethod.IssuerCoreDID().String(), displayMethod.Type).Scan(&id)
 	if err != nil {
 		if strings.Contains(err.Error(), "violates unique constraint") {
-			return nil, DisplayMethodDuplicateNameError
+			return nil, DisplayMethodDuplicateNameErr
 		}
 		return nil, err
 	}
@@ -106,6 +108,12 @@ func (d DisplayMethod) GetByID(ctx context.Context, identityDID w3c.DID, id uuid
 func (d DisplayMethod) Delete(ctx context.Context, identityDID w3c.DID, id uuid.UUID) error {
 	sql := `DELETE FROM display_methods WHERE issuer_did=$1 AND id=$2`
 	tag, err := d.conn.Pgx.Exec(ctx, sql, identityDID.String(), id)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolationErrorCode {
+			return DisplayMethodAssignedErr
+		}
+	}
 	if tag.RowsAffected() == 0 {
 		return DisplayMethodNotFoundErr
 	}
