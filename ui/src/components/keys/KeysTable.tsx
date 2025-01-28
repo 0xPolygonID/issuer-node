@@ -301,6 +301,7 @@ export function KeysTable() {
           showSorterTooltip
           sortDirections={["ascend", "descend"]}
           style={{ width: "100%" }}
+          tableLayout="fixed"
         />
       }
       title={

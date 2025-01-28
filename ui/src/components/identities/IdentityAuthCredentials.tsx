@@ -228,6 +228,7 @@ export function IdentityAuthCredentials({
             rowKey="id"
             showSorterTooltip
             sortDirections={["ascend", "descend"]}
+            tableLayout="fixed"
           />
         }
         title={

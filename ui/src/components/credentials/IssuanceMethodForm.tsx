@@ -130,13 +130,15 @@ export function IssuanceMethodForm({
                     { message: VALUE_REQUIRED, required: isDirectIssue },
                     {
                       validator: (_, value: string) => {
+                        if (isLinkIssue) {
+                          return Promise.resolve(true);
+                        }
                         try {
                           DID.parse(value);
+                          return Promise.resolve(true);
                         } catch (error) {
                           return Promise.reject(error);
                         }
-
-                        return Promise.resolve(true);
                       },
                     },
                   ]}
