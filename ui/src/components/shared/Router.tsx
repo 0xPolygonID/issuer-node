@@ -23,6 +23,8 @@ import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { CreatePaymentOption } from "src/components/payments/CreatePaymentOption";
 import { PaymentOption } from "src/components/payments/PaymentOption";
 import { PaymentOptions } from "src/components/payments/PaymentOptions";
+import { PaymentRequest } from "src/components/payments/PaymentRequest";
+import { PaymentRequests } from "src/components/payments/PaymentRequests";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
 import { SchemaDetails } from "src/components/schemas/SchemaDetails";
 import { Schemas } from "src/components/schemas/Schemas";
@@ -54,6 +56,8 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   onboarding: Onboarding,
   paymentOptionDetails: PaymentOption,
   paymentOptions: PaymentOptions,
+  paymentRequestDetils: PaymentRequest,
+  paymentRequests: PaymentRequests,
   schemaDetails: SchemaDetails,
   schemas: Schemas,
 };
