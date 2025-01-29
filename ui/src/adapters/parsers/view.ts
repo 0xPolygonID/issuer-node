@@ -347,7 +347,7 @@ export const paymentOptionFormParser = getStrictParser<
       name,
       paymentOptions: paymentOptions.map(({ amount, decimals, paymentOptionID, ...other }) => ({
         ...other,
-        amount: (parseFloat(amount) * Math.pow(10, decimals)).toString(),
+        amount: BigInt(parseFloat(amount) * Math.pow(10, decimals)).toString(),
         paymentOptionID: parseInt(paymentOptionID),
       })),
     }))

@@ -88,7 +88,6 @@ export function PaymentRequestsTable() {
                 href={generatePath(ROUTES.paymentOptionDetails.path, {
                   paymentOptionID,
                 })}
-                target="_blank"
               >
                 {paymentOptionName || paymentOptionID}
               </Typography.Link>
@@ -245,6 +244,7 @@ export function PaymentRequestsTable() {
           rowKey="id"
           showSorterTooltip
           sortDirections={["ascend", "descend"]}
+          tableLayout="fixed"
         />
       }
       title={

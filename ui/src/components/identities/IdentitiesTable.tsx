@@ -222,6 +222,7 @@ export function IdentitiesTable({ handleAddIdentity }: { handleAddIdentity: () =
           rowKey="identifier"
           showSorterTooltip
           sortDirections={["ascend", "descend"]}
+          tableLayout="fixed"
         />
       }
       title={

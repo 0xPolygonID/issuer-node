@@ -218,6 +218,7 @@ export function PaymentConfigTable({
           rowKey={(record) => record.paymentOptionID}
           showSorterTooltip
           sortDirections={["ascend", "descend"]}
+          tableLayout="fixed"
         />
       }
       title={

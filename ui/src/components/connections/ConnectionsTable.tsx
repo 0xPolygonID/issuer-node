@@ -314,6 +314,7 @@ export function ConnectionsTable() {
               rowKey="id"
               showSorterTooltip
               sortDirections={["ascend", "descend"]}
+              tableLayout="fixed"
             />
           }
           title={

@@ -398,6 +398,7 @@ export function CredentialsTable() {
             rowKey="id"
             showSorterTooltip
             sortDirections={["ascend", "descend"]}
+            tableLayout="fixed"
           />
         }
         title={
