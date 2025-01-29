@@ -54,6 +54,7 @@ func (c *discovery) Agent(ctx context.Context, req *ports.AgentRequest) (*domain
 		case protocol.DiscoveryProtocolFeatureTypeAccept:
 			disclosuresToAppend, err = c.handleAccept(ctx)
 			if err != nil {
+				log.Error(ctx, "agent: handle accept error", "err", err)
 				return nil, err
 			}
 		case protocol.DiscoveryProtocolFeatureTypeGoalCode:
@@ -63,7 +64,11 @@ func (c *discovery) Agent(ctx context.Context, req *ports.AgentRequest) (*domain
 		case protocol.DiscoveryProtocolFeatureTypeHeader:
 			disclosuresToAppend = c.handleHeader(ctx)
 		}
-		disclosuresToAppend = c.handleMatch(ctx, disclosuresToAppend, query.Match)
+		disclosuresToAppend, err = c.handleMatch(disclosuresToAppend, query.Match)
+		if err != nil {
+			log.Error(ctx, "agent: handle match error", "err", err)
+			return nil, err
+		}
 		disclosures = append(disclosures, disclosuresToAppend...)
 	}
 
@@ -142,25 +147,27 @@ func (d *discovery) handleHeader(_ context.Context) []protocol.DiscoverFeatureDi
 	return disclosures
 }
 
-func wildcardToRegExp(match string) *regexp.Regexp {
+func wildcardToRegExp(match string) (*regexp.Regexp, error) {
 	// Escape special regex characters and replace `*` with `.*`
 	regexPattern := regexp.QuoteMeta(match)
 	regexPattern = strings.ReplaceAll(regexPattern, "\\*", ".*")
-	regExp, _ := regexp.Compile("^" + regexPattern + "$")
-	return regExp
+	return regexp.Compile("^" + regexPattern + "$")
 }
 
-func (d *discovery) handleMatch(_ context.Context, disclosures []protocol.DiscoverFeatureDisclosure, match string) []protocol.DiscoverFeatureDisclosure {
+func (d *discovery) handleMatch(disclosures []protocol.DiscoverFeatureDisclosure, match string) ([]protocol.DiscoverFeatureDisclosure, error) {
 	if match == "" || match == "*" {
-		return disclosures
+		return disclosures, nil
 	}
 
-	regExp := wildcardToRegExp(match)
+	regExp, err := wildcardToRegExp(match)
+	if err != nil {
+		return nil, err
+	}
 	var filtered []protocol.DiscoverFeatureDisclosure
 	for _, disclosure := range disclosures {
 		if regExp.MatchString(disclosure.ID) {
 			filtered = append(filtered, disclosure)
 		}
 	}
-	return filtered
+	return filtered, nil
 }
