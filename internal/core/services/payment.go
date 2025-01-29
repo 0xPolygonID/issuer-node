@@ -273,8 +273,8 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 
 	client, err := p.networkResolver.GetEthClientByChainID(core.ChainID(setting.ChainID))
 	if err != nil {
-		log.Error(ctx, "failed to get ethereum client from resolvers", "err", err, "key", paymentReqItem.SigningKeyID)
-		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get ethereum client from resolvers settings for key <%s>", paymentReqItem.SigningKeyID)
+		log.Error(ctx, "failed to get ethereum client from resolvers", "err", err, "chainID", setting.ChainID)
+		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get ethereum client from resolvers settings for chainID <%d>", setting.ChainID)
 	}
 
 	instance, err := abi.NewMCPayment(setting.PaymentRails, client.GetEthereumClient())
@@ -284,6 +284,7 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 
 	signerAddress, err := p.getSignerAddress(ctx, paymentReqItem.SigningKeyID)
 	if err != nil {
+		log.Error(ctx, "failed to get signer address", "err", err, "SigningKeyID", paymentReqItem.SigningKeyID)
 		return ports.BlockchainPaymentStatusPending, err
 	}
 
