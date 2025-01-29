@@ -12,7 +12,6 @@ import (
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -33,7 +32,7 @@ func NewDiscovery(mediatypeManager *MediaTypeManager, packerManager *iden3comm.P
 	return d
 }
 
-func (c *discovery) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
+func (c *discovery) Agent(ctx context.Context, req *ports.AgentRequest) (*iden3comm.BasicMessage, error) {
 	if !c.mediatypeManager.AllowMediaType(req.Type, req.Typ) {
 		err := fmt.Errorf("unsupported media type '%s' for message type '%s'", req.Typ, req.Type)
 		log.Error(ctx, "agent: unsupported media type", "err", err)
@@ -80,16 +79,22 @@ func (c *discovery) Agent(ctx context.Context, req *ports.AgentRequest) (*domain
 		to = req.UserDID.String()
 	}
 
-	return &domain.Agent{
+	body, err := json.Marshal(protocol.DiscoverFeatureDiscloseMessageBody{
+		Disclosures: disclosures,
+	})
+	if err != nil {
+		log.Error(ctx, "marshaling body", "err", err)
+		return nil, err
+	}
+
+	return &iden3comm.BasicMessage{
 		ID:       uuid.NewString(),
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.DiscoverFeatureDiscloseMessageType,
 		ThreadID: req.ThreadID,
-		Body: protocol.DiscoverFeatureDiscloseMessageBody{
-			Disclosures: disclosures,
-		},
-		From: from,
-		To:   to,
+		Body:     body,
+		From:     from,
+		To:       to,
 	}, nil
 }
 

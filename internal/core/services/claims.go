@@ -414,7 +414,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 	}, nil
 }
 
-func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest, mediatype iden3comm.MediaType) (*domain.Agent, error) {
+func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest, mediatype iden3comm.MediaType) (*iden3comm.BasicMessage, error) {
 	if !c.mediatypeManager.AllowMediaType(req.Type, mediatype) {
 		err := fmt.Errorf("unsupported media type '%s' for message type '%s'", mediatype, req.Type)
 		log.Error(ctx, "agent: unsupported media type", "err", err)
@@ -756,7 +756,7 @@ func (c *claim) canRevokeNonce(ctx context.Context, did *w3c.DID, querier db.Que
 	return canBeRevoked, nil
 }
 
-func (c *claim) getRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
+func (c *claim) getRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*iden3comm.BasicMessage, error) {
 	revData := &protocol.RevocationStatusRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, revData)
 	if err != nil {
@@ -769,18 +769,24 @@ func (c *claim) getRevocationStatus(ctx context.Context, basicMessage *ports.Age
 		return nil, fmt.Errorf("failed get revocation status: %w", err)
 	}
 
-	return &domain.Agent{
+	body, err := json.Marshal(protocol.RevocationStatusResponseMessageBody{RevocationStatus: *revStatus})
+	if err != nil {
+		log.Error(ctx, "marshaling body", "err", err)
+		return nil, err
+	}
+
+	return &iden3comm.BasicMessage{
 		ID:       uuid.NewString(),
 		Type:     protocol.RevocationStatusResponseMessageType,
 		ThreadID: basicMessage.ThreadID,
-		Body:     protocol.RevocationStatusResponseMessageBody{RevocationStatus: *revStatus},
+		Body:     body,
 		From:     basicMessage.IssuerDID.String(),
 		To:       basicMessage.UserDID.String(),
 		Typ:      packers.MediaTypePlainMessage,
 	}, nil
 }
 
-func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
+func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*iden3comm.BasicMessage, error) {
 	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
 	if err != nil {
@@ -815,12 +821,17 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
 	}
 
-	return &domain.Agent{
+	body, err := json.Marshal(protocol.IssuanceMessageBody{Credential: *vc})
+	if err != nil {
+		log.Error(ctx, "marshaling body", "err", err)
+		return nil, err
+	}
+	return &iden3comm.BasicMessage{
 		ID:       uuid.NewString(),
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.CredentialIssuanceResponseMessageType,
 		ThreadID: basicMessage.ThreadID,
-		Body:     protocol.IssuanceMessageBody{Credential: *vc},
+		Body:     body,
 		From:     basicMessage.IssuerDID.String(),
 		To:       basicMessage.UserDID.String(),
 	}, err

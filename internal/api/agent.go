@@ -3,9 +3,9 @@ package api
 import (
 	"context"
 
+	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -23,7 +23,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil
 	}
 
-	var agent *domain.Agent
+	var response *iden3comm.BasicMessage
 
 	if basicMessage.Type == protocol.DiscoverFeatureQueriesMessageType {
 		req, err := ports.NewDiscoveryAgentRequest(basicMessage)
@@ -32,7 +32,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 		}
 
-		agent, err = s.discoveryService.Agent(ctx, req)
+		response, err = s.discoveryService.Agent(ctx, req)
 		if err != nil {
 			log.Error(ctx, "agent error", "err", err)
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
@@ -45,7 +45,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 		}
 
-		agent, err = s.claimService.Agent(ctx, req, mediatype)
+		response, err = s.claimService.Agent(ctx, req, mediatype)
 		if err != nil {
 			log.Error(ctx, "agent error", "err", err)
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
@@ -53,13 +53,13 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 	}
 
 	return Agent200JSONResponse{
-		Body:     agent.Body,
-		From:     agent.From,
-		Id:       agent.ID,
-		ThreadID: agent.ThreadID,
-		To:       agent.To,
-		Typ:      string(agent.Typ),
-		Type:     string(agent.Type),
+		Body:     response.Body,
+		From:     response.From,
+		Id:       response.ID,
+		ThreadID: response.ThreadID,
+		To:       response.To,
+		Typ:      string(response.Typ),
+		Type:     string(response.Type),
 	}, nil
 }
 

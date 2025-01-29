@@ -5,15 +5,14 @@ import (
 	"fmt"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
-
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
 // DiscoveryService is the interface implemented by the discovery service
 type DiscoveryService interface {
-	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)
+	Agent(ctx context.Context, req *AgentRequest) (*iden3comm.BasicMessage, error)
 }
 
 // NewDiscoveryAgentRequest validates the inputs and returns a new AgentRequest
