@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
-	"github.com/iden3/iden3comm/v2/protocol"
 )
 
 // NewAgentRequest validates the inputs and returns a new AgentRequest
@@ -34,10 +33,6 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	ID, err := uuid.Parse(basicMessage.ID)
 	if err != nil {
 		return nil, err
-	}
-
-	if basicMessage.Type != protocol.CredentialFetchRequestMessageType && basicMessage.Type != protocol.RevocationStatusRequestMessageType {
-		return nil, fmt.Errorf("invalid type")
 	}
 
 	if basicMessage.ID == "" {
