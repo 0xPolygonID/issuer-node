@@ -415,6 +415,14 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 }
 
 func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest, mediatype iden3comm.MediaType) (*iden3comm.BasicMessage, error) {
+	if req.UserDID == nil {
+		return nil, fmt.Errorf("'from' field cannot be empty")
+	}
+
+	if req.IssuerDID == nil {
+		return nil, fmt.Errorf("'to' field cannot be empty")
+	}
+
 	if !c.mediatypeManager.AllowMediaType(req.Type, mediatype) {
 		err := fmt.Errorf("unsupported media type '%s' for message type '%s'", mediatype, req.Type)
 		log.Error(ctx, "agent: unsupported media type", "err", err)

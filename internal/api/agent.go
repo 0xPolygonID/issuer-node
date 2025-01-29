@@ -25,31 +25,28 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 
 	var response *iden3comm.BasicMessage
 
-	if basicMessage.Type == protocol.DiscoverFeatureQueriesMessageType {
-		req, err := ports.NewDiscoveryAgentRequest(basicMessage)
-		if err != nil {
-			log.Error(ctx, "agent parsing request", "err", err)
-			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
-		}
-
+	req, err := ports.NewAgentRequest(basicMessage)
+	if err != nil {
+		log.Error(ctx, "agent parsing request", "err", err)
+		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
+	}
+	switch basicMessage.Type {
+	case protocol.DiscoverFeatureQueriesMessageType:
 		response, err = s.discoveryService.Agent(ctx, req)
 		if err != nil {
 			log.Error(ctx, "agent error", "err", err)
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 		}
 
-	} else {
-		req, err := ports.NewAgentRequest(basicMessage)
-		if err != nil {
-			log.Error(ctx, "agent parsing request", "err", err)
-			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
-		}
-
+	case protocol.CredentialFetchRequestMessageType:
+	case protocol.RevocationStatusRequestMessageType:
 		response, err = s.claimService.Agent(ctx, req, mediatype)
 		if err != nil {
 			log.Error(ctx, "agent error", "err", err)
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 		}
+	default:
+		log.Error(ctx, "agent error", "err", "type is not supported", basicMessage.Type)
 	}
 
 	return Agent200JSONResponse{
