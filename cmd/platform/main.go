@@ -125,6 +125,7 @@ func main() {
 		map[iden3comm.ProtocolMessage][]string{
 			iden3commProtocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			iden3commProtocol.RevocationStatusRequestMessageType: {"*"},
+			iden3commProtocol.DiscoverFeatureQueriesMessageType:  {"*"},
 		},
 		*cfg.MediaTypeManager.Enabled,
 	)
@@ -168,6 +169,7 @@ func main() {
 	}
 	keyService := services.NewKey(keyStore, claimsService, keyRepository)
 	transactionService, err := gateways.NewTransaction(*networkResolver)
+	discoveryService := services.NewDiscovery(mediaTypeManager, packageManager, mediaTypeManager.GetSupportedProtocolMessages())
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
 		return
@@ -209,7 +211,7 @@ func main() {
 
 	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, displayMethodService, keyService, paymentService),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, displayMethodService, keyService, paymentService, discoveryService),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

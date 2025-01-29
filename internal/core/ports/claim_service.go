@@ -11,7 +11,6 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
 	comm "github.com/iden3/iden3comm/v2"
-	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
@@ -51,7 +50,7 @@ type AgentRequest struct {
 	ThreadID  string
 	IssuerDID *w3c.DID
 	UserDID   *w3c.DID
-	ClaimID   uuid.UUID
+	ID        uuid.UUID
 	Typ       comm.MediaType
 	Type      comm.ProtocolMessage
 }
@@ -153,54 +152,6 @@ func NewCreateClaimRequest(did *w3c.DID, claimID *uuid.UUID, credentialSchema st
 	return req
 }
 
-// NewAgentRequest validates the inputs and returns a new AgentRequest
-func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
-	if basicMessage.To == "" {
-		return nil, fmt.Errorf("'to' field cannot be empty")
-	}
-
-	toDID, err := w3c.ParseDID(basicMessage.To)
-	if err != nil {
-		return nil, err
-	}
-
-	if basicMessage.From == "" {
-		return nil, fmt.Errorf("'from' field cannot be empty")
-	}
-
-	fromDID, err := w3c.ParseDID(basicMessage.From)
-	if err != nil {
-		return nil, err
-	}
-
-	if basicMessage.ID == "" {
-		return nil, fmt.Errorf("'id' field cannot be empty")
-	}
-
-	claimID, err := uuid.Parse(basicMessage.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	if basicMessage.Type != protocol.CredentialFetchRequestMessageType && basicMessage.Type != protocol.RevocationStatusRequestMessageType {
-		return nil, fmt.Errorf("invalid type")
-	}
-
-	if basicMessage.ID == "" {
-		return nil, fmt.Errorf("'id' field cannot be empty")
-	}
-
-	return &AgentRequest{
-		Body:      basicMessage.Body,
-		UserDID:   fromDID,
-		IssuerDID: toDID,
-		ThreadID:  basicMessage.ThreadID,
-		ClaimID:   claimID,
-		Typ:       basicMessage.Typ,
-		Type:      basicMessage.Type,
-	}, nil
-}
-
 // GetCredentialQrCodeResponse is the response of the GetCredentialQrCode method
 type GetCredentialQrCodeResponse struct {
 	DeepLink      string
@@ -221,7 +172,7 @@ type ClaimService interface {
 	GetRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*domain.Claim, error)
 	GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (*GetCredentialQrCodeResponse, error)
-	Agent(ctx context.Context, req *AgentRequest, mediatype iden3comm.MediaType) (*domain.Agent, error)
+	Agent(ctx context.Context, req *AgentRequest, mediatype iden3comm.MediaType) (*iden3comm.BasicMessage, error)
 	GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error)
 	GetFirstNonRevokedAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error)
 	GetAuthClaimForPublishing(ctx context.Context, did *w3c.DID, state string) (*domain.Claim, error)

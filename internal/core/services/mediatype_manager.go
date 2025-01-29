@@ -36,3 +36,12 @@ func (m *MediaTypeManager) AllowMediaType(protoclMessage iden3comm.ProtocolMessa
 	}
 	return false
 }
+
+// GetSupportedProtocolMessages returns the supported by Agent protocol messages
+func (m *MediaTypeManager) GetSupportedProtocolMessages() []iden3comm.ProtocolMessage {
+	var supportedProtocolMessages []iden3comm.ProtocolMessage
+	for key := range m.allowList {
+		supportedProtocolMessages = append(supportedProtocolMessages, key)
+	}
+	return supportedProtocolMessages
+}
