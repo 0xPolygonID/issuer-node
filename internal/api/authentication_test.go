@@ -199,7 +199,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				qrWithLink: true,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/public/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
@@ -217,7 +217,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				qrWithLink: true,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/public/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
@@ -235,7 +235,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				qrWithLink: false,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/public/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},

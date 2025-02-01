@@ -47,3 +47,38 @@ func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreReque
 	}
 	return NewQrContentResponse(body), nil
 }
+
+// GetQrFromStorePublic is the controller to get qr bodies
+func (s *Server) GetQrFromStorePublic(ctx context.Context, request GetQrFromStorePublicRequestObject) (GetQrFromStorePublicResponseObject, error) {
+	req := GetQrFromStoreRequestObject{
+		Params: GetQrFromStoreParams{
+			Id:     request.Params.Id,
+			Issuer: request.Params.Issuer,
+		},
+	}
+	resp, err := s.GetQrFromStore(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	switch response := resp.(type) {
+	case GetQrFromStore400JSONResponse:
+		return GetQrFromStorePublic400JSONResponse(response), nil
+	case GetQrFromStore404JSONResponse:
+		return GetQrFromStorePublic404JSONResponse(response), nil
+	case GetQrFromStore410JSONResponse:
+		return GetQrFromStorePublic410JSONResponse(response), nil
+	case GetQrFromStore500JSONResponse:
+		return GetQrFromStorePublic500JSONResponse(response), nil
+	case GetQrFromStoreResponseObject:
+		r, ok := resp.(GetQrFromStorePublicResponseObject)
+		if !ok {
+			log.Error(ctx, "unexpected response type", "response", response)
+			return GetQrFromStorePublic500JSONResponse{N500JSONResponse{"unexpected response type"}}, nil
+		}
+		return r, nil
+	default:
+		log.Error(ctx, "unexpected response type", "response", response)
+		return GetQrFromStorePublic500JSONResponse{N500JSONResponse{"unexpected response type"}}, nil
+	}
+}
