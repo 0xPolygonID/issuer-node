@@ -38,8 +38,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 		}
 
-	case protocol.CredentialFetchRequestMessageType:
-	case protocol.RevocationStatusRequestMessageType:
+	case protocol.CredentialFetchRequestMessageType, protocol.RevocationStatusRequestMessageType:
 		response, err = s.claimService.Agent(ctx, req, mediatype)
 		if err != nil {
 			log.Error(ctx, "agent error", "err", err)
