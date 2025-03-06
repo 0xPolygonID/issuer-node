@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/stale@v8
         with:
-          exempt-issue-labels: "enhancement"
+          exempt-issue-labels: 'bug,enhancement'
           stale-issue-message: 'This issue is stale because it has been open 20 days with no activity. Remove stale label, add the enhancement label or comment to avoid closing it in 10 days.'
           close-issue-message: 'This issue was closed because it has been stalled for 10 days with no activity.'
           days-before-stale: 20
