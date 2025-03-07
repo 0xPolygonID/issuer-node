@@ -1737,7 +1737,25 @@ paths:
      security:
        - basicAuth: [ ]
      parameters:
-       - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathIdentifier'
+        - name: userDID
+          in: query
+          description: Filter by user DID
+          required: false
+          schema:
+            type: string
+        - name: schemaID
+          in: query
+          description: Filter by schema ID (Context + Type)
+          required: false
+          schema:
+            type: string
+        - name: nonce
+          in: query
+          description: Filter by nonce
+          required: false
+          schema:
+            type: string
      responses:
        '200':
          description: Payment Requests

@@ -149,7 +149,12 @@ func (s *Server) GetPaymentRequests(ctx context.Context, request GetPaymentReque
 		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
 		return GetPaymentRequests400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
 	}
-	paymentRequests, err := s.paymentService.GetPaymentRequests(ctx, issuerDID)
+	queryParams := domain.PaymentRequestsQueryParams{
+		UserDID:  request.Params.UserDID,
+		SchemaID: request.Params.SchemaID,
+		Nonce:    request.Params.Nonce,
+	}
+	paymentRequests, err := s.paymentService.GetPaymentRequests(ctx, issuerDID, &queryParams)
 	if err != nil {
 		return GetPaymentRequests500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-requests: %s", err)}}, nil
 	}

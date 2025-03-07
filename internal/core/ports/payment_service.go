@@ -41,7 +41,7 @@ type CreatePaymentRequestReq struct {
 // PaymentService is the interface implemented by the payment service
 type PaymentService interface {
 	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq) (*domain.PaymentRequest, error)
-	GetPaymentRequests(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentRequest, error)
+	GetPaymentRequests(ctx context.Context, issuerDID *w3c.DID, queryParams *domain.PaymentRequestsQueryParams) ([]domain.PaymentRequest, error)
 	GetPaymentRequest(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error)
 	DeletePaymentRequest(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)

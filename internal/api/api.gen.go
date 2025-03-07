@@ -987,6 +987,18 @@ type UpdateKeyJSONBody struct {
 	Name string `json:"name"`
 }
 
+// GetPaymentRequestsParams defines parameters for GetPaymentRequests.
+type GetPaymentRequestsParams struct {
+	// UserDID Filter by user DID
+	UserDID *string `form:"userDID,omitempty" json:"userDID,omitempty"`
+
+	// SchemaID Filter by schema ID (Context + Type)
+	SchemaID *string `form:"schemaID,omitempty" json:"schemaID,omitempty"`
+
+	// Nonce Filter by nonce
+	Nonce *string `form:"nonce,omitempty" json:"nonce,omitempty"`
+}
+
 // GetSchemasParams defines parameters for GetSchemas.
 type GetSchemasParams struct {
 	// Query Query string to do full text search in schema types and attributes.
@@ -1223,7 +1235,7 @@ type ServerInterface interface {
 	UpdateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
 	// Get Payment Requests
 	// (GET /v2/identities/{identifier}/payment-request)
-	GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetPaymentRequestsParams)
 	// Create Payment Request
 	// (POST /v2/identities/{identifier}/payment-request)
 	CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -1541,7 +1553,7 @@ func (_ Unimplemented) UpdateKey(w http.ResponseWriter, r *http.Request, identif
 
 // Get Payment Requests
 // (GET /v2/identities/{identifier}/payment-request)
-func (_ Unimplemented) GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+func (_ Unimplemented) GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetPaymentRequestsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3272,8 +3284,35 @@ func (siw *ServerInterfaceWrapper) GetPaymentRequests(w http.ResponseWriter, r *
 
 	r = r.WithContext(ctx)
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPaymentRequestsParams
+
+	// ------------- Optional query parameter "userDID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userDID", r.URL.Query(), &params.UserDID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userDID", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "schemaID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "schemaID", r.URL.Query(), &params.SchemaID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "schemaID", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "nonce" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "nonce", r.URL.Query(), &params.Nonce)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetPaymentRequests(w, r, identifier)
+		siw.Handler.GetPaymentRequests(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6132,6 +6171,7 @@ func (response UpdateKey500JSONResponse) VisitUpdateKeyResponse(w http.ResponseW
 
 type GetPaymentRequestsRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
+	Params     GetPaymentRequestsParams
 }
 
 type GetPaymentRequestsResponseObject interface {
@@ -8466,10 +8506,11 @@ func (sh *strictHandler) UpdateKey(w http.ResponseWriter, r *http.Request, ident
 }
 
 // GetPaymentRequests operation middleware
-func (sh *strictHandler) GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+func (sh *strictHandler) GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetPaymentRequestsParams) {
 	var request GetPaymentRequestsRequestObject
 
 	request.Identifier = identifier
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetPaymentRequests(ctx, request.(GetPaymentRequestsRequestObject))

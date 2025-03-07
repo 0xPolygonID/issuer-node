@@ -100,3 +100,10 @@ type PaymentOptionConfigItem struct {
 	SigningKeyID    string                      `json:"SigningKeyID"`
 	Expiration      *time.Time                  `json:"expiration"`
 }
+
+// PaymentRequestsQueryParams represents the parameters to filter payment requests
+type PaymentRequestsQueryParams struct {
+	UserDID  *string `json:"userDID,omitempty"`
+	SchemaID *string `json:"schemaID,omitempty"`
+	Nonce    *string `json:"nonce,omitempty"`
+}
