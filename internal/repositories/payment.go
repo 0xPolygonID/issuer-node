@@ -229,27 +229,29 @@ WHERE pr.issuer_did = $1
 	args := []interface{}{issuerDID.String()}
 	argIndex := 2
 
-	if queryParams.UserDID != nil {
-		query += fmt.Sprintf(" AND pr.user_did = $%d", argIndex)
-		args = append(args, *queryParams.UserDID)
-		argIndex++
-	}
-	if queryParams.SchemaID != nil {
-		exptectedParts := 2
-		parts := strings.SplitN(*queryParams.SchemaID, "#", exptectedParts)
-		if len(parts) != exptectedParts {
-			return nil, fmt.Errorf("invalid SchemaID format, expected 'context#type'")
+	if queryParams != nil {
+		if queryParams.UserDID != nil {
+			query += fmt.Sprintf(" AND pr.user_did = $%d", argIndex)
+			args = append(args, *queryParams.UserDID)
+			argIndex++
 		}
-		context, schemaType := parts[0], parts[1]
+		if queryParams.SchemaID != nil {
+			exptectedParts := 2
+			parts := strings.SplitN(*queryParams.SchemaID, "#", exptectedParts)
+			if len(parts) != exptectedParts {
+				return nil, fmt.Errorf("invalid SchemaID format, expected 'context#type'")
+			}
+			context, schemaType := parts[0], parts[1]
 
-		query += fmt.Sprintf(" AND pr.credentials @> jsonb_build_array(jsonb_build_object('context', $%d::text, 'type', $%d::text))::jsonb", argIndex, argIndex+1)
-		args = append(args, context, schemaType)
-		argIndex += 2
-	}
+			query += fmt.Sprintf(" AND pr.credentials @> jsonb_build_array(jsonb_build_object('context', $%d::text, 'type', $%d::text))::jsonb", argIndex, argIndex+1)
+			args = append(args, context, schemaType)
+			argIndex += 2
+		}
 
-	if queryParams.Nonce != nil {
-		query += fmt.Sprintf(" AND pri.nonce::text = $%d", argIndex)
-		args = append(args, *queryParams.Nonce)
+		if queryParams.Nonce != nil {
+			query += fmt.Sprintf(" AND pri.nonce::text = $%d", argIndex)
+			args = append(args, *queryParams.Nonce)
+		}
 	}
 	query += `
 		GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.user_did, pr.payment_option_id, pr.created_at
