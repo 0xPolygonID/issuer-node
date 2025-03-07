@@ -375,7 +375,7 @@ func TestPayment_GetManyPaymentRequests(t *testing.T) {
 		ids = append(ids, pr.ID.String())
 	}
 
-	all, err := repo.GetAllPaymentRequests(ctx, *issuerID)
+	all, err := repo.GetAllPaymentRequests(ctx, *issuerID, nil)
 	require.NoError(t, err)
 	require.Len(t, all, len(ids))
 	for _, pr := range all {

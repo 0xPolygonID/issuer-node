@@ -43,7 +43,7 @@ func (p *payment) SavePaymentRequest(ctx context.Context, req *domain.PaymentReq
 	const (
 		insertPaymentRequest = `
 INSERT 
-INTO payment_requests (id, credentials, description, issuer_did, recipient_did, payment_option_id, created_at, modified_at, status, paid_nonce)
+INTO payment_requests (id, credentials, description, issuer_did, user_did, payment_option_id, created_at, modified_at, status, paid_nonce)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
 		insertPaymentRequestItem = `
 INSERT
@@ -94,7 +94,7 @@ VALUES ($1, $2, $3, $4, $5, $6);`
 // GetPaymentRequestByID returns a payment request by ID
 func (p *payment) GetPaymentRequestByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error) {
 	const query = `
-SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pr.modified_at, pr.status, pr.paid_nonce, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
+SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.user_did,  pr.payment_option_id, pr.created_at, pr.modified_at, pr.status, pr.paid_nonce, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
 WHERE pr.issuer_did = $1 AND pr.id = $2;`
@@ -196,13 +196,13 @@ func (p *payment) DeletePaymentRequest(ctx context.Context, issuerDID w3c.DID, i
 }
 
 // GetAllPaymentRequests returns all payment requests
-func (p *payment) GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID) ([]domain.PaymentRequest, error) {
-	const query = `
+func (p *payment) GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID, queryParams *domain.PaymentRequestsQueryParams) ([]domain.PaymentRequest, error) {
+	query := `
 SELECT pr.id, 
     pr.description, 
     pr.credentials, 
     pr.issuer_did, 
-    pr.recipient_did,  
+    pr.user_did,  
     pr.payment_option_id, 
     pr.created_at, 
 	pr.modified_at,
@@ -224,9 +224,38 @@ SELECT pr.id,
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
 WHERE pr.issuer_did = $1
-GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did, pr.payment_option_id, pr.created_at
 `
-	rows, err := p.conn.Pgx.Query(ctx, query, issuerDID.String())
+
+	args := []interface{}{issuerDID.String()}
+	argIndex := 2
+
+	if queryParams.UserDID != nil {
+		query += fmt.Sprintf(" AND pr.user_did = $%d", argIndex)
+		args = append(args, *queryParams.UserDID)
+		argIndex++
+	}
+	if queryParams.SchemaID != nil {
+		exptectedParts := 2
+		parts := strings.SplitN(*queryParams.SchemaID, "#", exptectedParts)
+		if len(parts) != exptectedParts {
+			return nil, fmt.Errorf("invalid SchemaID format, expected 'context#type'")
+		}
+		context, schemaType := parts[0], parts[1]
+
+		query += fmt.Sprintf(" AND pr.credentials @> jsonb_build_array(jsonb_build_object('context', $%d::text, 'type', $%d::text))::jsonb", argIndex, argIndex+1)
+		args = append(args, context, schemaType)
+		argIndex += 2
+	}
+
+	if queryParams.Nonce != nil {
+		query += fmt.Sprintf(" AND pri.nonce::text = $%d", argIndex)
+		args = append(args, *queryParams.Nonce)
+	}
+	query += `
+		GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.user_did, pr.payment_option_id, pr.created_at
+	`
+
+	rows, err := p.conn.Pgx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
