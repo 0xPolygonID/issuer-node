@@ -1746,10 +1746,14 @@ paths:
             type: string
         - name: schemaID
           in: query
-          description: Filter by schema ID (Context + Type)
+          description: Filter by schema ID (schemas UUID)
           required: false
           schema:
             type: string
+            x-go-type: uuid.UUID
+            x-go-type-import:
+              name: uuid
+              path: github.com/google/uuid
         - name: nonce
           in: query
           description: Filter by nonce
@@ -2946,6 +2950,9 @@ components:
           enum: [ not-verified, success, failed, pending, canceled ]
         paidNonce:
           type: string
+        schemaID:
+          type: string
+          format: uuid
 
     PaymentRequestInfo:
       type: object

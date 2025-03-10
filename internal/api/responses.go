@@ -383,6 +383,7 @@ func toCreatePaymentRequestResponse(ctx context.Context, payReq *domain.PaymentR
 		UserDID:         payReq.UserDID.String(),
 		PaymentOptionID: payReq.PaymentOptionID,
 		Payments:        []PaymentRequestInfo{payment},
+		SchemaID:        payReq.SchemaID,
 	}
 	return resp
 }

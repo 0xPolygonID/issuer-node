@@ -16,7 +16,7 @@ import (
 type PaymentRequest struct {
 	ID              uuid.UUID
 	Credentials     []protocol.PaymentRequestInfoCredentials
-	SchemaID        uuid.UUID
+	SchemaID        *uuid.UUID
 	Description     string
 	IssuerDID       w3c.DID
 	UserDID         w3c.DID
@@ -104,7 +104,7 @@ type PaymentOptionConfigItem struct {
 
 // PaymentRequestsQueryParams represents the parameters to filter payment requests
 type PaymentRequestsQueryParams struct {
-	UserDID  *string `json:"userDID,omitempty"`
-	SchemaID *string `json:"schemaID,omitempty"`
-	Nonce    *string `json:"nonce,omitempty"`
+	UserDID  *string    `json:"userDID,omitempty"`
+	SchemaID *uuid.UUID `json:"schemaID,omitempty"`
+	Nonce    *string    `json:"nonce,omitempty"`
 }

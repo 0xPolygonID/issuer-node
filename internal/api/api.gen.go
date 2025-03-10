@@ -380,6 +380,7 @@ type CreatePaymentRequestResponse struct {
 	PaidNonce       *string                            `json:"paidNonce,omitempty"`
 	PaymentOptionID openapi_types.UUID                 `json:"paymentOptionID"`
 	Payments        []PaymentRequestInfo               `json:"payments"`
+	SchemaID        *openapi_types.UUID                `json:"schemaID,omitempty"`
 	Status          CreatePaymentRequestResponseStatus `json:"status"`
 	UserDID         string                             `json:"userDID"`
 }
@@ -992,8 +993,8 @@ type GetPaymentRequestsParams struct {
 	// UserDID Filter by user DID
 	UserDID *string `form:"userDID,omitempty" json:"userDID,omitempty"`
 
-	// SchemaID Filter by schema ID (Context + Type)
-	SchemaID *string `form:"schemaID,omitempty" json:"schemaID,omitempty"`
+	// SchemaID Filter by schema ID (schemas UUID)
+	SchemaID *uuid.UUID `form:"schemaID,omitempty" json:"schemaID,omitempty"`
 
 	// Nonce Filter by nonce
 	Nonce *string `form:"nonce,omitempty" json:"nonce,omitempty"`
