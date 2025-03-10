@@ -43,8 +43,8 @@ func (p *payment) SavePaymentRequest(ctx context.Context, req *domain.PaymentReq
 	const (
 		insertPaymentRequest = `
 INSERT 
-INTO payment_requests (id, credentials, description, issuer_did, user_did, payment_option_id, created_at, modified_at, status, paid_nonce)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
+INTO payment_requests (id, credentials, schema_id, description, issuer_did, user_did, payment_option_id, created_at, modified_at, status, paid_nonce)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`
 		insertPaymentRequestItem = `
 INSERT
 INTO payment_request_items (id, nonce, payment_request_id, payment_option_id, payment_request_info, signing_key)
@@ -60,6 +60,7 @@ VALUES ($1, $2, $3, $4, $5, $6);`
 	_, err = tx.Exec(ctx, insertPaymentRequest,
 		req.ID,
 		req.Credentials,
+		req.SchemaID,
 		req.Description,
 		req.IssuerDID.String(),
 		req.UserDID.String(),
@@ -236,16 +237,9 @@ WHERE pr.issuer_did = $1
 			argIndex++
 		}
 		if queryParams.SchemaID != nil {
-			exptectedParts := 2
-			parts := strings.SplitN(*queryParams.SchemaID, "#", exptectedParts)
-			if len(parts) != exptectedParts {
-				return nil, fmt.Errorf("invalid SchemaID format, expected 'context#type'")
-			}
-			context, schemaType := parts[0], parts[1]
-
-			query += fmt.Sprintf(" AND pr.credentials @> jsonb_build_array(jsonb_build_object('context', $%d::text, 'type', $%d::text))::jsonb", argIndex, argIndex+1)
-			args = append(args, context, schemaType)
-			argIndex += 2
+			query += fmt.Sprintf(" AND pr.schema_id = $%d", argIndex)
+			args = append(args, queryParams.SchemaID)
+			argIndex++
 		}
 
 		if queryParams.Nonce != nil {

@@ -16,6 +16,7 @@ import (
 type PaymentRequest struct {
 	ID              uuid.UUID
 	Credentials     []protocol.PaymentRequestInfoCredentials
+	SchemaID        uuid.UUID
 	Description     string
 	IssuerDID       w3c.DID
 	UserDID         w3c.DID

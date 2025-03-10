@@ -156,6 +156,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 				Type:    schema.Type,
 			},
 		},
+		SchemaID:        schema.ID,
 		Description:     req.Description,
 		PaymentOptionID: req.OptionID,
 		CreatedAt:       createTime,
