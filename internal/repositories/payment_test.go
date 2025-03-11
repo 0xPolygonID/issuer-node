@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
@@ -317,7 +318,7 @@ func TestPayment_GetPaymentRequestByID(t *testing.T) {
 	fixture.CreateIdentity(t, &domain.Identity{Identifier: issuerID.String()})
 	paymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
 	require.NoError(t, err)
-	expected := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, paymentOptionID, 10)
+	expected := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, paymentOptionID, 10, nil)
 
 	t.Run("Get payment request", func(t *testing.T) {
 		paymentRequest, err := repo.GetPaymentRequestByID(ctx, expected.IssuerDID, expected.ID)
@@ -349,7 +350,7 @@ func TestPayment_GetPaymentRequestItem(t *testing.T) {
 
 	payymentOptionID, err := repo.SavePaymentOption(ctx, domain.NewPaymentOption(*issuerID, "name"+uuid.NewString(), "description", &domain.PaymentOptionConfig{}))
 	require.NoError(t, err)
-	expected := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, payymentOptionID, 10)
+	expected := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, payymentOptionID, 10, nil)
 
 	t.Run("Get payment request item", func(t *testing.T) {
 		paymentRequestItem, err := repo.GetPaymentRequestItem(ctx, *issuerID, &expected.Payments[0].Nonce)
@@ -371,7 +372,7 @@ func TestPayment_GetManyPaymentRequests(t *testing.T) {
 	require.NoError(t, err)
 	ids := make([]string, 0)
 	for i := 0; i < 10; i++ {
-		pr := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, paymentOptionID, 10)
+		pr := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, paymentOptionID, 10, nil)
 		ids = append(ids, pr.ID.String())
 	}
 
@@ -381,4 +382,62 @@ func TestPayment_GetManyPaymentRequests(t *testing.T) {
 	for _, pr := range all {
 		assert.True(t, slices.Contains(ids, pr.ID.String()))
 	}
+
+	// search by user DID
+	userDIDString := "did:iden3:polygon:amoy:xBBTMzDnifT3VucYSUnQt8PyRmVSPKnVEwyBeH6B5"
+	userDID, err := w3c.ParseDID(userDIDString)
+	require.NoError(t, err)
+	prUserSearch := fixture.CreatePaymentRequest(t, *issuerID, *userDID, paymentOptionID, 1, nil)
+	userPayment, err := repo.GetAllPaymentRequests(ctx, *issuerID, &domain.PaymentRequestsQueryParams{
+		UserDID: &userDIDString,
+	})
+	require.NoError(t, err)
+	require.Len(t, userPayment, 1)
+	assert.Equal(t, prUserSearch.ID, userPayment[0].ID)
+
+	// search by schema ID
+	s := &domain.Schema{
+		ID:        uuid.New(),
+		IssuerDID: *issuerID,
+		URL:       "https://domain.org/this/is/an/url",
+		Type:      "schemaType",
+		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+		CreatedAt: time.Now(),
+	}
+	fixture.CreateSchema(t, ctx, s)
+	prSchemaSearch := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, paymentOptionID, 1, &s.ID)
+	schemaPayment, err := repo.GetAllPaymentRequests(ctx, *issuerID, &domain.PaymentRequestsQueryParams{
+		SchemaID: &s.ID,
+	})
+	require.NoError(t, err)
+	require.Len(t, schemaPayment, 1)
+	assert.Equal(t, prSchemaSearch.ID, schemaPayment[0].ID)
+
+	// search by nonce
+	prNonceSearch := fixture.CreatePaymentRequest(t, *issuerID, *issuerID, paymentOptionID, 1, nil)
+	nonce := prNonceSearch.Payments[0].Nonce.String()
+	noncePayment, err := repo.GetAllPaymentRequests(ctx, *issuerID, &domain.PaymentRequestsQueryParams{
+		Nonce: &nonce,
+	})
+	require.NoError(t, err)
+	require.Len(t, noncePayment, 1)
+	assert.Equal(t, prNonceSearch.ID, noncePayment[0].ID)
+
+	// search by non existed userDID
+	noncePayment, err = repo.GetAllPaymentRequests(ctx, *issuerID, &domain.PaymentRequestsQueryParams{
+		UserDID: common.ToPointer("did:polygonid:polygon:amoy:2qVXETy9QdEE7KB8BeMCNuYgAjZj8j5CfqURAxvUsN"),
+	})
+	require.NoError(t, err)
+	require.Len(t, noncePayment, 0)
+
+	// search by all params:
+	allParamsSearch := fixture.CreatePaymentRequest(t, *issuerID, *userDID, paymentOptionID, 1, &s.ID)
+	allParamsPayment, err := repo.GetAllPaymentRequests(ctx, *issuerID, &domain.PaymentRequestsQueryParams{
+		UserDID:  &userDIDString,
+		SchemaID: &s.ID,
+		Nonce:    common.ToPointer(allParamsSearch.Payments[0].Nonce.String()),
+	})
+	require.NoError(t, err)
+	require.Len(t, allParamsPayment, 1)
+	assert.Equal(t, allParamsSearch.ID, allParamsPayment[0].ID)
 }
