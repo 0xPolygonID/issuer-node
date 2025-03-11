@@ -88,7 +88,7 @@ func (d *configDecoder) Decode() (*Config, error) {
 			return nil, fmt.Errorf("invalid payment rails address: %s", chainConfig.PaymentRails)
 		}
 		for _, option := range chainConfig.PaymentOptions {
-			if _, found := cfg[OptionConfigIDType(id)]; found {
+			if _, found := cfg[OptionConfigIDType(option.ID)]; found {
 				return nil, fmt.Errorf("duplicate payment option id: %d", id)
 			}
 			if !common.IsHexAddress(option.ContractAddress) && strings.TrimSpace(option.ContractAddress) != "" {

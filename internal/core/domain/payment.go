@@ -16,6 +16,7 @@ import (
 type PaymentRequest struct {
 	ID              uuid.UUID
 	Credentials     []protocol.PaymentRequestInfoCredentials
+	SchemaID        *uuid.UUID
 	Description     string
 	IssuerDID       w3c.DID
 	UserDID         w3c.DID
@@ -99,4 +100,11 @@ type PaymentOptionConfigItem struct {
 	Recipient       common.Address              `json:"Recipient"`
 	SigningKeyID    string                      `json:"SigningKeyID"`
 	Expiration      *time.Time                  `json:"expiration"`
+}
+
+// PaymentRequestsQueryParams represents the parameters to filter payment requests
+type PaymentRequestsQueryParams struct {
+	UserDID  *string    `json:"userDID,omitempty"`
+	SchemaID *uuid.UUID `json:"schemaID,omitempty"`
+	Nonce    *string    `json:"nonce,omitempty"`
 }

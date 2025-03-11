@@ -18,7 +18,7 @@ import (
 )
 
 // CreatePaymentRequest creates a new payment request fixture to be used on tests
-func (f *Fixture) CreatePaymentRequest(t *testing.T, issuerDID, userDID w3c.DID, paymentOptionID uuid.UUID, nPayments int) *domain.PaymentRequest {
+func (f *Fixture) CreatePaymentRequest(t *testing.T, issuerDID, userDID w3c.DID, paymentOptionID uuid.UUID, nPayments int, schemaID *uuid.UUID) *domain.PaymentRequest {
 	t.Helper()
 
 	var paymentList []domain.PaymentRequestItem
@@ -73,6 +73,7 @@ func (f *Fixture) CreatePaymentRequest(t *testing.T, issuerDID, userDID w3c.DID,
 		PaymentOptionID: paymentOptionID,
 		Payments:        paymentList,
 		CreatedAt:       time.Now(),
+		SchemaID:        schemaID,
 	}
 
 	_, err := f.paymentRepository.SavePaymentRequest(context.Background(), paymentRequest)

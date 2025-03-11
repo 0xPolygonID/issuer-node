@@ -1737,7 +1737,29 @@ paths:
      security:
        - basicAuth: [ ]
      parameters:
-       - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathIdentifier'
+        - name: userDID
+          in: query
+          description: Filter by user DID
+          required: false
+          schema:
+            type: string
+        - name: schemaID
+          in: query
+          description: Filter by schema ID (schemas UUID)
+          required: false
+          schema:
+            type: string
+            x-go-type: uuid.UUID
+            x-go-type-import:
+              name: uuid
+              path: github.com/google/uuid
+        - name: nonce
+          in: query
+          description: Filter by nonce
+          required: false
+          schema:
+            type: string
      responses:
        '200':
          description: Payment Requests
@@ -2928,6 +2950,9 @@ components:
           enum: [ not-verified, success, failed, pending, canceled ]
         paidNonce:
           type: string
+        schemaID:
+          type: string
+          format: uuid
 
     PaymentRequestInfo:
       type: object

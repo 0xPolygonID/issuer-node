@@ -43,8 +43,8 @@ func (p *payment) SavePaymentRequest(ctx context.Context, req *domain.PaymentReq
 	const (
 		insertPaymentRequest = `
 INSERT 
-INTO payment_requests (id, credentials, description, issuer_did, recipient_did, payment_option_id, created_at, modified_at, status, paid_nonce)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
+INTO payment_requests (id, credentials, schema_id, description, issuer_did, user_did, payment_option_id, created_at, modified_at, status, paid_nonce)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`
 		insertPaymentRequestItem = `
 INSERT
 INTO payment_request_items (id, nonce, payment_request_id, payment_option_id, payment_request_info, signing_key)
@@ -60,6 +60,7 @@ VALUES ($1, $2, $3, $4, $5, $6);`
 	_, err = tx.Exec(ctx, insertPaymentRequest,
 		req.ID,
 		req.Credentials,
+		req.SchemaID,
 		req.Description,
 		req.IssuerDID.String(),
 		req.UserDID.String(),
@@ -94,7 +95,7 @@ VALUES ($1, $2, $3, $4, $5, $6);`
 // GetPaymentRequestByID returns a payment request by ID
 func (p *payment) GetPaymentRequestByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error) {
 	const query = `
-SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,  pr.payment_option_id, pr.created_at, pr.modified_at, pr.status, pr.paid_nonce, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
+SELECT pr.id, pr.description, pr.credentials, pr.issuer_did, pr.user_did,  pr.payment_option_id, pr.created_at, pr.modified_at, pr.status, pr.paid_nonce, pri.id, pri.nonce, pri.payment_request_id, pri.payment_request_info, pri.payment_option_id, pri.signing_key
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
 WHERE pr.issuer_did = $1 AND pr.id = $2;`
@@ -196,13 +197,14 @@ func (p *payment) DeletePaymentRequest(ctx context.Context, issuerDID w3c.DID, i
 }
 
 // GetAllPaymentRequests returns all payment requests
-func (p *payment) GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID) ([]domain.PaymentRequest, error) {
-	const query = `
+func (p *payment) GetAllPaymentRequests(ctx context.Context, issuerDID w3c.DID, queryParams *domain.PaymentRequestsQueryParams) ([]domain.PaymentRequest, error) {
+	query := `
 SELECT pr.id, 
     pr.description, 
     pr.credentials, 
+	pr.schema_id, 
     pr.issuer_did, 
-    pr.recipient_did,  
+    pr.user_did,  
     pr.payment_option_id, 
     pr.created_at, 
 	pr.modified_at,
@@ -224,9 +226,33 @@ SELECT pr.id,
 FROM payment_requests pr
 LEFT JOIN payment_request_items pri ON pr.id = pri.payment_request_id
 WHERE pr.issuer_did = $1
-GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did, pr.payment_option_id, pr.created_at
 `
-	rows, err := p.conn.Pgx.Query(ctx, query, issuerDID.String())
+
+	args := []interface{}{issuerDID.String()}
+	argIndex := 2
+
+	if queryParams != nil {
+		if queryParams.UserDID != nil {
+			query += fmt.Sprintf(" AND pr.user_did = $%d", argIndex)
+			args = append(args, *queryParams.UserDID)
+			argIndex++
+		}
+		if queryParams.SchemaID != nil {
+			query += fmt.Sprintf(" AND pr.schema_id = $%d", argIndex)
+			args = append(args, queryParams.SchemaID)
+			argIndex++
+		}
+
+		if queryParams.Nonce != nil {
+			query += fmt.Sprintf(" AND pri.nonce::text = $%d", argIndex)
+			args = append(args, *queryParams.Nonce)
+		}
+	}
+	query += `
+		GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.user_did, pr.payment_option_id, pr.created_at
+	`
+
+	rows, err := p.conn.Pgx.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -243,6 +269,7 @@ GROUP BY pr.id, pr.description, pr.credentials, pr.issuer_did, pr.recipient_did,
 			&pr.ID,
 			&pr.Description,
 			&paymentCredentials,
+			&pr.SchemaID,
 			&strIssuerDID,
 			&strUserDID,
 			&pr.PaymentOptionID,

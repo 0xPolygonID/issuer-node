@@ -156,6 +156,7 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 				Type:    schema.Type,
 			},
 		},
+		SchemaID:        &schema.ID,
 		Description:     req.Description,
 		PaymentOptionID: req.OptionID,
 		CreatedAt:       createTime,
@@ -201,8 +202,8 @@ func (p *payment) CreatePaymentRequest(ctx context.Context, req *ports.CreatePay
 }
 
 // GetPaymentRequests returns all payment requests of a issuer
-func (p *payment) GetPaymentRequests(ctx context.Context, issuerDID *w3c.DID) ([]domain.PaymentRequest, error) {
-	paymentRequests, err := p.paymentsStore.GetAllPaymentRequests(ctx, *issuerDID)
+func (p *payment) GetPaymentRequests(ctx context.Context, issuerDID *w3c.DID, queryParams *domain.PaymentRequestsQueryParams) ([]domain.PaymentRequest, error) {
+	paymentRequests, err := p.paymentsStore.GetAllPaymentRequests(ctx, *issuerDID, queryParams)
 	if err != nil {
 		log.Error(ctx, "failed to get payment requests", "err", err, "issuerDID", issuerDID)
 		return nil, fmt.Errorf("failed to get payment requests: %w", err)
