@@ -24,12 +24,12 @@ require (
 	github.com/iden3/contracts-abi/multi-chain-payment/go/abi v0.0.0-20250116162607-8fec43acf817
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20230911112726-4533c5701af1
-	github.com/iden3/driver-did-iden3 v0.0.7
-	github.com/iden3/go-circuits/v2 v2.4.0
-	github.com/iden3/go-iden3-auth/v2 v2.6.0
-	github.com/iden3/go-iden3-core/v2 v2.3.1
+	github.com/iden3/driver-did-iden3 v0.0.9
+	github.com/iden3/go-circuits/v2 v2.4.1
+	github.com/iden3/go-iden3-auth/v2 v2.7.2
+	github.com/iden3/go-iden3-core/v2 v2.3.2
 	github.com/iden3/go-iden3-crypto v0.0.17
-	github.com/iden3/go-jwz/v2 v2.2.0
+	github.com/iden3/go-jwz/v2 v2.2.1
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
 	github.com/iden3/go-merkletree-sql/v2 v2.0.6
 	github.com/iden3/go-rapidsnark/prover v0.0.12
@@ -37,8 +37,8 @@ require (
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b
 	github.com/iden3/go-schema-processor v1.3.1
-	github.com/iden3/go-schema-processor/v2 v2.6.1
-	github.com/iden3/iden3comm/v2 v2.10.0
+	github.com/iden3/go-schema-processor/v2 v2.6.2
+	github.com/iden3/iden3comm/v2 v2.10.2
 	github.com/iden3/merkletree-proof v0.3.0
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.3
