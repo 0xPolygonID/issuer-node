@@ -118,7 +118,7 @@ export function CredentialsTable() {
       title: "Credential",
     },
     {
-      dataIndex: "createdAt",
+      dataIndex: "issuanceDate",
       key: "createdAt",
       render: (issuanceDate: Credential["issuanceDate"]) => (
         <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
@@ -130,7 +130,7 @@ export function CredentialsTable() {
       title: ISSUE_DATE,
     },
     {
-      dataIndex: "expiresAt",
+      dataIndex: "expirationDate",
       key: "expiresAt",
       render: (expirationDate: Credential["expirationDate"], credential: Credential) =>
         expirationDate ? (
@@ -229,7 +229,14 @@ export function CredentialsTable() {
             ? maxResults.toString()
             : DEFAULT_PAGINATION_MAX_RESULTS.toString()
         );
-        const newSorters = sorters || parseSorters(sortParam);
+        const fieldMap: Record<string, string> = {
+          issuanceDate: "createdAt",
+          expirationDate: "expiresAt",
+        };
+        const newSorters = (sorters || parseSorters(sortParam)).map((s) => ({
+          ...s,
+          field: fieldMap[s.field] ?? s.field,
+        }));
         newSorters.length > 0
           ? params.set(SORT_PARAM, serializeSorters(newSorters))
           : params.delete(SORT_PARAM);
