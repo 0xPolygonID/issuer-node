@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.redisIssuerNode.service.name }}
+  labels: 
+    {{ include "privadoid-issuer.redisIssuerNode.staticLabel" . }}
+    {{- include "privadoid-issuer.redisIssuerNode.common.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "privadoid-issuer.redisIssuerNode.Labels" . | nindent 4 }}
+    {{- include "privadoid-issuer.redisIssuerNode.selectorLabels" . | nindent 4 }}
+  {{- with .Values.redisIssuerNode.service.ports }}
+  ports: 
+    {{-  toYaml . | nindent 2 }}
+  {{- end }}

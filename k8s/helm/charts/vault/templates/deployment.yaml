@@ -1,22 +1,22 @@
 
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Values.vaultIssuerNode.deployment.name }}
   labels:
-    {{- include "polygon-id-issuer.vaultIssuerNode.deploymentLabels" . | nindent 4 }}
-    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+    {{- include "privadoid-issuer.vaultIssuerNode.deploymentLabels" . | nindent 4 }}
+    {{- include "privadoid-issuer.vaultIssuerNode.common.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.vaultIssuerNode.deployment.replicaCount }}
   selector:
     matchLabels:
-      {{- include "polygon-id-issuer.vaultIssuerNode.Labels" . | nindent 6 }}
-      {{- include "polygon-id-issuer.selectorLabels" . | nindent 6 }}
+      {{- include "privadoid-issuer.vaultIssuerNode.Labels" . | nindent 6 }}
+      {{- include "privadoid-issuer.vaultIssuerNode.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "polygon-id-issuer.vaultIssuerNode.Labels" . | nindent 8 }}
-        {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+        {{- include "privadoid-issuer.vaultIssuerNode.Labels" . | nindent 8 }}
+        {{- include "privadoid-issuer.vaultIssuerNode.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "helpers.serviceAccountName" . }}
       containers:

@@ -1,0 +1,15 @@
+ingress:
+  enabled: true
+  name: issuer-node-ingress
+  annotations:
+  uihost: 
+    paths:
+      - path: /
+        serviceName: ui-issuer-node-svc
+        servicePort: 8080
+
+  apihost:
+    paths:
+      - path: /
+        serviceName: api-issuer-node-svc
+        servicePort: 3001

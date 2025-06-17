@@ -1,0 +1,14 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: privado-id-staging
+  namespace: issuer-node  # Must be the same as ingress
+spec:
+  secretName: wildcard-privado-id-staging-tls
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+  commonName: "*.privado.id"
+  dnsNames:
+  - "*.privado.id"

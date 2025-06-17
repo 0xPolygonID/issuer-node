@@ -2,25 +2,18 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: app-ingress
-  labels:
-    {{- include "polygon-id-issuer.staticLabel" . | nindent 4 }}
-    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- toYaml $.Values.ingress.annotations | nindent 4 }}
-  {{- end }}
-    cert-manager.io/cluster-issuer: <your-deployed-cert-issuer>
-
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - {{ .Values.uidomain }}
-        - {{ .Values.apidomain }}
-      secretName: <secret-name-with-tls-certificate>
+        - {{ .Values.global.uidomain }}
+        - {{ .Values.global.apidomain }}
+      secretName: wildcard-privado-id-prod-tls
       
   rules:
-  - host: {{ .Values.uidomain }}
+  - host: {{ .Values.global.uidomain }}
     http:
       paths:
         {{- range .Values.ingress.uihost.paths }}
@@ -34,7 +27,7 @@ spec:
           {{- end }}
 
 
-  - host: {{ .Values.apidomain }}
+  - host: {{ .Values.global.apidomain }}
     http:
       paths:
         {{- range .Values.ingress.apihost.paths }}
