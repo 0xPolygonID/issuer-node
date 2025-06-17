@@ -38,7 +38,6 @@ export UI_INSECURE=true                                 # Set as true if the ui 
 export ISSUERNAME="My Issuer"                           # Issuer Name. This value is shown in the UI
 export VAULT_PWD=password                               # Vault password to anable issuer node to connect with vault. Put the password you want to use.
 export ISSUER_RESOLVER_FILE="cG9XYZ0K+"                 # Base64 encoded string of the resolver file. You can take a look at the resolver file [here](../../resolvers_settings_sample.yaml)
-export ISSUER_PAYMENTS_SETTINGS_FILE="cG9XYZ0K+"        # Base64 encoded string of payments settings file. You can  take a look at this file [here](../../payment_settings.yaml)
 ```
 
 ## Install the helm chart
@@ -54,6 +53,5 @@ helm install "$APP_INSTANCE_NAME" . \
 --set issuerName="$ISSUERNAME" \
 --set global.vaultpwd="$VAULT_PWD" \
 --set issuerUiInsecure=$UI_INSECURE \
---set issuerResolverFile="$ISSUER_RESOLVER_FILE" \
---set issuerPaymentsSettingsFile="$ISSUER_PAYMENTS_SETTINGS_FILE"
+--set issuerResolverFile="$ISSUER_RESOLVER_FILE"
 ```

@@ -31,7 +31,8 @@ data:
   ISSUER_VAULT_USERPASS_AUTH_PASSWORD: {{ .Values.global.vaultpwd | quote }}
   ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH : {{ .Values.apiIssuerNode.configMap.issuerCredentialStatusPublishingKeyPath | quote }}
   ISSUER_RESOLVER_FILE : {{ .Values.issuerResolverFile | quote }}
-  ISSUER_PAYMENTS_SETTINGS_FILE : {{ .Values.issuerPaymentsSettingsFile | quote }}
+  ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH: {{ .Values.apiIssuerNode.configMap.issuerKMSProviderLocalStorageFilePath | quote }}
+  ISSUER_PAYMENTS_SETTINGS_FILE: {{ .Values.apiIssuerNode.configMap.issuerPaymentsSettingsFile | quote }}
   
 
   
