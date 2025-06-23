@@ -3,8 +3,8 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.uiIssuerNode.configMap.issuerApiUiName  }}
   labels:
-    {{- include "polygon-id-issuer.staticLabel" . | nindent 4 }}
-    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+    {{- include "privadoid-issuer.staticLabel" . | nindent 4 }}
+    {{- include "privadoid-issuer.labels" . | nindent 4 }}
 data:
   ISSUER_SERVER_URL: {{ include "helpers.api-server-url" . | nindent 4}}
   ISSUER_UI_BLOCK_EXPLORER_URL: {{ include "helpers.issuer-block-explorer" . | nindent 4}}

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim 
+metadata:
+  name: issuer-node-localstorage-pv
+  labels:
+  {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+spec:
+  storageClassName: longhorn
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi

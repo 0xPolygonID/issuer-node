@@ -16,10 +16,11 @@ const keysPathPrefix = "keys/"
 const kvStoragePath = "secret"
 
 const (
-	jsonKeyType   = "key_type"
-	jsonKeyData   = "key_data"
-	defaultLength = 32
-	partsNumber   = 2
+	jsonKeyType    = "key_type"
+	jsonKeyData    = "key_data"
+	jsonPrivateKey = "private_key"
+	defaultLength  = 32
+	partsNumber    = 2
 	// LocalStorageFileName is the name of the file where the keys are stored
 	LocalStorageFileName = "kms_localstorage_keys.json"
 )
@@ -70,14 +71,6 @@ func keyPath(identity *w3c.DID, keyType KeyType, keyID string) string {
 		basePath = identityPath(identity) + "/"
 	}
 	return basePath + string(keyType) + ":" + keyID
-}
-
-func keyPathForAws(identity *w3c.DID, keyType KeyType, keyID string) string {
-	basePath := ""
-	if identity != nil {
-		basePath = identityPath(identity) + "/"
-	}
-	return basePath + string(keyType) + keyID
 }
 
 func absVaultSecretPath(path string) string {

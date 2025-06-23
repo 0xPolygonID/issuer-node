@@ -1,7 +1,20 @@
+global:
+  vaultpwd: pepe
+  uidomain: ui.issuernode.polygonid.me
+  apidomain: api.issuernode.polygonid.me
+
 issuernode_repository_image: privadoid/issuernode-api
 issuernode_repository_tag: latest
 issuernode_ui_repository_image: privadoid/issuernode-ui
 issuernode_ui_repository_tag: latest
+uiPassword: password
+issuerUiInsecure: false
+issuerName: "My Issuer!"
+ingressEnabled: true
+privateKey:
+namespace: issuer-node
+issuerResolverFile: ""
+
 
 apiIssuerNode:
   deployment:
@@ -57,16 +70,15 @@ apiIssuerNode:
     issuerNativeProofGenerationEnabled: "true"
     issuerOnchainCheckStatusFrequency: 1m
     issuerOnchainPublishStateFrequency: 1m
-    issuerProverTimeout: 600s
     issuerPublishKeyPath: pbkey
     issuerRedisUrl: redis://@redis-issuer-node-svc:6379/1
     issuerReverseHashServiceEnabled: "false"
     issuerServerPort: "3001"
-    issuerServerUrl: http://localhost:3001          
     issuerName: issuer-node-api-configmap
     issuerVaultUserpassAuthEnabled: "true"
     issuerCredentialStatusPublishingKeyPath: pbkey
     issuerIpfsGatewayUrl: https://gateway.pinata.cloud
+    issuerKMSProviderLocalStorageFilePath: /localstoragekeys
   
 notificationsIssuerNode:
   deployment:
@@ -128,256 +140,9 @@ uiIssuerNode:
     issuerApiUiName: issuer-node-ui-configmap
     issuerUiSchemaExplorerAndBuilderUrl: https://tools.privado.id
 
-postgresIssuerNode:
-  deployment:
-    replicaCount: 1
-    name: postgres-issuer-node
-    image:
-      repository: postgres
-      tag: '14-alpine'
-    imagePullPolicy: IfNotPresent
-    volumeMounts:
-    - name: postgresdata
-      mountPath: /var/lib/postgresql/data
-    - name: postgres-initdb
-      mountPath: /docker-entrypoint-initdb.d
-    labels: 
-      app: postgres-issuer-node-deployment
-    postgresconfigMapRef: postgres-secret
-    containerPort: 5432
-    containerName: postgres
-    volumeName: postgres-initdb
-    items: init.sql
-  service:
-    name: postgres-issuer-node-svc
-    ports:
-    - port: 5432
-      protocol: TCP
-      targetPort: 5432
-    selector: postgres-issuer-node
-  configMap:
-    initSql: |-
-      ALTER USER polygonid SUPERUSER;
-    postgresDb: platformid
-    postgresPassword: strongpasswordapp
-    postgresUser: polygonid
-    postgresName: postgres-secret  
-  pvc:
-    storageRequest: 5Gi
-    volumeName: postgresdata
-    postgres: postgresql-issuer-node-pvc
-
-redisIssuerNode:
-  deployment:
-    replicaCount: 1
-    name: redis-issuer-node
-    image:
-      repository: redis
-      tag: 'alpine'
-    resources:
-      limits:
-        cpu: "1"
-        memory: 2Gi
-      requests:
-        cpu: "0.5"
-        memory: 1Gi  
-    labels: 
-      app: redis-issuer-node
-    containerPort: 6379
-    containerName: redis
-  service:
-    name: redis-issuer-node-svc
-    ports:
-    - port: 6379
-      protocol: TCP
-      targetPort: 6379
-    selector: redis-issuer-node
-    
-vaultIssuerNode:
-  deployment:
-    replicaCount: 1
-    name: vault-issuer-node
-    labels: 
-      app: vault-issuer-node-deployment
-    containerPort: 8200
-    containerName: vault
-    command:  
-      - '"sh", "-c", "/vault/config/init.sh"' 
-    volumeMounts:
-    - name: vault-volume
-      mountPath: /vault/plugins
-    - name: vault-volume
-      mountPath: /vault/data
-    - name: vault-volume
-      mountPath: /vault/file
-    - name: vault-config
-      mountPath: /vault/config
-    vault:
-      containerSecurityContext:
-        capabilities:
-          add: IPC_LOCK
-      env:
-        name1: VAULT_ADDR
-        vaultAddr: http://127.0.0.1:8200
-        name2: PRIVATE_KEY
-        secretKeyRef: 
-          name: private-key-secret
-          key: private-key
-      image:
-        repository: hashicorp/vault
-        tag: '1.14.0'
-      imagePullPolicy: IfNotPresent
-  pvc:
-    storageRequest: 250Mi
-    volumeName: vault-volume
-    vault: vault-issuer-node-pvc
-  service:
-    name: vault-issuer-node-svc
-    ports:
-    - port: 8200
-      protocol: TCP
-      targetPort: 8200
-    selector: vault-issuer-node
-  configMap:
-    vaultConfigName: vault-config
-    vaultConfigPath1: vault.json
-    vaultConfigPath2: init.sh
-    vaultConfigPath3: policies.hcl
-    initSh: |-
-
-      #!/bin/sh
-      echo "VAULT CONFIGURATION SCRIPT"
-      echo "===================================";
-
-      vault server -config=/vault/config/vault.json 1>&1 2>&1 &
-
-      # export VAULT_SKIP_VERIFY='true'
-
-      export VAULT_ADDR=http://127.0.0.1:8200
-      # Parse unsealed keys
-      sleep 5
-
-      FILE=/vault/data/init.out
-      if [ ! -e "$FILE" ]; then
-          echo -e "===== Initialize the Vault ====="
-          vault operator init > /vault/data/init.out
-      fi
-
-      UNSEAL_KEY_1=$(grep "Unseal Key 1" /vault/data/init.out | cut -c 15-)
-      UNSEAL_KEY_2=$(grep "Unseal Key 2" /vault/data/init.out | cut -c 15-)
-      UNSEAL_KEY_3=$(grep "Unseal Key 3" /vault/data/init.out | cut -c 15-)
-      UNSEAL_KEY_4=$(grep "Unseal Key 4" /vault/data/init.out | cut -c 15-)
-      UNSEAL_KEY_5=$(grep "Unseal Key 5" /vault/data/init.out | cut -c 15-)
-
-      TOKEN=$(grep "Token" /vault/data/init.out | cut -c 21-)
-
-      echo -e "\n===== Unseal the Vault ====="
-
-      vault operator unseal $UNSEAL_KEY_1
-      vault operator unseal $UNSEAL_KEY_2
-      vault operator unseal $UNSEAL_KEY_3
-
-      vault login $TOKEN
-      vault secrets enable -path=secret/ kv-v2
-      echo -e "\n===== ENABLED KV secrets ====="
-
-      IDEN3_PLUGIN_PATH="/vault/plugins/vault-plugin-secrets-iden3"
-
-      if [ ! -e "$IDEN3_PLUGIN_PATH" ]; then
-        echo "===== IDEN3 Plugin not found: downloading... ====="
-          IDEN3_PLUGIN_ARCH=amd64
-          IDEN3_PLUGIN_VERSION=0.0.6
-          if [ `uname -m` == "aarch64" ]; then
-              IDEN3_PLUGIN_ARCH=arm64
-          fi
-          VAULT_IDEN3_PLUGIN_URL="https://github.com/iden3/vault-plugin-secrets-iden3/releases/download/v${IDEN3_PLUGIN_VERSION}/vault-plugin-secrets-iden3_${IDEN3_PLUGIN_VERSION}_linux_${IDEN3_PLUGIN_ARCH}.tar.gz"
-          wget -q -O - ${VAULT_IDEN3_PLUGIN_URL} | tar -C /vault/plugins -xzf - vault-plugin-secrets-iden3
-      fi
-
-      apk add -q openssl
-      IDEN3_PLUGIN_SHA256=`openssl dgst -r -sha256 ${IDEN3_PLUGIN_PATH} | awk '{print $1}'`
-      vault plugin register -sha256=$IDEN3_PLUGIN_SHA256 vault-plugin-secrets-iden3
-      vault secrets enable -path=iden3 vault-plugin-secrets-iden3
-      vault secrets enable -path=kv kv-v2
-      chmod 755 /vault/file -R
-
-      vault write iden3/import/pbkey key_type=ethereum private_key=$PRIVATE_KEY
-
-      echo "===== ENABLED IDEN3 ====="
-      export vault_token="token:${TOKEN}"
-      echo $vault_token
-      
-      echo "===== CREATE POLICIES ====="
-      vault policy write issuernode /vault/config/policies.hcl
-
-      echo "===== CREATE USERS ====="
-      vault auth enable userpass
-      vault write auth/userpass/users/issuernode \
-          password={{ .Values.vaultpwd }} \
-          policies="issuernode"
-
-      echo "===== TEST LOGIN ====="
-      vault login -method=userpass username=issuernode password={{ .Values.vaultpwd }}
-    
-      tail -f /dev/null  
-    vaultJson: |-
-      {                                    
-      "listener":  {                     
-        "tcp":  {                        
-          "address":  "0.0.0.0:8200",  
-          "tls_disable":  "true"         
-        }                                
-      },                                 
-      "backend": {                       
-        "file": {                        
-          "path": "/vault/file"          
-        }                                
-      },                                 
-      "default_lease_ttl": "168h",       
-      "max_lease_ttl": "0h",
-      "api_addr": "http://0.0.0.0:8200",
-      "plugin_directory" : "/vault/plugins",
-      "disable_mlock": true
-      }
-    policieshcl: |-
-      path "iden3/*" {
-        capabilities = ["create", "read", "update", "delete", "list"]
-      }
-
-      path "kv/*" {
-        capabilities = ["create", "read", "update", "delete", "list"]
-      }
-
 secrets:
   name: private-key-secret
   type: Opaque
 
-ingress:
-  enabled: true
-  name: issuer-node-ingress
-  annotations:
-  uihost: 
-    paths:
-      - path: /
-        serviceName: ui-issuer-node-svc
-        servicePort: 8080
-
-  apihost:
-    paths:
-      - path: /
-        serviceName: api-issuer-node-svc
-        servicePort: 3001
 
 
-uidomain: ui.issuernode.polygonid.me
-apidomain: api.issuernode.polygonid.me
-
-publicIP: nil
-uiPassword: password
-issuerUiInsecure: false
-issuerName: "My Issuer!"
-ingressEnabled: false
-privateKey: metamask private key
-vaultpwd: pepe
-namespace: default
-issuerResolverFile: ""

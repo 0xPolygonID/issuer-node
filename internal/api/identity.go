@@ -2,11 +2,13 @@ package api
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
 	"slices"
 	"strings"
+	"time"
 
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -209,6 +211,24 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 				credStatusType := GetIdentitiesResponseCredentialStatusType(credentialStatus.Type)
 				authBjjCredStatus = &credStatusType
 			}
+		} else {
+			// this case handle eth identity without published auth claim
+			authClaim, err := s.claimService.GetFirstNonRevokedAuthClaim(ctx, did)
+			if err != nil {
+				log.Error(ctx, "get identities. Getting first non revoked auth claim", "err", err)
+				return GetIdentities500JSONResponse{N500JSONResponse{
+					Message: err.Error(),
+				}}, nil
+			}
+			credentialStatus, err := authClaim.GetCredentialStatus()
+			if err != nil {
+				log.Error(ctx, "get identities. Getting credential status", "err", err)
+				return GetIdentities500JSONResponse{N500JSONResponse{
+					Message: err.Error(),
+				}}, nil
+			}
+			credStatusType := GetIdentitiesResponseCredentialStatusType(credentialStatus.Type)
+			authBjjCredStatus = &credStatusType
 		}
 
 		items := strings.Split(identity.Identifier, ":")
@@ -228,6 +248,9 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 		})
 	}
 
+	if response == nil {
+		response = make(GetIdentities200JSONResponse, 0)
+	}
 	return response, nil
 }
 
@@ -306,7 +329,87 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 		Address:              responseAddress,
 		Balance:              responseBalance,
 		CredentialStatusType: GetIdentityDetailsResponseCredentialStatusType(identity.AuthCoreClaimRevocationStatus.Type),
+		AuthCredentialsIDs:   identity.AuthCredentialsIDs,
 	}
 
 	return response, nil
+}
+
+// CreateAuthCredential is the controller to create an auth credential
+func (s *Server) CreateAuthCredential(ctx context.Context, request CreateAuthCredentialRequestObject) (CreateAuthCredentialResponseObject, error) {
+	did := request.Identifier.w3cDID
+	decodedKeyID, err := b64.StdEncoding.DecodeString(request.Body.KeyID)
+	if err != nil {
+		log.Error(ctx, "decoding base64 key id", "err", err)
+		return CreateAuthCredential400JSONResponse{
+			N400JSONResponse{
+				Message: "error decoding base64 key id",
+			},
+		}, nil
+	}
+
+	var credentialStatusType *verifiable.CredentialStatusType
+	credentialStatusType, err = validateStatusType(common.ToPointer(string(request.Body.CredentialStatusType)))
+	if err != nil {
+		return CreateAuthCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		return CreateAuthCredential400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	}
+
+	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		return CreateAuthCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+	}
+
+	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings.Mode, *credentialStatusType) {
+		log.Warn(ctx, "unsupported credential status type", "req", request)
+		return CreateAuthCredential400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", *credentialStatusType)}}, nil
+	}
+
+	var expiration *time.Time
+	if request.Body.Expiration != nil {
+		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
+	}
+
+	autCredentialID, err := s.identityService.CreateAuthCredential(ctx, request.Identifier.w3cDID, string(decodedKeyID), request.Body.RevNonce, expiration, request.Body.Version, *credentialStatusType)
+	if err != nil {
+		log.Error(ctx, "creating auth credential", "err", err)
+		if errors.Is(err, services.ErrDuplicatedHash) {
+			message := fmt.Sprintf("%s. This means an auth credential was already created with this key", err.Error())
+			return CreateAuthCredential400JSONResponse{
+				N400JSONResponse{
+					Message: message,
+				},
+			}, nil
+		}
+
+		if errors.Is(err, services.ErrInvalidKeyType) {
+			return CreateAuthCredential400JSONResponse{
+				N400JSONResponse{
+					Message: "invalid key type. Only BJJ keys are supported",
+				},
+			}, nil
+		}
+
+		if errors.Is(err, services.ErrKeyNotFound) {
+			return CreateAuthCredential400JSONResponse{
+				N400JSONResponse{
+					Message: "key not found",
+				},
+			}, nil
+		}
+
+		return CreateAuthCredential500JSONResponse{
+			N500JSONResponse{
+				Message: err.Error(),
+			},
+		}, nil
+	}
+
+	return CreateAuthCredential201JSONResponse{
+		Id: autCredentialID,
+	}, nil
 }

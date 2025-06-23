@@ -1,5 +1,5 @@
+import { buildAppError } from "src/adapters/parsers";
 import { AppError } from "src/domain";
-import { buildAppError } from "src/utils/error";
 
 type SuccessResponse<D> = {
   data: D;

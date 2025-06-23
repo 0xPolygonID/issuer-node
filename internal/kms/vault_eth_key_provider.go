@@ -101,7 +101,10 @@ func (v *vaultETHKeyProvider) Sign(_ context.Context, keyID KeyID, data []byte) 
 	}
 
 	sig, err := crypto.Sign(data, privKey)
-	return sig, errors.WithStack(err)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return sig, nil
 }
 
 func (v *vaultETHKeyProvider) ListByIdentity(_ context.Context, identity w3c.DID) ([]KeyID, error) {
@@ -188,6 +191,15 @@ func (v *vaultETHKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	keyID.ID = keyPath(identity, v.keyType, pubKeyHex)
 
 	return keyID, saveKeyMaterial(v.vaultCli, keyID.ID, keyMaterial)
+}
+
+func (v *vaultETHKeyProvider) Delete(ctx context.Context, keyID KeyID) error {
+	_, err := v.vaultCli.Logical().Delete(absVaultSecretPath(keyID.ID))
+	return err
+}
+
+func (v *vaultETHKeyProvider) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	return false, errors.New("not implemented")
 }
 
 // NewVaultEthProvider creates new provider for Ethereum keys stored in vault

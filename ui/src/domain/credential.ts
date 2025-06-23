@@ -1,3 +1,5 @@
+import { DisplayMethodType } from "src/domain/display-method";
+import { CredentialStatusType } from "src/domain/identity";
 export type CredentialsTabIDs = "issued" | "links";
 
 export enum ProofType {
@@ -10,12 +12,27 @@ export type RefreshService = {
   type: "Iden3RefreshService2023";
 };
 
+export type CredentialDisplayMethod = {
+  id: string;
+  type: DisplayMethodType;
+};
+
+export type CredentialStatus = {
+  revocationNonce: number;
+  type: CredentialStatusType;
+};
+
 export type Credential = {
+  credentialStatus: CredentialStatus;
   credentialSubject: Record<string, unknown>;
+  displayMethod: CredentialDisplayMethod | null;
   expirationDate: Date | null;
   expired: boolean;
   id: string;
   issuanceDate: Date;
+  proof: Array<{
+    type: ProofType;
+  }> | null;
   proofTypes: ProofType[];
   refreshService: RefreshService | null;
   revNonce: number;
@@ -24,6 +41,14 @@ export type Credential = {
   schemaType: string;
   schemaUrl: string;
   userID: string;
+};
+
+export type AuthCredential = Omit<Credential, "credentialSubject"> & {
+  credentialSubject: {
+    x: bigint;
+    y: bigint;
+  };
+  published: boolean;
 };
 
 export type IssuedMessage = {
@@ -39,11 +64,13 @@ export type Link = {
   credentialExpiration: Date | null;
   credentialSubject: Record<string, unknown>;
   deepLink: string;
+  displayMethod: CredentialDisplayMethod | null;
   expiration: Date | null;
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
   proofTypes: ProofType[];
+  refreshService: RefreshService | null;
   schemaHash: string;
   schemaType: string;
   schemaUrl: string;

@@ -21,6 +21,7 @@ import {
   credentialStatusParser,
   getCredentials,
 } from "src/adapters/api/credentials";
+import { notifyErrors, notifyParseError } from "src/adapters/parsers";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
@@ -49,7 +50,6 @@ import {
   REVOCATION,
   REVOKE,
 } from "src/utils/constants";
-import { notifyParseError, notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable({ userID }: { userID: string }) {
@@ -76,11 +76,17 @@ export function CredentialsTable({ userID }: { userID: string }) {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
       key: "schemaType",
-      render: (schemaType: Credential["schemaType"]) => (
-        <Tooltip placement="topLeft" title={schemaType}>
-          <Typography.Text strong>{schemaType}</Typography.Text>
-        </Tooltip>
+      render: (schemaType: Credential["schemaType"], credential: Credential) => (
+        <Typography.Link
+          onClick={() =>
+            navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: credential.id }))
+          }
+          strong
+        >
+          {schemaType}
+        </Typography.Link>
       ),
+
       sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
       title: "Credential",
     },
@@ -199,7 +205,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             data: response.data.items.successful,
             status: "successful",
           });
-          notifyParseErrors(response.data.items.failed);
+          void notifyErrors(response.data.items.failed);
         } else {
           if (!isAbortedError(response.error)) {
             setCredentials({ error: response.error, status: "failed" });
@@ -215,7 +221,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
     if (parsedCredentialStatus.success) {
       setCredentialStatus(parsedCredentialStatus.data);
     } else {
-      notifyParseError(parsedCredentialStatus.error);
+      void notifyParseError(parsedCredentialStatus.error);
     }
   };
 
@@ -254,14 +260,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         showDefaultContents={showDefaultContent}
         table={
           <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
-              ),
-              ...column,
-            }))}
+            columns={tableColumns}
             dataSource={credentialsList}
             locale={{
               emptyText:
@@ -275,6 +274,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             rowKey="id"
             showSorterTooltip
             sortDirections={["ascend", "descend"]}
+            tableLayout="fixed"
           />
         }
         title={

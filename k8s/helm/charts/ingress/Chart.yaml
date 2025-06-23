@@ -1,0 +1,5 @@
+apiVersion: v2
+name: ingress
+version: 0.1.0
+description: A subchart for deploying traefik with Ingress resources
+appVersion: "1.0"

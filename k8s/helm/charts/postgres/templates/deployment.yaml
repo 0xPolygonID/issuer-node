@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.postgresIssuerNode.deployment.name }}
+  labels:
+    {{- include "privadoid-issuer.postgresIssuerNode.deploymentLabels" . | nindent 4 }}
+    {{- include "privadoid-issuer.postgresIssuerNode.common.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.postgresIssuerNode.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "privadoid-issuer.postgresIssuerNode.Labels" . | nindent 6 }}
+      {{- include "privadoid-issuer.postgresIssuerNode.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "privadoid-issuer.postgresIssuerNode.Labels" . | nindent 8 }}
+        {{- include "privadoid-issuer.postgresIssuerNode.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "helpers.serviceAccountName" . }}
+      containers:
+        - name: {{ .Values.postgresIssuerNode.deployment.containerName }}
+          image: {{ .Values.postgresIssuerNode.deployment.image.repository }}:{{ .Values.postgresIssuerNode.deployment.image.tag }}
+          imagePullPolicy: {{ .Values.postgresIssuerNode.deployment.imagePullPolicy | quote}}
+          ports:
+          - containerPort: {{ .Values.postgresIssuerNode.deployment.containerPort }}
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.postgresIssuerNode.deployment.postgresconfigMapRef }}
+          volumeMounts: {{- toYaml .Values.postgresIssuerNode.deployment.volumeMounts | nindent 10 }}
+          env:
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
+      volumes:
+      - name: {{ .Values.postgresIssuerNode.pvc.volumeName }}
+        persistentVolumeClaim:
+            claimName: {{ .Values.postgresIssuerNode.pvc.postgres }}
+      - name: {{ .Values.postgresIssuerNode.deployment.volumeName }}
+        configMap:
+          defaultMode: 0644
+          items:
+          - key: {{ .Values.postgresIssuerNode.deployment.items }}
+            path: {{ .Values.postgresIssuerNode.deployment.items }}
+          name: {{ .Values.postgresIssuerNode.deployment.postgresconfigMapRef }}
+        

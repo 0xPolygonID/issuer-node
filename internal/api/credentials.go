@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,15 +23,23 @@ import (
 
 // DeleteCredential deletes a credential
 func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
+	did, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		return DeleteCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+
 	clID, err := uuid.Parse(request.Id)
 	if err != nil {
 		return DeleteCredential400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
 	}
 
-	err = s.claimService.Delete(ctx, clID)
+	err = s.claimService.Delete(ctx, did, clID)
 	if err != nil {
 		if errors.Is(err, services.ErrCredentialNotFound) {
 			return DeleteCredential400JSONResponse{N400JSONResponse{"The given credential does not exist"}}, nil
+		}
+		if errors.Is(err, services.ErrAuthCredentialCannotBeRevoked) {
+			return DeleteCredential400JSONResponse{N400JSONResponse{Message: "Cannot delete the only remaining authentication credential. An identity must have at least one credential"}}, nil
 		}
 		return DeleteCredential500JSONResponse{N500JSONResponse{"There was an error deleting the credential"}}, nil
 	}
@@ -68,7 +77,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	}
 
 	var credentialStatusType *verifiable.CredentialStatusType
-	credentialStatusType, err = validateStatusType((*string)(request.Body.CredentialStatusType))
+	credentialStatusType, err = s.validateStatusType(ctx, did, (*string)(request.Body.CredentialStatusType))
 	if err != nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
@@ -96,6 +105,9 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		if errors.Is(err, services.ErrLoadingSchema) {
 			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
 		}
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return CreateCredential500JSONResponse{N500JSONResponse{Message: "if this identity has keyType=ETH you must to publish the state first"}}, nil
+		}
 		errs := []error{
 			services.ErrJSONLdContext,
 			services.ErrProcessSchema,
@@ -109,6 +121,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 			services.ErrDisplayMethodLacksURL,
 			services.ErrUnsupportedDisplayMethodType,
 			services.ErrWrongCredentialSubjectID,
+			&schema.ParseClaimError{},
 		}
 		for _, e := range errs {
 			if errors.Is(err, e) {
@@ -135,6 +148,11 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 			}}, nil
 		}
 
+		if errors.Is(err, services.ErrAuthCredentialCannotBeRevoked) {
+			return RevokeCredential400JSONResponse{N400JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
 		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return RevokeCredential202JSONResponse{
@@ -330,6 +348,30 @@ func (s *Server) GetCredentialOffer(ctx context.Context, request GetCredentialOf
 		UniversalLink: qrContent,
 		SchemaType:    resp.SchemaType,
 	}, nil
+}
+
+// validateStatusType - validate credential status type.
+// If credentialStatusTypeRequest is nil or empty, it will return the credential status type from the auth claim (first non revoked).
+func (s *Server) validateStatusType(ctx context.Context, did *w3c.DID, credentialStatusTypeRequest *string) (*verifiable.CredentialStatusType, error) {
+	var credentialStatusType verifiable.CredentialStatusType
+	if credentialStatusTypeRequest != nil && *credentialStatusTypeRequest != "" {
+		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
+		if !slices.Contains(allowedCredentialStatuses, *credentialStatusTypeRequest) {
+			return nil, fmt.Errorf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *credentialStatusTypeRequest)
+		}
+		credentialStatusType = (verifiable.CredentialStatusType)(*credentialStatusTypeRequest)
+	} else {
+		credentialStatusType = verifiable.Iden3commRevocationStatusV1
+		authClaim, _ := s.claimService.GetAuthClaim(ctx, did)
+		if authClaim != nil {
+			credentialStatus, _ := authClaim.GetCredentialStatus()
+
+			if credentialStatus != nil {
+				credentialStatusType = credentialStatus.Type
+			}
+		}
+	}
+	return &credentialStatusType, nil
 }
 
 func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {

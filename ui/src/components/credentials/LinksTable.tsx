@@ -13,7 +13,6 @@ import {
   Table,
   TableColumnsType,
   Tag,
-  Tooltip,
   Typography,
 } from "antd";
 
@@ -22,6 +21,7 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLinks, linkStatusParser, updateLink } from "src/adapters/api/credentials";
+import { notifyErrors } from "src/adapters/parsers";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
@@ -46,7 +46,6 @@ import {
   STATUS,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
@@ -97,10 +96,13 @@ export function LinksTable() {
       dataIndex: "schemaType",
       ellipsis: true,
       key: "schemaType",
-      render: (schemaType: Link["schemaType"]) => (
-        <Tooltip placement="topLeft" title={schemaType}>
-          <Typography.Text strong>{schemaType}</Typography.Text>
-        </Tooltip>
+      render: (schemaType: Link["schemaType"], link: Link) => (
+        <Typography.Link
+          onClick={() => navigate(generatePath(ROUTES.linkDetails.path, { linkID: link.id }))}
+          strong
+        >
+          {schemaType}
+        </Typography.Link>
       ),
       sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
       title: "Credential",
@@ -231,7 +233,7 @@ export function LinksTable() {
 
       if (response.success) {
         setLinks({ data: response.data.successful, status: "successful" });
-        notifyParseErrors(response.data.failed);
+        void notifyErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setLinks({ error: response.error, status: "failed" });
@@ -362,14 +364,7 @@ export function LinksTable() {
         showDefaultContents={showDefaultContent}
         table={
           <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
-              ),
-              ...column,
-            }))}
+            columns={tableColumns}
             dataSource={linksList}
             locale={{
               emptyText:
@@ -383,6 +378,7 @@ export function LinksTable() {
             rowKey="id"
             showSorterTooltip
             sortDirections={["ascend", "descend"]}
+            tableLayout="fixed"
           />
         }
         title={

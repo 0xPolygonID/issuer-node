@@ -31,25 +31,22 @@ import (
 
 func TestServer_RevokeClaim(t *testing.T) {
 	server := newTestServer(t, nil)
-
-	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
-	identity := &domain.Identity{
-		Identifier: idStr,
-	}
 	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
+	identity, err := server.Services.identity.Create(context.Background(), "http://privado-test", &ports.DIDCreationOptions{Method: core.DIDMethodIden3, Blockchain: core.Privado, Network: core.Main, KeyType: kms.KeyTypeBabyJubJub})
+	require.NoError(t, err)
 
 	idClaim, err := uuid.NewUUID()
 	require.NoError(t, err)
 	nonce := int64(123)
 	revNonce := domain.RevNonceUint64(nonce)
+
 	fixture.CreateClaim(t, &domain.Claim{
 		ID:              idClaim,
-		Identifier:      &idStr,
-		Issuer:          idStr,
+		Identifier:      &identity.Identifier,
+		Issuer:          identity.Identifier,
 		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
-		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
-		SchemaType:      "AuthBJJCredential",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+		SchemaType:      "KYCAgeCredential",
 		OtherIdentifier: "",
 		Expiration:      0,
 		Version:         0,
@@ -57,17 +54,6 @@ func TestServer_RevokeClaim(t *testing.T) {
 		CoreClaim:       domain.CoreClaim{},
 		Status:          nil,
 	})
-
-	query := repositories.ExecQueryParams{
-		Query: `INSERT INTO identity_mts (identifier, type) VALUES 
-                                                    ($1, 0),
-                                                    ($1, 1),
-                                                    ($1, 2),
-                                                    ($1, 3)`,
-		Arguments: []interface{}{idStr},
-	}
-
-	fixture.ExecQuery(t, query)
 
 	handler := getHandler(context.Background(), server)
 
@@ -88,7 +74,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		{
 			name:  "No auth header",
 			auth:  authWrong,
-			did:   idStr,
+			did:   identity.Identifier,
 			nonce: nonce,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -97,7 +83,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		{
 			name:  "should revoke the credentials",
 			auth:  authOk,
-			did:   idStr,
+			did:   identity.Identifier,
 			nonce: nonce,
 			expected: expected{
 				httpCode: 202,
@@ -109,7 +95,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		{
 			name:  "should get an error wrong nonce",
 			auth:  authOk,
-			did:   idStr,
+			did:   identity.Identifier,
 			nonce: int64(1231323),
 			expected: expected{
 				httpCode: 404,
@@ -130,6 +116,18 @@ func TestServer_RevokeClaim(t *testing.T) {
 				}},
 			},
 		},
+		{
+			name:  "should get an error - cannot revoke auth credential",
+			auth:  authOk,
+			did:   identity.Identifier,
+			nonce: 0,
+			expected: expected{
+				httpCode: 400,
+				response: RevokeCredential400JSONResponse{N400JSONResponse{
+					Message: "cannot delete the only remaining authentication credential. An identity must have at least one credential",
+				}},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -143,6 +141,10 @@ func TestServer_RevokeClaim(t *testing.T) {
 			switch v := tc.expected.response.(type) {
 			case RevokeCredential202JSONResponse:
 				var response RevokeCredential202JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, v.Message, response.Message)
+			case RevokeCredential400JSONResponse:
+				var response RevokeCredential400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case RevokeCredential404JSONResponse:
@@ -557,19 +559,22 @@ func TestServer_DeleteCredential(t *testing.T) {
 }
 
 func TestServer_GetCredentialQrCode(t *testing.T) {
-	idStr := "did:polygonid:polygon:mumbai:2qPrv5Yx8s1qAmEnPym68LfT7gTbASGampiGU7TseL"
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
 	idNoClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
-	identity := &domain.Identity{
-		Identifier: idStr,
-	}
-
 	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
-	claim := fixture.NewClaim(t, identity.Identifier)
-	fixture.CreateClaim(t, claim)
-
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
+
+	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
+
+	claim := fixture.NewClaim(t, identity.Identifier)
+	fixture.CreateClaim(t, claim)
 
 	type expected struct {
 		response GetCredentialOfferResponseObject
@@ -589,7 +594,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:  "No auth",
 			auth:  authWrong,
-			did:   idStr,
+			did:   identity.Identifier,
 			claim: claim.ID,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -598,7 +603,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:  "should get an error non existing claimID",
 			auth:  authOk,
-			did:   idStr,
+			did:   identity.Identifier,
 			claim: uuid.New(),
 			expected: expected{
 				response: GetCredentialOffer404JSONResponse{N404JSONResponse{
@@ -634,7 +639,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:   "Happy path, no type",
 			auth:   authOk,
-			did:    idStr,
+			did:    identity.Identifier,
 			claim:  claim.ID,
 			qrType: nil,
 			expected: expected{
@@ -646,7 +651,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:   "Happy path, type universalLink",
 			auth:   authOk,
-			did:    idStr,
+			did:    identity.Identifier,
 			claim:  claim.ID,
 			qrType: common.ToPointer("universalLink"),
 			expected: expected{
@@ -658,7 +663,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:   "Happy path, type deeplink",
 			auth:   authOk,
-			did:    idStr,
+			did:    identity.Identifier,
 			claim:  claim.ID,
 			qrType: common.ToPointer("deepLink"),
 			expected: expected{
@@ -670,7 +675,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name:   "Happy path, type raw",
 			auth:   authOk,
-			did:    idStr,
+			did:    identity.Identifier,
 			claim:  claim.ID,
 			qrType: common.ToPointer("raw"),
 			expected: expected{
@@ -738,29 +743,21 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 func TestServer_GetCredential(t *testing.T) {
 	server := newTestServer(t, nil)
-	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
-	identity := &domain.Identity{
-		Identifier: idStr,
-	}
 	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+
+	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
 
 	claim := fixture.NewClaim(t, identity.Identifier)
 	claim.MtProof = true
 	fixture.CreateClaim(t, claim)
-
-	query := repositories.ExecQueryParams{
-		Query: `INSERT INTO identity_mts (identifier, type) VALUES 
-                                                    ($1, 0),
-                                                    ($1, 1),
-                                                    ($1, 2),
-                                                    ($1, 3)`,
-		Arguments: []interface{}{idStr},
-	}
-
-	fixture.ExecQuery(t, query)
-
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -780,7 +777,7 @@ func TestServer_GetCredential(t *testing.T) {
 		{
 			name: "No auth header",
 			auth: authWrong,
-			did:  idStr,
+			did:  identity.Identifier,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
 			},
@@ -788,7 +785,7 @@ func TestServer_GetCredential(t *testing.T) {
 		{
 			name:    "should get an error non existing claimID",
 			auth:    authOk,
-			did:     idStr,
+			did:     identity.Identifier,
 			claimID: uuid.New(),
 			expected: expected{
 				httpCode: http.StatusNotFound,
@@ -824,7 +821,7 @@ func TestServer_GetCredential(t *testing.T) {
 		{
 			name:    "should get the credentials",
 			auth:    authOk,
-			did:     idStr,
+			did:     identity.Identifier,
 			claimID: claim.ID,
 			expected: expected{
 				httpCode: http.StatusOK,
@@ -837,7 +834,7 @@ func TestServer_GetCredential(t *testing.T) {
 							Type: "JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v2/%s/credentials/revocation/status/%d", idStr, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v2/%s/credentials/revocation/status/%d", identity.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -849,7 +846,7 @@ func TestServer_GetCredential(t *testing.T) {
 						},
 						ID:           fmt.Sprintf("http://localhost/api/v2/credentials/%s", claim.ID),
 						IssuanceDate: common.ToPointer(time.Now()),
-						Issuer:       idStr,
+						Issuer:       identity.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 						RefreshService: &verifiable.RefreshService{
 							ID:   "https://refresh-service.xyz",
@@ -947,7 +944,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, claimsService.Revoke(ctx, *id, uint64(revoked.RevNonce), "because I can"))
 
-	iReq := ports.NewImportSchemaRequest(schemaURL, typeC, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
+	iReq := ports.NewImportSchemaRequest(schemaURL, typeC, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"), nil)
 	_, err = server.schemaService.ImportSchema(ctx, *did, iReq)
 	require.NoError(t, err)
 

@@ -27,6 +27,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -199,8 +200,10 @@ func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identit
 }
 
 // TODO: add package manager mocks
-func NewPackageManagerMock() *iden3comm.PackageManager {
-	return &iden3comm.PackageManager{}
+func NewPackageManagerMock() (*iden3comm.PackageManager, error) {
+	packageManager := iden3comm.NewPackageManager()
+	err := packageManager.RegisterPackers(&packers.PlainMessagePacker{})
+	return packageManager, err
 }
 
 func NewPublisherMock() ports.Publisher {
@@ -228,21 +231,27 @@ func NewLinkMock() ports.LinkService {
 type repos struct {
 	claims         ports.ClaimRepository
 	connection     ports.ConnectionRepository
-	identity       ports.IndentityRepository
+	identity       ports.IdentityRepository
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
 	links          ports.LinkRepository
+	payments       ports.PaymentRepository
 	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
+	displayMethod  ports.DisplayMethodRepository
+	keyRepository  ports.KeyRepository
 }
 
 type servicex struct {
-	credentials ports.ClaimService
-	identity    ports.IdentityService
-	schema      ports.SchemaService
-	links       ports.LinkService
-	qrs         ports.QrStoreService
+	credentials   ports.ClaimService
+	identity      ports.IdentityService
+	schema        ports.SchemaService
+	links         ports.LinkService
+	payments      ports.PaymentService
+	qrs           ports.QrStoreService
+	displayMethod ports.DisplayMethodService
+	keyService    ports.KeyService
 }
 
 type infra struct {
@@ -269,9 +278,12 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
 		identityState:  repositories.NewIdentityState(),
 		links:          repositories.NewLink(*st),
+		payments:       repositories.NewPayment(*st),
 		sessions:       repositories.NewSessionCached(cachex),
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
+		displayMethod:  repositories.NewDisplayMethod(*st),
+		keyRepository:  repositories.NewKey(*st),
 	}
 
 	pubSub := pubsub.NewMock()
@@ -280,35 +292,101 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	require.NoError(t, err)
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 
+	paymentSettings, err := payments.SettingsFromReader(common.NewMyYAMLReader([]byte(`
+80002:
+  PaymentRails: 0xF8E49b922D5Fb00d3EdD12bd14064f275726D339
+  PaymentOptions: 
+    - ID: 1
+      Name: AmoyNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 2
+      Name: Amoy USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x2FE40749812FAC39a0F380649eF59E01bccf3a1A
+      Features: []
+    - ID: 3
+      Name: Amoy USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x2FE40749812FAC39a0F380649eF59E01bccf3a1A
+      Features:
+        - EIP-2612
+59141:
+  PaymentRails: 0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3
+  PaymentOptions: 
+    - ID: 4
+      Name: LineaSepoliaNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 5
+      Name: Linea Sepolia USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C
+      Features: []
+    - ID: 6
+      Name: Linea Sepolia USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C
+      Features:
+        - EIP-2612
+2442:
+  PaymentRails: 0x09c269e74d8B47c98537Acd6CbEe8056806F4c70
+  PaymentOptions: 
+    - ID: 7
+      Name: ZkEvmNative
+      Type: Iden3PaymentRailsRequestV1
+    - ID: 8
+      Name: ZkEvm USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db
+      Features: []
+    - ID: 9
+      Name: ZkEvm USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db
+      Features:
+        - EIP-2612
+`,
+	)))
+	require.NoError(t, err)
+
 	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
 	qrService := services.NewQrStoreService(cachex)
 	rhsFactory := reversehash.NewFactory(*networkResolver, reversehash.DefaultRHSTimeOut)
-	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver, repos.keyRepository)
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
-	schemaService := services.NewSchema(repos.schemas, schemaLoader)
-
+	displayMethodService := services.NewDisplayMethod(repos.displayMethod)
+	schemaService := services.NewSchema(repos.schemas, schemaLoader, displayMethodService)
+	paymentService, err := services.NewPaymentService(repos.payments, *networkResolver, schemaService, paymentSettings, keyStore)
+	require.NoError(t, err)
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
 			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			protocol.RevocationStatusRequestMessageType: {"*"},
+			protocol.DiscoverFeatureQueriesMessageType:  {"*"},
 		},
 		true,
 	)
 
+	packageManager, err := NewPackageManagerMock()
+	require.NoError(t, err)
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
+	keyService := services.NewKey(keyStore, claimsService, repos.keyRepository)
+	discoveryService := services.NewDiscovery(mediaTypeManager, packageManager, mediaTypeManager.GetSupportedProtocolMessages())
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), packageManager, *networkResolver, nil, schemaService, linkService, displayMethodService, keyService, paymentService, discoveryService)
 
 	return &testServer{
 		Server: server,
 		Repos:  repos,
 		Services: servicex{
-			credentials: claimsService,
-			identity:    identityService,
-			links:       linkService,
-			qrs:         qrService,
-			schema:      schemaService,
+			credentials:   claimsService,
+			identity:      identityService,
+			links:         linkService,
+			payments:      paymentService,
+			qrs:           qrService,
+			schema:        schemaService,
+			displayMethod: displayMethodService,
+			keyService:    keyService,
 		},
 		Infra: infra{
 			db:     st,

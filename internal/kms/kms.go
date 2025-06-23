@@ -15,6 +15,15 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
+// StorageManager - interface for managing local storage
+type StorageManager interface {
+	SaveKeyMaterial(ctx context.Context, keyMaterial map[string]string, id string) error
+	searchByIdentity(ctx context.Context, identity w3c.DID, keyType KeyType) ([]KeyID, error)
+	searchPrivateKey(ctx context.Context, keyID KeyID) (string, error)
+	deleteKeyMaterial(ctx context.Context, keyID KeyID) error
+	getKeyMaterial(ctx context.Context, keyID KeyID) (map[string]string, error)
+}
+
 // KMSType represents the KMS interface
 // revive:disable-next-line
 type KMSType interface {
@@ -24,6 +33,8 @@ type KMSType interface {
 	Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error)
 	KeysByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error)
 	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
+	Delete(ctx context.Context, keyID KeyID) error
+	Exists(ctx context.Context, keyID KeyID) (bool, error)
 }
 
 // ConfigProvider is a key provider configuration
@@ -39,16 +50,21 @@ const (
 	// ETHLocalStorageKeyProvider is a key provider for Ethereum keys in local storage
 	ETHLocalStorageKeyProvider ConfigProvider = "localstorage"
 	// ETHAwsKmsKeyProvider is a key provider for Ethereum keys in AWS KMS
-	ETHAwsKmsKeyProvider ConfigProvider = "aws"
+	ETHAwsKmsKeyProvider ConfigProvider = "aws-kms"
+	// BJJAWSSecretManagerStorage - AWS Secret Manager storage for BabyJubJub keys
+	BJJAWSSecretManagerStorage ConfigProvider = "aws-sm"
+	// ETHAWSSecretManagerStorage - AWS Secret Manager storage for Ethereum keys
+	ETHAWSSecretManagerStorage ConfigProvider = "aws-sm"
 )
 
 // Config is a configuration for KMS
 type Config struct {
 	BJJKeyProvider           ConfigProvider
 	ETHKeyProvider           ConfigProvider
-	AWSKMSAccessKey          string
-	AWSKMSSecretKey          string
-	AWSKMSRegion             string
+	AWSAccessKey             string
+	AWSSecretKey             string
+	AWSRegion                string
+	AWSURL                   string
 	LocalStoragePath         string
 	Vault                    *api.Client
 	PluginIden3MountPath     string
@@ -70,6 +86,10 @@ type KeyProvider interface {
 	// KeyID can be changed after linking.
 	// Returning new KeyID.
 	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
+	// Delete removes key from storage
+	Delete(ctx context.Context, keyID KeyID) error
+	// Exists checks if key exists
+	Exists(ctx context.Context, keyID KeyID) (bool, error)
 }
 
 // KMS stores keys and secrets
@@ -98,6 +118,9 @@ var ErrKeyTypeConflict = stderr.New("key type already registered")
 
 // ErrPermissionDenied raises when we register new key provider with key type
 var ErrPermissionDenied = stderr.New("permission denied")
+
+// ErrKeyNotFound raises when key is not found
+var ErrKeyNotFound = stderr.New("key not found")
 
 // KeyID is a key unique identifier
 type KeyID struct {
@@ -210,6 +233,24 @@ func (k *KMS) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID)
 	return kp.LinkToIdentity(ctx, keyID, identity)
 }
 
+// Delete removes key from storage
+func (k *KMS) Delete(ctx context.Context, keyID KeyID) error {
+	kp, ok := k.registry[keyID.Type]
+	if !ok {
+		return errors.WithStack(ErrUnknownKeyType)
+	}
+	return kp.Delete(ctx, keyID)
+}
+
+// Exists checks if key exists
+func (k *KMS) Exists(ctx context.Context, keyID KeyID) (bool, error) {
+	kp, ok := k.registry[keyID.Type]
+	if !ok {
+		return false, errors.WithStack(ErrUnknownKeyType)
+	}
+	return kp.Exists(ctx, keyID)
+}
+
 // Open returns an initialized KMS
 func Open(pluginIden3MountPath string, vault *api.Client) (*KMS, error) {
 	bjjKeyProvider, err := NewVaultPluginIden3KeyProvider(vault, pluginIden3MountPath, KeyTypeBabyJubJub)
@@ -263,7 +304,33 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cannot create file: %v", err)
 		}
-		bjjKeyProvider = NewLocalStorageBJJKeyProvider(KeyTypeBabyJubJub, NewLocalStorageFileManager(filePath))
+		bjjKeyProvider = NewLocalBJJKeyProvider(KeyTypeBabyJubJub, NewFileStorageManager(filePath))
+		if err != nil {
+			return nil, fmt.Errorf("cannot create BabyJubJub key provider: %+v", err)
+		}
+		log.Info(ctx, "BabyJubJub key provider created", "provider:", BJJLocalStorageKeyProvider)
+	}
+
+	if config.BJJKeyProvider == BJJAWSSecretManagerStorage {
+		provider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
+			AccessKey: config.AWSAccessKey,
+			SecretKey: config.AWSSecretKey,
+			Region:    config.AWSRegion,
+			URL:       config.AWSURL,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cannot create BabyJubJub aws key provider: %+v", err)
+		}
+		bjjKeyProvider = NewLocalBJJKeyProvider(KeyTypeBabyJubJub, provider)
+		log.Info(ctx, "BabyJubJub key provider created", "provider:", BJJAWSSecretManagerStorage)
+	}
+
+	if config.BJJKeyProvider == BJJLocalStorageKeyProvider {
+		filePath, err := createFileIfNotExists(ctx, config.LocalStoragePath, LocalStorageFileName)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create file: %v", err)
+		}
+		bjjKeyProvider = NewLocalBJJKeyProvider(KeyTypeBabyJubJub, NewFileStorageManager(filePath))
 		if err != nil {
 			return nil, fmt.Errorf("cannot create BabyJubJub key provider: %+v", err)
 		}
@@ -283,24 +350,42 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cannot create file: %v", err)
 		}
-		ethKeyProvider = NewLocalStorageEthKeyProvider(KeyTypeEthereum, NewLocalStorageFileManager(filePath))
+		ethKeyProvider = NewLocalEthKeyProvider(KeyTypeEthereum, NewFileStorageManager(filePath))
 		if err != nil {
 			return nil, fmt.Errorf("cannot create Ethereum key provider: %+v", err)
 		}
 		log.Info(ctx, "Ethereum key provider created", "provider:", ETHLocalStorageKeyProvider)
 	}
 
-	if config.ETHKeyProvider == ETHAwsKmsKeyProvider {
-		if config.AWSKMSAccessKey == "" || config.AWSKMSSecretKey == "" || config.AWSKMSRegion == "" {
-			return nil, errors.New("AWS KMS access key, secret key and region have to be provided")
+	if config.ETHKeyProvider == ETHAWSSecretManagerStorage {
+		if config.AWSAccessKey == "" || config.AWSSecretKey == "" || config.AWSRegion == "" {
+			return nil, errors.New("AWS secret manager access key, secret key and region have to be provided")
 		}
-		ethKeyProvider, err = NewAwsEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath, AwEthKeyProviderConfig{
-			Region:    config.AWSKMSRegion,
-			AccessKey: config.AWSKMSAccessKey,
-			SecretKey: config.AWSKMSSecretKey,
+		provider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
+			AccessKey: config.AWSAccessKey,
+			SecretKey: config.AWSSecretKey,
+			Region:    config.AWSRegion,
+			URL:       config.AWSURL,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("cannot create Ethereum aws key provider: %+v", err)
+		}
+		ethKeyProvider = NewLocalEthKeyProvider(KeyTypeEthereum, provider)
+		log.Info(ctx, "Ethereum key provider created", "provider:", ETHAWSSecretManagerStorage)
+	}
+
+	if config.ETHKeyProvider == ETHAwsKmsKeyProvider {
+		if config.AWSAccessKey == "" || config.AWSSecretKey == "" || config.AWSRegion == "" {
+			return nil, errors.New("AWS KMS access key, secret key and region have to be provided")
+		}
+		ethKeyProvider, err = NewAwsKMSEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath, AwKmsEthKeyProviderConfig{
+			AccessKey: config.AWSAccessKey,
+			SecretKey: config.AWSSecretKey,
+			Region:    config.AWSRegion,
+			URL:       config.AWSURL,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cannot create Ethereum aws kms key provider: %+v", err)
 		}
 		log.Info(ctx, "Ethereum key provider created", "provider:", ETHAwsKmsKeyProvider)
 	}

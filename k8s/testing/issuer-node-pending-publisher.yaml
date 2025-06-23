@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.pendingPublisherIssuerNode.deployment.name }}
+  labels:
+    {{- include "polygon-id-issuer.pendingPublisherIssuerNode.deploymentLabels" . | nindent 4 }}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.pendingPublisherIssuerNode.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "polygon-id-issuer.pendingPublisherIssuerNode.Labels" . | nindent 6 }}
+      {{- include "polygon-id-issuer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "polygon-id-issuer.pendingPublisherIssuerNode.Labels" . | nindent 8 }}
+        {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+    spec:
+      serviceAccountName: {{ include "helpers.serviceAccountName" . }}
+      containers:
+        - name: {{ .Values.pendingPublisherIssuerNode.deployment.containerName }}
+          image: {{ .Values.issuernode_repository_image }}:{{ .Values.issuernode_repository_tag }}
+          imagePullPolicy: {{ .Values.pendingPublisherIssuerNode.deployment.imagePullPolicy | quote }}
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.apiIssuerNode.deployment.apiconfigMapRef }}
+          env:
+          - name: {{ include "helpers.issuer-db-url" .}}
+            value: {{ quote .Values.pendingPublisherIssuerNode.deployment.env.issuerDatabaseUrl }}
+          - name: {{ include "helpers.issuer-key-store-addr" .}}
+            value: {{ quote .Values.pendingPublisherIssuerNode.deployment.env.issuerKeyStoreAddress }}
+          args: {{ .Values.pendingPublisherIssuerNode.deployment.args }}
+          command: {{ .Values.pendingPublisherIssuerNode.deployment.command }}
+          volumeMounts:
+            - name: local-storage
+              mountPath: /localstoragekeys
+      volumes:
+        - name: local-storage
+          persistentVolumeClaim:
+            claimName: issuer-node-localstorage-pv

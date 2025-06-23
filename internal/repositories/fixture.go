@@ -13,11 +13,12 @@ import (
 // Fixture - Handle testing fixture configuration
 type Fixture struct {
 	storage                 *db.Storage
-	identityRepository      ports.IndentityRepository
+	identityRepository      ports.IdentityRepository
 	claimRepository         ports.ClaimRepository
 	connectionsRepository   ports.ConnectionRepository
 	schemaRepository        ports.SchemaRepository
 	identityStateRepository ports.IdentityStateRepository
+	paymentRepository       ports.PaymentRepository
 }
 
 // NewFixture - constructor
@@ -29,10 +30,11 @@ func NewFixture(storage *db.Storage) *Fixture {
 		connectionsRepository:   NewConnection(),
 		schemaRepository:        NewSchema(*storage),
 		identityStateRepository: NewIdentityState(),
+		paymentRepository:       NewPayment(*storage),
 	}
 }
 
-// ExecQueryParams - handle the query and the argumens for that query.
+// ExecQueryParams - handle the query and the arguments for that query.
 type ExecQueryParams struct {
 	Query     string
 	Arguments []interface{}

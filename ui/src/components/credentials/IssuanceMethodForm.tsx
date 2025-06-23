@@ -1,3 +1,4 @@
+import { DID } from "@iden3/js-iden3-core";
 import {
   AutoComplete,
   Button,
@@ -17,6 +18,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 
 import { getConnections } from "src/adapters/api/connections";
+import { notifyErrors } from "src/adapters/parsers";
 import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/view";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import { useEnvContext } from "src/contexts/Env";
@@ -25,7 +27,6 @@ import { AppError, Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
 import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, VALUE_REQUIRED } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 
 export function IssuanceMethodForm({
   initialValues,
@@ -64,7 +65,7 @@ export function IssuanceMethodForm({
 
       if (response.success) {
         setConnections({ data: response.data.items.successful, status: "successful" });
-        notifyParseErrors(response.data.items.failed);
+        void notifyErrors(response.data.items.failed);
       } else {
         setConnections({ error: response.error, status: "failed" });
       }
@@ -125,7 +126,22 @@ export function IssuanceMethodForm({
                   dependencies={["type"]}
                   label="Select connection/Paste identifier"
                   name="did"
-                  rules={[{ message: VALUE_REQUIRED, required: isDirectIssue }]}
+                  rules={[
+                    { message: VALUE_REQUIRED, required: isDirectIssue },
+                    {
+                      validator: (_, value: string) => {
+                        if (isLinkIssue) {
+                          return Promise.resolve(true);
+                        }
+                        try {
+                          DID.parse(value);
+                          return Promise.resolve(true);
+                        } catch (error) {
+                          return Promise.reject(error);
+                        }
+                      },
+                    },
+                  ]}
                   style={{ paddingLeft: 28, paddingTop: 16 }}
                 >
                   <AutoComplete

@@ -141,6 +141,7 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "123HHUBUuO5", cfg.KeyStore.AWSSecretKey)
 	assert.Equal(t, "eu-west-1", cfg.KeyStore.AWSRegion)
 	assert.Equal(t, "./resolvers_settings.yaml", cfg.NetworkResolverPath)
+	assert.Equal(t, "./payment_settings.yaml", cfg.Payments.SettingsPath)
 	assert.Equal(t, "hvs.NK8jrOU4XNY", cfg.KeyStore.Token)
 	assert.Equal(t, "123", *cfg.NetworkResolverFile)
 	assert.Equal(t, "./pkg/credentials/circuits", cfg.Circuit.Path)
@@ -159,23 +160,36 @@ func TestLoadKmsProviders(t *testing.T) {
 	assert.Equal(t, "localstorage", cfg.KeyStore.BJJProvider)
 	assert.Equal(t, "localstorage", cfg.KeyStore.ETHProvider)
 
-	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
-	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = ""
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-sm"
+	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = ""
 	loadEnvironmentVariables(t, envVars)
 	_, err = Load()
 	assert.Error(t, err)
 
-	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
-	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = "123"
-	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"] = ""
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-sm"
+	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = "123"
+	envVars["ISSUER_KMS_AWS_SECRET_KEY"] = ""
 	loadEnvironmentVariables(t, envVars)
 	_, err = Load()
 	assert.Error(t, err)
 
-	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
-	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = "123"
-	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"] = "456"
-	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_REGION"] = ""
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-sm"
+	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = "123"
+	envVars["ISSUER_KMS_AWS_SECRET_KEY"] = "456"
+	envVars["ISSUER_KMS_AWS_REGION"] = ""
+	loadEnvironmentVariables(t, envVars)
+	_, err = Load()
+	assert.Error(t, err)
+
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-kms"
+	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = ""
+	loadEnvironmentVariables(t, envVars)
+	_, err = Load()
+	assert.Error(t, err)
+
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws-kms"
+	envVars["ISSUER_KMS_AWS_ACCESS_KEY"] = "123"
+	envVars["ISSUER_KMS_AWS_SECRET_KEY"] = ""
 	loadEnvironmentVariables(t, envVars)
 	_, err = Load()
 	assert.Error(t, err)
@@ -247,9 +261,9 @@ func initVariables(t *testing.T) envVarsT {
 		"ISSUER_VAULT_USERPASS_AUTH_PASSWORD":         "issuernodepwd",
 		"ISSUER_KMS_BJJ_PROVIDER":                     "localstorage",
 		"ISSUER_KMS_ETH_PROVIDER":                     "localstorage",
-		"ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY":        "XYZ",
-		"ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY":        "123HHUBUuO5",
-		"ISSUER_KMS_ETH_PLUGIN_AWS_REGION":            "eu-west-1",
+		"ISSUER_KMS_AWS_ACCESS_KEY":                   "XYZ",
+		"ISSUER_KMS_AWS_SECRET_KEY":                   "123HHUBUuO5",
+		"ISSUER_KMS_AWS_REGION":                       "eu-west-1",
 		"ISSUER_RESOLVER_PATH":                        "./resolvers_settings.yaml",
 		"ISSUER_KEY_STORE_TOKEN":                      "hvs.NK8jrOU4XNY",
 		"ISSUER_RESOLVER_FILE":                        "123",

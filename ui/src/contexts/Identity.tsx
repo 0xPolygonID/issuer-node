@@ -1,4 +1,4 @@
-import { App, Space } from "antd";
+import { Space } from "antd";
 import {
   PropsWithChildren,
   createContext,
@@ -11,6 +11,7 @@ import {
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getIdentities, identifierParser } from "src/adapters/api/identities";
+import { notifyErrors } from "src/adapters/parsers";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
@@ -28,10 +29,9 @@ import {
   IDENTIFIER_SEARCH_PARAM,
   ROOT_PATH,
 } from "src/utils/constants";
-import { buildAppError } from "src/utils/error";
 
 type IdentityState = {
-  fetchIdentities: (signal: AbortSignal) => void;
+  fetchIdentities: (signal?: AbortSignal) => void;
   getSelectedIdentity: () => Identity | undefined;
   identifier: string;
   identityList: AsyncTask<Identity[], AppError>;
@@ -50,7 +50,6 @@ const IdentityContext = createContext(defaultIdentityState);
 
 export function IdentityProvider(props: PropsWithChildren) {
   const env = useEnvContext();
-  const { message } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [identityList, setIdentityList] = useState<AsyncTask<Identity[], AppError>>({
@@ -62,7 +61,7 @@ export function IdentityProvider(props: PropsWithChildren) {
   const identifierParam = searchParams.get(IDENTIFIER_SEARCH_PARAM);
 
   const fetchIdentities = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       setIdentityList((previousState) =>
         isAsyncTaskDataAvailable(previousState)
           ? { data: previousState.data, status: "reloading" }
@@ -78,9 +77,7 @@ export function IdentityProvider(props: PropsWithChildren) {
         const identities = response.data.successful;
 
         if (response.data.failed.length) {
-          void message.error(
-            response.data.failed.map((error) => buildAppError(error).message).join("\n")
-          );
+          void notifyErrors(response.data.failed);
         }
 
         const savedIdentifier = getStorageByKey({
@@ -106,7 +103,7 @@ export function IdentityProvider(props: PropsWithChildren) {
         }
       }
     },
-    [env, message, identifierParam]
+    [env, identifierParam]
   );
 
   const selectIdentity = useCallback(

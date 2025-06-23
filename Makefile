@@ -20,6 +20,11 @@ ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH := ${ISSUER_KMS_PROVIDER_LOCAL_STORA
 ISSUER_KMS_ETH_PROVIDER := ${ISSUER_KMS_ETH_PROVIDER}
 ISSUER_KMS_BJJ_PROVIDER := ${ISSUER_KMS_BJJ_PROVIDER}
 
+aws_access_key := ${ISSUER_KMS_AWS_ACCESS_KEY}
+aws_secret_key := ${ISSUER_KMS_AWS_SECRET_KEY}
+aws_region := ${ISSUER_KMS_AWS_REGION}
+aws_endpoint := ${ISSUER_KMS_AWS_URL}
+
 ISSUER_RESOLVER_FILE := ${ISSUER_RESOLVER_FILE}
 REQUIRED_FILE := ${ISSUER_RESOLVER_PATH}
 
@@ -32,8 +37,10 @@ run-all-registry:
 	@make down
 ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
 	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
-else
+else ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), vaultvault)
 	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres vault api pending_publisher notifications ui
+else
+	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
 endif
 
 .PHONY: build-local
@@ -68,10 +75,24 @@ api: $(BIN)/oapi-codegen
 # Starts the infrastructure services
 .PHONY: up
 up:
-ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
-else
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER), vault)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+endif
+ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+endif
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER), vault)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+endif
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
+endif
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-kmslocal)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
+endif
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
 
 # If you want to use localstorage as a KMS provider, you need to run this command
@@ -154,7 +175,7 @@ stop-all:
 
 .PHONY: up-test
 up-test:
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache localstack
 
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate
@@ -181,26 +202,36 @@ lint-fix: $(BIN)/golangci-lint
 		  $(BIN)/golangci-lint run --fix
 
 ## Usage:
-## AWS: make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
-## localstorage and vault: make private_key=XXX import-private-key-to-kms
+## make private_key=XXX import-private-key-to-kms
 .PHONY: import-private-key-to-kms
 import-private-key-to-kms:
-ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
+ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws-kms)
 	@echo ">>> importing private key to AWS KMS"
 	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
     		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
-    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) \
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_URL=$(aws_endpoint) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
 	$(eval result = $(shell docker run -it -v ./.env-issuer:/.env-issuer  \
 		--network issuer-network \
-		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)))
+		privadoid-kms-importer ./kms_priv_key_importer))
 	@echo "result: $(result)"
 	$(eval keyID = $(shell echo $(result) | grep "key created keyId=" | sed 's/.*keyId=//'))
 	@if [ -n "$(keyID)" ]; then \
 		docker run -it --rm -v ./.env-issuer:/.env-issuer --network issuer-network \
-			privadoid-kms-importer sh ./aws_kms_material_key_importer.sh $(private_key) $(keyID) privadoid; \
+			privadoid-kms-importer sh ./aws_kms_material_key_importer.sh $(private_key) $(keyID) privadoid $(aws_endpoint) ; \
 	else \
 		echo "something went wrong because keyID is empty"; \
 	fi
+else ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws-sm)
+	@echo ">>> importing private key to AWS Secrets Manager"
+	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) \
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_URL=$(aws_endpoint) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	$(eval result=$(shell docker run -it -v ./.env-issuer:/.env-issuer  \
+		--network issuer-network \
+		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)))
+	@echo "$(result)"
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
 	echo ">>> importing private key to LOCALSTORAGE"
 	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
@@ -214,9 +245,7 @@ else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
 	@echo ">>> importing private key to VAULT"
 	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
-	$(eval NETWORK=$(shell docker inspect issuer-vault-1 --format '{{ .HostConfig.NetworkMode }}'))
-	@echo $(NETWORK)
-	docker run --rm -it -v ./.env-issuer:/.env-issuer --network $(NETWORK) \
+	docker run --rm -it -v ./.env-issuer:/.env-issuer --network issuer-network \
 		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
 else
 	@echo "ISSUER_KMS_ETH_PROVIDER is not set"

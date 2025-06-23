@@ -4,6 +4,7 @@ import { generatePath, useNavigate, useParams } from "react-router-dom";
 
 import { getCredential, getIssuedMessages } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
+import { buildAppError, credentialSubjectValueErrorToString } from "src/adapters/parsers";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import IconTrash from "src/assets/icons/trash-01.svg?react";
 import IconClose from "src/assets/icons/x.svg?react";
@@ -26,7 +27,6 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
-import { buildAppError, credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 import { extractCredentialSubjectAttribute } from "src/utils/jsonSchemas";
 
@@ -185,7 +185,11 @@ export function CredentialDetails() {
             </Card>
           );
         } else if (hasAsyncTaskFailed(issuedMessages)) {
-          return <ErrorResult error={issuedMessages.error.message} />;
+          return (
+            <Card className="centered">
+              <ErrorResult error={issuedMessages.error.message} />
+            </Card>
+          );
         } else if (hasAsyncTaskFailed(credentialSubjectValue)) {
           return (
             <Card className="centered">
@@ -202,6 +206,8 @@ export function CredentialDetails() {
           );
         } else {
           const {
+            credentialStatus,
+            displayMethod,
             expirationDate,
             issuanceDate,
             proofTypes,
@@ -260,8 +266,21 @@ export function CredentialDetails() {
                     />
 
                     <Detail
+                      label="Revocation nonce"
+                      text={credentialStatus.revocationNonce.toString()}
+                    />
+
+                    <Detail label="Credential status type" text={credentialStatus.type} />
+
+                    <Detail
                       label="Refresh Service"
                       text={refreshService ? refreshService.id : "-"}
+                    />
+
+                    <Detail
+                      copyable={!!displayMethod}
+                      label="Display Method"
+                      text={displayMethod ? displayMethod.id : "-"}
                     />
 
                     <Detail

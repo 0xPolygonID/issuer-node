@@ -1,0 +1,62 @@
+80002:
+  PaymentRails: 0xF8E49b922D5Fb00d3EdD12bd14064f275726D339
+  PaymentOptions:
+    - ID: 1
+      Name: AmoyNative
+      Type: Iden3PaymentRailsRequestV1
+      Decimals: 18
+    - ID: 2
+      Name: Amoy USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x71dcc8Dc5Eb138003d3571255458Bc5692a60eD4
+      Features: []
+      Decimals: 6
+    - ID: 3
+      Name: Amoy USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x71dcc8Dc5Eb138003d3571255458Bc5692a60eD4
+      Features:
+        - EIP-2612
+      Decimals: 6
+59141:
+  PaymentRails: 0x40E3EF221AA93F6Fe997c9b0393322823Bb207d3
+  PaymentOptions:
+    - ID: 4
+      Name: LineaSepoliaNative
+      Type: Iden3PaymentRailsRequestV1
+      Decimals: 18
+    - ID: 5
+      Name: Linea Sepolia USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C
+      Features: []
+      Decimals: 18
+    - ID: 6
+      Name: Linea Sepolia USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0xb0101c1Ffdd1213B886FebeF6F07442e48990c9C
+      Features:
+        - EIP-2612
+      Decimals: 18
+2442:
+  PaymentRails: 0x09c269e74d8B47c98537Acd6CbEe8056806F4c70
+  PaymentOptions:
+    - ID: 7
+      Name: ZkEvmNative
+      Type: Iden3PaymentRailsRequestV1
+      Decimals: 18
+    - ID: 8
+      Name: ZkEvm USDT
+      Type: Iden3PaymentRailsERC20RequestV1
+      Currency: USDT
+      ContractAddress: 0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db
+      Features: []
+      Decimals: 18
+    - ID: 9
+      Name: ZkEvm USDC
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x986caE6ADcF5da2a1514afc7317FBdeE0B4048Db
+      Features:
+        - EIP-2612
+      Decimals: 18
+

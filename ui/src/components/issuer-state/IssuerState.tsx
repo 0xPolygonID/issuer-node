@@ -18,7 +18,7 @@ import { useSearchParams } from "react-router-dom";
 import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 
 import { getTransactions, publishState, retryPublishState } from "src/adapters/api/issuer-state";
-import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { notifyErrors, positiveIntegerFromStringParser } from "src/adapters/parsers";
 import { tableSorterParser } from "src/adapters/parsers/view";
 import IconAlert from "src/assets/icons/alert-circle.svg?react";
 import IconSwitch from "src/assets/icons/switch-horizontal.svg?react";
@@ -44,7 +44,6 @@ import {
   SORT_PARAM,
   STATUS,
 } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 const PUBLISHED_MESSAGE = "Issuer state is being published";
@@ -160,7 +159,7 @@ export function IssuerState() {
           maxResults: response.data.meta.max_results,
           page: response.data.meta.page,
         });
-        notifyParseErrors(response.data.items.failed);
+        void notifyErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setTransactions({ error: response.error, status: "failed" });
@@ -324,14 +323,7 @@ export function IssuerState() {
           }
           table={
             <Table
-              columns={tableColumns.map(({ title, ...column }) => ({
-                title: (
-                  <Typography.Text type="secondary">
-                    <>{title}</>
-                  </Typography.Text>
-                ),
-                ...column,
-              }))}
+              columns={tableColumns}
               dataSource={transactionsList}
               locale={{
                 emptyText: transactions.status === "failed" && (
@@ -357,6 +349,7 @@ export function IssuerState() {
               rowKey="id"
               showSorterTooltip
               sortDirections={["ascend", "descend"]}
+              tableLayout="fixed"
             />
           }
           title={

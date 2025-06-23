@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - {{ .Values.global.uidomain }}
+        - {{ .Values.global.apidomain }}
+      secretName: wildcard-privado-id-prod-tls
+      
+  rules:
+  - host: {{ .Values.global.uidomain }}
+    http:
+      paths:
+        {{- range .Values.ingress.uihost.paths }}
+        - path: {{ .path }}
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ .serviceName }}
+              port:
+                number: {{ .servicePort }}
+          {{- end }}
+
+
+  - host: {{ .Values.global.apidomain }}
+    http:
+      paths:
+        {{- range .Values.ingress.apihost.paths }}
+        - path: {{ .path }}
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ .serviceName }}
+              port:
+                number: {{ .servicePort }}
+          {{- end }}

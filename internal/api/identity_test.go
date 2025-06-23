@@ -9,16 +9,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
 func TestServer_CreateIdentity(t *testing.T) {
@@ -95,8 +96,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Method     string                               `json:"method"`
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
-				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("blockchain display name"),
-				CredentialStatusType: &authBJJCredentialStatus,
+				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("blockchain display name"), CredentialStatusType: &authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 201,
@@ -273,14 +273,24 @@ func TestServer_CreateIdentity(t *testing.T) {
 }
 
 func TestServer_GetIdentities(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+		ETH        = "ETH"
+	)
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
-	identity1 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"}
-	identity2 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qMHFTHn2SC3XkBEJrR4eH4Yk8jRGg5bzYYG1ZGECa"}
-	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity1)
-	fixture.CreateIdentity(t, identity2)
+	identity1, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
+
+	identity2, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
+
+	identity3, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: ETH})
+	assert.NoError(t, err)
 
 	type expected struct {
 		httpCode int
@@ -310,8 +320,8 @@ func TestServer_GetIdentities(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			req, err := http.NewRequest("GET", "/v2/identities", nil)
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
+			req.SetBasicAuth(tc.auth())
 			handler.ServeHTTP(rr, req)
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
@@ -319,7 +329,13 @@ func TestServer_GetIdentities(t *testing.T) {
 				var response GetIdentities200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.httpCode, rr.Code)
-				assert.True(t, len(response) >= 2)
+				assert.True(t, len(response) >= 3)
+				assert.Equal(t, identity1.Identifier, response[len(response)-3].Identifier)
+				assert.NotNil(t, response[len(response)-3].CredentialStatusType)
+				assert.Equal(t, identity2.Identifier, response[len(response)-2].Identifier)
+				assert.NotNil(t, response[len(response)-2].CredentialStatusType)
+				assert.Equal(t, identity3.Identifier, response[len(response)-1].Identifier)
+				assert.NotNil(t, response[len(response)-1].CredentialStatusType)
 			}
 		})
 	}
@@ -411,6 +427,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 				assert.Equal(t, tc.expected.credentialStatusType, verifiable.CredentialStatusType(response.CredentialStatusType))
 				assert.Equal(t, "", *identity.Address)
 				assert.Nil(t, identity.Balance)
+				assert.Len(t, response.AuthCredentialsIDs, 1)
 			}
 		})
 	}
@@ -420,18 +437,15 @@ func TestServer_UpdateIdentity(t *testing.T) {
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
-	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qQ8S2VKdQv7xYgzCn7KW2xgzUWrTRQjoZDYavJHBq"}
-	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
 
-	state := domain.IdentityState{
-		Identifier: identity.Identifier,
-		State:      common.ToPointer("state"),
-		Status:     domain.StatusCreated,
-		ModifiedAt: time.Now(),
-		CreatedAt:  time.Now(),
-	}
-	fixture.CreateIdentityStatus(t, state)
+	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
 
 	type expected struct {
 		httpCode    int
@@ -480,4 +494,141 @@ func TestServer_UpdateIdentity(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServer_CreateAuthCredential(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+	ctx := context.Background()
+
+	server := newTestServer(t, nil)
+	handler := getHandler(ctx, server)
+
+	iden, err := server.Services.identity.Create(ctx, "http://polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	did := iden.Identifier
+
+	issuerDID, err := w3c.ParseDID(did)
+	require.NoError(t, err)
+
+	t.Run("no auth header", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/create-auth-credential", did), tests.JSONBody(t, nil))
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+
+	t.Run("should create an auth credential with default values", func(t *testing.T) {
+		key, err := server.keyService.Create(ctx, issuerDID, kms.KeyTypeBabyJubJub, uuid.New().String())
+		require.NoError(t, err)
+
+		body := CreateAuthCredentialRequest{
+			KeyID:                key.ID,
+			CredentialStatusType: CreateAuthCredentialRequestCredentialStatusType(verifiable.Iden3commRevocationStatusV1),
+		}
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/create-auth-credential", did), tests.JSONBody(t, body))
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusCreated, rr.Code)
+		var response CreateAuthCredential201JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.NotNil(t, response.Id)
+	})
+
+	t.Run("should get an error - duplicated auth credential", func(t *testing.T) {
+		key, err := server.keyService.Create(ctx, issuerDID, kms.KeyTypeBabyJubJub, uuid.New().String())
+		require.NoError(t, err)
+
+		body := CreateAuthCredentialRequest{
+			KeyID:                key.ID,
+			CredentialStatusType: CreateAuthCredentialRequestCredentialStatusType(verifiable.Iden3commRevocationStatusV1),
+		}
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/create-auth-credential", did), tests.JSONBody(t, body))
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusCreated, rr.Code)
+
+		body = CreateAuthCredentialRequest{
+			KeyID:                key.ID,
+			CredentialStatusType: CreateAuthCredentialRequestCredentialStatusType(verifiable.Iden3commRevocationStatusV1),
+		}
+		rr = httptest.NewRecorder()
+		req, err = http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/create-auth-credential", did), tests.JSONBody(t, body))
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusBadRequest, rr.Code)
+		var response CreateAuthCredential400JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "hash already exists. This means an auth credential was already created with this key", response.Message)
+	})
+
+	t.Run("should get an error - credential status type not supported", func(t *testing.T) {
+		key, err := server.keyService.Create(ctx, issuerDID, kms.KeyTypeBabyJubJub, uuid.New().String())
+		require.NoError(t, err)
+
+		body := CreateAuthCredentialRequest{
+			KeyID:                key.ID,
+			CredentialStatusType: CreateAuthCredentialRequestCredentialStatusType(verifiable.Iden3OnchainSparseMerkleTreeProof2023),
+		}
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/create-auth-credential", did), tests.JSONBody(t, body))
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusBadRequest, rr.Code)
+		var response CreateAuthCredential400JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.Equal(t, "Credential Status Type 'Iden3OnchainSparseMerkleTreeProof2023' is not supported by the issuer", response.Message)
+	})
+
+	t.Run("should create an auth credential", func(t *testing.T) {
+		key, err := server.keyService.Create(ctx, issuerDID, kms.KeyTypeBabyJubJub, uuid.New().String())
+		require.NoError(t, err)
+
+		authCredentialExpiration := time.Now().UTC().Unix()
+
+		revNonce, err := common.RandInt64()
+		require.NoError(t, err)
+		body := CreateAuthCredentialRequest{
+			KeyID:                key.ID,
+			CredentialStatusType: CreateAuthCredentialRequestCredentialStatusType(verifiable.Iden3commRevocationStatusV1),
+			RevNonce:             &revNonce,
+			Version:              common.ToPointer[uint32](1),
+			Expiration:           common.ToPointer[int64](authCredentialExpiration),
+		}
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest("POST", fmt.Sprintf("/v2/identities/%s/create-auth-credential", did), tests.JSONBody(t, body))
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusCreated, rr.Code)
+		var response CreateAuthCredential201JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+		assert.NotNil(t, response.Id)
+
+		rr = httptest.NewRecorder()
+		req, err = http.NewRequest("GET", fmt.Sprintf("/v2/identities/%s/credentials/%s", did, response.Id), tests.JSONBody(t, nil))
+		req.SetBasicAuth(authOk())
+		require.NoError(t, err)
+		handler.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+		var response2 GetCredential200JSONResponse
+		assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response2))
+		assert.NotNil(t, response2.Id)
+		status, ok := response2.Vc.CredentialStatus.(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, float64(revNonce), status["revocationNonce"])
+		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), status["type"])
+		assert.Equal(t, authCredentialExpiration, response2.Vc.Expiration.UTC().Unix())
+	})
 }

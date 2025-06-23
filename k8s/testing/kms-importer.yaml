@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: issuer-node-kms-importer
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: issuer-node-kms-importer
+          image: martinsaporiti/issuernode-kms-importer
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.apiIssuerNode.deployment.apiconfigMapRef }}
+          volumeMounts:
+            - name: local-storage
+              mountPath: /localstoragekeys
+          command: ["/bin/sh", "-c"]
+          args: ["./kms_priv_key_importer --privateKey={{ .Values.privateKey }}"]
+      volumes:
+        - name: local-storage
+          persistentVolumeClaim:
+            claimName: issuer-node-localstorage-pv

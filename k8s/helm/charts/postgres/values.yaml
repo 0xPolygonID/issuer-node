@@ -1,0 +1,40 @@
+postgresIssuerNode:
+  labels:
+    app: issuer-node
+  deployment:
+    replicaCount: 1
+    name: postgres-issuer-node
+    image:
+      repository: postgres
+      tag: '14-alpine'
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - name: postgresdata
+      mountPath: /var/lib/postgresql/data
+    - name: postgres-initdb
+      mountPath: /docker-entrypoint-initdb.d
+    labels: 
+      app: postgres-issuer-node-deployment
+    postgresconfigMapRef: postgres-secret
+    containerPort: 5432
+    containerName: postgres
+    volumeName: postgres-initdb
+    items: init.sql
+  service:
+    name: postgres-issuer-node-svc
+    ports:
+    - port: 5432
+      protocol: TCP
+      targetPort: 5432
+    selector: postgres-issuer-node
+  configMap:
+    initSql: |-
+      ALTER USER polygonid SUPERUSER;
+    postgresDb: platformid
+    postgresPassword: strongpasswordapp
+    postgresUser: polygonid
+    postgresName: postgres-secret  
+  pvc:
+    storageRequest: 5Gi
+    volumeName: postgresdata
+    postgres: postgresql-issuer-node-pvc

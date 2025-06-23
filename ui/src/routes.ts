@@ -5,6 +5,7 @@ export type RouteID =
   | "credentials"
   | "importSchema"
   | "issueCredential"
+  | "createAuthCredential"
   | "issuerState"
   | "linkDetails"
   | "notFound"
@@ -13,7 +14,17 @@ export type RouteID =
   | "identities"
   | "createIdentity"
   | "identityDetails"
-  | "onboarding";
+  | "onboarding"
+  | "displayMethods"
+  | "displayMethodDetails"
+  | "createDisplayMethod"
+  | "keyDetails"
+  | "createKey"
+  | "createPaymentOption"
+  | "paymentOptions"
+  | "paymentOptionDetails"
+  | "paymentRequestDetils"
+  | "paymentRequests";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -34,9 +45,25 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/connections",
   },
+  createAuthCredential: {
+    layout: "sider",
+    path: "/credentials/auth",
+  },
+  createDisplayMethod: {
+    layout: "sider",
+    path: "/display-methods/create",
+  },
   createIdentity: {
     layout: "sider",
     path: "/identities/create",
+  },
+  createKey: {
+    layout: "sider",
+    path: "/keys/create",
+  },
+  createPaymentOption: {
+    layout: "sider",
+    path: "/payments/options/create",
   },
   credentialDetails: {
     layout: "sider",
@@ -45,6 +72,14 @@ export const ROUTES: Routes = {
   credentials: {
     layout: "sider",
     path: "/credentials/:tabID",
+  },
+  displayMethodDetails: {
+    layout: "sider",
+    path: "/display-methods/:displayMethodID",
+  },
+  displayMethods: {
+    layout: "sider",
+    path: "/display-methods",
   },
   identities: {
     layout: "sider",
@@ -66,6 +101,10 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/issuer-state",
   },
+  keyDetails: {
+    layout: "sider",
+    path: "/keys/:keyID",
+  },
   linkDetails: {
     layout: "sider",
     path: "/credentials/links/:linkID",
@@ -77,6 +116,22 @@ export const ROUTES: Routes = {
   onboarding: {
     layout: "fullWidthGrey",
     path: "/onboarding",
+  },
+  paymentOptionDetails: {
+    layout: "sider",
+    path: "/payments/options/:paymentOptionID",
+  },
+  paymentOptions: {
+    layout: "sider",
+    path: "/payments/options",
+  },
+  paymentRequestDetils: {
+    layout: "sider",
+    path: "/payments/requests/:paymentRequestID",
+  },
+  paymentRequests: {
+    layout: "sider",
+    path: "/payments/requests",
   },
   schemaDetails: {
     layout: "sider",

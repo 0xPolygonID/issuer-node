@@ -29,8 +29,10 @@ const (
 	LocalStorage = "localstorage"
 	// Vault is the vault plugin
 	Vault = "vault"
-	// AWS is the AWS plugin
-	AWS = "aws"
+	// AWSSM is the AWS secret manager provider
+	AWSSM = "aws-sm"
+	// AWSKMS is the AWS KMS provider
+	AWSKMS = "aws-kms"
 	// CacheProviderRedis is the redis cache provider
 	CacheProviderRedis = "redis"
 	// CacheProviderValKey is the valkey cache provider
@@ -62,6 +64,13 @@ type Configuration struct {
 	MediaTypeManager            MediaTypeManager
 	UniversalLinks              UniversalLinks
 	UniversalDIDResolver        UniversalDIDResolver
+	Payments                    Payments
+}
+
+// Payments configurations
+type Payments struct {
+	SettingsPath string  `env:"ISSUER_PAYMENTS_SETTINGS_PATH"`
+	SettingsFile *string `env:"ISSUER_PAYMENTS_SETTINGS_FILE"`
 }
 
 // Database has the database configuration
@@ -136,9 +145,10 @@ type KeyStore struct {
 	BJJProvider                  string `env:"ISSUER_KMS_BJJ_PROVIDER"`
 	ETHProvider                  string `env:"ISSUER_KMS_ETH_PROVIDER"`
 	ProviderLocalStorageFilePath string `env:"ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH"`
-	AWSAccessKey                 string `env:"ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"`
-	AWSSecretKey                 string `env:"ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"`
-	AWSRegion                    string `env:"ISSUER_KMS_ETH_PLUGIN_AWS_REGION"`
+	AWSAccessKey                 string `env:"ISSUER_KMS_AWS_ACCESS_KEY"`
+	AWSSecretKey                 string `env:"ISSUER_KMS_AWS_SECRET_KEY"`
+	AWSRegion                    string `env:"ISSUER_KMS_AWS_REGION"`
+	AWSURL                       string `env:"ISSUER_KMS_AWS_URL" envDefault:"http://localstack:4566"`
 	VaultUserPassAuthEnabled     bool   `env:"ISSUER_VAULT_USERPASS_AUTH_ENABLED"`
 	VaultUserPassAuthPassword    string `env:"ISSUER_VAULT_USERPASS_AUTH_PASSWORD"`
 	TLSEnabled                   bool   `env:"ISSUER_VAULT_TLS_ENABLED"`
@@ -255,6 +265,8 @@ func lookupVaultTokenFromFile(pathVaultConfig string) (string, error) {
 
 // nolint:gocyclo,gocognit
 func checkEnvVars(ctx context.Context, cfg *Configuration) error {
+	const defResolverPath = "./resolvers_settings.yaml"
+	const defPaymentPath = "./payment_settings.yaml"
 	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
 		cfg.IPFS.GatewayURL = ipfsGateway
@@ -318,15 +330,19 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 	if cfg.NetworkResolverPath == "" {
 		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing. Trying to use ISSUER_RESOLVER_FILE")
 		if cfg.NetworkResolverFile == nil || *cfg.NetworkResolverFile == "" {
-			log.Info(ctx, "ISSUER_RESOLVER_FILE value is missing")
-		} else {
-			log.Info(ctx, "ISSUER_RESOLVER_FILE value is present")
+			log.Info(ctx, "ISSUER_RESOLVER_PATH and ISSUER_RESOLVER_FILE value is missing. Using default value", "path", "/resolvers_settings.yaml")
+			cfg.NetworkResolverPath = defResolverPath
 		}
+		log.Info(ctx, "ISSUER_RESOLVER_FILE value is present")
 	}
 
-	if cfg.NetworkResolverPath == "" && (cfg.NetworkResolverFile == nil || *cfg.NetworkResolverFile == "") {
-		log.Info(ctx, "ISSUER_RESOLVER_PATH and ISSUER_RESOLVER_FILE value is missing. Using default value: ./resolvers_settings.yaml")
-		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
+	if cfg.Payments.SettingsPath == "" {
+		log.Info(ctx, "ISSUER_PAYMENTS_SETTINGS_PATH value is missing. Trying to use ISSUER_PAYMENTS_SETTINGS_FILE")
+		if cfg.Payments.SettingsFile == nil || *cfg.Payments.SettingsFile == "" {
+			log.Info(ctx, "ISSUER_PAYMENTS_SETTINGS_FILE value is missing. Using default value:", "path", defPaymentPath)
+			cfg.Payments.SettingsPath = defPaymentPath
+		}
+		log.Info(ctx, "ISSUER_PAYMENTS_SETTINGS_FILE value is present")
 	}
 
 	if cfg.KeyStore.BJJProvider == "" {
@@ -344,7 +360,7 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 		cfg.KeyStore.ProviderLocalStorageFilePath = "./localstoragekeys"
 	}
 
-	if cfg.KeyStore.ETHProvider == AWS {
+	if cfg.KeyStore.ETHProvider == AWSSM || cfg.KeyStore.ETHProvider == AWSKMS || cfg.KeyStore.BJJProvider == AWSSM {
 		if cfg.KeyStore.AWSAccessKey == "" {
 			log.Error(ctx, "ISSUER_AWS_KEY_ID value is missing")
 			return errors.New("ISSUER_AWS_KEY_ID value is missing")
@@ -392,9 +408,10 @@ func KeyStoreConfig(ctx context.Context, cfg *Configuration, vaultCfg providers.
 	kmsConfig := kms.Config{
 		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJProvider),
 		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHProvider),
-		AWSKMSAccessKey:          cfg.KeyStore.AWSAccessKey,
-		AWSKMSSecretKey:          cfg.KeyStore.AWSSecretKey,
-		AWSKMSRegion:             cfg.KeyStore.AWSRegion,
+		AWSAccessKey:             cfg.KeyStore.AWSAccessKey,
+		AWSSecretKey:             cfg.KeyStore.AWSSecretKey,
+		AWSRegion:                cfg.KeyStore.AWSRegion,
+		AWSURL:                   cfg.KeyStore.AWSURL,
 		LocalStoragePath:         cfg.KeyStore.ProviderLocalStorageFilePath,
 		Vault:                    vaultCli,
 		PluginIden3MountPath:     cfg.KeyStore.PluginIden3MountPath,

@@ -30,6 +30,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/network"
 	"github.com/polygonid/sh-id-platform/internal/packagemanager"
+	"github.com/polygonid/sh-id-platform/internal/payments"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/pubsub"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -112,6 +113,8 @@ func main() {
 	schemaRepository := repositories.NewSchema(*storage)
 	linkRepository := repositories.NewLink(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
+	keyRepository := repositories.NewKey(*storage)
+	paymentsRepo := repositories.NewPayment(*storage)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
@@ -122,6 +125,7 @@ func main() {
 		map[iden3comm.ProtocolMessage][]string{
 			iden3commProtocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			iden3commProtocol.RevocationStatusRequestMessageType: {"*"},
+			iden3commProtocol.DiscoverFeatureQueriesMessageType:  {"*"},
 		},
 		*cfg.MediaTypeManager.Enabled,
 	)
@@ -145,14 +149,27 @@ func main() {
 		return
 	}
 
+	paymentSettings, err := payments.SettingsFromConfig(ctx, &cfg.Payments)
+	if err != nil {
+		log.Error(ctx, "failed to load payment settings", "err", err)
+		return
+	}
+
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	proofService := services.NewProver(circuitsLoaderService)
-	schemaService := services.NewSchema(schemaRepository, schemaLoader)
+	displayMethodService := services.NewDisplayMethod(repositories.NewDisplayMethod(*storage))
+	schemaService := services.NewSchema(schemaRepository, schemaLoader, displayMethodService)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
-
+	paymentService, err := services.NewPaymentService(paymentsRepo, *networkResolver, schemaService, paymentSettings, keyStore)
+	if err != nil {
+		log.Error(ctx, "error creating payment service", "err", err)
+		return
+	}
+	keyService := services.NewKey(keyStore, claimsService, keyRepository)
 	transactionService, err := gateways.NewTransaction(*networkResolver)
+	discoveryService := services.NewDiscovery(mediaTypeManager, packageManager, mediaTypeManager.GetSupportedProtocolMessages())
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
 		return
@@ -191,9 +208,10 @@ func main() {
 		corsMiddleware.Handler,
 		chiMiddleware.NoCache,
 	)
+
 	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService, displayMethodService, keyService, paymentService, discoveryService),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

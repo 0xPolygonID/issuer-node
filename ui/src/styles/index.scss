@@ -313,16 +313,6 @@
 }
 
 .ant-typography {
-  &:has(.ant-typography-copy) {
-    display: flex;
-    justify-content: flex-end;
-    word-break: keep-all;
-
-    @media screen and (width <= 576px) {
-      justify-content: flex-start;
-    }
-  }
-
   .ant-typography-copy {
     margin-inline-start: 8px;
   }
@@ -354,6 +344,16 @@
       white-space: break-spaces;
       text-align: left;
     }
+  }
+}
+
+.ant-layout-sider-children {
+  overflow: auto;
+}
+
+.ant-table-content {
+  .ant-table-thead > tr > th {
+    color: $text-color-secondary;
   }
 }
 
@@ -409,6 +409,7 @@
 .menu-sider-layout {
   height: 100%;
   flex-flow: column;
+  min-height: fit-content;
 
   .ant-menu-title-content {
     width: 100%;
@@ -542,4 +543,10 @@ svg {
 
 .user-display:hover {
   background-color: $bg-light;
+}
+
+.wrapped-form-item {
+  .ant-form-item {
+    margin-bottom: 0;
+  }
 }

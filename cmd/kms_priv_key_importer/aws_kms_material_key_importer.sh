@@ -6,7 +6,7 @@ set +x
 raw_key=$1
 key_id=$2
 aws_profile=$3
-
+aws_endpoint=$4
 
 ASN1_PRIV_KEY_HEADER="302e0201010420"
 ASN1_SECP256K1_OID="a00706052b8104000a"
@@ -20,12 +20,23 @@ fi
 openssl pkcs8 -topk8 -outform DER -nocrypt -inform DER -in <(echo "${ASN1_PRIV_KEY_HEADER} ${raw_key} ${ASN1_SECP256K1_OID}" | xxd -r -p) -out ${OUT_FILE} &>/dev/null
 printf "private key successfully written to: %s\n" "${OUT_FILE}"
 
-export KEY=`aws kms get-parameters-for-import --profile ${aws_profile} \
---key-id ${key_id} \
---wrapping-algorithm RSAES_OAEP_SHA_256 \
---wrapping-key-spec RSA_2048 \
---query '{Key:PublicKey,Token:ImportToken}' \
---output text`
+if [[ -n "${aws_endpoint}" ]]; then
+  echo "Using endpoint: ${aws_endpoint}"
+  export KEY=`aws kms get-parameters-for-import --profile ${aws_profile} --endpoint-url ${aws_endpoint}\
+  --key-id ${key_id} \
+  --wrapping-algorithm RSAES_OAEP_SHA_256 \
+  --wrapping-key-spec RSA_2048 \
+  --query '{Key:PublicKey,Token:ImportToken}' \
+  --output text`
+else
+  echo "non endpoint"
+  export KEY=`aws kms get-parameters-for-import --profile ${aws_profile} \
+  --key-id ${key_id} \
+  --wrapping-algorithm RSAES_OAEP_SHA_256 \
+  --wrapping-key-spec RSA_2048 \
+  --query '{Key:PublicKey,Token:ImportToken}' \
+  --output text`
+fi
 
 echo $KEY | awk '{print $1}' > PublicKey.b64
 echo $KEY | awk '{print $2}' > ImportToken.b64
@@ -41,12 +52,22 @@ openssl pkeyutl \
 -keyform DER \
 -pubin -encrypt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
 
-
-aws kms import-key-material --profile ${aws_profile} \
---key-id ${key_id} \
---encrypted-key-material fileb://EncryptedKeyMaterial.bin \
---import-token fileb://ImportToken.bin \
---expiration-model KEY_MATERIAL_DOES_NOT_EXPIRE
+if [[ -n "${aws_endpoint}" ]]; then
+  echo "Using endpoint: ${aws_endpoint}"
+  aws kms import-key-material --profile ${aws_profile} \
+  --key-id ${key_id} \
+  --encrypted-key-material fileb://EncryptedKeyMaterial.bin \
+  --import-token fileb://ImportToken.bin \
+  --expiration-model KEY_MATERIAL_DOES_NOT_EXPIRE \
+  --endpoint-url ${aws_endpoint}
+else
+  echo "non endpoint"
+  aws kms import-key-material --profile ${aws_profile} \
+  --key-id ${key_id} \
+  --encrypted-key-material fileb://EncryptedKeyMaterial.bin \
+  --import-token fileb://ImportToken.bin \
+  --expiration-model KEY_MATERIAL_DOES_NOT_EXPIRE
+fi
 
 
 printf "Key material successfully imported!!!\n"

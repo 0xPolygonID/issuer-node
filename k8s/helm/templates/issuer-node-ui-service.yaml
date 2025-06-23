@@ -3,8 +3,8 @@ kind: Service
 metadata:
   name: {{ .Values.uiIssuerNode.service.name }}
   labels:
-    {{- include "polygon-id-issuer.staticLabel" . | nindent 4 }}
-    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+    {{- include "privadoid-issuer.staticLabel" . | nindent 4 }}
+    {{- include "privadoid-issuer.labels" . | nindent 4 }}
 spec:
   {{- if .Values.ingressEnabled }}
   type: ClusterIP
@@ -12,8 +12,8 @@ spec:
   type: NodePort
   {{- end }}
   selector:
-    {{- include "polygon-id-issuer.uiIssuerNode.Labels" . | nindent 4 }}
-    {{- include "polygon-id-issuer.selectorLabels" . | nindent 4 }}
+    {{- include "privadoid-issuer.uiIssuerNode.Labels" . | nindent 4 }}
+    {{- include "privadoid-issuer.selectorLabels" . | nindent 4 }}
   {{- with .Values.uiIssuerNode.service.ports }}
   ports: 
     {{-  toYaml . | nindent 2 }}

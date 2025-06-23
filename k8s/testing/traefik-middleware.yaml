@@ -1,0 +1,10 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: rewritebackend
+  namespace: {{ .Release.Namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /{{ .Release.Namespace }}
+    forceSlash: false

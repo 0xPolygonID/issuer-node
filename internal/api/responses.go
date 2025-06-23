@@ -1,13 +1,19 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/pagination"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
 )
@@ -133,15 +139,17 @@ func getProofs(credential *domain.Claim) []string {
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
 	return Schema{
-		Id:          s.ID.String(),
-		Type:        s.Type,
-		Url:         s.URL,
-		BigInt:      s.Hash.BigInt().String(),
-		Hash:        string(hash),
-		CreatedAt:   TimeUTC(s.CreatedAt),
-		Version:     s.Version,
-		Title:       s.Title,
-		Description: s.Description,
+		Id:              s.ID.String(),
+		Type:            s.Type,
+		ContextURL:      s.ContextURL,
+		Url:             s.URL,
+		BigInt:          s.Hash.BigInt().String(),
+		Hash:            string(hash),
+		CreatedAt:       TimeUTC(s.CreatedAt),
+		Version:         s.Version,
+		Title:           s.Title,
+		Description:     s.Description,
+		DisplayMethodID: s.DisplayMethodID,
 	}
 }
 
@@ -278,5 +286,136 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 		return "published"
 	default:
 		return "failed"
+	}
+}
+
+func toGetPaymentOptionsResponse(opts []domain.PaymentOption) (PaymentOptions, error) {
+	var err error
+	res := make([]PaymentOption, len(opts))
+	for i, opt := range opts {
+		res[i], err = toPaymentOption(&opt)
+		if err != nil {
+			return PaymentOptions{}, err
+		}
+	}
+	return res, nil
+}
+
+func toPaymentOption(opt *domain.PaymentOption) (PaymentOption, error) {
+	var config map[string]interface{}
+	raw, err := json.Marshal(opt.Config)
+	if err != nil {
+		return PaymentOption{}, err
+	}
+	if err := json.Unmarshal(raw, &config); err != nil {
+		return PaymentOption{}, err
+	}
+	return PaymentOption{
+		Id:             opt.ID,
+		IssuerDID:      opt.IssuerDID.String(),
+		Name:           opt.Name,
+		Description:    opt.Description,
+		PaymentOptions: toPaymentOptionConfig(opt.Config),
+		CreatedAt:      TimeUTC(opt.CreatedAt),
+		ModifiedAt:     TimeUTC(opt.UpdatedAt),
+	}, nil
+}
+
+func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfig {
+	cfg := make([]PaymentOptionConfigItem, len(config.PaymentOptions))
+	for i, item := range config.PaymentOptions {
+		cfg[i] = PaymentOptionConfigItem{
+			PaymentOptionID: int(item.PaymentOptionID),
+			Amount:          item.Amount.String(),
+			Recipient:       item.Recipient.String(),
+			SigningKeyID:    item.SigningKeyID,
+			Expiration:      item.Expiration,
+		}
+	}
+	return cfg
+}
+
+func toGetPaymentRequestsResponse(ctx context.Context, payReq []domain.PaymentRequest) GetPaymentRequestsResponse {
+	res := make([]CreatePaymentRequestResponse, len(payReq))
+	for i, pay := range payReq {
+		res[i] = toCreatePaymentRequestResponse(ctx, &pay)
+	}
+	return res
+}
+
+func toCreatePaymentRequestResponse(ctx context.Context, payReq *domain.PaymentRequest) CreatePaymentRequestResponse {
+	creds := make([]struct {
+		Context string `json:"context"`
+		Type    string `json:"type"`
+	}, len(payReq.Credentials))
+	for i, cred := range payReq.Credentials {
+		creds[i] = struct {
+			Context string `json:"context"`
+			Type    string `json:"type"`
+		}{
+			Context: cred.Context,
+			Type:    cred.Type,
+		}
+	}
+	payment := PaymentRequestInfo{
+		Credentials: payReq.Credentials,
+		Description: payReq.Description,
+	}
+	payment.Data = make([]protocol.PaymentRequestInfoDataItem, len(payReq.Payments))
+	for i, pay := range payReq.Payments {
+		payment.Data[i] = pay.Payment
+	}
+	status, err := toCreatePaymentRequestResponseStatus(payReq.Status)
+	if err != nil {
+		log.Warn(ctx, "unknown payment status type in payment-request", "status", payReq.Status)
+	}
+	var paidNonce *string
+	if payReq.PaidNonce != nil {
+		paidNonce = common.ToPointer(payReq.PaidNonce.String())
+	}
+	resp := CreatePaymentRequestResponse{
+		CreatedAt:       payReq.CreatedAt,
+		ModifiedAt:      payReq.ModifietAt,
+		Status:          status,
+		PaidNonce:       paidNonce,
+		Id:              payReq.ID,
+		IssuerDID:       payReq.IssuerDID.String(),
+		UserDID:         payReq.UserDID.String(),
+		PaymentOptionID: payReq.PaymentOptionID,
+		Payments:        []PaymentRequestInfo{payment},
+		SchemaID:        payReq.SchemaID,
+	}
+	return resp
+}
+
+func toVerifyPaymentResponse(status ports.BlockchainPaymentStatus) (VerifyPaymentResponseObject, error) {
+	switch status {
+	case ports.BlockchainPaymentStatusPending:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusPending}, nil
+	case ports.BlockchainPaymentStatusSuccess:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess}, nil
+	case ports.BlockchainPaymentStatusCancelled:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusCanceled}, nil
+	case ports.BlockchainPaymentStatusFailed:
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusFailed}, nil
+	default:
+		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unknown blockchain payment status <%d>", status)}}, nil
+	}
+}
+
+func toCreatePaymentRequestResponseStatus(status domain.PaymentRequestStatus) (CreatePaymentRequestResponseStatus, error) {
+	switch status {
+	case domain.PaymentRequestStatusPending:
+		return CreatePaymentRequestResponseStatusPending, nil
+	case domain.PaymentRequestStatusSuccess:
+		return CreatePaymentRequestResponseStatusSuccess, nil
+	case domain.PaymentRequestStatusCanceled:
+		return CreatePaymentRequestResponseStatusCanceled, nil
+	case domain.PaymentRequestStatusFailed:
+		return CreatePaymentRequestResponseStatusFailed, nil
+	case domain.PaymentRequestStatusNotVerified:
+		return CreatePaymentRequestResponseStatusNotVerified, nil
+	default:
+		return CreatePaymentRequestResponseStatusNotVerified, fmt.Errorf("unknown payment status <%s>", status)
 	}
 }

@@ -18,18 +18,13 @@ const (
 
 	AuthBJJCredentialJSONLDContext = "https://schema.iden3.io/core/jsonld/auth.jsonld"
 	AuthBJJCredentialTypeID        = "https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential"
+
+	Iden3PaymentRailsRequestV1SchemaJSON      = `{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Iden3PaymentRailsRequestV1":[{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"expirationDate","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"metadata","type":"bytes"}]}`
+	Iden3PaymentRailsERC20RequestV1SchemaJSON = `{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Iden3PaymentRailsERC20RequestV1":[{"name":"tokenAddress","type":"address"},{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"expirationDate","type":"uint256"},{"name":"nonce","type":"uint256"},{"name":"metadata","type":"bytes"}]}`
 )
 
 // SchemaFormat type
 type SchemaFormat string
-
-const (
-	// JSONLD JSON-LD schema format
-	JSONLD SchemaFormat = "json-ld"
-
-	// JSON JSON schema format
-	JSON SchemaFormat = "json"
-)
 
 // SchemaWords is a collection of schema attributes
 type SchemaWords []string
@@ -57,14 +52,16 @@ func SchemaWordsFromString(commaAttrs string) SchemaWords {
 
 // Schema defines a domain.Schema entity
 type Schema struct {
-	ID          uuid.UUID
-	IssuerDID   w3c.DID
-	URL         string
-	Type        string
-	Title       *string
-	Description *string
-	Version     string
-	Hash        core.SchemaHash
-	Words       SchemaWords
-	CreatedAt   time.Time
+	ID              uuid.UUID
+	IssuerDID       w3c.DID
+	URL             string
+	Type            string
+	ContextURL      string
+	Title           *string
+	Description     *string
+	Version         string
+	Hash            core.SchemaHash
+	Words           SchemaWords
+	DisplayMethodID *uuid.UUID
+	CreatedAt       time.Time
 }

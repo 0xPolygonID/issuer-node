@@ -17,11 +17,20 @@ import (
 	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+	openapi_types "github.com/oapi-codegen/runtime/types"
+	payments "github.com/polygonid/sh-id-platform/internal/payments"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
 const (
 	BasicAuthScopes = "basicAuth.Scopes"
+)
+
+// Defines values for CreateAuthCredentialRequestCredentialStatusType.
+const (
+	CreateAuthCredentialRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateAuthCredentialRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	CreateAuthCredentialRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateAuthCredentialRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	CreateAuthCredentialRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateAuthCredentialRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for CreateCredentialRequestCredentialStatusType.
@@ -57,9 +66,24 @@ const (
 	CreateIdentityResponseCredentialStatusTypeIden3commRevocationStatusV10          CreateIdentityResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
+// Defines values for CreateKeyRequestKeyType.
+const (
+	CreateKeyRequestKeyTypeBabyjubJub CreateKeyRequestKeyType = "babyjubJub"
+	CreateKeyRequestKeyTypeSecp256k1  CreateKeyRequestKeyType = "secp256k1"
+)
+
+// Defines values for CreatePaymentRequestResponseStatus.
+const (
+	CreatePaymentRequestResponseStatusCanceled    CreatePaymentRequestResponseStatus = "canceled"
+	CreatePaymentRequestResponseStatusFailed      CreatePaymentRequestResponseStatus = "failed"
+	CreatePaymentRequestResponseStatusNotVerified CreatePaymentRequestResponseStatus = "not-verified"
+	CreatePaymentRequestResponseStatusPending     CreatePaymentRequestResponseStatus = "pending"
+	CreatePaymentRequestResponseStatusSuccess     CreatePaymentRequestResponseStatus = "success"
+)
+
 // Defines values for DisplayMethodType.
 const (
-	Iden3BasicDisplayMethodv2 DisplayMethodType = "Iden3BasicDisplayMethodv2"
+	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
 )
 
 // Defines values for GetIdentitiesResponseCredentialStatusType.
@@ -71,9 +95,15 @@ const (
 
 // Defines values for GetIdentityDetailsResponseCredentialStatusType.
 const (
-	Iden3OnchainSparseMerkleTreeProof2023 GetIdentityDetailsResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
-	Iden3ReverseSparseMerkleTreeProof     GetIdentityDetailsResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	Iden3commRevocationStatusV10          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	GetIdentityDetailsResponseCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 GetIdentityDetailsResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	GetIdentityDetailsResponseCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     GetIdentityDetailsResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	GetIdentityDetailsResponseCredentialStatusTypeIden3commRevocationStatusV10          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+)
+
+// Defines values for KeyKeyType.
+const (
+	KeyKeyTypeBabyjubJub KeyKeyType = "babyjubJub"
+	KeyKeyTypeSecp256k1  KeyKeyType = "secp256k1"
 )
 
 // Defines values for LinkStatus.
@@ -81,6 +111,14 @@ const (
 	LinkStatusActive   LinkStatus = "active"
 	LinkStatusExceeded LinkStatus = "exceeded"
 	LinkStatusInactive LinkStatus = "inactive"
+)
+
+// Defines values for PaymentStatusStatus.
+const (
+	PaymentStatusStatusCanceled PaymentStatusStatus = "canceled"
+	PaymentStatusStatusFailed   PaymentStatusStatus = "failed"
+	PaymentStatusStatusPending  PaymentStatusStatus = "pending"
+	PaymentStatusStatusSuccess  PaymentStatusStatus = "success"
 )
 
 // Defines values for RefreshServiceType.
@@ -138,6 +176,22 @@ const (
 	GetCredentialOfferParamsTypeUniversalLink GetCredentialOfferParamsType = "universalLink"
 )
 
+// Defines values for GetAllDisplayMethodsParamsSort.
+const (
+	CreatedAt      GetAllDisplayMethodsParamsSort = "created_at"
+	MinusCreatedAt GetAllDisplayMethodsParamsSort = "-created_at"
+	MinusName      GetAllDisplayMethodsParamsSort = "-name"
+	MinusType      GetAllDisplayMethodsParamsSort = "-type"
+	Name           GetAllDisplayMethodsParamsSort = "name"
+	Type           GetAllDisplayMethodsParamsSort = "type"
+)
+
+// Defines values for GetKeysParamsType.
+const (
+	BabyjubJub GetKeysParamsType = "babyjubJub"
+	Secp256k1  GetKeysParamsType = "secp256k1"
+)
+
 // Defines values for GetStateTransactionsParamsFilter.
 const (
 	GetStateTransactionsParamsFilterAll    GetStateTransactionsParamsFilter = "all"
@@ -159,15 +213,7 @@ const (
 )
 
 // AgentResponse defines model for AgentResponse.
-type AgentResponse struct {
-	Body     interface{} `json:"body"`
-	From     string      `json:"from"`
-	Id       string      `json:"id"`
-	ThreadID string      `json:"threadID"`
-	To       string      `json:"to"`
-	Typ      string      `json:"typ"`
-	Type     string      `json:"type"`
-}
+type AgentResponse = BasicMessage
 
 // AuthenticationConnection defines model for AuthenticationConnection.
 type AuthenticationConnection struct {
@@ -184,11 +230,34 @@ type AuthenticationResponse struct {
 	SessionID UUIDString `json:"sessionID"`
 }
 
+// BasicMessage defines model for BasicMessage.
+type BasicMessage struct {
+	Body     interface{} `json:"body"`
+	From     string      `json:"from"`
+	Id       string      `json:"id"`
+	ThreadID string      `json:"threadID"`
+	To       string      `json:"to"`
+	Typ      string      `json:"typ"`
+	Type     string      `json:"type"`
+}
+
 // ConnectionsPaginated defines model for ConnectionsPaginated.
 type ConnectionsPaginated struct {
 	Items GetConnectionsResponse `json:"items"`
 	Meta  PaginatedMetadata      `json:"meta"`
 }
+
+// CreateAuthCredentialRequest defines model for CreateAuthCredentialRequest.
+type CreateAuthCredentialRequest struct {
+	CredentialStatusType CreateAuthCredentialRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
+	Expiration           *int64                                          `json:"expiration,omitempty"`
+	KeyID                string                                          `json:"keyID"`
+	RevNonce             *uint64                                         `json:"revNonce,omitempty"`
+	Version              *uint32                                         `json:"version,omitempty"`
+}
+
+// CreateAuthCredentialRequestCredentialStatusType defines model for CreateAuthCredentialRequest.CredentialStatusType.
+type CreateAuthCredentialRequestCredentialStatusType string
 
 // CreateConnectionRequest defines model for CreateConnectionRequest.
 type CreateConnectionRequest struct {
@@ -225,6 +294,15 @@ type CreateCredentialResponse struct {
 	Id string `json:"id"`
 }
 
+// CreateDisplayMethodRequest defines model for CreateDisplayMethodRequest.
+type CreateDisplayMethodRequest struct {
+	Name string `json:"name"`
+
+	// Type Display method type (Iden3BasicDisplayMethodV1 is default value)
+	Type *string `json:"type,omitempty"`
+	Url  string  `json:"url"`
+}
+
 // CreateIdentityRequest defines model for CreateIdentityRequest.
 type CreateIdentityRequest struct {
 	CredentialStatusType *CreateIdentityRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
@@ -257,6 +335,21 @@ type CreateIdentityResponse struct {
 // CreateIdentityResponseCredentialStatusType defines model for CreateIdentityResponse.CredentialStatusType.
 type CreateIdentityResponseCredentialStatusType string
 
+// CreateKeyRequest defines model for CreateKeyRequest.
+type CreateKeyRequest struct {
+	KeyType CreateKeyRequestKeyType `json:"keyType"`
+	Name    string                  `json:"name"`
+}
+
+// CreateKeyRequestKeyType defines model for CreateKeyRequest.KeyType.
+type CreateKeyRequestKeyType string
+
+// CreateKeyResponse defines model for CreateKeyResponse.
+type CreateKeyResponse struct {
+	// Id base64 encoded keyID
+	Id string `json:"id"`
+}
+
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
 	CredentialExpiration *time.Time        `json:"credentialExpiration,omitempty"`
@@ -269,6 +362,31 @@ type CreateLinkRequest struct {
 	SchemaID             uuid.UUID         `json:"schemaID"`
 	SignatureProof       bool              `json:"signatureProof"`
 }
+
+// CreatePaymentRequest defines model for CreatePaymentRequest.
+type CreatePaymentRequest struct {
+	Description string    `json:"description"`
+	OptionID    uuid.UUID `json:"optionID"`
+	SchemaID    uuid.UUID `json:"schemaID"`
+	UserDID     string    `json:"userDID"`
+}
+
+// CreatePaymentRequestResponse defines model for CreatePaymentRequestResponse.
+type CreatePaymentRequestResponse struct {
+	CreatedAt       time.Time                          `json:"createdAt"`
+	Id              openapi_types.UUID                 `json:"id"`
+	IssuerDID       string                             `json:"issuerDID"`
+	ModifiedAt      time.Time                          `json:"modifiedAt"`
+	PaidNonce       *string                            `json:"paidNonce,omitempty"`
+	PaymentOptionID openapi_types.UUID                 `json:"paymentOptionID"`
+	Payments        []PaymentRequestInfo               `json:"payments"`
+	SchemaID        *openapi_types.UUID                `json:"schemaID,omitempty"`
+	Status          CreatePaymentRequestResponseStatus `json:"status"`
+	UserDID         string                             `json:"userDID"`
+}
+
+// CreatePaymentRequestResponseStatus defines model for CreatePaymentRequestResponse.Status.
+type CreatePaymentRequestResponseStatus string
 
 // Credential defines model for Credential.
 type Credential struct {
@@ -311,6 +429,20 @@ type DisplayMethod struct {
 
 // DisplayMethodType defines model for DisplayMethod.Type.
 type DisplayMethodType string
+
+// DisplayMethodEntity defines model for DisplayMethodEntity.
+type DisplayMethodEntity struct {
+	Id   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Type string    `json:"type"`
+	Url  string    `json:"url"`
+}
+
+// DisplayMethodPaginated defines model for DisplayMethodPaginated.
+type DisplayMethodPaginated struct {
+	Items []DisplayMethodEntity `json:"items"`
+	Meta  PaginatedMetadata     `json:"meta"`
+}
 
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
@@ -355,6 +487,7 @@ type GetIdentitiesResponseCredentialStatusType string
 // GetIdentityDetailsResponse defines model for GetIdentityDetailsResponse.
 type GetIdentityDetailsResponse struct {
 	Address              *string                                        `json:"address,omitempty"`
+	AuthCredentialsIDs   []string                                       `json:"authCredentialsIDs"`
 	Balance              *string                                        `json:"balance,omitempty"`
 	CredentialStatusType GetIdentityDetailsResponseCredentialStatusType `json:"credentialStatusType"`
 	DisplayName          *string                                        `json:"displayName"`
@@ -365,6 +498,9 @@ type GetIdentityDetailsResponse struct {
 
 // GetIdentityDetailsResponseCredentialStatusType defines model for GetIdentityDetailsResponse.CredentialStatusType.
 type GetIdentityDetailsResponseCredentialStatusType string
+
+// GetPaymentRequestsResponse defines model for GetPaymentRequestsResponse.
+type GetPaymentRequestsResponse = []CreatePaymentRequestResponse
 
 // Health defines model for Health.
 type Health map[string]bool
@@ -388,17 +524,37 @@ type IdentityState struct {
 
 // ImportSchemaRequest defines model for ImportSchemaRequest.
 type ImportSchemaRequest struct {
-	Description *string `json:"description,omitempty"`
-	SchemaType  string  `json:"schemaType"`
-	Title       *string `json:"title,omitempty"`
-	Url         string  `json:"url"`
-	Version     string  `json:"version"`
+	Description     *string    `json:"description,omitempty"`
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
+	SchemaType      string     `json:"schemaType"`
+	Title           *string    `json:"title,omitempty"`
+	Url             string     `json:"url"`
+	Version         string     `json:"version"`
 }
 
 // IssuerDescription defines model for IssuerDescription.
 type IssuerDescription struct {
 	DisplayName string `json:"displayName"`
 	Logo        string `json:"logo"`
+}
+
+// Key defines model for Key.
+type Key struct {
+	// Id base64 encoded keyID
+	Id               string     `json:"id"`
+	IsAuthCredential bool       `json:"isAuthCredential"`
+	KeyType          KeyKeyType `json:"keyType"`
+	Name             string     `json:"name"`
+	PublicKey        string     `json:"publicKey"`
+}
+
+// KeyKeyType defines model for Key.KeyType.
+type KeyKeyType string
+
+// KeysPaginated defines model for KeysPaginated.
+type KeysPaginated struct {
+	Items []Key             `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
 }
 
 // Link defines model for Link.
@@ -450,6 +606,72 @@ type PaginatedMetadata struct {
 	Total      uint `json:"total"`
 }
 
+// PaymentOption defines model for PaymentOption.
+type PaymentOption struct {
+	CreatedAt      TimeUTC             `json:"createdAt"`
+	Description    string              `json:"description"`
+	Id             uuid.UUID           `json:"id"`
+	IssuerDID      string              `json:"issuerDID"`
+	ModifiedAt     TimeUTC             `json:"modifiedAt"`
+	Name           string              `json:"name"`
+	PaymentOptions PaymentOptionConfig `json:"paymentOptions"`
+}
+
+// PaymentOptionConfig defines model for PaymentOptionConfig.
+type PaymentOptionConfig = []PaymentOptionConfigItem
+
+// PaymentOptionConfigItem defines model for PaymentOptionConfigItem.
+type PaymentOptionConfigItem struct {
+	Amount string `json:"amount"`
+
+	// Expiration Expiration date for the payment option, if not set the 1 hour from the creation date will be used
+	Expiration      *time.Time `json:"expiration,omitempty"`
+	PaymentOptionID int        `json:"paymentOptionID"`
+	Recipient       string     `json:"recipient"`
+
+	// SigningKeyID base64 encoded keyID
+	SigningKeyID string `json:"signingKeyID"`
+}
+
+// PaymentOptionRequest defines model for PaymentOptionRequest.
+type PaymentOptionRequest struct {
+	Description    string              `json:"description"`
+	Name           string              `json:"name"`
+	PaymentOptions PaymentOptionConfig `json:"paymentOptions"`
+}
+
+// PaymentOptions defines model for PaymentOptions.
+type PaymentOptions = []PaymentOption
+
+// PaymentOptionsPaginated defines model for PaymentOptionsPaginated.
+type PaymentOptionsPaginated struct {
+	Items PaymentOptions    `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
+}
+
+// PaymentRequestInfo defines model for PaymentRequestInfo.
+type PaymentRequestInfo = protocol.PaymentRequestInfo
+
+// PaymentStatus defines model for PaymentStatus.
+type PaymentStatus struct {
+	Status PaymentStatusStatus `json:"status"`
+}
+
+// PaymentStatusStatus defines model for PaymentStatus.Status.
+type PaymentStatusStatus string
+
+// PaymentVerifyRequest defines model for PaymentVerifyRequest.
+type PaymentVerifyRequest struct {
+	// TxHash If txHash not provided then only verification on the Payment contract will be performed by nonce and issuer DID.
+	TxHash *string `json:"txHash,omitempty"`
+
+	// UserDID If a User DID is provided, the payment will be verified for the specified User DID.
+	UserDID *string `json:"userDID,omitempty"`
+}
+
+// PaymentsConfiguration defines model for PaymentsConfiguration.
+type PaymentsConfiguration = payments.Config
+
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {
 	ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
@@ -493,15 +715,17 @@ type RevokeClaimResponse struct {
 
 // Schema defines model for Schema.
 type Schema struct {
-	BigInt      string  `json:"bigInt"`
-	CreatedAt   TimeUTC `json:"createdAt"`
-	Description *string `json:"description"`
-	Hash        string  `json:"hash"`
-	Id          string  `json:"id"`
-	Title       *string `json:"title"`
-	Type        string  `json:"type"`
-	Url         string  `json:"url"`
-	Version     string  `json:"version"`
+	BigInt          string     `json:"bigInt"`
+	ContextURL      string     `json:"contextURL"`
+	CreatedAt       TimeUTC    `json:"createdAt"`
+	Description     *string    `json:"description"`
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
+	Hash            string     `json:"hash"`
+	Id              string     `json:"id"`
+	Title           *string    `json:"title"`
+	Type            string     `json:"type"`
+	Url             string     `json:"url"`
+	Version         string     `json:"version"`
 }
 
 // StateStatusResponse defines model for StateStatusResponse.
@@ -547,6 +771,13 @@ type UUIDResponse struct {
 // UUIDString defines model for UUIDString.
 type UUIDString = string
 
+// UpdatePaymentOptionRequest defines model for UpdatePaymentOptionRequest.
+type UpdatePaymentOptionRequest struct {
+	Description    *string              `json:"description,omitempty"`
+	Name           *string              `json:"name,omitempty"`
+	PaymentOptions *PaymentOptionConfig `json:"paymentOptions,omitempty"`
+}
+
 // Id defines model for id.
 type Id = uuid.UUID
 
@@ -558,6 +789,12 @@ type PathClaim = string
 
 // PathIdentifier defines model for pathIdentifier.
 type PathIdentifier = string
+
+// PathIdentifier2 defines model for pathIdentifier2.
+type PathIdentifier2 = Identity
+
+// PathKeyID defines model for pathKeyID.
+type PathKeyID = string
 
 // PathNonce defines model for pathNonce.
 type PathNonce = int64
@@ -712,10 +949,66 @@ type GetCredentialOfferParams struct {
 // GetCredentialOfferParamsType defines parameters for GetCredentialOffer.
 type GetCredentialOfferParamsType string
 
+// GetAllDisplayMethodsParams defines parameters for GetAllDisplayMethods.
+type GetAllDisplayMethodsParams struct {
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint                             `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetAllDisplayMethodsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// GetAllDisplayMethodsParamsSort defines parameters for GetAllDisplayMethods.
+type GetAllDisplayMethodsParamsSort string
+
+// UpdateDisplayMethodJSONBody defines parameters for UpdateDisplayMethod.
+type UpdateDisplayMethodJSONBody struct {
+	Name *string `json:"name,omitempty"`
+	Type *string `json:"type,omitempty"`
+	Url  *string `json:"url,omitempty"`
+}
+
+// GetKeysParams defines parameters for GetKeys.
+type GetKeysParams struct {
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
+
+	// Page Page to fetch. First is one. If omitted, page 1 will be returned.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// Type If not provided, all keys will be returned.
+	Type *GetKeysParamsType `form:"type,omitempty" json:"type,omitempty"`
+}
+
+// GetKeysParamsType defines parameters for GetKeys.
+type GetKeysParamsType string
+
+// UpdateKeyJSONBody defines parameters for UpdateKey.
+type UpdateKeyJSONBody struct {
+	Name string `json:"name"`
+}
+
+// GetPaymentRequestsParams defines parameters for GetPaymentRequests.
+type GetPaymentRequestsParams struct {
+	// UserDID Filter by user DID
+	UserDID *string `form:"userDID,omitempty" json:"userDID,omitempty"`
+
+	// SchemaID Filter by schema ID (schemas UUID)
+	SchemaID *uuid.UUID `form:"schemaID,omitempty" json:"schemaID,omitempty"`
+
+	// Nonce Filter by nonce
+	Nonce *string `form:"nonce,omitempty" json:"nonce,omitempty"`
+}
+
 // GetSchemasParams defines parameters for GetSchemas.
 type GetSchemasParams struct {
 	// Query Query string to do full text search in schema types and attributes.
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
+}
+
+// UpdateSchemaJSONBody defines parameters for UpdateSchema.
+type UpdateSchemaJSONBody struct {
+	DisplayMethodID *uuid.UUID `json:"displayMethodID"`
 }
 
 // GetStateTransactionsParams defines parameters for GetStateTransactions.
@@ -771,6 +1064,9 @@ type UpdateIdentityJSONRequestBody UpdateIdentityJSONBody
 // CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
 type CreateConnectionJSONRequestBody = CreateConnectionRequest
 
+// CreateAuthCredentialJSONRequestBody defines body for CreateAuthCredential for application/json ContentType.
+type CreateAuthCredentialJSONRequestBody = CreateAuthCredentialRequest
+
 // CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
 type CreateCredentialJSONRequestBody = CreateCredentialRequest
 
@@ -783,8 +1079,35 @@ type CreateLinkQrCodeCallbackTextRequestBody = CreateLinkQrCodeCallbackTextBody
 // ActivateLinkJSONRequestBody defines body for ActivateLink for application/json ContentType.
 type ActivateLinkJSONRequestBody ActivateLinkJSONBody
 
+// CreateDisplayMethodJSONRequestBody defines body for CreateDisplayMethod for application/json ContentType.
+type CreateDisplayMethodJSONRequestBody = CreateDisplayMethodRequest
+
+// UpdateDisplayMethodJSONRequestBody defines body for UpdateDisplayMethod for application/json ContentType.
+type UpdateDisplayMethodJSONRequestBody UpdateDisplayMethodJSONBody
+
+// CreateKeyJSONRequestBody defines body for CreateKey for application/json ContentType.
+type CreateKeyJSONRequestBody = CreateKeyRequest
+
+// UpdateKeyJSONRequestBody defines body for UpdateKey for application/json ContentType.
+type UpdateKeyJSONRequestBody UpdateKeyJSONBody
+
+// CreatePaymentRequestJSONRequestBody defines body for CreatePaymentRequest for application/json ContentType.
+type CreatePaymentRequestJSONRequestBody = CreatePaymentRequest
+
+// CreatePaymentOptionJSONRequestBody defines body for CreatePaymentOption for application/json ContentType.
+type CreatePaymentOptionJSONRequestBody = PaymentOptionRequest
+
+// UpdatePaymentOptionJSONRequestBody defines body for UpdatePaymentOption for application/json ContentType.
+type UpdatePaymentOptionJSONRequestBody = UpdatePaymentOptionRequest
+
+// VerifyPaymentJSONRequestBody defines body for VerifyPayment for application/json ContentType.
+type VerifyPaymentJSONRequestBody = PaymentVerifyRequest
+
 // ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
+
+// UpdateSchemaJSONRequestBody defines body for UpdateSchema for application/json ContentType.
+type UpdateSchemaJSONRequestBody UpdateSchemaJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -836,6 +1159,9 @@ type ServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Create Auth Credential
+	// (POST /v2/identities/{identifier}/create-auth-credential)
+	CreateAuthCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
 	// Get Credentials
 	// (GET /v2/identities/{identifier}/credentials)
 	GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams)
@@ -878,6 +1204,66 @@ type ServerInterface interface {
 	// Get Credentials Offer
 	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 	GetCredentialOffer(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialOfferParams)
+	// Get All Display Methods
+	// (GET /v2/identities/{identifier}/display-method)
+	GetAllDisplayMethods(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodsParams)
+	// Create Display Method
+	// (POST /v2/identities/{identifier}/display-method)
+	CreateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Delete Display Method
+	// (DELETE /v2/identities/{identifier}/display-method/{id})
+	DeleteDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Get Display Method
+	// (GET /v2/identities/{identifier}/display-method/{id})
+	GetDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Update Display Method
+	// (PATCH /v2/identities/{identifier}/display-method/{id})
+	UpdateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Get Keys
+	// (GET /v2/identities/{identifier}/keys)
+	GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, params GetKeysParams)
+	// Create a Key
+	// (POST /v2/identities/{identifier}/keys)
+	CreateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2)
+	// Delete Key
+	// (DELETE /v2/identities/{identifier}/keys/{id})
+	DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
+	// Get a Key
+	// (GET /v2/identities/{identifier}/keys/{id})
+	GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
+	// Update a Key
+	// (PATCH /v2/identities/{identifier}/keys/{id})
+	UpdateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID)
+	// Get Payment Requests
+	// (GET /v2/identities/{identifier}/payment-request)
+	GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetPaymentRequestsParams)
+	// Create Payment Request
+	// (POST /v2/identities/{identifier}/payment-request)
+	CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Delete Payment Request
+	// (DELETE /v2/identities/{identifier}/payment-request/{id})
+	DeletePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Get Payment Request
+	// (GET /v2/identities/{identifier}/payment-request/{id})
+	GetPaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Get Payment Options
+	// (GET /v2/identities/{identifier}/payment/options)
+	GetPaymentOptions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Create Payment Option
+	// (POST /v2/identities/{identifier}/payment/options)
+	CreatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Delete Payment Option
+	// (DELETE /v2/identities/{identifier}/payment/options/{id})
+	DeletePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Get Payment Option
+	// (GET /v2/identities/{identifier}/payment/options/{id})
+	GetPaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Update Payment Option
+	// (PATCH /v2/identities/{identifier}/payment/options/{id})
+	UpdatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Verify Payment
+	// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+	VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -887,6 +1273,9 @@ type ServerInterface interface {
 	// Get Schema
 	// (GET /v2/identities/{identifier}/schemas/{id})
 	GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Update Schema
+	// (PATCH /v2/identities/{identifier}/schemas/{id})
+	UpdateSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Publish Identity State
 	// (POST /v2/identities/{identifier}/state/publish)
 	PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -899,6 +1288,9 @@ type ServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
+	// Payments Configuration
+	// (GET /v2/payment/settings)
+	GetPaymentSettings(w http.ResponseWriter, r *http.Request)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
@@ -1010,6 +1402,12 @@ func (_ Unimplemented) RevokeConnectionCredentials(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Create Auth Credential
+// (POST /v2/identities/{identifier}/create-auth-credential)
+func (_ Unimplemented) CreateAuthCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get Credentials
 // (GET /v2/identities/{identifier}/credentials)
 func (_ Unimplemented) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
@@ -1094,6 +1492,126 @@ func (_ Unimplemented) GetCredentialOffer(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Get All Display Methods
+// (GET /v2/identities/{identifier}/display-method)
+func (_ Unimplemented) GetAllDisplayMethods(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Display Method
+// (POST /v2/identities/{identifier}/display-method)
+func (_ Unimplemented) CreateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete Display Method
+// (DELETE /v2/identities/{identifier}/display-method/{id})
+func (_ Unimplemented) DeleteDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Display Method
+// (GET /v2/identities/{identifier}/display-method/{id})
+func (_ Unimplemented) GetDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update Display Method
+// (PATCH /v2/identities/{identifier}/display-method/{id})
+func (_ Unimplemented) UpdateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Keys
+// (GET /v2/identities/{identifier}/keys)
+func (_ Unimplemented) GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, params GetKeysParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a Key
+// (POST /v2/identities/{identifier}/keys)
+func (_ Unimplemented) CreateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete Key
+// (DELETE /v2/identities/{identifier}/keys/{id})
+func (_ Unimplemented) DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get a Key
+// (GET /v2/identities/{identifier}/keys/{id})
+func (_ Unimplemented) GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update a Key
+// (PATCH /v2/identities/{identifier}/keys/{id})
+func (_ Unimplemented) UpdateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Payment Requests
+// (GET /v2/identities/{identifier}/payment-request)
+func (_ Unimplemented) GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetPaymentRequestsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Payment Request
+// (POST /v2/identities/{identifier}/payment-request)
+func (_ Unimplemented) CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete Payment Request
+// (DELETE /v2/identities/{identifier}/payment-request/{id})
+func (_ Unimplemented) DeletePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Payment Request
+// (GET /v2/identities/{identifier}/payment-request/{id})
+func (_ Unimplemented) GetPaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Payment Options
+// (GET /v2/identities/{identifier}/payment/options)
+func (_ Unimplemented) GetPaymentOptions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Payment Option
+// (POST /v2/identities/{identifier}/payment/options)
+func (_ Unimplemented) CreatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete Payment Option
+// (DELETE /v2/identities/{identifier}/payment/options/{id})
+func (_ Unimplemented) DeletePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Payment Option
+// (GET /v2/identities/{identifier}/payment/options/{id})
+func (_ Unimplemented) GetPaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update Payment Option
+// (PATCH /v2/identities/{identifier}/payment/options/{id})
+func (_ Unimplemented) UpdatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Verify Payment
+// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+func (_ Unimplemented) VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get Schemas
 // (GET /v2/identities/{identifier}/schemas)
 func (_ Unimplemented) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
@@ -1109,6 +1627,12 @@ func (_ Unimplemented) ImportSchema(w http.ResponseWriter, r *http.Request, iden
 // Get Schema
 // (GET /v2/identities/{identifier}/schemas/{id})
 func (_ Unimplemented) GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update Schema
+// (PATCH /v2/identities/{identifier}/schemas/{id})
+func (_ Unimplemented) UpdateSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1133,6 +1657,12 @@ func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request, id
 // Get Identity State Transactions
 // (GET /v2/identities/{identifier}/state/transactions)
 func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Payments Configuration
+// (GET /v2/payment/settings)
+func (_ Unimplemented) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1681,6 +2211,37 @@ func (siw *ServerInterfaceWrapper) RevokeConnectionCredentials(w http.ResponseWr
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RevokeConnectionCredentials(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAuthCredential operation middleware
+func (siw *ServerInterfaceWrapper) CreateAuthCredential(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier2
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAuthCredential(w, r, identifier)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2286,6 +2847,815 @@ func (siw *ServerInterfaceWrapper) GetCredentialOffer(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// GetAllDisplayMethods operation middleware
+func (siw *ServerInterfaceWrapper) GetAllDisplayMethods(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetAllDisplayMethodsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAllDisplayMethods(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) CreateDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDisplayMethod(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDisplayMethod(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) GetDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDisplayMethod(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateDisplayMethod operation middleware
+func (siw *ServerInterfaceWrapper) UpdateDisplayMethod(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateDisplayMethod(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetKeys operation middleware
+func (siw *ServerInterfaceWrapper) GetKeys(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier2
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetKeysParams
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetKeys(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateKey operation middleware
+func (siw *ServerInterfaceWrapper) CreateKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier2
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateKey(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteKey operation middleware
+func (siw *ServerInterfaceWrapper) DeleteKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier2
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id PathKeyID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteKey(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetKey operation middleware
+func (siw *ServerInterfaceWrapper) GetKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier2
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id PathKeyID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetKey(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateKey operation middleware
+func (siw *ServerInterfaceWrapper) UpdateKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier2
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id PathKeyID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateKey(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentRequests operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentRequests(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPaymentRequestsParams
+
+	// ------------- Optional query parameter "userDID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userDID", r.URL.Query(), &params.UserDID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userDID", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "schemaID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "schemaID", r.URL.Query(), &params.SchemaID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "schemaID", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "nonce" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "nonce", r.URL.Query(), &params.Nonce)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentRequests(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePaymentRequest operation middleware
+func (siw *ServerInterfaceWrapper) CreatePaymentRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePaymentRequest(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePaymentRequest operation middleware
+func (siw *ServerInterfaceWrapper) DeletePaymentRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePaymentRequest(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentRequest operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentRequest(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentOptions operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentOptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentOptions(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePaymentOption operation middleware
+func (siw *ServerInterfaceWrapper) CreatePaymentOption(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePaymentOption(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePaymentOption operation middleware
+func (siw *ServerInterfaceWrapper) DeletePaymentOption(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePaymentOption(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentOption operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentOption(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentOption(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePaymentOption operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePaymentOption(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePaymentOption(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// VerifyPayment operation middleware
+func (siw *ServerInterfaceWrapper) VerifyPayment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VerifyPayment(w, r, identifier, nonce)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSchemas operation middleware
 func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
 
@@ -2390,6 +3760,46 @@ func (siw *ServerInterfaceWrapper) GetSchema(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSchema(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSchema operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSchema(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSchema(w, r, identifier, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2549,6 +3959,26 @@ func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetStateTransactions(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPaymentSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentSettings(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2811,6 +4241,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/connections/{id}/credentials/revoke", wrapper.RevokeConnectionCredentials)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/create-auth-credential", wrapper.CreateAuthCredential)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials", wrapper.GetCredentials)
 	})
 	r.Group(func(r chi.Router) {
@@ -2853,6 +4286,66 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}/offer", wrapper.GetCredentialOffer)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/display-method", wrapper.GetAllDisplayMethods)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/display-method", wrapper.CreateDisplayMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/display-method/{id}", wrapper.DeleteDisplayMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/display-method/{id}", wrapper.GetDisplayMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}/display-method/{id}", wrapper.UpdateDisplayMethod)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/keys", wrapper.GetKeys)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/keys", wrapper.CreateKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/keys/{id}", wrapper.DeleteKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/keys/{id}", wrapper.GetKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}/keys/{id}", wrapper.UpdateKey)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/payment-request", wrapper.GetPaymentRequests)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/payment-request", wrapper.CreatePaymentRequest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/payment-request/{id}", wrapper.DeletePaymentRequest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/payment-request/{id}", wrapper.GetPaymentRequest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/payment/options", wrapper.GetPaymentOptions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/payment/options", wrapper.CreatePaymentOption)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/payment/options/{id}", wrapper.DeletePaymentOption)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/payment/options/{id}", wrapper.GetPaymentOption)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}/payment/options/{id}", wrapper.UpdatePaymentOption)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/payment/verify/{nonce}", wrapper.VerifyPayment)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
 	})
 	r.Group(func(r chi.Router) {
@@ -2860,6 +4353,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas/{id}", wrapper.GetSchema)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}/schemas/{id}", wrapper.UpdateSchema)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/state/publish", wrapper.PublishIdentityState)
@@ -2872,6 +4368,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/identities/{identifier}/state/transactions", wrapper.GetStateTransactions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/payment/settings", wrapper.GetPaymentSettings)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v2/qr-store", wrapper.GetQrFromStore)
@@ -3538,6 +5037,45 @@ func (response RevokeConnectionCredentials500JSONResponse) VisitRevokeConnection
 	return json.NewEncoder(w).Encode(response)
 }
 
+type CreateAuthCredentialRequestObject struct {
+	Identifier PathIdentifier2 `json:"identifier"`
+	Body       *CreateAuthCredentialJSONRequestBody
+}
+
+type CreateAuthCredentialResponseObject interface {
+	VisitCreateAuthCredentialResponse(w http.ResponseWriter) error
+}
+
+type CreateAuthCredential201JSONResponse struct {
+	// Id The ID of the created Auth Credential
+	Id uuid.UUID `json:"id"`
+}
+
+func (response CreateAuthCredential201JSONResponse) VisitCreateAuthCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAuthCredential400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateAuthCredential400JSONResponse) VisitCreateAuthCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateAuthCredential500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateAuthCredential500JSONResponse) VisitCreateAuthCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetCredentialsRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Params     GetCredentialsParams
@@ -4162,6 +5700,918 @@ func (response GetCredentialOffer500JSONResponse) VisitGetCredentialOfferRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetAllDisplayMethodsRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     GetAllDisplayMethodsParams
+}
+
+type GetAllDisplayMethodsResponseObject interface {
+	VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error
+}
+
+type GetAllDisplayMethods200JSONResponse DisplayMethodPaginated
+
+func (response GetAllDisplayMethods200JSONResponse) VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAllDisplayMethods400JSONResponse struct{ N400JSONResponse }
+
+func (response GetAllDisplayMethods400JSONResponse) VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAllDisplayMethods404JSONResponse struct{ N404JSONResponse }
+
+func (response GetAllDisplayMethods404JSONResponse) VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAllDisplayMethods500JSONResponse struct{ N500JSONResponse }
+
+func (response GetAllDisplayMethods500JSONResponse) VisitGetAllDisplayMethodsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreateDisplayMethodJSONRequestBody
+}
+
+type CreateDisplayMethodResponseObject interface {
+	VisitCreateDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type CreateDisplayMethod201JSONResponse UUIDResponse
+
+func (response CreateDisplayMethod201JSONResponse) VisitCreateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateDisplayMethod400JSONResponse) VisitCreateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateDisplayMethod500JSONResponse) VisitCreateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type DeleteDisplayMethodResponseObject interface {
+	VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type DeleteDisplayMethod200JSONResponse GenericMessage
+
+func (response DeleteDisplayMethod200JSONResponse) VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response DeleteDisplayMethod400JSONResponse) VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteDisplayMethod404JSONResponse struct{ N404JSONResponse }
+
+func (response DeleteDisplayMethod404JSONResponse) VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response DeleteDisplayMethod500JSONResponse) VisitDeleteDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type GetDisplayMethodResponseObject interface {
+	VisitGetDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type GetDisplayMethod200JSONResponse DisplayMethodEntity
+
+func (response GetDisplayMethod200JSONResponse) VisitGetDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response GetDisplayMethod400JSONResponse) VisitGetDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetDisplayMethod404JSONResponse struct{ N404JSONResponse }
+
+func (response GetDisplayMethod404JSONResponse) VisitGetDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response GetDisplayMethod500JSONResponse) VisitGetDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateDisplayMethodRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+	Body       *UpdateDisplayMethodJSONRequestBody
+}
+
+type UpdateDisplayMethodResponseObject interface {
+	VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error
+}
+
+type UpdateDisplayMethod200JSONResponse GenericMessage
+
+func (response UpdateDisplayMethod200JSONResponse) VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateDisplayMethod400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateDisplayMethod400JSONResponse) VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateDisplayMethod404JSONResponse struct{ N404JSONResponse }
+
+func (response UpdateDisplayMethod404JSONResponse) VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateDisplayMethod500JSONResponse struct{ N500JSONResponse }
+
+func (response UpdateDisplayMethod500JSONResponse) VisitUpdateDisplayMethodResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKeysRequestObject struct {
+	Identifier PathIdentifier2 `json:"identifier"`
+	Params     GetKeysParams
+}
+
+type GetKeysResponseObject interface {
+	VisitGetKeysResponse(w http.ResponseWriter) error
+}
+
+type GetKeys200JSONResponse KeysPaginated
+
+func (response GetKeys200JSONResponse) VisitGetKeysResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKeys400JSONResponse struct{ N400JSONResponse }
+
+func (response GetKeys400JSONResponse) VisitGetKeysResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKeys404JSONResponse struct{ N404JSONResponse }
+
+func (response GetKeys404JSONResponse) VisitGetKeysResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKeys500JSONResponse struct{ N500JSONResponse }
+
+func (response GetKeys500JSONResponse) VisitGetKeysResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateKeyRequestObject struct {
+	Identifier PathIdentifier2 `json:"identifier"`
+	Body       *CreateKeyJSONRequestBody
+}
+
+type CreateKeyResponseObject interface {
+	VisitCreateKeyResponse(w http.ResponseWriter) error
+}
+
+type CreateKey201JSONResponse CreateKeyResponse
+
+func (response CreateKey201JSONResponse) VisitCreateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateKey400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateKey400JSONResponse) VisitCreateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateKey401JSONResponse struct{ N401JSONResponse }
+
+func (response CreateKey401JSONResponse) VisitCreateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateKey500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateKey500JSONResponse) VisitCreateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteKeyRequestObject struct {
+	Identifier PathIdentifier2 `json:"identifier"`
+	Id         PathKeyID       `json:"id"`
+}
+
+type DeleteKeyResponseObject interface {
+	VisitDeleteKeyResponse(w http.ResponseWriter) error
+}
+
+type DeleteKey200JSONResponse GenericMessage
+
+func (response DeleteKey200JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteKey400JSONResponse struct{ N400JSONResponse }
+
+func (response DeleteKey400JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteKey401JSONResponse struct{ N401JSONResponse }
+
+func (response DeleteKey401JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteKey404JSONResponse struct{ N404JSONResponse }
+
+func (response DeleteKey404JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteKey500JSONResponse struct{ N500JSONResponse }
+
+func (response DeleteKey500JSONResponse) VisitDeleteKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKeyRequestObject struct {
+	Identifier PathIdentifier2 `json:"identifier"`
+	Id         PathKeyID       `json:"id"`
+}
+
+type GetKeyResponseObject interface {
+	VisitGetKeyResponse(w http.ResponseWriter) error
+}
+
+type GetKey200JSONResponse Key
+
+func (response GetKey200JSONResponse) VisitGetKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKey400JSONResponse struct{ N400JSONResponse }
+
+func (response GetKey400JSONResponse) VisitGetKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKey401JSONResponse struct{ N401JSONResponse }
+
+func (response GetKey401JSONResponse) VisitGetKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKey404JSONResponse struct{ N404JSONResponse }
+
+func (response GetKey404JSONResponse) VisitGetKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetKey500JSONResponse struct{ N500JSONResponse }
+
+func (response GetKey500JSONResponse) VisitGetKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKeyRequestObject struct {
+	Identifier PathIdentifier2 `json:"identifier"`
+	Id         PathKeyID       `json:"id"`
+	Body       *UpdateKeyJSONRequestBody
+}
+
+type UpdateKeyResponseObject interface {
+	VisitUpdateKeyResponse(w http.ResponseWriter) error
+}
+
+type UpdateKey200JSONResponse GenericMessage
+
+func (response UpdateKey200JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKey400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateKey400JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKey401JSONResponse struct{ N401JSONResponse }
+
+func (response UpdateKey401JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKey404JSONResponse struct{ N404JSONResponse }
+
+func (response UpdateKey404JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateKey500JSONResponse struct{ N500JSONResponse }
+
+func (response UpdateKey500JSONResponse) VisitUpdateKeyResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequestsRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     GetPaymentRequestsParams
+}
+
+type GetPaymentRequestsResponseObject interface {
+	VisitGetPaymentRequestsResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentRequests200JSONResponse GetPaymentRequestsResponse
+
+func (response GetPaymentRequests200JSONResponse) VisitGetPaymentRequestsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequests400JSONResponse struct{ N400JSONResponse }
+
+func (response GetPaymentRequests400JSONResponse) VisitGetPaymentRequestsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequests401JSONResponse struct{ N401JSONResponse }
+
+func (response GetPaymentRequests401JSONResponse) VisitGetPaymentRequestsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequests500JSONResponse struct{ N500JSONResponse }
+
+func (response GetPaymentRequests500JSONResponse) VisitGetPaymentRequestsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentRequestRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreatePaymentRequestJSONRequestBody
+}
+
+type CreatePaymentRequestResponseObject interface {
+	VisitCreatePaymentRequestResponse(w http.ResponseWriter) error
+}
+
+type CreatePaymentRequest201JSONResponse CreatePaymentRequestResponse
+
+func (response CreatePaymentRequest201JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentRequest400JSONResponse struct{ N400JSONResponse }
+
+func (response CreatePaymentRequest400JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentRequest401JSONResponse struct{ N401JSONResponse }
+
+func (response CreatePaymentRequest401JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentRequest500JSONResponse struct{ N500JSONResponse }
+
+func (response CreatePaymentRequest500JSONResponse) VisitCreatePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentRequestRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type DeletePaymentRequestResponseObject interface {
+	VisitDeletePaymentRequestResponse(w http.ResponseWriter) error
+}
+
+type DeletePaymentRequest200JSONResponse GenericMessage
+
+func (response DeletePaymentRequest200JSONResponse) VisitDeletePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentRequest400JSONResponse struct{ N400JSONResponse }
+
+func (response DeletePaymentRequest400JSONResponse) VisitDeletePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentRequest500JSONResponse struct{ N500JSONResponse }
+
+func (response DeletePaymentRequest500JSONResponse) VisitDeletePaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequestRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type GetPaymentRequestResponseObject interface {
+	VisitGetPaymentRequestResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentRequest200JSONResponse CreatePaymentRequestResponse
+
+func (response GetPaymentRequest200JSONResponse) VisitGetPaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequest400JSONResponse struct{ N400JSONResponse }
+
+func (response GetPaymentRequest400JSONResponse) VisitGetPaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequest404JSONResponse struct{ N404JSONResponse }
+
+func (response GetPaymentRequest404JSONResponse) VisitGetPaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequest500JSONResponse struct{ N500JSONResponse }
+
+func (response GetPaymentRequest500JSONResponse) VisitGetPaymentRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptionsRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type GetPaymentOptionsResponseObject interface {
+	VisitGetPaymentOptionsResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentOptions200JSONResponse PaymentOptionsPaginated
+
+func (response GetPaymentOptions200JSONResponse) VisitGetPaymentOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptions400JSONResponse struct{ N400JSONResponse }
+
+func (response GetPaymentOptions400JSONResponse) VisitGetPaymentOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptions401JSONResponse struct{ N401JSONResponse }
+
+func (response GetPaymentOptions401JSONResponse) VisitGetPaymentOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptions500JSONResponse struct{ N500JSONResponse }
+
+func (response GetPaymentOptions500JSONResponse) VisitGetPaymentOptionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOptionRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreatePaymentOptionJSONRequestBody
+}
+
+type CreatePaymentOptionResponseObject interface {
+	VisitCreatePaymentOptionResponse(w http.ResponseWriter) error
+}
+
+type CreatePaymentOption201JSONResponse UUIDResponse
+
+func (response CreatePaymentOption201JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOption400JSONResponse struct{ N400JSONResponse }
+
+func (response CreatePaymentOption400JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOption401JSONResponse struct{ N401JSONResponse }
+
+func (response CreatePaymentOption401JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOption409JSONResponse struct{ N409JSONResponse }
+
+func (response CreatePaymentOption409JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreatePaymentOption500JSONResponse struct{ N500JSONResponse }
+
+func (response CreatePaymentOption500JSONResponse) VisitCreatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentOptionRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type DeletePaymentOptionResponseObject interface {
+	VisitDeletePaymentOptionResponse(w http.ResponseWriter) error
+}
+
+type DeletePaymentOption200JSONResponse GenericMessage
+
+func (response DeletePaymentOption200JSONResponse) VisitDeletePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentOption400JSONResponse struct{ N400JSONResponse }
+
+func (response DeletePaymentOption400JSONResponse) VisitDeletePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeletePaymentOption500JSONResponse struct{ N500JSONResponse }
+
+func (response DeletePaymentOption500JSONResponse) VisitDeletePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOptionRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type GetPaymentOptionResponseObject interface {
+	VisitGetPaymentOptionResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentOption200JSONResponse PaymentOption
+
+func (response GetPaymentOption200JSONResponse) VisitGetPaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOption400JSONResponse struct{ N400JSONResponse }
+
+func (response GetPaymentOption400JSONResponse) VisitGetPaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOption404JSONResponse struct{ N404JSONResponse }
+
+func (response GetPaymentOption404JSONResponse) VisitGetPaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentOption500JSONResponse struct{ N500JSONResponse }
+
+func (response GetPaymentOption500JSONResponse) VisitGetPaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePaymentOptionRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+	Body       *UpdatePaymentOptionJSONRequestBody
+}
+
+type UpdatePaymentOptionResponseObject interface {
+	VisitUpdatePaymentOptionResponse(w http.ResponseWriter) error
+}
+
+type UpdatePaymentOption200JSONResponse GenericMessage
+
+func (response UpdatePaymentOption200JSONResponse) VisitUpdatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePaymentOption400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdatePaymentOption400JSONResponse) VisitUpdatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePaymentOption404JSONResponse struct{ N404JSONResponse }
+
+func (response UpdatePaymentOption404JSONResponse) VisitUpdatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdatePaymentOption500JSONResponse struct{ N500JSONResponse }
+
+func (response UpdatePaymentOption500JSONResponse) VisitUpdatePaymentOptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPaymentRequestObject struct {
+	Identifier string `json:"identifier"`
+	Nonce      string `json:"nonce"`
+	Body       *VerifyPaymentJSONRequestBody
+}
+
+type VerifyPaymentResponseObject interface {
+	VisitVerifyPaymentResponse(w http.ResponseWriter) error
+}
+
+type VerifyPayment200JSONResponse PaymentStatus
+
+func (response VerifyPayment200JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment400JSONResponse struct{ N400JSONResponse }
+
+func (response VerifyPayment400JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment401JSONResponse struct{ N401JSONResponse }
+
+func (response VerifyPayment401JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyPayment500JSONResponse struct{ N500JSONResponse }
+
+func (response VerifyPayment500JSONResponse) VisitVerifyPaymentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetSchemasRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Params     GetSchemasParams
@@ -4273,6 +6723,52 @@ func (response GetSchema404JSONResponse) VisitGetSchemaResponse(w http.ResponseW
 type GetSchema500JSONResponse struct{ N500JSONResponse }
 
 func (response GetSchema500JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchemaRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+	Body       *UpdateSchemaJSONRequestBody
+}
+
+type UpdateSchemaResponseObject interface {
+	VisitUpdateSchemaResponse(w http.ResponseWriter) error
+}
+
+type UpdateSchema200JSONResponse GenericMessage
+
+func (response UpdateSchema200JSONResponse) VisitUpdateSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateSchema400JSONResponse) VisitUpdateSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchema404JSONResponse struct{ N404JSONResponse }
+
+func (response UpdateSchema404JSONResponse) VisitUpdateSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response UpdateSchema500JSONResponse) VisitUpdateSchemaResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -4434,6 +6930,22 @@ type GetStateTransactions500JSONResponse struct{ N500JSONResponse }
 func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentSettingsRequestObject struct {
+}
+
+type GetPaymentSettingsResponseObject interface {
+	VisitGetPaymentSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentSettings200JSONResponse PaymentsConfiguration
+
+func (response GetPaymentSettings200JSONResponse) VisitGetPaymentSettingsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -4629,6 +7141,9 @@ type StrictServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error)
+	// Create Auth Credential
+	// (POST /v2/identities/{identifier}/create-auth-credential)
+	CreateAuthCredential(ctx context.Context, request CreateAuthCredentialRequestObject) (CreateAuthCredentialResponseObject, error)
 	// Get Credentials
 	// (GET /v2/identities/{identifier}/credentials)
 	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
@@ -4671,6 +7186,66 @@ type StrictServerInterface interface {
 	// Get Credentials Offer
 	// (GET /v2/identities/{identifier}/credentials/{id}/offer)
 	GetCredentialOffer(ctx context.Context, request GetCredentialOfferRequestObject) (GetCredentialOfferResponseObject, error)
+	// Get All Display Methods
+	// (GET /v2/identities/{identifier}/display-method)
+	GetAllDisplayMethods(ctx context.Context, request GetAllDisplayMethodsRequestObject) (GetAllDisplayMethodsResponseObject, error)
+	// Create Display Method
+	// (POST /v2/identities/{identifier}/display-method)
+	CreateDisplayMethod(ctx context.Context, request CreateDisplayMethodRequestObject) (CreateDisplayMethodResponseObject, error)
+	// Delete Display Method
+	// (DELETE /v2/identities/{identifier}/display-method/{id})
+	DeleteDisplayMethod(ctx context.Context, request DeleteDisplayMethodRequestObject) (DeleteDisplayMethodResponseObject, error)
+	// Get Display Method
+	// (GET /v2/identities/{identifier}/display-method/{id})
+	GetDisplayMethod(ctx context.Context, request GetDisplayMethodRequestObject) (GetDisplayMethodResponseObject, error)
+	// Update Display Method
+	// (PATCH /v2/identities/{identifier}/display-method/{id})
+	UpdateDisplayMethod(ctx context.Context, request UpdateDisplayMethodRequestObject) (UpdateDisplayMethodResponseObject, error)
+	// Get Keys
+	// (GET /v2/identities/{identifier}/keys)
+	GetKeys(ctx context.Context, request GetKeysRequestObject) (GetKeysResponseObject, error)
+	// Create a Key
+	// (POST /v2/identities/{identifier}/keys)
+	CreateKey(ctx context.Context, request CreateKeyRequestObject) (CreateKeyResponseObject, error)
+	// Delete Key
+	// (DELETE /v2/identities/{identifier}/keys/{id})
+	DeleteKey(ctx context.Context, request DeleteKeyRequestObject) (DeleteKeyResponseObject, error)
+	// Get a Key
+	// (GET /v2/identities/{identifier}/keys/{id})
+	GetKey(ctx context.Context, request GetKeyRequestObject) (GetKeyResponseObject, error)
+	// Update a Key
+	// (PATCH /v2/identities/{identifier}/keys/{id})
+	UpdateKey(ctx context.Context, request UpdateKeyRequestObject) (UpdateKeyResponseObject, error)
+	// Get Payment Requests
+	// (GET /v2/identities/{identifier}/payment-request)
+	GetPaymentRequests(ctx context.Context, request GetPaymentRequestsRequestObject) (GetPaymentRequestsResponseObject, error)
+	// Create Payment Request
+	// (POST /v2/identities/{identifier}/payment-request)
+	CreatePaymentRequest(ctx context.Context, request CreatePaymentRequestRequestObject) (CreatePaymentRequestResponseObject, error)
+	// Delete Payment Request
+	// (DELETE /v2/identities/{identifier}/payment-request/{id})
+	DeletePaymentRequest(ctx context.Context, request DeletePaymentRequestRequestObject) (DeletePaymentRequestResponseObject, error)
+	// Get Payment Request
+	// (GET /v2/identities/{identifier}/payment-request/{id})
+	GetPaymentRequest(ctx context.Context, request GetPaymentRequestRequestObject) (GetPaymentRequestResponseObject, error)
+	// Get Payment Options
+	// (GET /v2/identities/{identifier}/payment/options)
+	GetPaymentOptions(ctx context.Context, request GetPaymentOptionsRequestObject) (GetPaymentOptionsResponseObject, error)
+	// Create Payment Option
+	// (POST /v2/identities/{identifier}/payment/options)
+	CreatePaymentOption(ctx context.Context, request CreatePaymentOptionRequestObject) (CreatePaymentOptionResponseObject, error)
+	// Delete Payment Option
+	// (DELETE /v2/identities/{identifier}/payment/options/{id})
+	DeletePaymentOption(ctx context.Context, request DeletePaymentOptionRequestObject) (DeletePaymentOptionResponseObject, error)
+	// Get Payment Option
+	// (GET /v2/identities/{identifier}/payment/options/{id})
+	GetPaymentOption(ctx context.Context, request GetPaymentOptionRequestObject) (GetPaymentOptionResponseObject, error)
+	// Update Payment Option
+	// (PATCH /v2/identities/{identifier}/payment/options/{id})
+	UpdatePaymentOption(ctx context.Context, request UpdatePaymentOptionRequestObject) (UpdatePaymentOptionResponseObject, error)
+	// Verify Payment
+	// (POST /v2/identities/{identifier}/payment/verify/{nonce})
+	VerifyPayment(ctx context.Context, request VerifyPaymentRequestObject) (VerifyPaymentResponseObject, error)
 	// Get Schemas
 	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
@@ -4680,6 +7255,9 @@ type StrictServerInterface interface {
 	// Get Schema
 	// (GET /v2/identities/{identifier}/schemas/{id})
 	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
+	// Update Schema
+	// (PATCH /v2/identities/{identifier}/schemas/{id})
+	UpdateSchema(ctx context.Context, request UpdateSchemaRequestObject) (UpdateSchemaResponseObject, error)
 	// Publish Identity State
 	// (POST /v2/identities/{identifier}/state/publish)
 	PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error)
@@ -4692,6 +7270,9 @@ type StrictServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
+	// Payments Configuration
+	// (GET /v2/payment/settings)
+	GetPaymentSettings(ctx context.Context, request GetPaymentSettingsRequestObject) (GetPaymentSettingsResponseObject, error)
 	// Get QrCode from store
 	// (GET /v2/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
@@ -5190,6 +7771,39 @@ func (sh *strictHandler) RevokeConnectionCredentials(w http.ResponseWriter, r *h
 	}
 }
 
+// CreateAuthCredential operation middleware
+func (sh *strictHandler) CreateAuthCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+	var request CreateAuthCredentialRequestObject
+
+	request.Identifier = identifier
+
+	var body CreateAuthCredentialJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateAuthCredential(ctx, request.(CreateAuthCredentialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateAuthCredential")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateAuthCredentialResponseObject); ok {
+		if err := validResponse.VisitCreateAuthCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetCredentials operation middleware
 func (sh *strictHandler) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
 	var request GetCredentialsRequestObject
@@ -5596,6 +8210,597 @@ func (sh *strictHandler) GetCredentialOffer(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// GetAllDisplayMethods operation middleware
+func (sh *strictHandler) GetAllDisplayMethods(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetAllDisplayMethodsParams) {
+	var request GetAllDisplayMethodsRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAllDisplayMethods(ctx, request.(GetAllDisplayMethodsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAllDisplayMethods")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAllDisplayMethodsResponseObject); ok {
+		if err := validResponse.VisitGetAllDisplayMethodsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateDisplayMethod operation middleware
+func (sh *strictHandler) CreateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreateDisplayMethodRequestObject
+
+	request.Identifier = identifier
+
+	var body CreateDisplayMethodJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDisplayMethod(ctx, request.(CreateDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitCreateDisplayMethodResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteDisplayMethod operation middleware
+func (sh *strictHandler) DeleteDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request DeleteDisplayMethodRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteDisplayMethod(ctx, request.(DeleteDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitDeleteDisplayMethodResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetDisplayMethod operation middleware
+func (sh *strictHandler) GetDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request GetDisplayMethodRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDisplayMethod(ctx, request.(GetDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitGetDisplayMethodResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateDisplayMethod operation middleware
+func (sh *strictHandler) UpdateDisplayMethod(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request UpdateDisplayMethodRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	var body UpdateDisplayMethodJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateDisplayMethod(ctx, request.(UpdateDisplayMethodRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateDisplayMethod")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateDisplayMethodResponseObject); ok {
+		if err := validResponse.VisitUpdateDisplayMethodResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetKeys operation middleware
+func (sh *strictHandler) GetKeys(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, params GetKeysParams) {
+	var request GetKeysRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetKeys(ctx, request.(GetKeysRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetKeys")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetKeysResponseObject); ok {
+		if err := validResponse.VisitGetKeysResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateKey operation middleware
+func (sh *strictHandler) CreateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2) {
+	var request CreateKeyRequestObject
+
+	request.Identifier = identifier
+
+	var body CreateKeyJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateKey(ctx, request.(CreateKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateKeyResponseObject); ok {
+		if err := validResponse.VisitCreateKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteKey operation middleware
+func (sh *strictHandler) DeleteKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
+	var request DeleteKeyRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteKey(ctx, request.(DeleteKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteKeyResponseObject); ok {
+		if err := validResponse.VisitDeleteKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetKey operation middleware
+func (sh *strictHandler) GetKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
+	var request GetKeyRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetKey(ctx, request.(GetKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetKeyResponseObject); ok {
+		if err := validResponse.VisitGetKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateKey operation middleware
+func (sh *strictHandler) UpdateKey(w http.ResponseWriter, r *http.Request, identifier PathIdentifier2, id PathKeyID) {
+	var request UpdateKeyRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	var body UpdateKeyJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateKey(ctx, request.(UpdateKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateKeyResponseObject); ok {
+		if err := validResponse.VisitUpdateKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentRequests operation middleware
+func (sh *strictHandler) GetPaymentRequests(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetPaymentRequestsParams) {
+	var request GetPaymentRequestsRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentRequests(ctx, request.(GetPaymentRequestsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentRequests")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentRequestsResponseObject); ok {
+		if err := validResponse.VisitGetPaymentRequestsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePaymentRequest operation middleware
+func (sh *strictHandler) CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreatePaymentRequestRequestObject
+
+	request.Identifier = identifier
+
+	var body CreatePaymentRequestJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePaymentRequest(ctx, request.(CreatePaymentRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePaymentRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePaymentRequestResponseObject); ok {
+		if err := validResponse.VisitCreatePaymentRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePaymentRequest operation middleware
+func (sh *strictHandler) DeletePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request DeletePaymentRequestRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePaymentRequest(ctx, request.(DeletePaymentRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePaymentRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePaymentRequestResponseObject); ok {
+		if err := validResponse.VisitDeletePaymentRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentRequest operation middleware
+func (sh *strictHandler) GetPaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request GetPaymentRequestRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentRequest(ctx, request.(GetPaymentRequestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentRequestResponseObject); ok {
+		if err := validResponse.VisitGetPaymentRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentOptions operation middleware
+func (sh *strictHandler) GetPaymentOptions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request GetPaymentOptionsRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentOptions(ctx, request.(GetPaymentOptionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentOptions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentOptionsResponseObject); ok {
+		if err := validResponse.VisitGetPaymentOptionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePaymentOption operation middleware
+func (sh *strictHandler) CreatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreatePaymentOptionRequestObject
+
+	request.Identifier = identifier
+
+	var body CreatePaymentOptionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePaymentOption(ctx, request.(CreatePaymentOptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePaymentOption")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePaymentOptionResponseObject); ok {
+		if err := validResponse.VisitCreatePaymentOptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePaymentOption operation middleware
+func (sh *strictHandler) DeletePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request DeletePaymentOptionRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePaymentOption(ctx, request.(DeletePaymentOptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePaymentOption")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePaymentOptionResponseObject); ok {
+		if err := validResponse.VisitDeletePaymentOptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentOption operation middleware
+func (sh *strictHandler) GetPaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request GetPaymentOptionRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentOption(ctx, request.(GetPaymentOptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentOption")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentOptionResponseObject); ok {
+		if err := validResponse.VisitGetPaymentOptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePaymentOption operation middleware
+func (sh *strictHandler) UpdatePaymentOption(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request UpdatePaymentOptionRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	var body UpdatePaymentOptionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePaymentOption(ctx, request.(UpdatePaymentOptionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePaymentOption")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePaymentOptionResponseObject); ok {
+		if err := validResponse.VisitUpdatePaymentOptionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VerifyPayment operation middleware
+func (sh *strictHandler) VerifyPayment(w http.ResponseWriter, r *http.Request, identifier string, nonce string) {
+	var request VerifyPaymentRequestObject
+
+	request.Identifier = identifier
+	request.Nonce = nonce
+
+	var body VerifyPaymentJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifyPayment(ctx, request.(VerifyPaymentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyPayment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VerifyPaymentResponseObject); ok {
+		if err := validResponse.VisitVerifyPaymentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetSchemas operation middleware
 func (sh *strictHandler) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
 	var request GetSchemasRequestObject
@@ -5676,6 +8881,40 @@ func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, ident
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetSchemaResponseObject); ok {
 		if err := validResponse.VisitGetSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateSchema operation middleware
+func (sh *strictHandler) UpdateSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request UpdateSchemaRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	var body UpdateSchemaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSchema(ctx, request.(UpdateSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateSchemaResponseObject); ok {
+		if err := validResponse.VisitUpdateSchemaResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -5781,6 +9020,30 @@ func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetStateTransactionsResponseObject); ok {
 		if err := validResponse.VisitGetStateTransactionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentSettings operation middleware
+func (sh *strictHandler) GetPaymentSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetPaymentSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentSettings(ctx, request.(GetPaymentSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentSettingsResponseObject); ok {
+		if err := validResponse.VisitGetPaymentSettingsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
