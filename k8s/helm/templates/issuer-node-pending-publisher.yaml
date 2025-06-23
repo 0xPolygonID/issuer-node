@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   name: {{ .Values.pendingPublisherIssuerNode.deployment.name }}
   labels:
-    {{- include "polygon-id-issuer.pendingPublisherIssuerNode.deploymentLabels" . | nindent 4 }}
-    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+    {{- include "privadoid-issuer.pendingPublisherIssuerNode.deploymentLabels" . | nindent 4 }}
+    {{- include "privadoid-issuer.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.pendingPublisherIssuerNode.deployment.replicaCount }}
   selector:
     matchLabels:
-      {{- include "polygon-id-issuer.pendingPublisherIssuerNode.Labels" . | nindent 6 }}
-      {{- include "polygon-id-issuer.selectorLabels" . | nindent 6 }}
+      {{- include "privadoid-issuer.pendingPublisherIssuerNode.Labels" . | nindent 6 }}
+      {{- include "privadoid-issuer.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "polygon-id-issuer.pendingPublisherIssuerNode.Labels" . | nindent 8 }}
-        {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+        {{- include "privadoid-issuer.pendingPublisherIssuerNode.Labels" . | nindent 8 }}
+        {{- include "privadoid-issuer.selectorLabels" . | nindent 8 }}
       annotations:
         rollme: {{ randAlphaNum 5 | quote }}
     spec:

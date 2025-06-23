@@ -3,8 +3,8 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.vaultIssuerNode.configMap.vaultConfigName }}
   labels:
-    {{ include "polygon-id-issuer.staticLabel" . }}
-    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+    {{ include "privadoid-issuer.vaultIssuerNode.staticLabel" . }}
+    {{- include "privadoid-issuer.vaultIssuerNode.common.labels" . | nindent 4 }}
 data:
   vault.json: {{- .Values.vaultIssuerNode.configMap.vaultJson | toYaml | indent 4 }}    
   init.sh: {{ tpl .Values.vaultIssuerNode.configMap.initSh . | toYaml | indent 4}}

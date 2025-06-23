@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "polygon-id-issuer.name" -}}
+{{- define "privadoid-issuer.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "polygon-id-issuer.fullname" -}}
+{{- define "privadoid-issuer.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -33,16 +33,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "polygon-id-issuer.chart" -}}
+{{- define "privadoid-issuer.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "polygon-id-issuer.labels" -}}
-helm.sh/chart: {{ include "polygon-id-issuer.chart" . }}
-{{ include "polygon-id-issuer.selectorLabels" . }}
+{{- define "privadoid-issuer.labels" -}}
+helm.sh/chart: {{ include "privadoid-issuer.chart" . }}
+{{ include "privadoid-issuer.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -52,7 +52,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "polygon-id-issuer.selectorLabels" -}}
+{{- define "privadoid-issuer.selectorLabels" -}}
 app.kubernetes.io/name: {{ .Release.Name }}
 {{- end }}
 
@@ -60,7 +60,7 @@ app.kubernetes.io/name: {{ .Release.Name }}
 {{/*
 Define a static label 
 */}}
-{{- define "polygon-id-issuer.staticLabel" -}}
+{{- define "privadoid-issuer.staticLabel" -}}
 app: {{ .Values.apiIssuerNode.service.labels.app }}
 {{- end }}
 
@@ -70,7 +70,7 @@ app: {{ .Values.apiIssuerNode.service.labels.app }}
 Define api server url
 */}}
 {{- define "helpers.api-server-url" -}}
-https://{{ .Values.apidomain }}
+https://{{ .Values.global.apidomain }}
 {{- end }}
 
 {{/*
@@ -101,28 +101,28 @@ ISSUER_KEY_STORE_ADDRESS
 {{/*
 Define custom service selectorLabels for apiIssuerNode
 */}}
-{{- define "polygon-id-issuer.apiIssuerNode.Labels" -}}
+{{- define "privadoid-issuer.apiIssuerNode.Labels" -}}
 app: {{ .Values.apiIssuerNode.service.selector }}
 {{- end }}
 
 {{/*
 Define custom deployment labels fors apiIssuerNode
 */}}
-{{- define "polygon-id-issuer.apiIssuerNode.deploymentLabels" -}}
+{{- define "privadoid-issuer.apiIssuerNode.deploymentLabels" -}}
 app: {{ .Values.apiIssuerNode.deployment.labels.app }}
 {{- end }}
 
 {{/*
 Define custom service selectorLabels for apiUiIssuerNode
 */}}
-{{- define "polygon-id-issuer.apiUiIssuerNode.Labels" -}}
+{{- define "privadoid-issuer.apiUiIssuerNode.Labels" -}}
 app: {{ .Values.apiUiIssuerNode.service.selector }}
 {{- end }}
 
 {{/*
 Define custom deployment selectorLabels for apiUiIssuerNode
 */}}
-{{- define "polygon-id-issuer.apiUiIssuerNode.deploymentLabels" -}}
+{{- define "privadoid-issuer.apiUiIssuerNode.deploymentLabels" -}}
 app: {{ .Values.apiUiIssuerNode.deployment.labels.app }}
 {{- end }}
 
@@ -130,28 +130,28 @@ app: {{ .Values.apiUiIssuerNode.deployment.labels.app }}
 {{/*
 Define custom deployment selectorLabels for notifications
 */}}
-{{- define "polygon-id-issuer.notificationsIssuerNode.Labels" -}}
+{{- define "privadoid-issuer.notificationsIssuerNode.Labels" -}}
 app: {{ .Values.notificationsIssuerNode.deployment.name }}
 {{- end }}
 
 {{/*
 Define custom deployment label for notifications
 */}}
-{{- define "polygon-id-issuer.notificationsIssuerNode.deploymentLabels" -}}
+{{- define "privadoid-issuer.notificationsIssuerNode.deploymentLabels" -}}
 app: {{ .Values.notificationsIssuerNode.deployment.labels.app }}
 {{- end }}
 
 {{/*
 Define custom deployment selectorLabels for pending-publisher
 */}}
-{{- define "polygon-id-issuer.pendingPublisherIssuerNode.Labels" -}}
+{{- define "privadoid-issuer.pendingPublisherIssuerNode.Labels" -}}
 app: {{ .Values.pendingPublisherIssuerNode.deployment.name }}
 {{- end }}
 
 {{/*
 Define custom deployment label for pending-publisher
 */}}
-{{- define "polygon-id-issuer.pendingPublisherIssuerNode.deploymentLabels" -}}
+{{- define "privadoid-issuer.pendingPublisherIssuerNode.deploymentLabels" -}}
 app: {{ .Values.pendingPublisherIssuerNode.deployment.labels.app }}
 {{- end }}
 
@@ -159,56 +159,16 @@ app: {{ .Values.pendingPublisherIssuerNode.deployment.labels.app }}
 {{/*
 Define custom service selectorLabels for UiIssuerNode
 */}}
-{{- define "polygon-id-issuer.uiIssuerNode.Labels" -}}
+{{- define "privadoid-issuer.uiIssuerNode.Labels" -}}
 app: {{ .Values.uiIssuerNode.service.selector }}
 {{- end }}
-
 
 {{/*
 Define custom deployment selectorLabels for UiIssuerNode
 */}}
-{{- define "polygon-id-issuer.uiIssuerNode.deploymentLabels" -}}
+{{- define "privadoid-issuer.uiIssuerNode.deploymentLabels" -}}
 app: {{ .Values.uiIssuerNode.deployment.labels.app }}
 {{- end }}
-
-{{/*
-Define custom service selectorLabels for postgres
-*/}}
-{{- define "polygon-id-issuer.postgresIssuerNode.Labels" -}}
-app: {{ .Values.postgresIssuerNode.service.selector }}
-{{- end }}
-
-
-{{/*
-Define custom deployment selectorLabels for postgres
-*/}}
-{{- define "polygon-id-issuer.postgresIssuerNode.deploymentLabels" -}}
-app: {{ .Values.postgresIssuerNode.deployment.labels.app }}
-{{- end }}
-
-
-{{/*
-Define custom service selectorLabels for redis
-*/}}
-{{- define "polygon-id-issuer.redisIssuerNode.Labels" -}}
-app: {{ .Values.redisIssuerNode.service.selector }}
-{{- end }}
-
-
-{{/*
-Define custom deployment selectorLabels for vault
-*/}}
-{{- define "polygon-id-issuer.vaultIssuerNode.deploymentLabels" -}}
-app: {{ .Values.vaultIssuerNode.deployment.labels.app }}
-{{- end }}
-
-{{/*
-Define custom service selectorLabels for vault
-*/}}
-{{- define "polygon-id-issuer.vaultIssuerNode.Labels" -}}
-app: {{ .Values.vaultIssuerNode.service.selector }}
-{{- end }}
-
 
 
 {{- define "helpers.serviceAccountName" -}}

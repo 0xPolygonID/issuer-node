@@ -1,0 +1,5 @@
+apiVersion: v2
+name: postgres
+version: 0.1.0
+description: A subchart for deploying Postgres with PVC and Service
+appVersion: "1.0"

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: vault
+version: 0.1.0
+description: A subchart for deploying Vault with PVC and Service
+appVersion: "1.0"

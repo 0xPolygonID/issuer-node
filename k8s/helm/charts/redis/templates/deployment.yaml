@@ -2,20 +2,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.redisIssuerNode.deployment.name }} # check if labels need to be added.
+  name: {{ .Values.redisIssuerNode.deployment.name }}
   labels:
-  {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+  {{- include "privadoid-issuer.redisIssuerNode.common.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.redisIssuerNode.deployment.replicaCount }}
   selector:
     matchLabels:
-      {{- include "polygon-id-issuer.redisIssuerNode.Labels" . | nindent 6 }}
-      {{- include "polygon-id-issuer.selectorLabels" . | nindent 6 }}
+      {{- include "privadoid-issuer.redisIssuerNode.Labels" . | nindent 6 }}
+      {{- include "privadoid-issuer.redisIssuerNode.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "polygon-id-issuer.redisIssuerNode.Labels" . | nindent 8 }}
-        {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+        {{- include "privadoid-issuer.redisIssuerNode.Labels" . | nindent 8 }}
+        {{- include "privadoid-issuer.redisIssuerNode.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "helpers.serviceAccountName" . }}
       containers:
