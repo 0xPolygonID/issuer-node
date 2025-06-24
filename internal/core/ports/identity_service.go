@@ -16,7 +16,7 @@ import (
 
 const (
 	// AuthorizationRequestQRCallbackURL is the URL to call back after the user has authenticated
-	AuthorizationRequestQRCallbackURL = "%s/v2/authentication/callback?sessionID=%s"
+	AuthorizationRequestQRCallbackURL = "%s/public/v2/authentication/callback?sessionID=%s"
 )
 
 // DIDCreationOptions represents options for DID creation

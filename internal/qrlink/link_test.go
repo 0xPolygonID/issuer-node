@@ -16,7 +16,7 @@ func TestNewUniversal(t *testing.T) {
 	require.NoError(t, err)
 	issuerDID, err := w3c.ParseDID("did:iden3:polygon:amoy:x7xjFDkoCW7MSQUZQwrXhyU5HqQ8npzEdAvHmBjqx")
 	require.NoError(t, err)
-	expected := "https://wallet-dev.privado.id/#request_uri=https%3A%2F%2Fissuer-node-core-api-testing.privado.id%2Fv2%2Fqr-store%3Fid%3D1f209581-ab1d-426d-88d9-2b545bdb851d%26issuer%3Ddid%3Aiden3%3Apolygon%3Aamoy%3Ax7xjFDkoCW7MSQUZQwrXhyU5HqQ8npzEdAvHmBjqx"
+	expected := "https://wallet-dev.privado.id/#request_uri=https%3A%2F%2Fissuer-node-core-api-testing.privado.id%2Fpublic%2Fv2%2Fqr-store%3Fid%3D1f209581-ab1d-426d-88d9-2b545bdb851d%26issuer%3Ddid%3Aiden3%3Apolygon%3Aamoy%3Ax7xjFDkoCW7MSQUZQwrXhyU5HqQ8npzEdAvHmBjqx"
 	got := NewUniversal(baseURL, hostURL, id, issuerDID)
 	assert.Equal(t, expected, got)
 }
@@ -27,7 +27,7 @@ func TestDeepLink(t *testing.T) {
 	require.NoError(t, err)
 	issuerDID, err := w3c.ParseDID("did:iden3:polygon:amoy:x7xjFDkoCW7MSQUZQwrXhyU5HqQ8npzEdAvHmBjqx")
 	require.NoError(t, err)
-	expected := "iden3comm://?request_uri=https%3A%2F%2Fissuer-node-core-api-testing.privado.id%2Fv2%2Fqr-store%3Fid%3D1f209581-ab1d-426d-88d9-2b545bdb851d%26issuer%3Ddid%3Aiden3%3Apolygon%3Aamoy%3Ax7xjFDkoCW7MSQUZQwrXhyU5HqQ8npzEdAvHmBjqx"
+	expected := "iden3comm://?request_uri=https%3A%2F%2Fissuer-node-core-api-testing.privado.id%2Fpublic%2Fv2%2Fqr-store%3Fid%3D1f209581-ab1d-426d-88d9-2b545bdb851d%26issuer%3Ddid%3Aiden3%3Apolygon%3Aamoy%3Ax7xjFDkoCW7MSQUZQwrXhyU5HqQ8npzEdAvHmBjqx"
 	got := NewDeepLink(hostURL, id, issuerDID)
 	assert.Equal(t, expected, got)
 }

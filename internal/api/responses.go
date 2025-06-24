@@ -34,6 +34,11 @@ func (response CustomQrContentResponse) VisitGetQrFromStoreResponse(w http.Respo
 	return response.visit(w)
 }
 
+// VisitGetQrFromStorePublicResponse satisfies the AuthQRCodeResponseObject
+func (response CustomQrContentResponse) VisitGetQrFromStorePublicResponse(w http.ResponseWriter) error {
+	return response.visit(w)
+}
+
 func (response CustomQrContentResponse) visit(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

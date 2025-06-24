@@ -18,6 +18,8 @@ info:
   version: "1"
 
 tags:
+  - name: Public
+    description: Collection of endpoints that have to be public
   - name: Identity
     description: Collection of endpoints related to Identity
   - name: Credentials
@@ -28,6 +30,7 @@ tags:
     description: Collection of endpoints related to Config
   - name: Key Management
     description: Collection of endpoints related to Key Management
+
 
 paths:
 
@@ -139,9 +142,35 @@ paths:
     post:
       summary: Authentication Callback
       operationId: authCallback
+      deprecated: true
       description: This endpoint is called when the QR code is scanned and the user is authenticated. A connection is created.
       tags:
         - Auth
+      parameters:
+        - $ref: '#/components/parameters/sessionID'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: ok
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /public/v2/authentication/callback:
+    post:
+      summary: Authentication Callback
+      operationId: authCallbackPublic
+      description: This endpoint is called when the QR code is scanned and the user is authenticated. A connection is created.
+      tags:
+        - Auth
+        - Public
       parameters:
         - $ref: '#/components/parameters/sessionID'
       requestBody:
@@ -906,6 +935,29 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /public/v2/identities/{identifier}/credentials/revocation/status/{nonce}:
+    get:
+      summary: Get Revocation Status
+      operationId: GetRevocationStatusV2Public
+      description: Endpoint to get the revocation status
+      tags:
+        - Credentials
+        - Public
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '200':
+          description: Proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationStatusResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v2/identities/{identifier}/credentials/{id}/offer:
     get:
       summary: Get Credentials Offer
@@ -953,6 +1005,7 @@ paths:
       summary: Agent
       operationId: Agent
       description: Identity Agent Endpoint
+      deprecated: true
       tags:
         - Agent
       requestBody:
@@ -1001,14 +1054,80 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /public/v2/agent:
+    post:
+      summary: Agent
+      operationId: AgentPublic
+      description: Identity Agent Endpoint
+      tags:
+        - Agent
+        - Public
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: TBD
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
   /v2/qr-store:
     get:
       summary: Get QrCode from store
       operationId: GetQrFromStore
       description: Returns a previously generated QR code via url shortener method
+      deprecated: true
       tags:
         - QR Store
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            x-go-type: uuid.UUID
+            x-go-type-import:
+              name: uuid
+              path: github.com/google/uuid
+            example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        - in: query
+          name: issuer
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: A json to generate a QR code
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/400'
+        '410':
+          $ref: '#/components/responses/410'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /public/v2/qr-store:
+    get:
+      summary: Get QrCode from store
+      operationId: GetQrFromStorePublic
+      description: Returns a previously generated QR code via url shortener method
+      tags:
+        - QR Store
+        - Public
       parameters:
         - in: query
           name: id
@@ -1351,8 +1470,40 @@ paths:
       summary: Create Link QR Code Callback
       operationId: CreateLinkQrCodeCallback
       description: Process the callback from the QR code link
+      deprecated: true
       tags:
         - Links
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/linkID'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: |
+            Return the offer for fetching the credential if the link was created for a Signature Credential or just 200 http status if the link was created for MTP Credential.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /public/v2/identities/{identifier}/credentials/links/callback:
+    post:
+      summary: Create Link QR Code Callback
+      operationId: CreateLinkQrCodeCallbackPublic
+      description: Process the callback from the QR code link
+      tags:
+        - Links
+        - Public
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/linkID'

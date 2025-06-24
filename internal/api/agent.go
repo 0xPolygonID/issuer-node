@@ -93,3 +93,23 @@ func (s *Server) AgentV1(ctx context.Context, request AgentV1RequestObject) (Age
 		Type:     string(agent.Type),
 	}, nil
 }
+
+// AgentPublic is the controller to fetch credentials from mobile
+func (s *Server) AgentPublic(ctx context.Context, request AgentPublicRequestObject) (AgentPublicResponseObject, error) {
+	response, err := s.Agent(ctx, AgentRequestObject(request))
+	if err != nil {
+		return nil, err
+	}
+
+	switch resp := response.(type) {
+	case Agent200JSONResponse:
+		return AgentPublic200JSONResponse(resp), nil
+	case Agent400JSONResponse:
+		return AgentPublic400JSONResponse(resp), nil
+	case Agent500JSONResponse:
+		return AgentPublic500JSONResponse(resp), nil
+	default:
+		log.Error(ctx, "agent public response", "err", "unexpected response type")
+		return AgentPublic500JSONResponse{N500JSONResponse{"unexpected response type"}}, nil
+	}
+}
