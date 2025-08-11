@@ -14,6 +14,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	"gopkg.in/yaml.v3"
 
+	helpers "github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -27,7 +28,7 @@ type Config map[OptionConfigIDType]ChainConfig
 // ChainConfig is the configuration for a chain
 type ChainConfig struct {
 	ChainID       int
-	PaymentRails  common.Address
+	PaymentRails  string
 	PaymentOption PaymentOptionConfig
 }
 
@@ -35,7 +36,7 @@ type ChainConfig struct {
 type PaymentOptionConfig struct {
 	Name            string
 	Type            protocol.PaymentRequestType
-	ContractAddress common.Address
+	ContractAddress string
 	Features        []protocol.PaymentFeatures `json:"features,omitempty"`
 	Decimals        int
 }
@@ -84,15 +85,15 @@ func (d *configDecoder) Decode() (*Config, error) {
 	cfg = make(Config)
 	// Converting the dto to a Config object
 	for id, chainConfig := range dto {
-		if !common.IsHexAddress(chainConfig.PaymentRails) {
+		if !common.IsHexAddress(chainConfig.PaymentRails) && !helpers.IsSolanaAddress(chainConfig.PaymentRails) {
 			return nil, fmt.Errorf("invalid payment rails address: %s", chainConfig.PaymentRails)
 		}
 		for _, option := range chainConfig.PaymentOptions {
 			if _, found := cfg[OptionConfigIDType(option.ID)]; found {
 				return nil, fmt.Errorf("duplicate payment option id: %d", id)
 			}
-			if !common.IsHexAddress(option.ContractAddress) && strings.TrimSpace(option.ContractAddress) != "" {
-				return nil, fmt.Errorf("invalid PaymentRails address: %s", chainConfig.PaymentRails)
+			if !common.IsHexAddress(option.ContractAddress) && !helpers.IsSolanaAddress(option.ContractAddress) && strings.TrimSpace(option.ContractAddress) != "" {
+				return nil, fmt.Errorf("invalid payment rails token address: %s", chainConfig.PaymentRails)
 			}
 			var features []protocol.PaymentFeatures
 			if len(option.Features) > 0 {
@@ -103,11 +104,11 @@ func (d *configDecoder) Decode() (*Config, error) {
 			}
 			cfg[OptionConfigIDType(option.ID)] = ChainConfig{
 				ChainID:      id,
-				PaymentRails: common.HexToAddress(chainConfig.PaymentRails),
+				PaymentRails: chainConfig.PaymentRails,
 				PaymentOption: PaymentOptionConfig{
 					Name:            option.Name,
 					Type:            option.Type,
-					ContractAddress: common.HexToAddress(option.ContractAddress),
+					ContractAddress: option.ContractAddress,
 					Features:        features,
 					Decimals:        option.Decimals,
 				},

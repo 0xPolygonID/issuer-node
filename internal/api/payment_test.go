@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2/protocol"
@@ -221,7 +220,7 @@ func TestServer_GetPaymentOption(t *testing.T) {
 		domainConfig.PaymentOptions = append(domainConfig.PaymentOptions, domain.PaymentOptionConfigItem{
 			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionID),
 			Amount:          *amount,
-			Recipient:       common.HexToAddress(item.Recipient),
+			Recipient:       item.Recipient,
 			SigningKeyID:    item.SigningKeyID,
 			Expiration:      item.Expiration,
 		})
@@ -348,13 +347,13 @@ func TestServer_GetPaymentOptions(t *testing.T) {
 			{
 				PaymentOptionID: 1,
 				Amount:          *big.NewInt(500000000000000000),
-				Recipient:       common.HexToAddress("0x742d35Cc6634C0532925a3b844Bc454e4438f44e"),
+				Recipient:       "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
 				SigningKeyID:    "pubId",
 			},
 			{
 				PaymentOptionID: 2,
 				Amount:          *big.NewInt(1500000000000000000),
-				Recipient:       common.HexToAddress("0x53d284357ec70cE289D6D64134DfAc8E511c8a3D"),
+				Recipient:       "0x53d284357ec70cE289D6D64134DfAc8E511c8a3D",
 				SigningKeyID:    "pubId",
 			},
 		},
@@ -566,13 +565,13 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			{
 				PaymentOptionID: 1,
 				Amount:          *amount,
-				Recipient:       common.Address{},
+				Recipient:       "",
 				SigningKeyID:    b64.StdEncoding.EncodeToString([]byte(signingKeyID.ID)),
 			},
 			{
 				PaymentOptionID: 2,
 				Amount:          *amount,
-				Recipient:       common.Address{},
+				Recipient:       "",
 				SigningKeyID:    b64.StdEncoding.EncodeToString([]byte(signingKeyID.ID)),
 			},
 		},
@@ -744,7 +743,7 @@ func TestServer_UpdatePaymentOption(t *testing.T) {
 		domainConfig.PaymentOptions = append(domainConfig.PaymentOptions, domain.PaymentOptionConfigItem{
 			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionID),
 			Amount:          *amount,
-			Recipient:       common.HexToAddress(item.Recipient),
+			Recipient:       item.Recipient,
 			SigningKeyID:    item.SigningKeyID,
 			Expiration:      item.Expiration,
 		})
@@ -808,7 +807,7 @@ func TestServer_UpdatePaymentOption(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, config[0].PaymentOptionID, int(updatedPaymentOption.Config.PaymentOptions[0].PaymentOptionID))
 		assert.Equal(t, config[0].Amount, updatedPaymentOption.Config.PaymentOptions[0].Amount.String())
-		assert.Equal(t, config[0].Recipient, updatedPaymentOption.Config.PaymentOptions[0].Recipient.String())
+		assert.Equal(t, config[0].Recipient, updatedPaymentOption.Config.PaymentOptions[0].Recipient)
 		assert.Equal(t, config[0].SigningKeyID, updatedPaymentOption.Config.PaymentOptions[0].SigningKeyID)
 	})
 

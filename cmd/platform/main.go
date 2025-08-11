@@ -162,7 +162,7 @@ func main() {
 	displayMethodService := services.NewDisplayMethod(repositories.NewDisplayMethod(*storage))
 	schemaService := services.NewSchema(schemaRepository, schemaLoader, displayMethodService)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)
-	paymentService, err := services.NewPaymentService(paymentsRepo, *networkResolver, schemaService, paymentSettings, keyStore)
+	paymentService, err := services.NewPaymentService(paymentsRepo, *networkResolver, schemaService, paymentSettings, keyStore, cfg.Payments.SolanaBase58Pk)
 	if err != nil {
 		log.Error(ctx, "error creating payment service", "err", err)
 		return

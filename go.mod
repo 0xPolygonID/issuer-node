@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.34.2
 	github.com/caarlos0/env/v11 v11.2.2
 	github.com/ethereum/go-ethereum v1.14.12
+	github.com/gagliardetto/solana-go v1.13.0
 	github.com/getkin/kin-openapi v0.128.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
@@ -22,9 +23,9 @@ require (
 	github.com/hashicorp/vault/api v1.14.0
 	github.com/hashicorp/vault/api/auth/userpass v0.7.0
 	github.com/iden3/contracts-abi/multi-chain-payment/go/abi v0.0.0-20250116162607-8fec43acf817
-	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
-	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20230911112726-4533c5701af1
-	github.com/iden3/driver-did-iden3 v0.0.9
+	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v1.0.2
+	github.com/iden3/contracts-abi/state/go/abi v1.1.0
+	github.com/iden3/driver-did-iden3 v0.0.12
 	github.com/iden3/go-circuits/v2 v2.4.1
 	github.com/iden3/go-iden3-auth/v2 v2.7.2
 	github.com/iden3/go-iden3-core/v2 v2.3.2
@@ -38,8 +39,8 @@ require (
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b
 	github.com/iden3/go-schema-processor v1.3.1
 	github.com/iden3/go-schema-processor/v2 v2.6.2
-	github.com/iden3/iden3comm/v2 v2.10.2
-	github.com/iden3/merkletree-proof v0.3.0
+	github.com/iden3/iden3comm/v2 v2.11.2-0.20250808151935-488eba172615
+	github.com/iden3/merkletree-proof v1.0.1
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.3
 	github.com/jackc/pgtype v1.14.4
@@ -50,6 +51,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mr-tron/base58 v1.2.0
+	github.com/near/borsh-go v0.3.1
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -65,6 +67,7 @@ require (
 require (
 	4d63.com/gocheckcompilerdirectives v1.2.1 // indirect
 	4d63.com/gochecknoglobals v0.2.1 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/4meepo/tagalign v1.3.4 // indirect
 	github.com/Abirdcfly/dupword v0.1.3 // indirect
 	github.com/Antonboom/errname v1.0.0 // indirect
@@ -84,6 +87,7 @@ require (
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
+	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/ashanbrown/forbidigo v1.6.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
@@ -102,6 +106,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bkielbasa/cyclop v1.2.3 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/blendle/zapdriver v1.3.1 // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect
 	github.com/bombsimon/wsl/v4 v4.4.1 // indirect
 	github.com/breml/bidichk v0.3.2 // indirect
@@ -138,6 +143,8 @@ require (
 	github.com/firefart/nonamedreturns v1.0.5 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fzipp/gocyclo v0.6.0 // indirect
+	github.com/gagliardetto/binary v0.8.0 // indirect
+	github.com/gagliardetto/treeout v0.1.4 // indirect
 	github.com/ghostiam/protogetter v0.3.8 // indirect
 	github.com/go-critic/go-critic v0.11.5 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
@@ -201,6 +208,7 @@ require (
 	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
 	github.com/jjti/go-spancheck v0.6.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/julz/importas v0.1.0 // indirect
 	github.com/karamaru-alpha/copyloopvar v1.1.0 // indirect
 	github.com/kisielk/errcheck v1.8.0 // indirect
@@ -223,6 +231,7 @@ require (
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.33.2 // indirect
+	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/macabu/inamedparam v0.1.3 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -236,9 +245,13 @@ require (
 	github.com/mgechev/revive v1.5.1 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/moricho/tparallel v0.3.2 // indirect
+	github.com/mostynb/zstdpool-freelist v0.0.0-20201229113212-927304c0c3b1 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.12.3 // indirect
@@ -298,6 +311,7 @@ require (
 	github.com/spf13/viper v1.18.2 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
 	github.com/stbenjam/no-sprintf-host-port v0.1.1 // indirect
+	github.com/streamingfast/logging v0.0.0-20230608130331-f22c91403091 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/supranational/blst v0.3.13 // indirect
@@ -330,8 +344,10 @@ require (
 	gitlab.com/bosi/decorder v0.4.2 // indirect
 	go-simpler.org/musttag v0.13.0 // indirect
 	go-simpler.org/sloglint v0.7.2 // indirect
+	go.mongodb.org/mongo-driver v1.12.2 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/ratelimit v0.2.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20241108190413-2d47ceb2692f // indirect
@@ -339,6 +355,7 @@ require (
 	golang.org/x/net v0.31.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.27.0 // indirect

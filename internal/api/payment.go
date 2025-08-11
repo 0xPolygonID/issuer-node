@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
+	helpers "github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -265,7 +266,7 @@ func newPaymentOptionConfig(config PaymentOptionConfig) (*domain.PaymentOptionCo
 		PaymentOptions: make([]domain.PaymentOptionConfigItem, len(config)),
 	}
 	for i, item := range config {
-		if !common.IsHexAddress(item.Recipient) {
+		if !common.IsHexAddress(item.Recipient) && !helpers.IsSolanaAddress(item.Recipient) {
 			return nil, fmt.Errorf("invalid recipient address: %s", item.Recipient)
 		}
 		amount, ok := new(big.Int).SetString(item.Amount, base10)
@@ -276,7 +277,7 @@ func newPaymentOptionConfig(config PaymentOptionConfig) (*domain.PaymentOptionCo
 		cfg.PaymentOptions[i] = domain.PaymentOptionConfigItem{
 			PaymentOptionID: payments.OptionConfigIDType(item.PaymentOptionID),
 			Amount:          *amount,
-			Recipient:       common.HexToAddress(item.Recipient),
+			Recipient:       item.Recipient,
 			SigningKeyID:    item.SigningKeyID,
 			Expiration:      item.Expiration,
 		}
