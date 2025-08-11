@@ -396,13 +396,16 @@ func (p *payment) verifyPaymentOnBlockchain(
 }
 
 func (p *payment) verifySolanaPaymentOnBlockchain(ctx context.Context, setting payments.ChainConfig, nonce *big.Int, txHash *string) (ports.BlockchainPaymentStatus, error) {
+	devChainID := 103
+	testChainID := 102
+	mainChainID := 101
 	var client *rpc.Client
 	switch setting.ChainID {
-	case 103:
+	case devChainID:
 		client = rpc.New(rpc.DevNet_RPC)
-	case 102:
+	case testChainID:
 		client = rpc.New(rpc.TestNet_RPC)
-	case 101:
+	case mainChainID:
 		client = rpc.New(rpc.MainNetBeta_RPC)
 	default:
 		log.Error(ctx, "unsupported chain ID for Solana payment verification", "chainID", setting.ChainID)
@@ -422,7 +425,8 @@ func (p *payment) verifySolanaPaymentOnBlockchain(ctx context.Context, setting p
 		}
 	}
 
-	nonceLe := make([]byte, 8)
+	bytesForUint64 := 8
+	nonceLe := make([]byte, bytesForUint64)
 	binary.LittleEndian.PutUint64(nonceLe, nonce.Uint64())
 
 	seeds := [][]byte{
