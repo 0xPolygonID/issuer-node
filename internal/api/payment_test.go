@@ -565,13 +565,13 @@ func TestServer_CreatePaymentRequest(t *testing.T) {
 			{
 				PaymentOptionID: 1,
 				Amount:          *amount,
-				Recipient:       "",
+				Recipient:       "0x53d284357ec70cE289D6D64134DfAc8E511c8a3D",
 				SigningKeyID:    b64.StdEncoding.EncodeToString([]byte(signingKeyID.ID)),
 			},
 			{
 				PaymentOptionID: 2,
 				Amount:          *amount,
-				Recipient:       "",
+				Recipient:       "0x53d284357ec70cE289D6D64134DfAc8E511c8a3D",
 				SigningKeyID:    b64.StdEncoding.EncodeToString([]byte(signingKeyID.ID)),
 			},
 		},
