@@ -158,7 +158,7 @@ func TestServer_CreateConnection(t *testing.T) {
 			},
 		},
 		{
-			name:      "connetion created",
+			name:      "connection created",
 			connID:    uuid.New(),
 			auth:      authOk,
 			issuerDID: issuerDID.String(),
