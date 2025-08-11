@@ -123,7 +123,7 @@ func TestSettingsFromConfig(t *testing.T) {
 		},
 		10: ChainConfig{
 			ChainID:      103,
-			PaymentRails: "AKNPPwWHYx5ejCs9RsrJ8PLdsdLAhHeMrk8qi6bHizH7",
+			PaymentRails: "Hys6CpX8McHbPBaPKbRYGVdXVxor1M5pSZUDMMwakGmM",
 			PaymentOption: PaymentOptionConfig{
 				Name:     "Solana devnet",
 				Type:     protocol.Iden3PaymentRailsSolanaRequestV1Type,
@@ -132,7 +132,7 @@ func TestSettingsFromConfig(t *testing.T) {
 		},
 		11: ChainConfig{
 			ChainID:      103,
-			PaymentRails: "AKNPPwWHYx5ejCs9RsrJ8PLdsdLAhHeMrk8qi6bHizH7",
+			PaymentRails: "Hys6CpX8McHbPBaPKbRYGVdXVxor1M5pSZUDMMwakGmM",
 			PaymentOption: PaymentOptionConfig{
 				Name:            "Solana devnet test SPL",
 				Type:            protocol.Iden3PaymentRailsSolanaSPLRequestV1Type,

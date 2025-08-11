@@ -60,7 +60,7 @@
         - EIP-2612
       Decimals: 18
 103: #Solana devnet
-  PaymentRails: AKNPPwWHYx5ejCs9RsrJ8PLdsdLAhHeMrk8qi6bHizH7
+  PaymentRails: Hys6CpX8McHbPBaPKbRYGVdXVxor1M5pSZUDMMwakGmM
   PaymentOptions:
     - ID: 10
       Name: Solana devnet

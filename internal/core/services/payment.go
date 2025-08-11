@@ -856,13 +856,19 @@ func (p *payment) ed25519PaymentRequestSignature(
 		return nil, "", fmt.Errorf("failed to parse recipient public key: %w", err)
 	}
 
+	paymentRails, err := solana.PublicKeyFromBase58(setting.PaymentRails)
+	if err != nil {
+		log.Error(ctx, "failed to parse payment rails public key", "err", err, "paymentRails", setting.PaymentRails)
+		return nil, "", fmt.Errorf("failed to parse payment rails public key: %w", err)
+	}
+
 	var serialized []byte
 	switch setting.PaymentOption.Type {
 	case protocol.Iden3PaymentRailsSolanaRequestV1Type:
 		req := solanaNativePaymentRequest{
 			Version:           []byte(protocol.SolanaEd25519NativeV1Type),
 			ChainID:           uint64(setting.ChainID),
-			VerifyingContract: toKey32(solana.SystemProgramID), // todo: fix to verification contract
+			VerifyingContract: toKey32(paymentRails),
 			Recipient:         toKey32(recipient),
 			Amount:            chainConfig.Amount.Uint64(),
 			ExpirationDate:    uint64(expTime.Unix()),
@@ -883,7 +889,7 @@ func (p *payment) ed25519PaymentRequestSignature(
 		req := solanaSplPaymentRequest{
 			Version:           []byte(protocol.SolanaEd25519SPLV1Type),
 			ChainID:           uint64(setting.ChainID),
-			VerifyingContract: toKey32(solana.SystemProgramID), // todo: fix to verification contract
+			VerifyingContract: toKey32(paymentRails),
 			TokenAddress:      tokenAddress,
 			Recipient:         toKey32(recipient),
 			Amount:            chainConfig.Amount.Int64(),
