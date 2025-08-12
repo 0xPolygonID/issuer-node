@@ -473,6 +473,8 @@ github.com/iden3/iden3comm/v2 v2.11.2-0.20250808151935-488eba172615 h1:p6g/h9ZqB
 github.com/iden3/iden3comm/v2 v2.11.2-0.20250808151935-488eba172615/go.mod h1:92EiWoRt4sgPjdMmzourswoRQaYVa0FT3/Y7+aFi4AI=
 github.com/iden3/iden3comm/v2 v2.11.2-0.20250811142029-41825071e727 h1:XrHN7TMXdRhohbJmPED6SKcOQAjxVpUgRIfVmtM3EZM=
 github.com/iden3/iden3comm/v2 v2.11.2-0.20250811142029-41825071e727/go.mod h1:92EiWoRt4sgPjdMmzourswoRQaYVa0FT3/Y7+aFi4AI=
+github.com/iden3/iden3comm/v2 v2.11.2-0.20250812133443-7e47499739f1 h1:nyBD2k4tclpc1jP6XkgxuRpgq9i9DjyV0SMfOdtl2Ng=
+github.com/iden3/iden3comm/v2 v2.11.2-0.20250812133443-7e47499739f1/go.mod h1:92EiWoRt4sgPjdMmzourswoRQaYVa0FT3/Y7+aFi4AI=
 github.com/iden3/merkletree-proof v1.0.1 h1:4Srfjm4rsFwjEhhvFDC8/VzK1eYs1jYzEOmwS962s2A=
 github.com/iden3/merkletree-proof v1.0.1/go.mod h1:5tveyOd7+QNRZZEXSqHASDIoQEqKwj66Vy/Vml74rtQ=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=

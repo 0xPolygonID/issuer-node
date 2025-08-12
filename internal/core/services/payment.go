@@ -675,15 +675,14 @@ func solanaEd25519PaymentProof(setting *payments.ChainConfig, signature []byte, 
 	switch setting.PaymentOption.Type {
 	case protocol.Iden3PaymentRailsSolanaRequestV1Type:
 		proof = protocol.PaymentProof{
-			protocol.SolanaEd25519NativeV1{
-				Type:         protocol.SolanaEd25519NativeV1Type,
-				ProofPurpose: "assertionMethod",
-				ProofValue:   hex.EncodeToString(signature),
-				Message:      message,
-				PublicKey:    publicKey,
-				Created:      time.Now().Format(time.RFC3339),
+			protocol.SolanaEd25519Signature2025{
+				Type:               protocol.SolanaEd25519Signature2025Type,
+				ProofPurpose:       "assertionMethod",
+				ProofValue:         hex.EncodeToString(signature),
+				VerificationMethod: fmt.Sprintf("did:pkh:solana:%d:%s", setting.ChainID, publicKey),
+				Created:            time.Now().Format(time.RFC3339),
 				Domain: protocol.SolanaEd25519Domain{
-					Version:           string(protocol.SolanaEd25519NativeV1Type),
+					Version:           "SolanaEd25519NativeV1Type",
 					ChainID:           strconv.Itoa(setting.ChainID),
 					VerifyingContract: setting.PaymentRails,
 				},
@@ -691,15 +690,14 @@ func solanaEd25519PaymentProof(setting *payments.ChainConfig, signature []byte, 
 		}
 	case protocol.Iden3PaymentRailsSolanaSPLRequestV1Type:
 		proof = protocol.PaymentProof{
-			protocol.SolanaEd25519NativeV1{
-				Type:         protocol.SolanaEd25519SPLV1Type,
-				ProofPurpose: "assertionMethod",
-				ProofValue:   hex.EncodeToString(signature),
-				Message:      message,
-				PublicKey:    publicKey,
-				Created:      time.Now().Format(time.RFC3339),
+			protocol.SolanaEd25519Signature2025{
+				Type:               protocol.SolanaEd25519Signature2025Type,
+				ProofPurpose:       "assertionMethod",
+				ProofValue:         hex.EncodeToString(signature),
+				VerificationMethod: fmt.Sprintf("did:pkh:solana:%d:%s", setting.ChainID, publicKey),
+				Created:            time.Now().Format(time.RFC3339),
 				Domain: protocol.SolanaEd25519Domain{
-					Version:           string(protocol.SolanaEd25519SPLV1Type),
+					Version:           "SolanaEd25519SPLV1Type",
 					ChainID:           strconv.Itoa(setting.ChainID),
 					VerifyingContract: setting.PaymentRails,
 				},
@@ -866,7 +864,7 @@ func (p *payment) ed25519PaymentRequestSignature(
 	switch setting.PaymentOption.Type {
 	case protocol.Iden3PaymentRailsSolanaRequestV1Type:
 		req := solanaNativePaymentRequest{
-			Version:           []byte(protocol.SolanaEd25519NativeV1Type),
+			Version:           []byte("SolanaEd25519NativeV1Type"),
 			ChainID:           uint64(setting.ChainID),
 			VerifyingContract: toKey32(paymentRails),
 			Recipient:         toKey32(recipient),
@@ -887,7 +885,7 @@ func (p *payment) ed25519PaymentRequestSignature(
 			return nil, "", fmt.Errorf("failed to parse token address public key: %w", err)
 		}
 		req := solanaSplPaymentRequest{
-			Version:           []byte(protocol.SolanaEd25519SPLV1Type),
+			Version:           []byte("SolanaEd25519SPLV1Type"),
 			ChainID:           uint64(setting.ChainID),
 			VerifyingContract: toKey32(paymentRails),
 			TokenAddress:      tokenAddress,
