@@ -144,6 +144,7 @@ type KeyStore struct {
 	PluginIden3MountPath         string `env:"ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH"`
 	BJJProvider                  string `env:"ISSUER_KMS_BJJ_PROVIDER"`
 	ETHProvider                  string `env:"ISSUER_KMS_ETH_PROVIDER"`
+	SOLProvider                  string `env:"ISSUER_KMS_SOL_PROVIDER"`
 	ProviderLocalStorageFilePath string `env:"ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH"`
 	AWSAccessKey                 string `env:"ISSUER_KMS_AWS_ACCESS_KEY"`
 	AWSSecretKey                 string `env:"ISSUER_KMS_AWS_SECRET_KEY"`
@@ -408,6 +409,7 @@ func KeyStoreConfig(ctx context.Context, cfg *Configuration, vaultCfg providers.
 	kmsConfig := kms.Config{
 		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJProvider),
 		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHProvider),
+		SOLKeyProvider:           kms.ConfigProvider(cfg.KeyStore.SOLProvider),
 		AWSAccessKey:             cfg.KeyStore.AWSAccessKey,
 		AWSSecretKey:             cfg.KeyStore.AWSSecretKey,
 		AWSRegion:                cfg.KeyStore.AWSRegion,

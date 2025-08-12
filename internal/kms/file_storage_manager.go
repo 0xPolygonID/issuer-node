@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	partsNumber3 = 3
-	babyjubjub   = "babyjubjub"
-	ethereum     = "ethereum"
+	partsNumber3  = 3
+	babyjubjub    = "babyjubjub"
+	ethereum      = "ethereum"
+	solanaEd25519 = "ed25519"
 )
 
 type localStorageProviderFileContent struct {

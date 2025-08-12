@@ -237,6 +237,7 @@ Setup environment variables in `.env-issuer` file:
 ```bash
 ISSUER_KMS_BJJ_PROVIDER=vault
 ISSUER_KMS_ETH_PROVIDER=vault
+ISSUER_KMS_SOL_PROVIDER=vault
 ```
 After configuring the variables, run the following commands:
 
@@ -265,6 +266,7 @@ change the following variables in the .env-issuer file:
 ```shell
 ISSUER_KMS_BJJ_PROVIDER=aws-sm
 ISSUER_KMS_ETH_PROVIDER=aws-sm
+ISSUER_KMS_SOL_PROVIDER=aws-sm
 ISSUER_KMS_AWS_ACCESS_KEY=<your-aws-access-key>
 ISSUER_KMS_AWS_SECRET_KEY=<your-aws-secret-key>
 ISSUER_KMS_AWS_REGION=<your-aws-region>
