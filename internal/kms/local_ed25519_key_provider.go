@@ -60,11 +60,10 @@ func (ls *localEd25519KeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 
 	ss := ls.reIdenKeyPathHex.FindStringSubmatch(keyID.ID)
 	if len(ss) != partsNumber {
-		pkBytes, err := ls.privateKey(ctx, keyID)
+		pk, err := ls.privateKey(ctx, keyID)
 		if err != nil {
 			return nil, errors.New("unable to get private key for build public key")
 		}
-		pk := ed25519.NewKeyFromSeed(pkBytes)
 		switch v := pk.Public().(type) {
 		case ed25519.PublicKey:
 			return v, nil
@@ -78,12 +77,12 @@ func (ls *localEd25519KeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 }
 
 func (ls *localEd25519KeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error) {
-	privKeyData, err := ls.privateKey(ctx, keyID)
+	privKey, err := ls.privateKey(ctx, keyID)
 	if err != nil {
 		return nil, err
 	}
-	privKey := ed25519.NewKeyFromSeed(privKeyData)
-	sig := ed25519.Sign(data, privKey)
+
+	sig := ed25519.Sign(privKey, data)
 	return sig, nil
 }
 
@@ -127,7 +126,7 @@ func (ls *localEd25519KeyProvider) Exists(ctx context.Context, keyID KeyID) (boo
 }
 
 // nolint
-func (ls *localEd25519KeyProvider) privateKey(ctx context.Context, keyID KeyID) ([]byte, error) {
+func (ls *localEd25519KeyProvider) privateKey(ctx context.Context, keyID KeyID) (ed25519.PrivateKey, error) {
 	if keyID.Type != ls.keyType {
 		return nil, ErrIncorrectKeyType
 	}
@@ -151,16 +150,10 @@ func (ls *localEd25519KeyProvider) privateKey(ctx context.Context, keyID KeyID) 
 		}
 	}
 
-	val, err := hex.DecodeString(privateKey)
+	decodedSeed, err := hex.DecodeString(privateKey)
 	if err != nil {
-		log.Error(ctx, "cannot decode private key", "err", err, "keyID", keyID)
 		return nil, err
 	}
-
-	if len(val) != defaultLength {
-		log.Error(ctx, "incorrect private key", "keyID", keyID)
-		return nil, errors.New("incorrect private key")
-	}
-
+	val := ed25519.NewKeyFromSeed(decodedSeed)
 	return val, nil
 }
