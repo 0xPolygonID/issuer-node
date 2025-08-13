@@ -8,6 +8,7 @@ import (
 	"errors"
 	"regexp"
 
+	"github.com/gagliardetto/solana-go"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -44,8 +45,8 @@ func (ls *localEd25519KeyProvider) New(identity *w3c.DID) (KeyID, error) {
 		jsonKeyData: hex.EncodeToString(ed25519PrivKey.Seed()),
 	}
 
-	pubKeyHex := hex.EncodeToString(ed25519PubKey)
-	keyID.ID = getKeyID(identity, ls.keyType, pubKeyHex)
+	pubKey := solana.PublicKeyFromBytes(ed25519PubKey)
+	keyID.ID = getKeyID(identity, ls.keyType, pubKey.String())
 
 	ls.temporaryKeys[keyID.ID] = keyMaterial
 	return keyID, nil
