@@ -394,7 +394,7 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cannot create BabyJubJub key provider: %+v", err)
 		}
-		log.Info(ctx, "ed25519 key provider created", "provider:", SOLLocalStorageKeyProvider)
+		log.Info(ctx, "Ed25519 key provider created", "provider:", SOLLocalStorageKeyProvider)
 	}
 
 	if config.SOLKeyProvider == SOLAWSSecretManagerStorage {
@@ -408,7 +408,7 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 			return nil, fmt.Errorf("cannot create SOL aws key provider: %+v", err)
 		}
 		solKeyProvider = NewLocalEd25519KeyProvider(KeyTypeEd25519, provider)
-		log.Info(ctx, "ED25519 key provider created", "provider:", SOLAWSSecretManagerStorage)
+		log.Info(ctx, "Ed25519 key provider created", "provider:", SOLAWSSecretManagerStorage)
 	}
 
 	keyStore := NewKMS()

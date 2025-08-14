@@ -31,6 +31,7 @@ const (
 	pluginIden3KeyTpUndefined pluginIden3KeyTp = ""
 	pluginIden3KeyTpBJJ       pluginIden3KeyTp = "babyjubjub"
 	pluginIden3KeyTpETH       pluginIden3KeyTp = "ethereum"
+	pluginIden3KeyTpEd25519   pluginIden3KeyTp = "ed25519"
 )
 
 type vaultPluginIden3KeyProvider struct {
@@ -87,6 +88,7 @@ func (v *vaultPluginIden3KeyProvider) Sign(_ context.Context, keyID KeyID, dataT
 			return nil, errors.New("data to sign is too large")
 		}
 	case KeyTypeEthereum:
+	case KeyTypeEd25519:
 		if len(dataToSign) != common.HashLength {
 			return nil, fmt.Errorf("data to sign should be %v bytes length",
 				common.HashLength)
@@ -222,6 +224,8 @@ func NewVaultPluginIden3KeyProvider(vaultCli *api.Client, keysPath string, keyTy
 		pubKeyLn = 32
 	case KeyTypeEthereum:
 		pubKeyLn = 33
+	case KeyTypeEd25519:
+		pubKeyLn = 32
 	default:
 		return nil, errors.New("unsupported key type")
 	}
@@ -392,6 +396,8 @@ func toPluginKeyType(keyType KeyType) (pluginIden3KeyTp, error) {
 		return pluginIden3KeyTpBJJ, nil
 	case KeyTypeEthereum:
 		return pluginIden3KeyTpETH, nil
+	case KeyTypeEd25519:
+		return pluginIden3KeyTpEd25519, nil
 	default:
 		return pluginIden3KeyTpUndefined, errors.New("unsupported key type")
 	}
