@@ -59,6 +59,8 @@ const (
 	SOLLocalStorageKeyProvider ConfigProvider = "localstorage"
 	// SOLAWSSecretManagerStorage is a key provider for ed25519 keys in local storage
 	SOLAWSSecretManagerStorage ConfigProvider = "aws-sm"
+	// SOLVaultKeyProvider is a key provider for ed25519 keys in vault
+	SOLVaultKeyProvider ConfigProvider = "vault"
 )
 
 // Config is a configuration for KMS
@@ -285,17 +287,44 @@ func Open(pluginIden3MountPath string, vault *api.Client) (*KMS, error) {
 
 // OpenWithConfig returns an initialized KMS with provided configuration
 func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
+	bjjKeyProvider, err := createBJJKeyProvider(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+
+	ethKeyProvider, err := createETHKeyProvider(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+
+	solKeyProvider, err := createSOLKeyProvider(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+
+	keyStore := NewKMS()
+	err = keyStore.RegisterKeyProvider(KeyTypeBabyJubJub, bjjKeyProvider)
+	if err != nil {
+		return nil, fmt.Errorf("cannot register BabyJubJub key provider: %+v", err)
+	}
+
+	err = keyStore.RegisterKeyProvider(KeyTypeEthereum, ethKeyProvider)
+	if err != nil {
+		return nil, fmt.Errorf("cannot register Ethereum key provider: %+v", err)
+	}
+	err = keyStore.RegisterKeyProvider(KeyTypeEd25519, solKeyProvider)
+	if err != nil {
+		return nil, fmt.Errorf("cannot register Solana Ed25519 key provider: %+v", err)
+	}
+	return keyStore, nil
+}
+
+func createBJJKeyProvider(ctx context.Context, config Config) (KeyProvider, error) {
 	var bjjKeyProvider KeyProvider
-	var ethKeyProvider KeyProvider
-	var solKeyProvider KeyProvider
 	var err error
 
 	if config.BJJKeyProvider == "" {
 		return nil, errors.New("BabyJubJub key provider is not provided")
-	}
-
-	if config.ETHKeyProvider == "" {
-		return nil, errors.New("Ethereum key provider is not provided")
 	}
 
 	if config.BJJKeyProvider == BJJVaultKeyProvider {
@@ -312,9 +341,6 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 			return nil, fmt.Errorf("cannot create file: %v", err)
 		}
 		bjjKeyProvider = NewLocalBJJKeyProvider(KeyTypeBabyJubJub, NewFileStorageManager(filePath))
-		if err != nil {
-			return nil, fmt.Errorf("cannot create BabyJubJub key provider: %+v", err)
-		}
 		log.Info(ctx, "BabyJubJub key provider created", "provider:", BJJLocalStorageKeyProvider)
 	}
 
@@ -332,6 +358,17 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		log.Info(ctx, "BabyJubJub key provider created", "provider:", BJJAWSSecretManagerStorage)
 	}
 
+	return bjjKeyProvider, nil
+}
+
+func createETHKeyProvider(ctx context.Context, config Config) (KeyProvider, error) {
+	var ethKeyProvider KeyProvider
+	var err error
+
+	if config.ETHKeyProvider == "" {
+		return nil, errors.New("Ethereum key provider is not provided")
+	}
+
 	if config.ETHKeyProvider == ETHVaultKeyProvider {
 		ethKeyProvider, err = NewVaultPluginIden3KeyProvider(config.Vault, config.PluginIden3MountPath, KeyTypeEthereum)
 		if err != nil {
@@ -346,9 +383,6 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 			return nil, fmt.Errorf("cannot create file: %v", err)
 		}
 		ethKeyProvider = NewLocalEthKeyProvider(KeyTypeEthereum, NewFileStorageManager(filePath))
-		if err != nil {
-			return nil, fmt.Errorf("cannot create Ethereum key provider: %+v", err)
-		}
 		log.Info(ctx, "Ethereum key provider created", "provider:", ETHLocalStorageKeyProvider)
 	}
 
@@ -385,15 +419,23 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		log.Info(ctx, "Ethereum key provider created", "provider:", ETHAwsKmsKeyProvider)
 	}
 
+	return ethKeyProvider, nil
+}
+
+func createSOLKeyProvider(ctx context.Context, config Config) (KeyProvider, error) {
+	var solKeyProvider KeyProvider
+	var err error
+
+	if config.SOLKeyProvider == "" {
+		return nil, errors.New("Solana key provider is not provided")
+	}
+
 	if config.SOLKeyProvider == SOLLocalStorageKeyProvider {
 		filePath, err := createFileIfNotExists(ctx, config.LocalStoragePath, LocalStorageFileName)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create file: %v", err)
 		}
 		solKeyProvider = NewLocalEd25519KeyProvider(KeyTypeEd25519, NewFileStorageManager(filePath))
-		if err != nil {
-			return nil, fmt.Errorf("cannot create BabyJubJub key provider: %+v", err)
-		}
 		log.Info(ctx, "Ed25519 key provider created", "provider:", SOLLocalStorageKeyProvider)
 	}
 
@@ -411,21 +453,15 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		log.Info(ctx, "Ed25519 key provider created", "provider:", SOLAWSSecretManagerStorage)
 	}
 
-	keyStore := NewKMS()
-	err = keyStore.RegisterKeyProvider(KeyTypeBabyJubJub, bjjKeyProvider)
-	if err != nil {
-		return nil, fmt.Errorf("cannot register BabyJubJub key provider: %+v", err)
+	if config.SOLKeyProvider == SOLVaultKeyProvider {
+		solKeyProvider, err = NewVaultPluginIden3KeyProvider(config.Vault, config.PluginIden3MountPath, KeyTypeEd25519)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create SOL key provider: %+v", err)
+		}
+		log.Info(ctx, "Ed25519 key provider created", "provider:", SOLVaultKeyProvider)
 	}
 
-	err = keyStore.RegisterKeyProvider(KeyTypeEthereum, ethKeyProvider)
-	if err != nil {
-		return nil, fmt.Errorf("cannot register Ethereum key provider: %+v", err)
-	}
-	err = keyStore.RegisterKeyProvider(KeyTypeEd25519, solKeyProvider)
-	if err != nil {
-		return nil, fmt.Errorf("cannot register Solana Ed25519 key provider: %+v", err)
-	}
-	return keyStore, nil
+	return solKeyProvider, nil
 }
 
 func createFileIfNotExists(ctx context.Context, folderPath, fileName string) (string, error) {
