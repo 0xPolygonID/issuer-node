@@ -1,22 +1,21 @@
 FROM golang:1.22 AS base
 ARG VERSION
 
-ARG ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY
-ARG ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY
-ARG ISSUER_KMS_ETH_PROVIDER_AWS_REGION
-
 WORKDIR /service
 ENV GOBIN /service/bin
 
 COPY go.mod .
 COPY go.sum .
 COPY ./cmd/kms_priv_key_importer/ ./cmd/kms_priv_key_importer/
-COPY ./internal ./internal
+COPY ./internal/config ./internal/config
+COPY ./internal/kms ./internal/kms
+COPY ./internal/log ./internal/log
+COPY ./internal/providers ./internal/providers
+COPY ./internal/common ./internal/common
+COPY ./pkg/PKCS8DER ./pkg/PKCS8DER
 
 
-
-
-RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
+RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/kms_priv_key_importer/main.go
 
 FROM alpine:latest
 RUN apk add --no-cache libstdc++ gcompat libgomp
@@ -31,4 +30,5 @@ RUN apk add doas; \
     echo 'permit nopass :wheel as root' >> /etc/doas.d/doas.conf;
 RUN chmod g+rx,o+rx /
 
-COPY --from=base ./service/bin/* ./
+COPY --from=base ./service/bin/main /usr/local/bin/kms_priv_key_importer
+RUN chmod +x /usr/local/bin/kms_priv_key_importer

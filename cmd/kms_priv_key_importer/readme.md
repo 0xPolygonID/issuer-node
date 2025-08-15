@@ -1,6 +1,7 @@
 ### Requirements
 You have to have installed the following tools:
 - [Go](https://golang.org/doc/install)
+- [Docker](https://docs.docker.com/get-docker/)
 
 
 this tools needs the following environment variables to be set up:
@@ -74,3 +75,57 @@ and run the following command:
 $ ./kms_priv_key_importer --privateKey <privateETHKey>
 ```
 that's it, your private key was successfully imported to AWS Secrets Manager.
+
+
+### Docker Alternative Sample (localstorage) 📂
+First you need to build the docker image:
+```shell
+$ docker build -t kms-priv-key-importer -f ./cmd/kms_priv_key_importer
+```
+Then you can run the docker container with the following command (at the root of the project):
+```shell
+$ mkdir localstoragekeys
+ 
+$ docker run --rm -it \
+-e ISSUER_PUBLISH_KEY_PATH=pbkey \
+-e ISSUER_KMS_ETH_PROVIDER=localstorage \
+-e ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH=localstoragekeys \
+-v $(pwd)/localstoragekeys:/localstoragekeys \
+kms-priv-key-importer kms_priv_key_importer --privateKey <privateETHKey>
+```
+
+### Docker Alternative Sample (AWS-KMS) 🐳
+First you need to build the docker image:
+```shell
+$ docker build -t kms-priv-key-importer -f ./cmd/kms_priv_key_importer
+```
+
+Then you can run the docker container with the following command:
+```shell
+$ docker run --rm -it \
+-e ISSUER_PUBLISH_KEY_PATH=pbkey \
+-e ISSUER_KMS_ETH_PROVIDER=aws-kms \
+-e ISSUER_KMS_AWS_REGION=<aws-region> \                   # "local" if you are using localstack
+-e ISSUER_KMS_AWS_ACCESS_KEY=<aws-access-key> \
+-e ISSUER_KMS_AWS_SECRET_KEY=<aws-secret-key> \
+#    -e ISSUER_KMS_AWS_URL=http://host.docker.internal:4566 \ # optional, use it if you are using localstack
+kms-priv-key-importer kms_priv_key_importer --privateKey <privateETHKey> 
+```
+
+### Docker Alternative Sample (AWS-SM) 🐳
+First you need to build the docker image:
+```shell
+$ docker build -t kms-priv-key-importer -f ./cmd/kms_priv_key_importer
+```
+
+Then you can run the docker container with the following command:
+```shell
+$ docker run --rm -it \
+-e ISSUER_PUBLISH_KEY_PATH=pbkey \
+-e ISSUER_KMS_ETH_PROVIDER=aws-sm \
+-e ISSUER_KMS_AWS_REGION=<aws-region> \  # "local" if you are using localstack
+-e ISSUER_KMS_AWS_ACCESS_KEY=<aws-access-key> \
+-e ISSUER_KMS_AWS_SECRET_KEY=<aws-secret-key> \
+#    -e ISSUER_KMS_AWS_URL=http://host.docker.internal:4566 \ # optional, use it if you are using localstack
+kms-priv-key-importer kms_priv_key_importer --privateKey <privateETHKey>
+```
