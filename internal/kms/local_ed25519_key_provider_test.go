@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_New_LocalED25519Provider(t *testing.T) {
+func Test_New_LocalEd25519Provider(t *testing.T) {
 	ctx := context.Background()
 	tmpFile, err := createTestFile(t)
 	assert.NoError(t, err)
@@ -74,7 +74,7 @@ func Test_New_LocalED25519Provider(t *testing.T) {
 	})
 }
 
-func Test_LinkToIdentity_LocalED25519KeyProvider(t *testing.T) {
+func Test_LinkToIdentity_LocalEd25519KeyProvider(t *testing.T) {
 	ctx := context.Background()
 	tmpFile, err := createTestFile(t)
 	assert.NoError(t, err)
@@ -118,7 +118,7 @@ func Test_LinkToIdentity_LocalED25519KeyProvider(t *testing.T) {
 	})
 }
 
-func Test_ListByIdentity_LocalED25519KeyProvider(t *testing.T) {
+func Test_ListByIdentity_LocalEd25519KeyProvider(t *testing.T) {
 	ctx := context.Background()
 	tmpFile, err := createTestFile(t)
 	assert.NoError(t, err)
@@ -149,7 +149,7 @@ func Test_ListByIdentity_LocalED25519KeyProvider(t *testing.T) {
 		keyIDs, err := localEd25519KeyProvider.ListByIdentity(ctx, did)
 		assert.NoError(t, err)
 		assert.Len(t, keyIDs, 1)
-		assert.Equal(t, KeyID{Type: KeyTypeEd25519, ID: did.String() + "/ED25519:" + pbkey[1]}, keyIDs[0])
+		assert.Equal(t, KeyID{Type: KeyTypeEd25519, ID: did.String() + "/Ed25519:" + pbkey[1]}, keyIDs[0])
 	})
 
 	t.Run("should list keys by identity using aws storage manager", func(t *testing.T) {
@@ -168,11 +168,11 @@ func Test_ListByIdentity_LocalED25519KeyProvider(t *testing.T) {
 		keyIDs, err := localEd25519KeyProvider.ListByIdentity(ctx, did)
 		assert.NoError(t, err)
 		assert.Len(t, keyIDs, 1)
-		assert.Equal(t, KeyID{Type: KeyTypeEd25519, ID: did.String() + "/ED25519:" + pbkey[1]}, keyIDs[0])
+		assert.Equal(t, KeyID{Type: KeyTypeEd25519, ID: did.String() + "/Ed25519:" + pbkey[1]}, keyIDs[0])
 	})
 }
 
-func Test_PublicKey_LocalED25519KeyProvider(t *testing.T) {
+func Test_PublicKey_LocalEd25519KeyProvider(t *testing.T) {
 	ctx := context.Background()
 	tmpFile, err := createTestFile(t)
 	assert.NoError(t, err)
@@ -229,7 +229,7 @@ func Test_PublicKey_LocalED25519KeyProvider(t *testing.T) {
 	})
 }
 
-func Test_Sign_LocalED25519KeyProvider(t *testing.T) {
+func Test_Sign_LocalEd25519KeyProvider(t *testing.T) {
 	ctx := context.Background()
 	tmpFile, err := createTestFile(t)
 	assert.NoError(t, err)

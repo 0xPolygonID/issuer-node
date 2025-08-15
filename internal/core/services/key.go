@@ -374,7 +374,7 @@ func getKeyType(keyID string) (kms.KeyType, error) {
 		keyType = kms.KeyTypeBabyJubJub
 	} else if strings.Contains(keyID, "ETH") {
 		keyType = kms.KeyTypeEthereum
-	} else if strings.Contains(keyID, "ED25519") {
+	} else if strings.Contains(keyID, "Ed25519") {
 		keyType = kms.KeyTypeEd25519
 	} else {
 		return keyType, ErrInvalidKeyType

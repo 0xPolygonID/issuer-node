@@ -284,7 +284,7 @@ func convertKeyTypeToResponse(keyType kms.KeyType) KeyKeyType {
 	if keyType == "BJJ" {
 		return KeyKeyTypeBabyjubJub
 	}
-	if keyType == "ED25519" {
+	if keyType == "Ed25519" {
 		return KeyKeyTypeEd25519
 	}
 	return KeyKeyTypeSecp256k1
@@ -295,7 +295,7 @@ func convertKeyTypeFromRequest(keyType CreateKeyRequestKeyType) kms.KeyType {
 		return "BJJ"
 	}
 	if string(keyType) == string(KeyKeyTypeEd25519) {
-		return "ED25519"
+		return "Ed25519"
 	}
 	return "ETH"
 }

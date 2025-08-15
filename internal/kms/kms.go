@@ -111,7 +111,7 @@ type KeyType string
 const (
 	KeyTypeBabyJubJub KeyType = "BJJ"
 	KeyTypeEthereum   KeyType = "ETH"
-	KeyTypeEd25519    KeyType = "ED25519"
+	KeyTypeEd25519    KeyType = "Ed25519"
 )
 
 // ErrUnknownKeyType returns when we do not support this type of keys
