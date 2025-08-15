@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/gagliardetto/solana-go"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -68,7 +69,7 @@ func (ks *Key) Create(ctx context.Context, did *w3c.DID, keyType kms.KeyType, na
 		}
 	}
 
-	if keyType == kms.KeyTypeEthereum {
+	if keyType == kms.KeyTypeEthereum || keyType == kms.KeyTypeEd25519 {
 		keyID, err = ks.kms.CreateKey(keyType, nil)
 		if err != nil {
 			log.Error(ctx, "failed to create key", "err", err)
@@ -88,6 +89,9 @@ func (ks *Key) Create(ctx context.Context, did *w3c.DID, keyType kms.KeyType, na
 	}
 
 	publicKey := hexutil.Encode(publicKeyAsBytes)
+	if keyType == kms.KeyTypeEd25519 {
+		publicKey = solana.PublicKey(publicKeyAsBytes).String()
+	}
 	keyToSave := domain.NewKey(*did, publicKey, name)
 	_, err = ks.keyRepository.Save(ctx, nil, keyToSave)
 	if err != nil {
@@ -130,14 +134,19 @@ func (ks *Key) Update(ctx context.Context, did *w3c.DID, keyID string, name stri
 		return ErrKeyNotFound
 	}
 
-	keyInfo, err := ks.keyRepository.GetByPublicKey(ctx, *did, hexutil.Encode(publicKey))
+	publicKeyString := hexutil.Encode(publicKey)
+	if keyType == kms.KeyTypeEd25519 {
+		publicKeyString = solana.PublicKey(publicKey).String()
+	}
+
+	keyInfo, err := ks.keyRepository.GetByPublicKey(ctx, *did, publicKeyString)
 	if err != nil {
 		if !errors.Is(err, repositories.ErrKeyNotFound) {
 			return err
 		}
 	}
 	if keyInfo == nil {
-		keyInfo = domain.NewKey(*did, hexutil.Encode(publicKey), name)
+		keyInfo = domain.NewKey(*did, publicKeyString, name)
 	}
 	keyInfo.Name = name
 	_, err = ks.keyRepository.Save(ctx, nil, keyInfo)
@@ -187,24 +196,30 @@ func (ks *Key) Get(ctx context.Context, did *w3c.DID, keyID string) (*ports.KMSK
 			log.Error(ctx, "failed to check if key has associated auth credential", "err", err)
 			return nil, err
 		}
+	case kms.KeyTypeEd25519:
 	default:
 		return nil, ErrInvalidKeyType
 	}
 
-	keyInfo, err := ks.keyRepository.GetByPublicKey(ctx, *did, hexutil.Encode(publicKey))
+	pubKeyString := hexutil.Encode(publicKey)
+	if keyType == kms.KeyTypeEd25519 {
+		pubKeyString = solana.PublicKey(publicKey).String()
+	}
+
+	keyInfo, err := ks.keyRepository.GetByPublicKey(ctx, *did, pubKeyString)
 	if err != nil {
 		if !errors.Is(err, repositories.ErrKeyNotFound) {
 			return nil, err
 		}
 		keyInfo = &domain.Key{
-			Name: hexutil.Encode(publicKey),
+			Name: pubKeyString,
 		}
 	}
 
 	return &ports.KMSKey{
 		KeyID:                       keyID,
 		KeyType:                     keyType,
-		PublicKey:                   hexutil.Encode(publicKey),
+		PublicKey:                   pubKeyString,
 		HasAssociatedAuthCredential: hasAssociatedAuthCredential,
 		Name:                        keyInfo.Name,
 	}, nil
@@ -320,11 +335,17 @@ func (ks *Key) Delete(ctx context.Context, did *w3c.DID, keyID string) error {
 			log.Info(ctx, "can not be deleted because it is associated with the identity")
 			return ErrKeyAssociatedWithIdentity
 		}
+	case kms.KeyTypeEd25519:
 	default:
 		return ErrInvalidKeyType
 	}
 
-	if err := ks.keyRepository.Delete(ctx, *did, hexutil.Encode(publicKey)); err != nil {
+	pubKeyString := hexutil.Encode(publicKey)
+	if keyType == kms.KeyTypeEd25519 {
+		pubKeyString = solana.PublicKey(publicKey).String()
+	}
+
+	if err := ks.keyRepository.Delete(ctx, *did, pubKeyString); err != nil {
 		log.Error(ctx, "failed to delete key", "err", err)
 		return err
 	}
@@ -353,6 +374,8 @@ func getKeyType(keyID string) (kms.KeyType, error) {
 		keyType = kms.KeyTypeBabyJubJub
 	} else if strings.Contains(keyID, "ETH") {
 		keyType = kms.KeyTypeEthereum
+	} else if strings.Contains(keyID, "Ed25519") {
+		keyType = kms.KeyTypeEd25519
 	} else {
 		return keyType, ErrInvalidKeyType
 	}

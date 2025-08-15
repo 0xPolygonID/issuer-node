@@ -10,6 +10,7 @@ data:
   ISSUER_SERVER_PORT: {{ .Values.apiIssuerNode.configMap.issuerServerPort | quote }}
   ISSUER_KMS_BJJ_PROVIDER: {{ .Values.apiIssuerNode.configMap.issuerKMSBJJProvider | quote }}
   ISSUER_KMS_ETH_PROVIDER: {{ .Values.apiIssuerNode.configMap.issuerKMSETHProvider | quote }}
+  ISSUER_KMS_SOL_PROVIDER: {{ .Values.apiIssuerNode.configMap.issuerKMSSOLProvider | quote }}
   ISSUER_NATIVE_PROOF_GENERATION_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerNativeProofGenerationEnabled | quote }}
   ISSUER_PUBLISH_KEY_PATH: {{ .Values.apiIssuerNode.configMap.issuerPublishKeyPath }}
   ISSUER_ONCHAIN_CHECK_STATUS_FREQUENCY: {{ .Values.apiIssuerNode.configMap.issuerOnchainCheckStatusFrequency }}

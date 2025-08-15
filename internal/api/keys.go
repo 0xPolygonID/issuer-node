@@ -15,11 +15,11 @@ import (
 
 // CreateKey is the handler for the POST /keys endpoint.
 func (s *Server) CreateKey(ctx context.Context, request CreateKeyRequestObject) (CreateKeyResponseObject, error) {
-	if string(request.Body.KeyType) != string(KeyKeyTypeBabyjubJub) && string(request.Body.KeyType) != string(KeyKeyTypeSecp256k1) {
-		log.Error(ctx, "invalid key type. babyjujJub and secp256k1 keys are supported")
+	if string(request.Body.KeyType) != string(KeyKeyTypeBabyjubJub) && string(request.Body.KeyType) != string(KeyKeyTypeSecp256k1) && string(request.Body.KeyType) != string(KeyKeyTypeEd25519) {
+		log.Error(ctx, "invalid key type. babyjubJub, secp256k1 and ed25519 keys are supported")
 		return CreateKey400JSONResponse{
 			N400JSONResponse{
-				Message: "invalid key type. babyjujJub and secp256k1 keys are supported",
+				Message: "invalid key type. babyjubJub, secp256k1 and ed25519 keys are supported",
 			},
 		}, nil
 	}
@@ -166,16 +166,18 @@ func (s *Server) GetKeys(ctx context.Context, request GetKeysRequestObject) (Get
 	}
 
 	if request.Params.Type != nil {
-		if string(*request.Params.Type) != string(KeyKeyTypeBabyjubJub) && string(*request.Params.Type) != string(KeyKeyTypeSecp256k1) {
-			log.Error(ctx, "invalid key type. babyjubJub and secp256k1 keys are supported")
+		if string(*request.Params.Type) != string(KeyKeyTypeBabyjubJub) && string(*request.Params.Type) != string(KeyKeyTypeSecp256k1) && string(*request.Params.Type) != string(KeyKeyTypeEd25519) {
+			log.Error(ctx, "invalid key type. babyjubJub, secp256k1 and ed25519	 keys are supported")
 			return GetKeys400JSONResponse{
 				N400JSONResponse{
-					Message: "invalid key type. babyjubJub and secp256k1 keys are supported",
+					Message: "invalid key type. babyjubJub, secp256k1 and ed25519 keys are supported",
 				},
 			}, nil
 		}
 		if string(*request.Params.Type) == string(KeyKeyTypeBabyjubJub) {
 			filter.KeyType = common.ToPointer(kms.KeyTypeBabyJubJub)
+		} else if string(*request.Params.Type) == string(KeyKeyTypeEd25519) {
+			filter.KeyType = common.ToPointer(kms.KeyTypeEd25519)
 		} else {
 			filter.KeyType = common.ToPointer(kms.KeyTypeEthereum)
 		}
@@ -282,12 +284,18 @@ func convertKeyTypeToResponse(keyType kms.KeyType) KeyKeyType {
 	if keyType == "BJJ" {
 		return KeyKeyTypeBabyjubJub
 	}
+	if keyType == "Ed25519" {
+		return KeyKeyTypeEd25519
+	}
 	return KeyKeyTypeSecp256k1
 }
 
 func convertKeyTypeFromRequest(keyType CreateKeyRequestKeyType) kms.KeyType {
 	if string(keyType) == string(KeyKeyTypeBabyjubJub) {
 		return "BJJ"
+	}
+	if string(keyType) == string(KeyKeyTypeEd25519) {
+		return "Ed25519"
 	}
 	return "ETH"
 }
