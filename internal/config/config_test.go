@@ -154,6 +154,7 @@ func TestLoadKmsProviders(t *testing.T) {
 	envVars := initVariables(t)
 	envVars["ISSUER_KMS_BJJ_PROVIDER"] = ""
 	envVars["ISSUER_KMS_ETH_PROVIDER"] = ""
+	envVars["ISSUER_KMS_SOL_PROVIDER"] = ""
 	loadEnvironmentVariables(t, envVars)
 	cfg, err := Load()
 	assert.NoError(t, err)
@@ -261,6 +262,7 @@ func initVariables(t *testing.T) envVarsT {
 		"ISSUER_VAULT_USERPASS_AUTH_PASSWORD":         "issuernodepwd",
 		"ISSUER_KMS_BJJ_PROVIDER":                     "localstorage",
 		"ISSUER_KMS_ETH_PROVIDER":                     "localstorage",
+		"ISSUER_KMS_SOL_PROVIDER":                     "localstorage",
 		"ISSUER_KMS_AWS_ACCESS_KEY":                   "XYZ",
 		"ISSUER_KMS_AWS_SECRET_KEY":                   "123HHUBUuO5",
 		"ISSUER_KMS_AWS_REGION":                       "eu-west-1",

@@ -30,6 +30,8 @@ func convertToKeyType(keyType string) KeyType {
 		return KeyTypeBabyJubJub
 	case ethereum:
 		return KeyTypeEthereum
+	case solanaEd25519:
+		return KeyTypeEd25519
 	default:
 		return ""
 	}
@@ -43,6 +45,8 @@ func convertFromKeyType(keyType KeyType) string {
 		return babyjubjub
 	case KeyTypeEthereum:
 		return ethereum
+	case KeyTypeEd25519:
+		return solanaEd25519
 	default:
 		return ""
 	}

@@ -19,6 +19,7 @@ ENVIRONMENT := ${ISSUER_ENVIRONMENT}
 ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH := ${ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH}
 ISSUER_KMS_ETH_PROVIDER := ${ISSUER_KMS_ETH_PROVIDER}
 ISSUER_KMS_BJJ_PROVIDER := ${ISSUER_KMS_BJJ_PROVIDER}
+ISSUER_KMS_SOL_PROVIDER := ${ISSUER_KMS_SOL_PROVIDER}
 
 aws_access_key := ${ISSUER_KMS_AWS_ACCESS_KEY}
 aws_secret_key := ${ISSUER_KMS_AWS_SECRET_KEY}
@@ -35,9 +36,9 @@ ENV = $(DOTENV_CMD) -f .env-issuer
 .PHONY: run-all-registry
 run-all-registry:
 	@make down
-ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER)$(ISSUER_KMS_SOL_PROVIDER), localstoragelocalstoragelocalstorage)
 	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
-else ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), vaultvault)
+else ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER)$(ISSUER_KMS_SOL_PROVIDER), vaultvaultvault)
 	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres vault api pending_publisher notifications ui
 else
 	$(DOCKER_COMPOSE_FULL_CMD) up -d redis postgres api pending_publisher notifications ui
@@ -82,6 +83,9 @@ endif
 ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
 endif
+ifeq ($(ISSUER_KMS_SOL_PROVIDER), vault)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+endif
 ifeq ($(ISSUER_KMS_BJJ_PROVIDER), vault)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
 endif
@@ -92,6 +96,9 @@ ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-kmslocal)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
 ifeq ($(ISSUER_KMS_BJJ_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
+endif
+ifeq ($(ISSUER_KMS_SOL_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
 

@@ -1617,7 +1617,7 @@ paths:
             type: string
             x-omitempty: false
             example: "babyjubJub"
-            enum: [ babyjubJub, secp256k1 ]
+            enum: [ babyjubJub, secp256k1, ed25519 ]
           description: If not provided, all keys will be returned.
       responses:
         '200':
@@ -3271,7 +3271,7 @@ components:
           type: string
           x-omitempty: false
           example: "babyjubJub"
-          enum: [ babyjubJub, secp256k1 ]
+          enum: [ babyjubJub, secp256k1, ed25519 ]
         name:
           type: string
           example: "my key"
@@ -3305,7 +3305,7 @@ components:
           type: string
           x-omitempty: false
           example: "babyjubJub"
-          enum: [ babyjubJub, secp256k1 ]
+          enum: [ babyjubJub, secp256k1, ed25519 ]
         publicKey:
           type: string
           x-omitempty: false
