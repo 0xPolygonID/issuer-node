@@ -356,12 +356,17 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 		cfg.KeyStore.ETHProvider = LocalStorage
 	}
 
-	if (cfg.KeyStore.BJJProvider == LocalStorage || cfg.KeyStore.ETHProvider == LocalStorage) && cfg.KeyStore.ProviderLocalStorageFilePath == "" {
+	if cfg.KeyStore.SOLProvider == "" {
+		log.Info(ctx, "ISSUER_KMS_SOL_PROVIDER value is missing, using default value: localstorage")
+		cfg.KeyStore.SOLProvider = LocalStorage
+	}
+
+	if (cfg.KeyStore.BJJProvider == LocalStorage || cfg.KeyStore.ETHProvider == LocalStorage || cfg.KeyStore.SOLProvider == LocalStorage) && cfg.KeyStore.ProviderLocalStorageFilePath == "" {
 		log.Info(ctx, "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FOLDER value is missing, using default value: ./localstoragekeys")
 		cfg.KeyStore.ProviderLocalStorageFilePath = "./localstoragekeys"
 	}
 
-	if cfg.KeyStore.ETHProvider == AWSSM || cfg.KeyStore.ETHProvider == AWSKMS || cfg.KeyStore.BJJProvider == AWSSM {
+	if cfg.KeyStore.ETHProvider == AWSSM || cfg.KeyStore.ETHProvider == AWSKMS || cfg.KeyStore.BJJProvider == AWSSM || cfg.KeyStore.SOLProvider == AWSSM {
 		if cfg.KeyStore.AWSAccessKey == "" {
 			log.Error(ctx, "ISSUER_AWS_KEY_ID value is missing")
 			return errors.New("ISSUER_AWS_KEY_ID value is missing")
@@ -376,7 +381,7 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 		}
 	}
 
-	if cfg.KeyStore.BJJProvider == LocalStorage || cfg.KeyStore.ETHProvider == LocalStorage {
+	if cfg.KeyStore.BJJProvider == LocalStorage || cfg.KeyStore.ETHProvider == LocalStorage || cfg.KeyStore.SOLProvider == LocalStorage {
 		log.Info(ctx, `
 			=====================================================================================================================================================
 			IMPORTANT: THIS CONFIGURATION SHOULD NOT BE USED IN PRODUCTIVE ENVIRONMENTS!!!. YOU HAVE CONFIGURED THE ISSUER NODE TO SAVE KEYS IN THE LOCAL STORAGE
@@ -393,7 +398,7 @@ func KeyStoreConfig(ctx context.Context, cfg *Configuration, vaultCfg providers.
 		vaultCli *vault.Client
 		vaultErr error
 	)
-	if cfg.KeyStore.BJJProvider == Vault || cfg.KeyStore.ETHProvider == Vault {
+	if cfg.KeyStore.BJJProvider == Vault || cfg.KeyStore.ETHProvider == Vault || cfg.KeyStore.SOLProvider == Vault {
 		log.Info(ctx, "using vault key provider")
 		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
 		if vaultErr != nil {
