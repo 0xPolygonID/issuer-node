@@ -355,7 +355,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	connectionService := services.NewConnection(repos.connection, repos.claims, st)
 	displayMethodService := services.NewDisplayMethod(repos.displayMethod)
 	schemaService := services.NewSchema(repos.schemas, schemaLoader, displayMethodService)
-	paymentService, err := services.NewPaymentService(repos.payments, *networkResolver, schemaService, paymentSettings, keyStore, nil)
+	paymentService, err := services.NewPaymentService(repos.payments, *networkResolver, schemaService, paymentSettings, keyStore)
 	require.NoError(t, err)
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{

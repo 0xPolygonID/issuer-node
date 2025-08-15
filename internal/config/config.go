@@ -69,9 +69,8 @@ type Configuration struct {
 
 // Payments configurations
 type Payments struct {
-	SolanaBase58Pk *string `env:"ISSUER_PAYMENTS_SOLANA_BASE58_PK"`
-	SettingsPath   string  `env:"ISSUER_PAYMENTS_SETTINGS_PATH"`
-	SettingsFile   *string `env:"ISSUER_PAYMENTS_SETTINGS_FILE"`
+	SettingsPath string  `env:"ISSUER_PAYMENTS_SETTINGS_PATH"`
+	SettingsFile *string `env:"ISSUER_PAYMENTS_SETTINGS_FILE"`
 }
 
 // Database has the database configuration

@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/rand"
 	b64 "encoding/base64"
 	"encoding/binary"
@@ -27,7 +26,6 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
-	"github.com/mr-tron/base58"
 	"github.com/near/borsh-go"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -39,6 +37,16 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/payments"
 )
 
+const (
+	SolanaDevChainID  = 103
+	SolanaTestChainID = 102
+	SolanaMainChainID = 101
+
+	SolanaChainRefDevnet  = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+	SolanaChainRefTestnet = "4uhcVJyU9pJkvQyS88uRDiswHXSCkY3z"
+	SolanaChainRefMainnet = "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
+)
+
 type payment struct {
 	networkResolver                      network.Resolver
 	settings                             payments.Config
@@ -47,12 +55,10 @@ type payment struct {
 	kms                                  kms.KMSType
 	iden3PaymentRailsRequestV1Types      apitypes.Types
 	iden3PaymentRailsERC20RequestV1Types apitypes.Types
-	ed25519Pk                            ed25519.PrivateKey
-	ed25519SignerPublicKey               solana.PublicKey
 }
 
 // NewPaymentService creates a new payment service
-func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType, ed25519Base58Pk *string) (ports.PaymentService, error) {
+func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Resolver, schemaSrv ports.SchemaService, settings *payments.Config, kms kms.KMSType) (ports.PaymentService, error) {
 	iden3PaymentRailsRequestV1Types := apitypes.Types{}
 	iden3PaymentRailsERC20RequestV1Types := apitypes.Types{}
 	err := json.Unmarshal([]byte(domain.Iden3PaymentRailsRequestV1SchemaJSON), &iden3PaymentRailsRequestV1Types)
@@ -65,25 +71,6 @@ func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Res
 		log.Error(context.Background(), "failed to unmarshal Iden3PaymentRailsERC20RequestV1 schema", "err", err)
 		return nil, err
 	}
-	var ed25519Pk ed25519.PrivateKey
-	var ed25519SignerPublicKey solana.PublicKey
-	if ed25519Base58Pk != nil {
-		decoded, err := base58.Decode(*ed25519Base58Pk)
-		if err != nil {
-			log.Error(context.Background(), "failed to decode ed25519Pk")
-			return nil, err
-		}
-		ed25519Pk = ed25519.PrivateKey(decoded)
-
-		pub, ok := ed25519Pk.Public().(ed25519.PublicKey)
-		if !ok {
-			log.Error(context.Background(), "failed to cast public key to ed25519.PublicKey")
-			return nil, fmt.Errorf("failed to cast public key to ed25519.PublicKey")
-		}
-		copy(ed25519SignerPublicKey[:], pub)
-	} else {
-		log.Warn(context.Background(), "ed25519Pk is not provided, Solana payment options will not be available")
-	}
 	return &payment{
 		networkResolver:                      resolver,
 		settings:                             *settings,
@@ -92,8 +79,6 @@ func NewPaymentService(payOptsRepo ports.PaymentRepository, resolver network.Res
 		kms:                                  kms,
 		iden3PaymentRailsRequestV1Types:      iden3PaymentRailsRequestV1Types,
 		iden3PaymentRailsERC20RequestV1Types: iden3PaymentRailsERC20RequestV1Types,
-		ed25519Pk:                            ed25519Pk,
-		ed25519SignerPublicKey:               ed25519SignerPublicKey,
 	}, nil
 }
 
@@ -304,7 +289,12 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 	var status ports.BlockchainPaymentStatus
 	if setting.PaymentOption.Type == protocol.Iden3PaymentRailsSolanaRequestV1Type ||
 		setting.PaymentOption.Type == protocol.Iden3PaymentRailsSolanaSPLRequestV1Type {
-		status, err = p.verifySolanaPaymentOnBlockchain(ctx, setting, nonce, txHash)
+		signerAddress, err := p.getSolSignerAddress(ctx, paymentReqItem.SigningKeyID)
+		if err != nil {
+			log.Error(ctx, "failed to get signer address", "err", err, "SigningKeyID", paymentReqItem.SigningKeyID)
+			return ports.BlockchainPaymentStatusPending, err
+		}
+		status, err = p.verifySolanaPaymentOnBlockchain(ctx, setting, nonce, signerAddress, txHash)
 		if err != nil {
 			log.Error(ctx, "failed to verify Solana payment on blockchain", "err", err, "txHash", txHash, "nonce", nonce)
 			return ports.BlockchainPaymentStatusPending, err
@@ -321,7 +311,7 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 			return ports.BlockchainPaymentStatusPending, err
 		}
 
-		signerAddress, err := p.getSignerAddress(ctx, paymentReqItem.SigningKeyID)
+		signerAddress, err := p.getEthSignerAddress(ctx, paymentReqItem.SigningKeyID)
 		if err != nil {
 			log.Error(ctx, "failed to get signer address", "err", err, "SigningKeyID", paymentReqItem.SigningKeyID)
 			return ports.BlockchainPaymentStatusPending, err
@@ -395,17 +385,14 @@ func (p *payment) verifyPaymentOnBlockchain(
 	return ports.BlockchainPaymentStatusFailed, nil
 }
 
-func (p *payment) verifySolanaPaymentOnBlockchain(ctx context.Context, setting payments.ChainConfig, nonce *big.Int, txHash *string) (ports.BlockchainPaymentStatus, error) {
-	devChainID := 103
-	testChainID := 102
-	mainChainID := 101
+func (p *payment) verifySolanaPaymentOnBlockchain(ctx context.Context, setting payments.ChainConfig, nonce *big.Int, signer string, txHash *string) (ports.BlockchainPaymentStatus, error) {
 	var client *rpc.Client
 	switch setting.ChainID {
-	case devChainID:
+	case SolanaDevChainID:
 		client = rpc.New(rpc.DevNet_RPC)
-	case testChainID:
+	case SolanaTestChainID:
 		client = rpc.New(rpc.TestNet_RPC)
-	case mainChainID:
+	case SolanaMainChainID:
 		client = rpc.New(rpc.MainNetBeta_RPC)
 	default:
 		log.Error(ctx, "unsupported chain ID for Solana payment verification", "chainID", setting.ChainID)
@@ -429,9 +416,13 @@ func (p *payment) verifySolanaPaymentOnBlockchain(ctx context.Context, setting p
 	nonceLe := make([]byte, bytesForUint64)
 	binary.LittleEndian.PutUint64(nonceLe, nonce.Uint64())
 
+	pubKey, err := solana.PublicKeyFromBase58(signer)
+	if err != nil {
+		return ports.BlockchainPaymentStatusUnknown, fmt.Errorf("failed to parse signer public key: %w", err)
+	}
 	seeds := [][]byte{
 		[]byte("payment"),
-		p.ed25519SignerPublicKey.Bytes(),
+		pubKey.Bytes(),
 		nonceLe,
 	}
 	pda, _, err := solana.FindProgramAddress(seeds, programID)
@@ -550,7 +541,7 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			log.Error(ctx, "failed to create payment request signature", "err", err)
 			return nil, err
 		}
-		signerAddress, err := p.getSignerAddress(ctx, chainConfig.SigningKeyID)
+		signerAddress, err := p.getEthSignerAddress(ctx, chainConfig.SigningKeyID)
 		if err != nil {
 			log.Error(ctx, "failed to retrieve signer address", "err", err)
 			return nil, err
@@ -575,7 +566,7 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			log.Error(ctx, "failed to create payment request signature", "err", err)
 			return nil, err
 		}
-		signerAddress, err := p.getSignerAddress(ctx, chainConfig.SigningKeyID)
+		signerAddress, err := p.getEthSignerAddress(ctx, chainConfig.SigningKeyID)
 		if err != nil {
 			log.Error(ctx, "failed to retrieve signer address", "err", err)
 			return nil, err
@@ -596,9 +587,14 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			Proof:          eip712PaymentProof(&setting, signature, signerAddress),
 		}, nil
 	case protocol.Iden3PaymentRailsSolanaRequestV1Type:
-		signature, message, err := p.ed25519PaymentRequestSignature(ctx, setting, chainConfig, expirationTime, nonce, metadata)
+		signature, err := p.ed25519PaymentRequestSignature(ctx, setting, chainConfig, expirationTime, nonce, metadata)
 		if err != nil {
 			log.Error(ctx, "failed to create payment request signature", "err", err)
+			return nil, err
+		}
+		signerAddress, err := p.getSolSignerAddress(ctx, chainConfig.SigningKeyID)
+		if err != nil {
+			log.Error(ctx, "failed to retrieve signer address", "err", err, "SigningKeyID", chainConfig.SigningKeyID)
 			return nil, err
 		}
 		return &protocol.Iden3PaymentRailsSolanaRequestV1{
@@ -613,12 +609,17 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			Metadata:       metadata,
 			Recipient:      chainConfig.Recipient,
 			Features:       setting.PaymentOption.Features,
-			Proof:          solanaEd25519PaymentProof(&setting, signature, message, p.ed25519SignerPublicKey.String()),
+			Proof:          solanaEd25519PaymentProof(&setting, signature, signerAddress),
 		}, nil
 	case protocol.Iden3PaymentRailsSolanaSPLRequestV1Type:
-		signature, message, err := p.ed25519PaymentRequestSignature(ctx, setting, chainConfig, expirationTime, nonce, metadata)
+		signature, err := p.ed25519PaymentRequestSignature(ctx, setting, chainConfig, expirationTime, nonce, metadata)
 		if err != nil {
 			log.Error(ctx, "failed to create payment request signature", "err", err)
+			return nil, err
+		}
+		signerAddress, err := p.getSolSignerAddress(ctx, chainConfig.SigningKeyID)
+		if err != nil {
+			log.Error(ctx, "failed to retrieve signer address", "err", err, "SigningKeyID", chainConfig.SigningKeyID)
 			return nil, err
 		}
 		return &protocol.Iden3PaymentRailsSolanaSPLRequestV1{
@@ -634,7 +635,7 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			Recipient:      chainConfig.Recipient,
 			Features:       setting.PaymentOption.Features,
 			TokenAddress:   setting.PaymentOption.ContractAddress,
-			Proof:          solanaEd25519PaymentProof(&setting, signature, message, p.ed25519SignerPublicKey.String()),
+			Proof:          solanaEd25519PaymentProof(&setting, signature, signerAddress),
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported payment option type: %s", setting.PaymentOption.Type)
@@ -670,8 +671,18 @@ func eip712PaymentProof(setting *payments.ChainConfig, signature []byte, signerA
 	}
 }
 
-func solanaEd25519PaymentProof(setting *payments.ChainConfig, signature []byte, message, publicKey string) protocol.PaymentProof {
+func solanaEd25519PaymentProof(setting *payments.ChainConfig, signature []byte, publicKey string) protocol.PaymentProof {
 	var proof protocol.PaymentProof
+	verificationMethodChainRef := strconv.Itoa(setting.ChainID)
+	switch setting.ChainID {
+	case SolanaMainChainID:
+		verificationMethodChainRef = SolanaChainRefMainnet
+	case SolanaTestChainID:
+		verificationMethodChainRef = SolanaChainRefTestnet
+	case SolanaDevChainID:
+		verificationMethodChainRef = SolanaChainRefDevnet
+	}
+
 	switch setting.PaymentOption.Type {
 	case protocol.Iden3PaymentRailsSolanaRequestV1Type:
 		proof = protocol.PaymentProof{
@@ -679,10 +690,10 @@ func solanaEd25519PaymentProof(setting *payments.ChainConfig, signature []byte, 
 				Type:               protocol.SolanaEd25519Signature2025Type,
 				ProofPurpose:       "assertionMethod",
 				ProofValue:         hex.EncodeToString(signature),
-				VerificationMethod: fmt.Sprintf("did:pkh:solana:%d:%s", setting.ChainID, publicKey),
+				VerificationMethod: fmt.Sprintf("did:pkh:solana:%s:%s", verificationMethodChainRef, publicKey),
 				Created:            time.Now().Format(time.RFC3339),
 				Domain: protocol.SolanaEd25519Domain{
-					Version:           "SolanaEd25519NativeV1Type",
+					Version:           "SolanaEd25519NativeV1",
 					ChainID:           strconv.Itoa(setting.ChainID),
 					VerifyingContract: setting.PaymentRails,
 				},
@@ -697,7 +708,7 @@ func solanaEd25519PaymentProof(setting *payments.ChainConfig, signature []byte, 
 				VerificationMethod: fmt.Sprintf("did:pkh:solana:%d:%s", setting.ChainID, publicKey),
 				Created:            time.Now().Format(time.RFC3339),
 				Domain: protocol.SolanaEd25519Domain{
-					Version:           "SolanaEd25519SPLV1Type",
+					Version:           "SolanaEd25519SPLV1",
 					ChainID:           strconv.Itoa(setting.ChainID),
 					VerifyingContract: setting.PaymentRails,
 				},
@@ -780,7 +791,7 @@ func (p *payment) eip712PaymentRequestSignature(
 	return signature, nil
 }
 
-func (p *payment) getSignerAddress(ctx context.Context, signingKeyID string) (common.Address, error) {
+func (p *payment) getEthSignerAddress(ctx context.Context, signingKeyID string) (common.Address, error) {
 	decodedKeyID, err := b64.StdEncoding.DecodeString(signingKeyID)
 	if err != nil {
 		log.Error(ctx, "decoding base64 key id", "err", err)
@@ -811,6 +822,24 @@ func (p *payment) getSignerAddress(ctx context.Context, signingKeyID string) (co
 	}
 	fromAddress := crypto.PubkeyToAddress(*pubKey)
 	return fromAddress, nil
+}
+
+func (p *payment) getSolSignerAddress(ctx context.Context, signingKeyID string) (string, error) {
+	decodedKeyID, err := b64.StdEncoding.DecodeString(signingKeyID)
+	if err != nil {
+		log.Error(ctx, "decoding base64 key id", "err", err)
+		return "", err
+	}
+
+	bytesPubKey, err := p.kms.PublicKey(kms.KeyID{
+		Type: kms.KeyTypeEd25519,
+		ID:   string(decodedKeyID),
+	})
+	if err != nil {
+		return "", err
+	}
+	pubKey := solana.PublicKey(bytesPubKey)
+	return pubKey.String(), nil
 }
 
 type paymentRecord struct {
@@ -847,24 +876,24 @@ func (p *payment) ed25519PaymentRequestSignature(
 	expTime time.Time,
 	nonce *big.Int,
 	metadata string,
-) (signature []byte, message string, err error) {
+) (signature []byte, err error) {
 	recipient, err := solana.PublicKeyFromBase58(chainConfig.Recipient)
 	if err != nil {
 		log.Error(ctx, "failed to parse recipient public key", "err", err, "recipient", chainConfig.Recipient)
-		return nil, "", fmt.Errorf("failed to parse recipient public key: %w", err)
+		return nil, fmt.Errorf("failed to parse recipient public key: %w", err)
 	}
 
 	paymentRails, err := solana.PublicKeyFromBase58(setting.PaymentRails)
 	if err != nil {
 		log.Error(ctx, "failed to parse payment rails public key", "err", err, "paymentRails", setting.PaymentRails)
-		return nil, "", fmt.Errorf("failed to parse payment rails public key: %w", err)
+		return nil, fmt.Errorf("failed to parse payment rails public key: %w", err)
 	}
 
 	var serialized []byte
 	switch setting.PaymentOption.Type {
 	case protocol.Iden3PaymentRailsSolanaRequestV1Type:
 		req := solanaNativePaymentRequest{
-			Version:           []byte("SolanaEd25519NativeV1Type"),
+			Version:           []byte("SolanaEd25519NativeV1"),
 			ChainID:           uint64(setting.ChainID),
 			VerifyingContract: toKey32(paymentRails),
 			Recipient:         toKey32(recipient),
@@ -876,16 +905,16 @@ func (p *payment) ed25519PaymentRequestSignature(
 		serialized, err = borsh.Serialize(req)
 		if err != nil {
 			log.Error(ctx, "failed to serialize solana native payment request", "err", err)
-			return nil, "", fmt.Errorf("failed to serialize solana native payment request: %w", err)
+			return nil, fmt.Errorf("failed to serialize solana native payment request: %w", err)
 		}
 	case protocol.Iden3PaymentRailsSolanaSPLRequestV1Type:
 		tokenAddress, err := pubKey32(setting.PaymentOption.ContractAddress)
 		if err != nil {
 			log.Error(ctx, "failed to parse token address public key", "err", err, "tokenAddress", setting.PaymentOption.ContractAddress)
-			return nil, "", fmt.Errorf("failed to parse token address public key: %w", err)
+			return nil, fmt.Errorf("failed to parse token address public key: %w", err)
 		}
 		req := solanaSplPaymentRequest{
-			Version:           []byte("SolanaEd25519SPLV1Type"),
+			Version:           []byte("SolanaEd25519SPLV1"),
 			ChainID:           uint64(setting.ChainID),
 			VerifyingContract: toKey32(paymentRails),
 			TokenAddress:      tokenAddress,
@@ -898,15 +927,31 @@ func (p *payment) ed25519PaymentRequestSignature(
 		serialized, err = borsh.Serialize(req)
 		if err != nil {
 			log.Error(ctx, "failed to serialize solana SPL payment request", "err", err)
-			return nil, "", fmt.Errorf("failed to serialize solana SPL payment request: %w", err)
+			return nil, fmt.Errorf("failed to serialize solana SPL payment request: %w", err)
 		}
 	default:
 		log.Error(ctx, fmt.Sprintf("unsupported payment type '%s'", setting.PaymentOption.Type), "err", err)
-		return nil, "", fmt.Errorf("unsupported payment type '%s:'", setting.PaymentOption.Type)
+		return nil, fmt.Errorf("unsupported payment type '%s:'", setting.PaymentOption.Type)
 	}
 
-	signature = ed25519.Sign(p.ed25519Pk, serialized)
-	return signature, hex.EncodeToString(serialized), nil
+	decodedKeyID, err := b64.StdEncoding.DecodeString(chainConfig.SigningKeyID)
+	if err != nil {
+		log.Error(ctx, "decoding base64 key id", "err", err)
+		return nil, err
+	}
+
+	keyID := kms.KeyID{
+		Type: kms.KeyTypeEd25519,
+		ID:   string(decodedKeyID),
+	}
+
+	signature, err = p.kms.Sign(ctx, keyID, serialized)
+	if err != nil {
+		log.Error(ctx, "failed to sign typed data hash", "err", err, "keyId", keyID)
+		return nil, fmt.Errorf("failed to sign serialized data (ed25519): %w", err)
+	}
+
+	return signature, nil
 }
 
 func pubKey32(b58 string) ([32]byte, error) {
