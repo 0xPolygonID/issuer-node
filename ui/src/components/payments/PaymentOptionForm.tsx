@@ -40,7 +40,9 @@ function ConfigForm({
   );
 
   const inferAllowedKeyTypes = (optionID?: string): KeyType | null => {
-    if (!optionID) return null;
+    if (!optionID) {
+      return null;
+    }
 
     const opt = paymentConfigurations[optionID]?.PaymentOption;
 
@@ -58,8 +60,7 @@ function ConfigForm({
   );
 
   useEffect(() => {
-    const currentKeyID = form.getFieldValue("signingKeyID");
-
+    const currentKeyID = form.getFieldsValue().signingKeyID;
     const stillValid = currentKeyID && filteredKeys.some((k) => k.id === currentKeyID);
     if (!stillValid) {
       form.setFieldsValue({
