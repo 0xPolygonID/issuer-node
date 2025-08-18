@@ -608,7 +608,6 @@ func (p *payment) paymentInfo(ctx context.Context, setting payments.ChainConfig,
 			ExpirationDate: fmt.Sprint(expirationTime.Format(time.RFC3339)),
 			Metadata:       metadata,
 			Recipient:      chainConfig.Recipient,
-			Features:       setting.PaymentOption.Features,
 			Proof:          solanaEd25519PaymentProof(&setting, signature, signerAddress),
 		}, nil
 	case protocol.Iden3PaymentRailsSolanaSPLRequestV1Type:
