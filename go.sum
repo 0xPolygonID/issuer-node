@@ -469,8 +469,8 @@ github.com/iden3/go-schema-processor v1.3.1 h1:LJfFInfYGMOp0bTKKC17R8q4XI+VtqhFL
 github.com/iden3/go-schema-processor v1.3.1/go.mod h1:NwJ1nuGdRlCFaN1/V6mS0AOAdvpLcGf4KKq0mluLG7U=
 github.com/iden3/go-schema-processor/v2 v2.6.2 h1:rVozuQSmsSA/AQ/BZhJYxDDdKfvza14pzYox29/X0PU=
 github.com/iden3/go-schema-processor/v2 v2.6.2/go.mod h1:OxNV97oEShKpSIE7KSEqFFktBkPJDLDW/oNbT+ky8KU=
-github.com/iden3/iden3comm/v2 v2.11.2-0.20250812133443-7e47499739f1 h1:nyBD2k4tclpc1jP6XkgxuRpgq9i9DjyV0SMfOdtl2Ng=
-github.com/iden3/iden3comm/v2 v2.11.2-0.20250812133443-7e47499739f1/go.mod h1:92EiWoRt4sgPjdMmzourswoRQaYVa0FT3/Y7+aFi4AI=
+github.com/iden3/iden3comm/v2 v2.11.2 h1:pxeEl/KvKiOt00N+wHnVSDq/roz8nKxZgRbtkcH4qMc=
+github.com/iden3/iden3comm/v2 v2.11.2/go.mod h1:92EiWoRt4sgPjdMmzourswoRQaYVa0FT3/Y7+aFi4AI=
 github.com/iden3/merkletree-proof v1.0.1 h1:4Srfjm4rsFwjEhhvFDC8/VzK1eYs1jYzEOmwS962s2A=
 github.com/iden3/merkletree-proof v1.0.1/go.mod h1:5tveyOd7+QNRZZEXSqHASDIoQEqKwj66Vy/Vml74rtQ=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
