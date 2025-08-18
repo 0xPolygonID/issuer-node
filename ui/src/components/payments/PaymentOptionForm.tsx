@@ -44,20 +44,23 @@ function ConfigForm({
 
     const opt = paymentConfigurations[optionID]?.PaymentOption;
 
-    if(
-      opt?.Type === 'Iden3PaymentRailsSolanaRequestV1' ||
-      opt?.Type === 'Iden3PaymentRailsSolanaSPLRequestV1' ) {
-       return KeyType.ed25519;
+    if (
+      opt?.Type === "Iden3PaymentRailsSolanaRequestV1" ||
+      opt?.Type === "Iden3PaymentRailsSolanaSPLRequestV1"
+    ) {
+      return KeyType.ed25519;
     }
     return KeyType.secp256k1;
   };
 
-  const filteredKeys = keys.filter(k => inferAllowedKeyTypes(currentPaymentOptionValue) === k.keyType);
+  const filteredKeys = keys.filter(
+    (k) => inferAllowedKeyTypes(currentPaymentOptionValue) === k.keyType
+  );
 
   useEffect(() => {
-    const currentKeyID = form.getFieldValue("signingKeyID") as string | undefined;
+    const currentKeyID = form.getFieldValue("signingKeyID");
 
-    const stillValid = currentKeyID && filteredKeys.some(k => k.id === currentKeyID);
+    const stillValid = currentKeyID && filteredKeys.some((k) => k.id === currentKeyID);
     if (!stillValid) {
       form.setFieldsValue({
         signingKeyID: filteredKeys[0]?.id ?? undefined,
@@ -166,11 +169,11 @@ function ConfigForm({
 }
 
 export function PaymentOptionForm({
-  initialValies,
+  initialValues,
   onSubmit,
   paymentConfigurations,
 }: {
-  initialValies: PaymentOptionFormData;
+  initialValues: PaymentOptionFormData;
   onSubmit: (values: PaymentOptionFormData) => void;
   paymentConfigurations: PaymentConfigurations;
 }) {
@@ -294,7 +297,7 @@ export function PaymentOptionForm({
         } else {
           return (
             <>
-              <Form form={form} initialValues={initialValies} layout="vertical" onFinish={onSubmit}>
+              <Form form={form} initialValues={initialValues} layout="vertical" onFinish={onSubmit}>
                 <Form.Item
                   label="Name"
                   name="name"
