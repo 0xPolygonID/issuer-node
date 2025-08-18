@@ -341,7 +341,11 @@ func createAWSKMSKey(ctx context.Context, privateKey string, awsAccessKey, awsSe
 		return nil, err
 	}
 
-	rsaPubKey, _ := x509.ParsePKIXPublicKey(params.PublicKey)
+	rsaPubKey, err := x509.ParsePKIXPublicKey(params.PublicKey)
+	if err != nil {
+		log.Error(ctx, "cannot parse public key", "err", err)
+		return nil, err
+	}
 	encryptedKey, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, rsaPubKey.(*rsa.PublicKey), der, nil)
 	if err != nil {
 		log.Error(ctx, "cannot encrypt key material", "err", err)
