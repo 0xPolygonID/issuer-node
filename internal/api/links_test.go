@@ -69,7 +69,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
 				CredentialExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
@@ -86,7 +86,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
 				CredentialExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
@@ -104,7 +104,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				CredentialExpiration: common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              true,
@@ -120,7 +120,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
 				CredentialExpiration: nil,
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
@@ -154,7 +154,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
 				CredentialExpiration: common.ToPointer(time.Date(2020, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{},
@@ -171,7 +171,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
 				CredentialExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": true},
@@ -188,7 +188,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             uuid.New(),
-				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
 				CredentialExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
@@ -745,7 +745,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	assert.NoError(t, err)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
-	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
+	credentialExpiration := common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local))
 	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
@@ -843,7 +843,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	assert.NoError(t, err)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
-	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
+	credentialExpiration := common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local))
 	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)

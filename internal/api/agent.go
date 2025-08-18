@@ -49,13 +49,13 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 	}
 
 	return Agent200JSONResponse{
-		Body:     response.Body,
-		From:     response.From,
-		Id:       response.ID,
-		ThreadID: response.ThreadID,
-		To:       response.To,
-		Typ:      string(response.Typ),
-		Type:     string(response.Type),
+		Body: response.Body,
+		From: response.From,
+		Id:   response.ID,
+		Thid: response.ThreadID,
+		To:   response.To,
+		Typ:  string(response.Typ),
+		Type: string(response.Type),
 	}, nil
 }
 
@@ -84,12 +84,12 @@ func (s *Server) AgentV1(ctx context.Context, request AgentV1RequestObject) (Age
 		return AgentV1400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 	return AgentV1200JSONResponse{
-		Body:     agent.Body,
-		From:     agent.From,
-		Id:       agent.ID,
-		ThreadID: agent.ThreadID,
-		To:       agent.To,
-		Typ:      string(agent.Typ),
-		Type:     string(agent.Type),
+		Body: agent.Body,
+		From: agent.From,
+		Id:   agent.ID,
+		Thid: agent.ThreadID,
+		To:   agent.To,
+		Typ:  string(agent.Typ),
+		Type: string(agent.Type),
 	}, nil
 }
