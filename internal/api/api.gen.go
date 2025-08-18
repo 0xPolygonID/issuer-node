@@ -235,13 +235,13 @@ type AuthenticationResponse struct {
 
 // BasicMessage defines model for BasicMessage.
 type BasicMessage struct {
-	Body     interface{} `json:"body"`
-	From     string      `json:"from"`
-	Id       string      `json:"id"`
-	ThreadID string      `json:"threadID"`
-	To       string      `json:"to"`
-	Typ      string      `json:"typ"`
-	Type     string      `json:"type"`
+	Body interface{} `json:"body"`
+	From string      `json:"from"`
+	Id   string      `json:"id"`
+	Thid string      `json:"thid"`
+	To   string      `json:"to"`
+	Typ  string      `json:"typ"`
+	Type string      `json:"type"`
 }
 
 // ConnectionsPaginated defines model for ConnectionsPaginated.
