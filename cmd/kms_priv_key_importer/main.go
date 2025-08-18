@@ -97,7 +97,8 @@ func main() {
 	material[jsonKeyPath] = issuerPublishKeyPathVar
 	material[jsonKeyType] = ethereum
 
-	if issuerKMSETHProviderToUse == config.LocalStorage {
+	switch issuerKMSETHProviderToUse {
+	case config.LocalStorage:
 		material[jsonPrivateKey] = *fPrivateKey
 		if err := saveKeyMaterialToFile(ctx, issuerKmsPluginLocalStorageFilePath, kms.LocalStorageFileName, material); err != nil {
 			log.Error(ctx, "cannot save key material to file", "err", err)
@@ -105,9 +106,8 @@ func main() {
 		}
 		log.Info(ctx, "private key saved to file:", "path:", kms.LocalStorageFileName)
 		return
-	}
 
-	if issuerKMSETHProviderToUse == config.Vault {
+	case config.Vault:
 		var vaultCli *vault.Client
 		var vaultErr error
 		vaultTokenVar := os.Getenv(issuerKeyStoreToken)
@@ -157,9 +157,8 @@ func main() {
 
 		log.Info(ctx, "private key saved to vault:", "path:", issuerPublishKeyPathVar)
 		return
-	}
 
-	if issuerKMSETHProviderToUse == config.AWSSM {
+	case config.AWSSM:
 		awsAccessKey := os.Getenv(awsAccessKey)
 		awsSecretKey := os.Getenv(awsSecretKey)
 		awsRegion := os.Getenv(awsRegion)
@@ -207,9 +206,8 @@ func main() {
 		}
 		log.Info(ctx, "private key saved to aws:", "path:", issuerPublishKeyPathVar)
 		return
-	}
 
-	if issuerKMSETHProviderToUse == config.AWSKMS {
+	case config.AWSKMS:
 		awsAccessKey := os.Getenv(awsAccessKey)
 		awsSecretKey := os.Getenv(awsSecretKey)
 		awsRegion := os.Getenv(awsRegion)
@@ -226,6 +224,10 @@ func main() {
 			return
 		}
 		log.Info(ctx, "key created", "keyId", *keyId)
+		return
+
+	default:
+		log.Error(ctx, "kms eth provider is invalid, supported values are: localstorage, vault, aws-sm and aws-kms")
 		return
 	}
 }
