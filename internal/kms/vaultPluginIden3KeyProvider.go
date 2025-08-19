@@ -88,11 +88,11 @@ func (v *vaultPluginIden3KeyProvider) Sign(_ context.Context, keyID KeyID, dataT
 			return nil, errors.New("data to sign is too large")
 		}
 	case KeyTypeEthereum:
-	case KeyTypeEd25519:
 		if len(dataToSign) != common.HashLength {
 			return nil, fmt.Errorf("data to sign should be %v bytes length",
 				common.HashLength)
 		}
+	case KeyTypeEd25519:
 	default:
 		return nil, errors.New("unsupported key type")
 	}
