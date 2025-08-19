@@ -118,7 +118,7 @@ export function CreatePaymentOption() {
           } else {
             return (
               <PaymentOptionForm
-                initialValies={{
+                initialValues={{
                   description: "",
                   name: "",
                   paymentOptions: [],

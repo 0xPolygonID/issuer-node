@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2/protocol"
@@ -97,7 +96,7 @@ func (c *PaymentOptionConfig) GetByID(paymentOptionID payments.OptionConfigIDTyp
 type PaymentOptionConfigItem struct {
 	PaymentOptionID payments.OptionConfigIDType `json:"paymentOptionId"`
 	Amount          big.Int                     `json:"amount"`
-	Recipient       common.Address              `json:"Recipient"`
+	Recipient       string                      `json:"Recipient"`
 	SigningKeyID    string                      `json:"SigningKeyID"`
 	Expiration      *time.Time                  `json:"expiration"`
 }

@@ -327,7 +327,7 @@ func toPaymentOptionConfig(config domain.PaymentOptionConfig) PaymentOptionConfi
 		cfg[i] = PaymentOptionConfigItem{
 			PaymentOptionID: int(item.PaymentOptionID),
 			Amount:          item.Amount.String(),
-			Recipient:       item.Recipient.String(),
+			Recipient:       item.Recipient,
 			SigningKeyID:    item.SigningKeyID,
 			Expiration:      item.Expiration,
 		}

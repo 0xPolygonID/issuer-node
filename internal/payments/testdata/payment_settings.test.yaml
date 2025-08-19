@@ -59,4 +59,15 @@
       Features:
         - EIP-2612
       Decimals: 18
-
+103: #Solana devnet
+  PaymentRails: Hys6CpX8McHbPBaPKbRYGVdXVxor1M5pSZUDMMwakGmM
+  PaymentOptions:
+    - ID: 10
+      Name: Solana devnet
+      Type: Iden3PaymentRailsSolanaRequestV1
+      Decimals: 9
+    - ID: 11
+      Name: Solana devnet test SPL
+      Type: Iden3PaymentRailsSolanaSPLRequestV1
+      ContractAddress: 4MjRhSkDaXmgdAL9d9UM7kmgJrWYGJH66oocUN2f3VUp
+      Decimals: 9
