@@ -704,7 +704,7 @@ func solanaEd25519PaymentProof(setting *payments.ChainConfig, signature []byte, 
 				Type:               protocol.SolanaEd25519Signature2025Type,
 				ProofPurpose:       "assertionMethod",
 				ProofValue:         hex.EncodeToString(signature),
-				VerificationMethod: fmt.Sprintf("did:pkh:solana:%d:%s", setting.ChainID, publicKey),
+				VerificationMethod: fmt.Sprintf("did:pkh:solana:%s:%s", verificationMethodChainRef, publicKey),
 				Created:            time.Now().Format(time.RFC3339),
 				Domain: protocol.SolanaEd25519Domain{
 					Version:           "SolanaEd25519SPLV1",
