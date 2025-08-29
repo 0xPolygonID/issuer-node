@@ -403,11 +403,16 @@ function serializeAttributeValue({
     }
     case "object": {
       return attributeValue.value !== undefined
-        ? attributeValue.value.reduce((acc: JsonObject | undefined, curr) => {
-            const value = serializeAttributeValue({ attributeValue: curr });
-            return value !== undefined ? { ...acc, [curr.name]: value } : acc;
-          }, undefined)
-        : undefined;
+        ? attributeValue.value.reduce(
+            (acc: JsonObject | undefined, curr) => {
+              const value = serializeAttributeValue({ attributeValue: curr });
+              return value !== undefined ? { ...acc, [curr.name]: value } : acc;
+            },
+            attributeValue.required ? {} : undefined
+          )
+        : attributeValue.required
+          ? {}
+          : undefined;
     }
     case "null": {
       return attributeValue.value;
