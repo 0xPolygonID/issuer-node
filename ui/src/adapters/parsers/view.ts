@@ -24,8 +24,8 @@ import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
 // Types
 
-type FormLiteral = string | number | boolean | null | undefined;
-type FormLiteralInput = FormLiteral | dayjs.Dayjs;
+type FormLiteral = string | number | boolean | undefined;
+type FormLiteralInput = FormLiteral | null | dayjs.Dayjs;
 type FormInput = { [key: string]: FormLiteralInput | FormInput };
 
 type CredentialIssuance = {
@@ -126,7 +126,7 @@ const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteral>()(
     z.string(),
     z.number(),
     z.boolean(),
-    z.null(),
+    z.null().transform(() => undefined),
     z.undefined(),
     dayjsInstanceParser.transform((value) =>
       value.isValid() ? serializeDate(value, "date-time") : undefined
