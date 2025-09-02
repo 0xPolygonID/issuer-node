@@ -22,13 +22,25 @@ func New(ctx context.Context, ethStateContracts map[string]*abi.State, circuitsP
 		return nil, fmt.Errorf("failed upload circuits files: %w", err)
 	}
 
+	authV3Set, err := circuitsLoaderService.Load(circuits.AuthV3CircuitID)
+	if err != nil {
+		return nil, fmt.Errorf("failed upload circuits files: %w", err)
+	}
+
+	authV3_8_32Set, err := circuitsLoaderService.Load(circuits.AuthV3_8_32CircuitID)
+	if err != nil {
+		return nil, fmt.Errorf("failed upload circuits files: %w", err)
+	}
+
 	verifications := make(map[jwz.ProvingMethodAlg]packers.VerificationParams)
 	verifications[jwz.AuthV2Groth16Alg] = packers.NewVerificationParams(authV2Set.VerificationKey, stateVerificationHandler(ethStateContracts))
+	verifications[jwz.AuthV3Groth16Alg] = packers.NewVerificationParams(authV3Set.VerificationKey, stateVerificationHandler(ethStateContracts))
+	verifications[jwz.AuthV3_8_32Groth16Alg] = packers.NewVerificationParams(authV3_8_32Set.VerificationKey, stateVerificationHandler(ethStateContracts))
 
-	zkpPackerV2 := packers.NewZKPPacker(nil, verifications)
+	zkpPacker := packers.NewZKPPacker(nil, verifications)
 	jwsPacker := packers.NewJWSPacker(didResolverHandler, nil)
 	packageManager := iden3comm.NewPackageManager()
-	err = packageManager.RegisterPackers(zkpPackerV2, &packers.PlainMessagePacker{}, jwsPacker)
+	err = packageManager.RegisterPackers(zkpPacker, &packers.PlainMessagePacker{}, jwsPacker)
 	if err != nil {
 		log.Error(ctx, "failed to register packers", "error", err)
 		return nil, err
