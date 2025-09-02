@@ -61,45 +61,45 @@ polygon:
       chainID: 80002
       publishingKey: pbkey
 
- zkevm:
-   contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
-   networkURL: https://zkevm-rpc.com # Switch to dedicated rpc url as this public one might be rate limited
-   defaultGasLimit: 600000
-   confirmationTimeout: 10s
-   confirmationBlockCount: 5
-   receiptTimeout: 600s
-   minGasPrice: 0
-   maxGasPrice: 1000000
-   rpcResponseTimeout: 5s
-   waitReceiptCycleTime: 30s
-   waitBlockCycleTime: 30s
-   gasLess: false
-   rhsSettings:
-     mode: None
-     contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
-     rhsUrl: https://rhs-staging.polygonid.me
-     chainID: 1101
-     publishingKey: pbkey
+  zkevm:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: https://zkevm-rpc.com # Switch to dedicated rpc url as this public one might be rate limited
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 1101
+      publishingKey: pbkey
 
- cardona:
-   contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
-   networkURL: https://etherscan.cardona.zkevm-rpc.com # Switch to dedicated rpc url as this public one might be rate limited
-   defaultGasLimit: 600000
-   confirmationTimeout: 10s
-   confirmationBlockCount: 5
-   receiptTimeout: 600s
-   minGasPrice: 0
-   maxGasPrice: 1000000
-   rpcResponseTimeout: 5s
-   waitReceiptCycleTime: 30s
-   waitBlockCycleTime: 30s
-   gasLess: false
-   rhsSettings:
-     mode: None
-     contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
-     rhsUrl: https://rhs-staging.polygonid.me
-     chainID: 2442
-     publishingKey: pbkey
+  cardona:
+    contractAddress: 0x3C9acB2205Aa72A05F6D77d708b5Cf85FCa3a896
+    networkURL: https://etherscan.cardona.zkevm-rpc.com # Switch to dedicated rpc url as this public one might be rate limited
+    defaultGasLimit: 600000
+    confirmationTimeout: 10s
+    confirmationBlockCount: 5
+    receiptTimeout: 600s
+    minGasPrice: 0
+    maxGasPrice: 1000000
+    rpcResponseTimeout: 5s
+    waitReceiptCycleTime: 30s
+    waitBlockCycleTime: 30s
+    gasLess: false
+    rhsSettings:
+      mode: None
+      contractAddress: 0x7dF78ED37d0B39Ffb6d4D527Bb1865Bf85B60f81
+      rhsUrl: https://rhs-staging.polygonid.me
+      chainID: 2442
+      publishingKey: pbkey
 
 # ethereum:
 #   main:
