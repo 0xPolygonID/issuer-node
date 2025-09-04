@@ -26,11 +26,11 @@ require (
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v1.0.2
 	github.com/iden3/contracts-abi/state/go/abi v1.1.0
 	github.com/iden3/driver-did-iden3 v0.0.12
-	github.com/iden3/go-circuits/v2 v2.4.1
-	github.com/iden3/go-iden3-auth/v2 v2.7.2
+	github.com/iden3/go-circuits/v2 v2.4.2
+	github.com/iden3/go-iden3-auth/v2 v2.7.5
 	github.com/iden3/go-iden3-core/v2 v2.3.2
 	github.com/iden3/go-iden3-crypto v0.0.17
-	github.com/iden3/go-jwz/v2 v2.2.1
+	github.com/iden3/go-jwz/v2 v2.2.2
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
 	github.com/iden3/go-merkletree-sql/v2 v2.0.6
 	github.com/iden3/go-rapidsnark/prover v0.0.12
@@ -39,7 +39,7 @@ require (
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b
 	github.com/iden3/go-schema-processor v1.3.1
 	github.com/iden3/go-schema-processor/v2 v2.6.2
-	github.com/iden3/iden3comm/v2 v2.11.2
+	github.com/iden3/iden3comm/v2 v2.11.3
 	github.com/iden3/merkletree-proof v1.0.1
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.3
@@ -211,6 +211,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/julz/importas v0.1.0 // indirect
 	github.com/karamaru-alpha/copyloopvar v1.1.0 // indirect
+	github.com/karlseguin/ccache/v3 v3.0.6 // indirect
 	github.com/kisielk/errcheck v1.8.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.5 // indirect
 	github.com/klauspost/compress v1.17.7 // indirect

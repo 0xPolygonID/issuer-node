@@ -12,7 +12,7 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	auth "github.com/iden3/go-iden3-auth/v2"
-	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
+	"github.com/iden3/go-iden3-auth/v2/loaders"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	iden3commProtocol "github.com/iden3/iden3comm/v2/protocol"
@@ -142,8 +142,7 @@ func main() {
 		return
 	}
 
-	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
-	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
+	verifier, err := auth.NewVerifier(loaders.NewEmbeddedKeyLoader(), networkResolver.GetStateResolvers(), auth.WithDIDResolver(universalDIDResolverHandler))
 	if err != nil {
 		log.Error(ctx, "failed init verifier", "err", err)
 		return

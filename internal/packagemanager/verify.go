@@ -17,22 +17,22 @@ import (
 func stateVerificationHandler(ethStateContracts map[string]*abi.State) packers.VerificationHandlerFunc {
 	return func(id circuits.CircuitID, pubsignals []string) error {
 		switch id {
-		case circuits.AuthV2CircuitID:
-			return authV2CircuitStateVerification(ethStateContracts, pubsignals)
+		case circuits.AuthV2CircuitID, circuits.AuthV3CircuitID, circuits.AuthV3_8_32CircuitID:
+			return authCircuitStateVerification(ethStateContracts, pubsignals)
 		default:
 			return errors.Errorf("'%s' unknow circuit ID", id)
 		}
 	}
 }
 
-// authV2CircuitStateVerification `authV2` circuit state verification
-func authV2CircuitStateVerification(contracts map[string]*abi.State, pubsignals []string) error {
+// authCircuitStateVerification authV2/authV3/authV3-8-32 circuit state verification
+func authCircuitStateVerification(contracts map[string]*abi.State, pubsignals []string) error {
 	bytePubsig, err := json.Marshal(pubsignals)
 	if err != nil {
 		return err
 	}
 
-	authPubSignals := circuits.AuthV2PubSignals{}
+	authPubSignals := circuits.AuthV3PubSignals{} // same pub signals for authV2 and authV3
 	err = authPubSignals.PubSignalsUnmarshal(bytePubsig)
 	if err != nil {
 		return err
