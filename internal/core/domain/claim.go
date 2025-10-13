@@ -47,6 +47,10 @@ type Claim struct {
 	MtProof   bool       `json:"mt_poof"`
 	LinkID    *uuid.UUID `json:"-"`
 	CreatedAt time.Time  `json:"-"`
+
+	// base64 encoded encrypted data
+	EncryptedData *string `json:"encrypted_data"`
+	ContextUrl    *string `json:"context_url"`
 }
 
 // Credentials is the type of array of credential
@@ -245,4 +249,33 @@ func (c *Claim) GetCredentialStatus() (*verifiable.CredentialStatus, error) {
 // EqualToSchemaHash returns true if the claim has the same schema hash
 func (c *Claim) EqualToSchemaHash(schemaHash string) bool {
 	return c.SchemaHash == schemaHash
+}
+
+// HasEncryptedData returns true if the claim has encrypted data
+func (c *Claim) HasEncryptedData() bool {
+	return c.Data.Status == pgtype.Null && c.EncryptedData != nil
+}
+
+// GetVerifiableProofs returns the verifiable proofs of the claim
+func (c *Claim) GetVerifiableProofs() (verifiable.CredentialProofs, error) {
+	var err error
+	proofs := make(verifiable.CredentialProofs, 0)
+	var signatureProof *verifiable.BJJSignatureProof2021
+	if c.SignatureProof.Status != pgtype.Null {
+		err = c.SignatureProof.AssignTo(&signatureProof)
+		if err != nil {
+			return nil, err
+		}
+		proofs = append(proofs, signatureProof)
+	}
+
+	var mtpProof *verifiable.Iden3SparseMerkleTreeProof
+	if c.MTPProof.Status != pgtype.Null {
+		err = c.MTPProof.AssignTo(&mtpProof)
+		if err != nil {
+			return nil, err
+		}
+		proofs = append(proofs, mtpProof)
+	}
+	return proofs, nil
 }

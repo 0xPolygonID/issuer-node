@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -438,6 +439,34 @@ func TestServer_CreateCredential(t *testing.T) {
 				createCredentialEventsCount: 0,
 			},
 		},
+		{
+			name: "Happy path with encryption key",
+			auth: authOk,
+			did:  did,
+			body: CreateCredentialRequest{
+				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
+				Type:             "testNewType",
+				CredentialSubject: map[string]any{
+					"id":             "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"testNewTypeInt": 1234,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				EncryptionKey: &map[string]interface{}{
+					"kty": "EC",
+					"crv": "P-256",
+					"alg": "ECDH-ES+A256KW",
+					"use": "enc",
+					"x":   "nw7Ag_FszrDu1uPi2lX3TtbF7FMZoysXZXUzrKxBwiQ",
+					"y":   "l1I0EONJmEHMz7Nc4WQULDllKdPdjbTgHS5hCbqv0UQ",
+					"kid": "tu-kid",
+				},
+			},
+			expected: expected{
+				response:                    CreateCredential201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server.Infra.pubSub.Clear(event.CreateCredentialEvent)
@@ -754,10 +783,20 @@ func TestServer_GetCredential(t *testing.T) {
 
 	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	assert.NoError(t, err)
+	//
+	identity2, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
 
 	claim := fixture.NewClaim(t, identity.Identifier)
 	claim.MtProof = true
 	fixture.CreateClaim(t, claim)
+
+	claimWithEncryptionKey := fixture.NewClaimWithEncryptionKey(t, identity2.Identifier)
+	fixture.CreateClaim(t, claimWithEncryptionKey)
+
+	dataToTest, err := base64.RawStdEncoding.DecodeString(*claimWithEncryptionKey.EncryptedData)
+	require.NoError(t, err)
+
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -827,7 +866,7 @@ func TestServer_GetCredential(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetCredential200JSONResponse{
 					ProofTypes: []string{"Iden3SparseMerkleTreeProof"},
-					Vc: verifiable.W3CCredential{
+					Vc: &verifiable.W3CCredential{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: verifiable.CredentialSchema{
 							ID:   "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
@@ -852,6 +891,23 @@ func TestServer_GetCredential(t *testing.T) {
 							ID:   "https://refresh-service.xyz",
 							Type: verifiable.Iden3RefreshService2023,
 						},
+					},
+				},
+			},
+		},
+		{
+			name:    "should get the credential with encrypted data",
+			auth:    authOk,
+			did:     identity2.Identifier,
+			claimID: claimWithEncryptionKey.ID,
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetCredential200JSONResponse{
+					ProofTypes: []string{"Iden3SparseMerkleTreeProof"},
+					EncryptedVC: &EncryptedVC{
+						Data:    dataToTest,
+						Context: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
+						Type:    "KYCAgeCredential",
 					},
 				},
 			},
@@ -1558,34 +1614,43 @@ func validateCredential(t *testing.T, resp, tc Credential) {
 		Y    string `json:"y"`
 	}
 
-	assert.Equal(t, resp.Vc.ID, tc.Vc.ID)
-	assert.Equal(t, len(resp.Vc.Context), len(tc.Vc.Context))
-	assert.EqualValues(t, resp.Vc.Context, tc.Vc.Context)
-	assert.EqualValues(t, resp.Vc.CredentialSchema, tc.Vc.CredentialSchema)
-	assert.InDelta(t, resp.Vc.IssuanceDate.UnixMilli(), tc.Vc.IssuanceDate.UnixMilli(), 1000)
-	assert.Equal(t, resp.Vc.Type, tc.Vc.Type)
-	assert.Equal(t, resp.Vc.Expiration, tc.Vc.Expiration)
-	assert.Equal(t, resp.Vc.Issuer, tc.Vc.Issuer)
-	assert.Equal(t, resp.Vc.RefreshService, tc.Vc.RefreshService)
-	credentialSubjectType, ok := tc.Vc.CredentialSubject["type"]
-	require.True(t, ok)
-	assert.Contains(t, credentialSubjectTypes, credentialSubjectType)
-	if credentialSubjectType == "AuthBJJCredential" {
-		var responseCredentialSubject, tcCredentialSubject credentialBJJSubject
-		assert.NoError(t, mapstructure.Decode(resp.Vc.CredentialSubject, &responseCredentialSubject))
-		assert.NoError(t, mapstructure.Decode(tc.Vc.CredentialSubject, &tcCredentialSubject))
-		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-	} else {
-		var responseCredentialSubject, tcCredentialSubject credentialKYCSubject
-		assert.NoError(t, mapstructure.Decode(resp.Vc.CredentialSubject, &responseCredentialSubject))
-		assert.NoError(t, mapstructure.Decode(tc.Vc.CredentialSubject, &tcCredentialSubject))
-		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-	}
-	assert.Equal(t, resp.ProofTypes, tc.ProofTypes)
+	if tc.Vc != nil {
+		assert.Equal(t, resp.Vc.ID, tc.Vc.ID)
+		assert.Equal(t, len(resp.Vc.Context), len(tc.Vc.Context))
+		assert.EqualValues(t, resp.Vc.Context, tc.Vc.Context)
+		assert.EqualValues(t, resp.Vc.CredentialSchema, tc.Vc.CredentialSchema)
+		assert.InDelta(t, resp.Vc.IssuanceDate.UnixMilli(), tc.Vc.IssuanceDate.UnixMilli(), 1000)
+		assert.Equal(t, resp.Vc.Type, tc.Vc.Type)
+		assert.Equal(t, resp.Vc.Expiration, tc.Vc.Expiration)
+		assert.Equal(t, resp.Vc.Issuer, tc.Vc.Issuer)
+		assert.Equal(t, resp.Vc.RefreshService, tc.Vc.RefreshService)
+		credentialSubjectType, ok := tc.Vc.CredentialSubject["type"]
+		require.True(t, ok)
+		assert.Contains(t, credentialSubjectTypes, credentialSubjectType)
+		if credentialSubjectType == "AuthBJJCredential" {
+			var responseCredentialSubject, tcCredentialSubject credentialBJJSubject
+			assert.NoError(t, mapstructure.Decode(resp.Vc.CredentialSubject, &responseCredentialSubject))
+			assert.NoError(t, mapstructure.Decode(tc.Vc.CredentialSubject, &tcCredentialSubject))
+			assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+		} else {
+			var responseCredentialSubject, tcCredentialSubject credentialKYCSubject
+			assert.NoError(t, mapstructure.Decode(resp.Vc.CredentialSubject, &responseCredentialSubject))
+			assert.NoError(t, mapstructure.Decode(tc.Vc.CredentialSubject, &tcCredentialSubject))
+			assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+		}
+		assert.Equal(t, resp.ProofTypes, tc.ProofTypes)
 
-	assert.NoError(t, mapstructure.Decode(resp.Vc.CredentialStatus, &responseCredentialStatus))
-	responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
-	credentialStatusTC, ok := tc.Vc.CredentialStatus.(verifiable.CredentialStatus)
-	require.True(t, ok)
-	assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
+		assert.NoError(t, mapstructure.Decode(resp.Vc.CredentialStatus, &responseCredentialStatus))
+		responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
+		credentialStatusTC, ok := tc.Vc.CredentialStatus.(verifiable.CredentialStatus)
+		require.True(t, ok)
+		assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
+	} else {
+		assert.NotNil(t, resp.EncryptedVC.Id)
+		require.NotNil(t, tc.EncryptedVC)
+		require.NotNil(t, resp.EncryptedVC)
+		assert.Equal(t, tc.EncryptedVC.Context, resp.EncryptedVC.Context)
+		assert.Equal(t, tc.EncryptedVC.Type, resp.EncryptedVC.Type)
+		assert.JSONEq(t, string(tc.EncryptedVC.Data), string(resp.EncryptedVC.Data))
+	}
 }

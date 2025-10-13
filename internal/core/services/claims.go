@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,8 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/jackc/pgx/v4"
+	"github.com/lestrrat-go/jwx/v3/jwk"
+	"github.com/segmentio/asm/base64"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -176,12 +179,6 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		}
 	}
 
-	vc, err := c.createVC(ctx, req, vcID, jsonLdContext, nonce)
-	if err != nil {
-		log.Error(ctx, "creating verifiable credential", "err", err)
-		return nil, err
-	}
-
 	jsonLD, err := jsonschema.Load(ctx, jsonLdContext, c.loader)
 	if err != nil {
 		log.Error(ctx, "loading jsonLdContext", "err", err, "url", jsonLdContext)
@@ -203,6 +200,11 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		opts.MerklizerOpts = []merklize.MerklizeOption{merklize.WithDocumentLoader(c.loader)}
 	}
 
+	vc, err := c.createVC(ctx, req, vcID, jsonLdContext, nonce)
+	if err != nil {
+		log.Error(ctx, "creating verifiable credential", "err", err)
+		return nil, err
+	}
 	coreClaim, err := schemaPkg.Process(ctx, c.loader, req.Schema, vc, opts)
 	if err != nil {
 		log.Error(ctx, "credential subject attributes don't match the provided schema", "err", err)
@@ -233,41 +235,13 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	claim.ID = vcID
 
 	if req.SignatureProof {
-		authClaim, err := c.GetAuthClaim(ctx, req.DID)
-		if err != nil {
-			log.Error(ctx, "cannot retrieve the auth claim", "err", err)
-			return nil, err
-		}
-
-		proof, err := c.identitySrv.SignClaimEntry(ctx, authClaim, coreClaim)
-		if err != nil {
-			log.Error(ctx, "cannot sign claim entry", "err", err)
-			return nil, err
-		}
-
-		authCs, err := authClaim.GetCredentialStatus()
-		if err != nil {
-			log.Error(ctx, "cannot get the auth claim credential status", "err", err)
-			return nil, err
-		}
-
-		proof.IssuerData.CredentialStatus = authCs
-
-		jsonSignatureProof, err := json.Marshal(proof)
-		if err != nil {
-			log.Error(ctx, "cannot encode the json signature proof", "err", err)
-			return nil, err
-		}
-		err = claim.SignatureProof.Set(jsonSignatureProof)
-		if err != nil {
-			log.Error(ctx, "cannot set the json signature proof", "err", err)
+		if err := c.setSignature(ctx, req.DID, coreClaim, claim); err != nil {
 			return nil, err
 		}
 	}
 
-	err = claim.Data.Set(vc)
-	if err != nil {
-		log.Error(ctx, "cannot set the credential", "err", err)
+	if err := setVC(ctx, req, jsonLdContext, vc, claim); err != nil {
+		log.Error(ctx, "cannot set the claim data", "err", err)
 		return nil, err
 	}
 
@@ -281,6 +255,78 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	claim.LinkID = req.LinkID
 	claim.CreatedAt = *vc.IssuanceDate
 	return claim, nil
+}
+
+// setSignature sets the signature proof in the claim by signing the core claim with the auth claim of the DID.
+// The claim parameter is modified in place.
+func (c *claim) setSignature(ctx context.Context, DID *w3c.DID, coreClaim *core.Claim, claim *domain.Claim) error {
+	authClaim, err := c.GetAuthClaim(ctx, DID)
+	if err != nil {
+		log.Error(ctx, "cannot retrieve the auth claim", "err", err)
+		return err
+	}
+
+	proof, err := c.identitySrv.SignClaimEntry(ctx, authClaim, coreClaim)
+	if err != nil {
+		log.Error(ctx, "cannot sign claim entry", "err", err)
+		return err
+	}
+
+	authCs, err := authClaim.GetCredentialStatus()
+	if err != nil {
+		log.Error(ctx, "cannot get the auth claim credential status", "err", err)
+		return err
+	}
+
+	proof.IssuerData.CredentialStatus = authCs
+	jsonSignatureProof, err := json.Marshal(proof)
+	if err != nil {
+		log.Error(ctx, "cannot encode the json signature proof", "err", err)
+		return err
+	}
+	err = claim.SignatureProof.Set(jsonSignatureProof)
+	if err != nil {
+		log.Error(ctx, "cannot set the json signature proof", "err", err)
+		return err
+	}
+	return nil
+}
+
+// setVC sets the verifiable credential or the encrypted data in the claim.
+// If the encryption key is provided, it encrypts the verifiable credential and sets the encrypted data in the claim.
+// Otherwise, it sets the verifiable credential in the claim.
+// The encryption is done using the AnoncryptPacker from iden3comm.
+// The claim parameter is modified in place.!
+func setVC(ctx context.Context, req *ports.CreateClaimRequest, jsonLdContext string, vc verifiable.W3CCredential, claim *domain.Claim) error {
+	if req.EncryptionKey != nil {
+		claim.ContextUrl = &jsonLdContext
+		return encryptCredential(ctx, req, vc, claim)
+	}
+	return claim.Data.Set(vc)
+}
+
+// encryptCredential encrypts the verifiable credential using the AnoncryptPacker from iden3comm.
+func encryptCredential(ctx context.Context, req *ports.CreateClaimRequest, vc verifiable.W3CCredential, claim *domain.Claim) error {
+	pubkeyFromMap, err := jWKFromMap(req.EncryptionKey)
+	if err != nil {
+		log.Error(ctx, "creating public key from map", "err", err)
+		return err
+	}
+	anonPacker := packers.AnoncryptPacker{}
+	vcAsBytes, err := json.Marshal(vc)
+	if err != nil {
+		log.Error(ctx, "cannot marshal vc", "err", err)
+		return err
+	}
+	ciphertext, err := anonPacker.Pack(vcAsBytes, packers.AnoncryptPackerParams{
+		RecipientKey: pubkeyFromMap,
+	})
+	if err != nil {
+		log.Error(ctx, "cannot pack vc", "err", err)
+		return err
+	}
+	claim.EncryptedData = common.ToPointer(b64.RawStdEncoding.EncodeToString(ciphertext))
+	return nil
 }
 
 func (c *claim) Revoke(ctx context.Context, id w3c.DID, nonce uint64, description string) error {
@@ -350,7 +396,6 @@ func (c *claim) GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*dom
 		}
 		return nil, err
 	}
-
 	return claim, nil
 }
 
@@ -823,17 +868,27 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, err
 	}
 
-	vc, err := schemaPkg.FromClaimModelToW3CCredential(*claim)
-	if err != nil {
-		log.Error(ctx, "creating W3 credential", "err", err)
-		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
+	var body []byte
+	if !claim.HasEncryptedData() {
+		vc, err := schemaPkg.FromClaimModelToW3CCredential(*claim)
+		if err != nil {
+			log.Error(ctx, "creating W3 credential", "err", err)
+			return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
+		}
+
+		body, err = json.Marshal(protocol.IssuanceMessageBody{Credential: *vc})
+		if err != nil {
+			log.Error(ctx, "marshaling body", "err", err)
+			return nil, err
+		}
+	} else {
+		body, err = c.buildEncryptedCredentialBody(ctx, claim)
+		if err != nil {
+			log.Error(ctx, "building encrypted credential body", "err", err)
+			return nil, err
+		}
 	}
 
-	body, err := json.Marshal(protocol.IssuanceMessageBody{Credential: *vc})
-	if err != nil {
-		log.Error(ctx, "marshaling body", "err", err)
-		return nil, err
-	}
 	return &iden3comm.BasicMessage{
 		ID:       uuid.NewString(),
 		Typ:      packers.MediaTypePlainMessage,
@@ -843,6 +898,34 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		From:     basicMessage.IssuerDID.String(),
 		To:       basicMessage.UserDID.String(),
 	}, err
+}
+
+// buildEncryptedCredentialBody builds the body of the encrypted credential response message
+// It includes the encrypted data and the proofs (signature proof and MTP proof) if they exist
+func (c *claim) buildEncryptedCredentialBody(ctx context.Context, claim *domain.Claim) ([]byte, error) {
+	proofs, err := claim.GetVerifiableProofs()
+	if err != nil {
+		log.Error(ctx, "getting verifiable proofs", "err", err)
+		return nil, err
+	}
+
+	data, err := base64.RawStdEncoding.DecodeString(*claim.EncryptedData)
+	if err != nil {
+		return nil, err
+	}
+	encryptedIssuanceMessageBody := protocol.EncryptedIssuanceMessageBody{
+		ID:      claim.ID.String(),
+		Data:    data,
+		Type:    claim.SchemaType,
+		Context: *claim.ContextUrl,
+		Proof:   proofs,
+	}
+	body, err := json.Marshal(encryptedIssuanceMessageBody)
+	if err != nil {
+		log.Error(ctx, "marshaling body", "err", err)
+		return nil, err
+	}
+	return body, nil
 }
 
 func (c *claim) createVC(ctx context.Context, claimReq *ports.CreateClaimRequest, vcID uuid.UUID, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
@@ -993,4 +1076,12 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 
 func (c *claim) buildCredentialID(credID uuid.UUID) urn.URN {
 	return urn.FromUUID(credID)
+}
+
+func jWKFromMap(m map[string]interface{}) (jwk.Key, error) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return jwk.ParseKey(b)
 }

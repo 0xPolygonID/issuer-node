@@ -24,15 +24,26 @@ import (
 func TestSaveClaim(t *testing.T) {
 	ctx := context.Background()
 	claimsRepo := NewClaim()
-	idStr := "did:polygonid:polygon:amoy:2qWcgX6ts9RnL9gP7bQP7BjVCuY92Xpwj9wzBzQGdc"
+	did1 := randomDID(t)
+	idStr := did1.String()
 	identity := &domain.Identity{
 		Identifier: idStr,
+	}
+
+	did2 := randomDID(t)
+	idStr2 := did2.String()
+	identity2 := &domain.Identity{
+		Identifier: idStr2,
 	}
 
 	issuerDID, err := w3c.ParseDID(idStr)
 	require.NoError(t, err)
 	fixture := NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
+
+	issuerDID2, err := w3c.ParseDID(idStr2)
+	require.NoError(t, err)
+	fixture.CreateIdentity(t, identity2)
 
 	claim := &domain.Claim{
 		ID:              uuid.New(),
@@ -47,12 +58,30 @@ func TestSaveClaim(t *testing.T) {
 		RevNonce:        100,
 	}
 
-	defer func(claimsRepo ports.ClaimRepository, ctx context.Context, conn db.Querier, id uuid.UUID) {
+	claimWithEncryptedData := &domain.Claim{
+		ID:              uuid.New(),
+		Identifier:      common.ToPointer(idStr2),
+		Issuer:          idStr2,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        101,
+		EncryptedData:   common.ToPointer("encryptedData"),
+		ContextUrl:      common.ToPointer("contextUrl"),
+	}
+
+	delete := func(claimsRepo ports.ClaimRepository, ctx context.Context, conn db.Querier, id uuid.UUID) {
 		err := claimsRepo.Delete(ctx, conn, id)
 		if err != nil {
 			t.Failed()
 		}
-	}(claimsRepo, ctx, storage.Pgx, claim.ID)
+	}
+
+	defer delete(claimsRepo, ctx, storage.Pgx, claim.ID)
+	defer delete(claimsRepo, ctx, storage.Pgx, claimWithEncryptedData.ID)
 
 	t.Run("should save the claim with id", func(t *testing.T) {
 		id, err := claimsRepo.Save(ctx, storage.Pgx, claim)
@@ -80,6 +109,7 @@ func TestSaveClaim(t *testing.T) {
 		claim.Expiration = 100
 		claim.RevNonce = 99
 		claim.Version = 1
+		claim.Data = pgtype.JSONB{Bytes: []byte(`{"new":"data"}`), Status: pgtype.Present}
 		id, err := claimsRepo.Save(ctx, storage.Pgx, claim)
 		assert.NoError(t, err)
 		assert.NotNil(t, id)
@@ -96,13 +126,38 @@ func TestSaveClaim(t *testing.T) {
 		assert.Equal(t, claim.Expiration, claimInDatabase.Expiration)
 		assert.Equal(t, claim.Version, claimInDatabase.Version)
 		assert.Equal(t, claim.RevNonce, claimInDatabase.RevNonce)
+		require.NotEqual(t, pgtype.Null, claimInDatabase.Data.Status)
+		assert.JSONEq(t, `{"new":"data"}`, string(claimInDatabase.Data.Bytes))
+	})
+
+	t.Run("should save the claim with encrypted data", func(t *testing.T) {
+		id, err := claimsRepo.Save(ctx, storage.Pgx, claimWithEncryptedData)
+		assert.NoError(t, err)
+		assert.NotNil(t, id)
+		claimInDatabase, err := claimsRepo.GetByIdAndIssuer(ctx, storage.Pgx, issuerDID2, claimWithEncryptedData.ID)
+		assert.NoError(t, err)
+		assert.NotNil(t, claimInDatabase)
+		assert.Equal(t, claimWithEncryptedData.ID, claimInDatabase.ID)
+		assert.Equal(t, claimWithEncryptedData.Identifier, claimInDatabase.Identifier)
+		assert.Equal(t, claimWithEncryptedData.Issuer, claimInDatabase.Issuer)
+		assert.Equal(t, claimWithEncryptedData.SchemaHash, claimInDatabase.SchemaHash)
+		assert.Equal(t, claimWithEncryptedData.SchemaURL, claimInDatabase.SchemaURL)
+		assert.Equal(t, claimWithEncryptedData.SchemaType, claimInDatabase.SchemaType)
+		assert.Equal(t, claimWithEncryptedData.OtherIdentifier, claimInDatabase.OtherIdentifier)
+		assert.Equal(t, claimWithEncryptedData.Expiration, claimInDatabase.Expiration)
+		assert.Equal(t, claimWithEncryptedData.Version, claimInDatabase.Version)
+		assert.Equal(t, claimWithEncryptedData.RevNonce, claimInDatabase.RevNonce)
+		assert.Equal(t, claimWithEncryptedData.EncryptedData, claimInDatabase.EncryptedData)
+		require.Equal(t, pgtype.Null, claimInDatabase.Data.Status)
+		require.Equal(t, "contextUrl", *claimInDatabase.ContextUrl)
 	})
 }
 
 func TestRevoke(t *testing.T) {
 	// given
 	claimsRepo := NewClaim()
-	idStr := "did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"
+	did := randomDID(t)
+	idStr := did.String()
 	identity := &domain.Identity{
 		Identifier: idStr,
 	}
@@ -133,15 +188,17 @@ func TestRevoke(t *testing.T) {
 
 func TestGetByRevocationNonce(t *testing.T) {
 	fixture := NewFixture(storage)
-	idStr := "did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW"
+	did := randomDID(t)
+	idStr := did.String()
 	identity := &domain.Identity{
 		Identifier: idStr,
 	}
 	fixture.CreateIdentity(t, identity)
 	idClaim, _ := uuid.NewUUID()
-
 	idClaim2, _ := uuid.NewUUID()
 	idClaim3, _ := uuid.NewUUID()
+	idClaim4, _ := uuid.NewUUID()
+
 	fixture.CreateClaim(t, &domain.Claim{
 		ID:              idClaim,
 		Identifier:      &idStr,
@@ -190,13 +247,31 @@ func TestGetByRevocationNonce(t *testing.T) {
 		HIndex:          "789",
 	})
 
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim4,
+		Identifier:      &idStr,
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e7",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         1,
+		RevNonce:        111,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "987",
+		EncryptedData:   common.ToPointer("encryptedData"),
+		ContextUrl:      common.ToPointer("contextUrl"),
+	})
+
 	claimsRepo := NewClaim()
 	t.Run("should get revocation", func(t *testing.T) {
 		did, err := w3c.ParseDID(idStr)
 		assert.NoError(t, err)
 		claims, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 0)
-		c := claims[0]
 		assert.NoError(t, err)
+		c := claims[0]
 		assert.NotNil(t, c)
 		coreClaimValue, err := c.CoreClaim.Value()
 		assert.NoError(t, err)
@@ -210,32 +285,35 @@ func TestGetByRevocationNonce(t *testing.T) {
 		assert.Equal(t, uint32(0), c.Version)
 		assert.Equal(t, domain.RevNonceUint64(0), c.RevNonce)
 		assert.Equal(t, `["0","0","0","0","0","0","0","0"]`, coreClaimValue)
-
+		assert.NotNil(t, c.Data)
 		assert.Nil(t, c.Status)
 	})
 
 	t.Run("should not get revocation wrong nonce", func(t *testing.T) {
-		did, err := w3c.ParseDID(idStr)
-		assert.NoError(t, err)
-		r, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 1)
+		r, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, &did, 1)
 		assert.Error(t, err)
 		assert.Nil(t, r)
 	})
 
 	t.Run("should not get revocation wrong did", func(t *testing.T) {
-		did, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qFAer2CpbpNhMCkiMCrQbUf4vXnEKPhrQmqVfnaeY")
-		assert.NoError(t, err)
-		r, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 1)
+		r, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, &did, 1)
 		assert.Error(t, err)
 		assert.Nil(t, r)
 	})
 
 	t.Run("should get two claims", func(t *testing.T) {
-		did, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW")
-		assert.NoError(t, err)
-		claims, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 100)
+		claims, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, &did, 100)
 		assert.NoError(t, err)
 		assert.Len(t, claims, 2)
+	})
+
+	t.Run("should get one claim with encrypted data", func(t *testing.T) {
+		claims, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, &did, 111)
+		assert.NoError(t, err)
+		assert.Len(t, claims, 1)
+		claim := claims[0]
+		assert.Equal(t, "encryptedData", *claim.EncryptedData)
+		assert.Equal(t, "contextUrl", *claim.ContextUrl)
 	})
 }
 
@@ -273,11 +351,8 @@ func TestRevokeNonce(t *testing.T) {
 
 func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 	fixture := NewFixture(storage)
-
-	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
-	require.NoError(t, err)
-	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
-	require.NoError(t, err)
+	issuerDID := randomDID(t)
+	userDID := randomDID(t)
 
 	_ = fixture.CreateClaim(t, &domain.Claim{
 		ID:              uuid.New(),
@@ -292,6 +367,7 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 		RevNonce:        0,
 		CoreClaim:       domain.CoreClaim{},
 		Status:          nil,
+		EncryptedData:   common.ToPointer("encryptedData"),
 	})
 
 	_ = fixture.CreateClaim(t, &domain.Claim{
@@ -312,8 +388,8 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 	})
 
 	conn := fixture.CreateConnection(t, &domain.Connection{
-		IssuerDID:  *issuerDID,
-		UserDID:    *userDID,
+		IssuerDID:  issuerDID,
+		UserDID:    userDID,
 		IssuerDoc:  nil,
 		UserDoc:    nil,
 		CreatedAt:  time.Now(),
@@ -322,19 +398,23 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 
 	claimsRepo := NewClaim()
 	t.Run("should get one claim", func(t *testing.T) {
-		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, *issuerDID)
+		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, issuerDID)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(r))
+		claim := r[0]
+		assert.Equal(t, issuerDID.String(), claim.Issuer)
+		assert.Equal(t, userDID.String(), claim.OtherIdentifier)
+		assert.Equal(t, "encryptedData", *claim.EncryptedData)
 	})
 
 	t.Run("should get no claims, issuerDID not found", func(t *testing.T) {
-		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, *userDID)
+		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, userDID)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(r))
 	})
 
 	t.Run("should get no claims, connID not found", func(t *testing.T) {
-		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, uuid.New(), *issuerDID)
+		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, uuid.New(), issuerDID)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(r))
 	})
@@ -342,12 +422,9 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 
 func TestGetAllByIssuerID(t *testing.T) {
 	ctx := context.Background()
-
 	fixture := NewFixture(storage)
-	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
-	require.NoError(t, err)
-	userDID, err := w3c.ParseDID("did:iden3:tJUieNy7sk5PhitERHg1tgM8v1qhsDSEHVJSUF9rJ")
-	require.NoError(t, err)
+	issuerDID := randomDID(t)
+	userDID := randomDID(t)
 
 	vc := &verifiable.W3CCredential{
 		ID: uuid.NewString(),
@@ -368,6 +445,8 @@ func TestGetAllByIssuerID(t *testing.T) {
 		SignatureProof:  *jsonB,
 		OtherIdentifier: userDID.String(),
 		HIndex:          fmt.Sprintf("%d", rand.Int()),
+		EncryptedData:   common.ToPointer("encryptedData"),
+		ContextUrl:      common.ToPointer("contextUrl"),
 	}
 	require.NoError(t, c.Data.Set(vc))
 
@@ -418,10 +497,15 @@ func TestGetAllByIssuerID(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
+			claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, issuerDID, &tc.filter)
 			require.NoError(t, err)
 			assert.Len(t, claims, tc.expected)
 			assert.Equal(t, uint(len(claims)), total)
+			if len(claims) > 0 {
+				claim := claims[0]
+				assert.Equal(t, "encryptedData", *claim.EncryptedData)
+				assert.Equal(t, "contextUrl", *claim.ContextUrl)
+			}
 		})
 	}
 }
@@ -710,6 +794,8 @@ func TestGetClaimsIssuedForUserID(t *testing.T) {
 		Status:          nil,
 		HIndex:          HIndex,
 		LinkID:          linkID,
+		EncryptedData:   common.ToPointer("encryptedData"),
+		ContextUrl:      common.ToPointer("contextUrl"),
 	})
 
 	assert.Equal(t, idClaim, idClaimInserted)
@@ -738,6 +824,13 @@ func TestGetClaimsIssuedForUserID(t *testing.T) {
 			claims, err := claimsRepo.GetClaimsIssuedForUser(ctx, storage.Pgx, *did, tc.userDID, link.ID)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, len(claims))
+			if len(claims) > 0 {
+				claim := claims[0]
+				assert.Equal(t, idClaim, claim.ID)
+				assert.NotNil(t, claim.EncryptedData)
+				assert.Equal(t, "encryptedData", *claim.EncryptedData)
+				assert.Equal(t, "contextUrl", *claim.ContextUrl)
+			}
 		})
 	}
 }
@@ -784,6 +877,7 @@ func TestGeRevoked(t *testing.T) {
 		Status:          nil,
 		HIndex:          "456",
 		IdentityState:   common.ToPointer("current-state"),
+		EncryptedData:   common.ToPointer("encryptedData"),
 	})
 
 	fixture.CreateClaim(t, &domain.Claim{
@@ -818,9 +912,16 @@ func TestGeRevoked(t *testing.T) {
 			Status:     domain.RevPublished,
 			Nonce:      100,
 		}
-		require.NoError(t, claimsRepo.Revoke(context.Background(), storage.Pgx, revocation))
-		claims, err := claimsRepo.GetRevoked(context.Background(), storage.Pgx, "current-state")
+		ctx := context.Background()
+		require.NoError(t, claimsRepo.Revoke(ctx, storage.Pgx, revocation))
+		claims, err := claimsRepo.GetRevoked(ctx, storage.Pgx, "current-state")
 		assert.NoError(t, err)
 		assert.Len(t, claims, 1)
+		if len(claims) > 0 {
+			claim := claims[0]
+			assert.Equal(t, idClaim2, claim.ID)
+			assert.NotNil(t, claim.EncryptedData)
+			assert.Equal(t, "encryptedData", *claim.EncryptedData)
+		}
 	})
 }

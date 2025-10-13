@@ -3,7 +3,6 @@ package ports
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +20,9 @@ type ClaimRequestProofs struct {
 	BJJSignatureProof2021      bool
 	Iden3SparseMerkleTreeProof bool
 }
+
+// EncryptionKey type
+type EncryptionKey map[string]interface{}
 
 // CreateClaimRequest struct
 type CreateClaimRequest struct {
@@ -42,6 +44,7 @@ type CreateClaimRequest struct {
 	RefreshService        *verifiable.RefreshService
 	RevNonce              *uint64
 	DisplayMethod         *verifiable.DisplayMethod
+	EncryptionKey         EncryptionKey
 }
 
 // AgentRequest struct
@@ -86,36 +89,10 @@ type ClaimsFilter struct {
 	OrderBy         sqltools.OrderByFilters
 }
 
-// NewClaimsFilter returns a valid claims filter
-func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *string, self, revoked *bool) (*ClaimsFilter, error) {
-	var filter ClaimsFilter
-
-	if self != nil && *self {
-		if subject != nil && *subject != "" {
-			return nil, fmt.Errorf("self and subject filter cannot be used together")
-		}
-		filter.Self = self
-	}
-	if schemaHash != nil {
-		filter.SchemaHash = *schemaHash
-	}
-	if schemaType != nil {
-		filter.SchemaType = *schemaType
-	}
-	if revoked != nil {
-		filter.Revoked = revoked
-	}
-	if subject != nil {
-		filter.Subject = *subject
-	}
-	if queryField != nil {
-		filter.QueryField = *queryField
-	}
-	if queryValue != nil {
-		filter.QueryFieldValue = *queryValue
-	}
-
-	return &filter, nil
+// WithEncryptionKey sets the encryption key for the claim request
+func (cr *CreateClaimRequest) WithEncryptionKey(encryptionKey EncryptionKey) *CreateClaimRequest {
+	cr.EncryptionKey = encryptionKey
+	return cr
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
