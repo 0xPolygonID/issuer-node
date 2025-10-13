@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -793,11 +792,9 @@ func TestServer_GetCredential(t *testing.T) {
 
 	claimWithEncryptionKey := fixture.NewClaimWithEncryptionKey(t, identity2.Identifier)
 	fixture.CreateClaim(t, claimWithEncryptionKey)
-
-	data, err := base64.RawStdEncoding.DecodeString(*claimWithEncryptionKey.EncryptedData)
+	dataToTest, err := claimWithEncryptionKey.GetEncryptedDataAsMap()
 	require.NoError(t, err)
-	var dataToTest map[string]interface{}
-	require.NoError(t, json.Unmarshal(data, &dataToTest))
+
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {

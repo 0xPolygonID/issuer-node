@@ -2,6 +2,7 @@ package domain
 
 import (
 	"database/sql/driver"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -279,4 +280,21 @@ func (c *Claim) GetVerifiableProofs() (verifiable.CredentialProofs, error) {
 		proofs = append(proofs, mtpProof)
 	}
 	return proofs, nil
+}
+
+// GetEncryptedDataAsMap returns the encrypted data as a map
+func (c *Claim) GetEncryptedDataAsMap() (map[string]any, error) {
+	if c.EncryptedData == nil {
+		return nil, errors.New("no encrypted data")
+	}
+	encryptedDataAsBytes, err := base64.RawStdEncoding.DecodeString(*c.EncryptedData)
+	if err != nil {
+		return nil, err
+	}
+	var dataMap map[string]any
+	err = json.Unmarshal(encryptedDataAsBytes, &dataMap)
+	if err != nil {
+		return nil, err
+	}
+	return dataMap, nil
 }
