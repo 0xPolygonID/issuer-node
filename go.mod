@@ -41,7 +41,7 @@ require (
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b
 	github.com/iden3/go-schema-processor v1.3.1
 	github.com/iden3/go-schema-processor/v2 v2.6.3
-	github.com/iden3/iden3comm/v2 v2.11.6-0.20251009135401-9a1f67288f1f
+	github.com/iden3/iden3comm/v2 v2.11.6
 	github.com/iden3/merkletree-proof v1.0.1
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.3
@@ -61,6 +61,7 @@ require (
 	github.com/piprate/json-gold v0.5.1-0.20241210232033-19254b3ec65b
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.23.0
+	github.com/segmentio/asm v1.2.0
 	github.com/stretchr/testify v1.11.1
 	github.com/valkey-io/valkey-go v1.0.51
 	golang.org/x/crypto v0.42.0
@@ -296,7 +297,6 @@ require (
 	github.com/sashamelentyev/interfacebloat v1.1.0 // indirect
 	github.com/sashamelentyev/usestdlibvars v1.27.0 // indirect
 	github.com/securego/gosec/v2 v2.21.4 // indirect
-	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect

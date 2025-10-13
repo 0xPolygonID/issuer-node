@@ -882,7 +882,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 			return nil, err
 		}
 	} else {
-		body, err = c.buildEncryptedCredentialBody(ctx, claim)
+		body, err = buildEncryptedCredentialBody(ctx, claim)
 		if err != nil {
 			log.Error(ctx, "building encrypted credential body", "err", err)
 			return nil, err
@@ -902,20 +902,22 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 
 // buildEncryptedCredentialBody builds the body of the encrypted credential response message
 // It includes the encrypted data and the proofs (signature proof and MTP proof) if they exist
-func (c *claim) buildEncryptedCredentialBody(ctx context.Context, claim *domain.Claim) ([]byte, error) {
+func buildEncryptedCredentialBody(ctx context.Context, claim *domain.Claim) ([]byte, error) {
 	proofs, err := claim.GetVerifiableProofs()
 	if err != nil {
 		log.Error(ctx, "getting verifiable proofs", "err", err)
 		return nil, err
 	}
 
-	data, err := base64.RawStdEncoding.DecodeString(*claim.EncryptedData)
+	JWEJSONEncryption, err := convertDataToJWEJsonEncryption(claim.EncryptedData)
 	if err != nil {
+		log.Error(ctx, "converting data to JWE JSON Encryption", "err", err)
 		return nil, err
 	}
+
 	encryptedIssuanceMessageBody := protocol.EncryptedIssuanceMessageBody{
 		ID:      claim.ID.String(),
-		Data:    data,
+		Data:    *JWEJSONEncryption,
 		Type:    claim.SchemaType,
 		Context: *claim.ContextUrl,
 		Proof:   proofs,
@@ -926,6 +928,19 @@ func (c *claim) buildEncryptedCredentialBody(ctx context.Context, claim *domain.
 		return nil, err
 	}
 	return body, nil
+}
+
+func convertDataToJWEJsonEncryption(data *string) (*protocol.JWEJSONEncryption, error) {
+	var jwe protocol.JWEJSONEncryption
+	decodedData, err := base64.RawStdEncoding.DecodeString(*data)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(decodedData, &jwe)
+	if err != nil {
+		return nil, err
+	}
+	return &jwe, nil
 }
 
 func (c *claim) createVC(ctx context.Context, claimReq *ports.CreateClaimRequest, vcID uuid.UUID, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
