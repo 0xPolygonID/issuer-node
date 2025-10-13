@@ -2628,7 +2628,7 @@ components:
           type: string
           x-omitempty: false
         data:
-          type: string
+          type: object
           x-omitempty: false
           format: json
         proof:

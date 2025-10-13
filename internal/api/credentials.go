@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -414,9 +415,14 @@ func fromClaimModelToEncryptedVC(claim domain.Claim) (*EncryptedVC, error) {
 		return nil, err
 	}
 
+	var dataMap map[string]interface{}
+	if err := json.Unmarshal(data, &dataMap); err != nil {
+		return nil, err
+	}
+
 	return &EncryptedVC{
 		Id:      claim.ID.String(),
-		Data:    data,
+		Data:    dataMap,
 		Type:    claim.SchemaType,
 		Context: *claim.ContextUrl,
 		Proof:   proofs,

@@ -794,9 +794,10 @@ func TestServer_GetCredential(t *testing.T) {
 	claimWithEncryptionKey := fixture.NewClaimWithEncryptionKey(t, identity2.Identifier)
 	fixture.CreateClaim(t, claimWithEncryptionKey)
 
-	dataToTest, err := base64.RawStdEncoding.DecodeString(*claimWithEncryptionKey.EncryptedData)
+	data, err := base64.RawStdEncoding.DecodeString(*claimWithEncryptionKey.EncryptedData)
 	require.NoError(t, err)
-
+	var dataToTest map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &dataToTest))
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -1651,6 +1652,6 @@ func validateCredential(t *testing.T, resp, tc Credential) {
 		require.NotNil(t, resp.EncryptedVC)
 		assert.Equal(t, tc.EncryptedVC.Context, resp.EncryptedVC.Context)
 		assert.Equal(t, tc.EncryptedVC.Type, resp.EncryptedVC.Type)
-		assert.JSONEq(t, string(tc.EncryptedVC.Data), string(resp.EncryptedVC.Data))
+		assert.Equal(t, tc.EncryptedVC.Data, resp.EncryptedVC.Data)
 	}
 }

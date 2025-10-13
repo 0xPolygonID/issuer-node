@@ -452,7 +452,7 @@ type DisplayMethodPaginated struct {
 // EncryptedVC defines model for EncryptedVC.
 type EncryptedVC struct {
 	Context string                      `json:"context"`
-	Data    json.RawMessage             `json:"data"`
+	Data    map[string]interface{}      `json:"data"`
 	Id      string                      `json:"id"`
 	Proof   verifiable.CredentialProofs `json:"proof"`
 	Type    string                      `json:"type"`
