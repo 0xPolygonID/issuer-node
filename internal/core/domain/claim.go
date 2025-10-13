@@ -258,9 +258,12 @@ func (c *Claim) HasEncryptedData() bool {
 
 // GetVerifiableProofs returns the verifiable proofs of the claim
 func (c *Claim) GetVerifiableProofs() (verifiable.CredentialProofs, error) {
-	var err error
+	var (
+		err            error
+		signatureProof *verifiable.BJJSignatureProof2021
+		mtpProof       *verifiable.Iden3SparseMerkleTreeProof
+	)
 	proofs := make(verifiable.CredentialProofs, 0)
-	var signatureProof *verifiable.BJJSignatureProof2021
 	if c.SignatureProof.Status != pgtype.Null {
 		err = c.SignatureProof.AssignTo(&signatureProof)
 		if err != nil {
@@ -268,8 +271,6 @@ func (c *Claim) GetVerifiableProofs() (verifiable.CredentialProofs, error) {
 		}
 		proofs = append(proofs, signatureProof)
 	}
-
-	var mtpProof *verifiable.Iden3SparseMerkleTreeProof
 	if c.MTPProof.Status != pgtype.Null {
 		err = c.MTPProof.AssignTo(&mtpProof)
 		if err != nil {

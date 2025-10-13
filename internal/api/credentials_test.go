@@ -977,23 +977,23 @@ func TestServer_GetCredentials(t *testing.T) {
 
 	// Never expires
 	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true},
-		nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+		nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	require.NoError(t, err)
 
 	future := time.Now().Add(1000 * time.Hour)
 	past := time.Now().Add(-1000 * time.Hour)
 	// Expires in future
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	require.NoError(t, err)
 
 	// Expired
-	expiredClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	expiredClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	require.NoError(t, err)
 
 	// non expired, but revoked
 	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition,
 		ports.ClaimRequestProofs{BJJSignatureProof2021: false, Iden3SparseMerkleTreeProof: true},
-		nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+		nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	require.NoError(t, err)
 
 	id, err := w3c.ParseDID(*revoked.Identifier)
@@ -1457,7 +1457,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 		BJJSignatureProof2021:      true,
 		Iden3SparseMerkleTreeProof: true,
 	}
-	credential, err := server.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	credential, err := server.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	assert.NoError(t, err)
 
 	type expected struct {
@@ -1540,7 +1540,7 @@ func TestServer_GetRevocationStatusV2(t *testing.T) {
 		BJJSignatureProof2021:      true,
 		Iden3SparseMerkleTreeProof: true,
 	}
-	credential, err := server.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	credential, err := server.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	assert.NoError(t, err)
 
 	type expected struct {

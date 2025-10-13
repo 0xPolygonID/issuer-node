@@ -289,6 +289,7 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDI
 			link.RefreshService,
 			nil,
 			link.DisplayMethod,
+			nil,
 		)
 
 		credentialIssued, err = ls.claimsService.CreateCredential(ctx, claimReq)

@@ -446,7 +446,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, false,
-			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 
 		assert.NoError(t, err)
 		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -468,7 +468,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, false,
-			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 
 		assert.NoError(t, err)
 		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -490,7 +490,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: false, Iden3SparseMerkleTreeProof: true}, nil, false,
-			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 
 		assert.NoError(t, err)
 		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -516,7 +516,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		claimMTP, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: false, Iden3SparseMerkleTreeProof: true}, nil, false,
-			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 
 		assert.NoError(t, err)
 		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -538,7 +538,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		claimSIG, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
-			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 
 		assert.NoError(t, err)
 		_, err = identityService.UpdateState(ctx, *did)
@@ -565,7 +565,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
-			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 
 		assert.NoError(t, err)
 		_, err = identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -580,7 +580,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
-			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 
 		assert.NoError(t, err)
 		_, err = identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)

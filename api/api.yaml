@@ -2785,13 +2785,6 @@ components:
           example: "did:iden3:polygon:amoy:2qVSDLNYs2s5HDMTyb4Su67ZvrZ..."
           description: If a User DID is provided, the payment will be verified for the specified User DID.
 
-    JWE:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
 
     BasicMessage:
       type: object

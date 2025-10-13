@@ -89,14 +89,8 @@ type ClaimsFilter struct {
 	OrderBy         sqltools.OrderByFilters
 }
 
-// WithEncryptionKey sets the encryption key for the claim request
-func (cr *CreateClaimRequest) WithEncryptionKey(encryptionKey EncryptionKey) *CreateClaimRequest {
-	cr.EncryptionKey = encryptionKey
-	return cr
-}
-
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, claimID *uuid.UUID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, claimRequestProofs ClaimRequestProofs, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64, displayMethod *verifiable.DisplayMethod) *CreateClaimRequest {
+func NewCreateClaimRequest(did *w3c.DID, claimID *uuid.UUID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, claimRequestProofs ClaimRequestProofs, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64, displayMethod *verifiable.DisplayMethod, encryptionKey *EncryptionKey) *CreateClaimRequest {
 	req := &CreateClaimRequest{
 		DID:               did,
 		ClaimID:           claimID,
@@ -120,12 +114,14 @@ func NewCreateClaimRequest(did *w3c.DID, claimID *uuid.UUID, credentialSchema st
 	if merklizedRootPosition != nil {
 		req.MerklizedRootPosition = *merklizedRootPosition
 	}
+	if encryptionKey != nil {
+		req.EncryptionKey = *encryptionKey
+	}
 
 	req.RevNonce = revNonce
 	req.LinkID = linkID
 	req.SingleIssuer = singleIssuer
 	req.CredentialStatusType = credentialStatusType
-
 	return req
 }
 

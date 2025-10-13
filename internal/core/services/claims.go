@@ -869,7 +869,14 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 	}
 
 	var body []byte
-	if !claim.HasEncryptedData() {
+	if claim.HasEncryptedData() {
+
+		body, err = buildEncryptedCredentialBody(ctx, claim)
+		if err != nil {
+			log.Error(ctx, "building encrypted credential body", "err", err)
+			return nil, err
+		}
+	} else {
 		vc, err := schemaPkg.FromClaimModelToW3CCredential(*claim)
 		if err != nil {
 			log.Error(ctx, "creating W3 credential", "err", err)
@@ -879,12 +886,6 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		body, err = json.Marshal(protocol.IssuanceMessageBody{Credential: *vc})
 		if err != nil {
 			log.Error(ctx, "marshaling body", "err", err)
-			return nil, err
-		}
-	} else {
-		body, err = buildEncryptedCredentialBody(ctx, claim)
-		if err != nil {
-			log.Error(ctx, "building encrypted credential body", "err", err)
 			return nil, err
 		}
 	}
