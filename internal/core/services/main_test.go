@@ -140,7 +140,7 @@ func TestMain(m *testing.M) {
 	revocationStatusResolver := revocationstatus.NewRevocationStatusResolver(*networkResolver)
 	mediaTypeManager := NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
-			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage), string(protocol.CredentialFetchRequestMessageType)},
 			protocol.RevocationStatusRequestMessageType: {"*"},
 			protocol.DiscoverFeatureQueriesMessageType:  {"*"},
 		},
