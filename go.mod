@@ -41,6 +41,7 @@ require (
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20240914111027-9588ce2d7e1b
 	github.com/iden3/go-schema-processor v1.3.1
 	github.com/iden3/go-schema-processor/v2 v2.6.3
+	github.com/iden3/iden3comm/v2 v2.11.7
 	github.com/iden3/merkletree-proof v1.0.1
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.3
@@ -198,7 +199,6 @@ require (
 	github.com/iden3/contracts-abi/rhs-storage/go/abi v0.0.0-20231006141557-7d13ef7e3c48 // indirect
 	github.com/iden3/go-iden3-core v1.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.5 // indirect
-	github.com/iden3/iden3comm/v2 v2.11.7-0.20251015112409-b995f43ef0a8 // indirect
 	github.com/iden3/jose-primitives v0.0.5 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect

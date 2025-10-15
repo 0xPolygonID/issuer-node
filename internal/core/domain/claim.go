@@ -14,6 +14,7 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -283,18 +284,18 @@ func (c *Claim) GetVerifiableProofs() (verifiable.CredentialProofs, error) {
 }
 
 // GetEncryptedDataAsMap returns the encrypted data as a map
-func (c *Claim) GetEncryptedDataAsMap() (map[string]any, error) {
+func (c *Claim) GetEncryptedDataAsMap() (protocol.JWEJSONEncryption, error) {
 	if c.EncryptedData == nil {
-		return nil, errors.New("no encrypted data")
+		return protocol.JWEJSONEncryption{}, errors.New("no encrypted data")
 	}
 	encryptedDataAsBytes, err := base64.RawStdEncoding.DecodeString(*c.EncryptedData)
 	if err != nil {
-		return nil, err
+		return protocol.JWEJSONEncryption{}, err
 	}
-	var dataMap map[string]any
-	err = json.Unmarshal(encryptedDataAsBytes, &dataMap)
+	var data protocol.JWEJSONEncryption
+	err = json.Unmarshal(encryptedDataAsBytes, &data)
 	if err != nil {
-		return nil, err
+		return protocol.JWEJSONEncryption{}, err
 	}
-	return dataMap, nil
+	return data, nil
 }

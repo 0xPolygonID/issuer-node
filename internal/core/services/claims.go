@@ -302,29 +302,33 @@ func (c *claim) setSignature(ctx context.Context, DID *w3c.DID, coreClaim *core.
 func setVC(ctx context.Context, req *ports.CreateClaimRequest, jsonLdContext string, vc verifiable.W3CCredential, claim *domain.Claim) error {
 	if req.EncryptionKey != nil {
 		claim.ContextUrl = &jsonLdContext
-		return encryptCredential(ctx, req, vc, claim)
+		s, err := encryptCredential(ctx, req, vc)
+		if err != nil {
+			return err
+		}
+		claim.EncryptedData = &s
+		return nil
 	}
 	return claim.Data.Set(vc)
 }
 
 // encryptCredential encrypts the verifiable credential using the AnoncryptPacker from iden3comm.
-func encryptCredential(_ context.Context, req *ports.CreateClaimRequest, vc verifiable.W3CCredential, claim *domain.Claim) error {
+func encryptCredential(_ context.Context, req *ports.CreateClaimRequest, vc verifiable.W3CCredential) (string, error) {
 	pubkeyFromMap, err := jWKFromMap(req.EncryptionKey)
 	if err != nil {
-		return fmt.Errorf("creating public key from map: %w", err)
+		return "", fmt.Errorf("creating public key from map: %w", err)
 	}
 
 	vcAsBytes, err := json.Marshal(vc)
 	if err != nil {
-		return fmt.Errorf("cannot marshal vc: %w", err)
+		return "", fmt.Errorf("cannot marshal vc: %w", err)
 	}
 
 	ciphertext, err := jwe.Encrypt(vcAsBytes, []jwk.Key{pubkeyFromMap}, jwe.WithContentEncryptionAlgorithm(jwa.A256GCM().String()))
 	if err != nil {
-		return fmt.Errorf("cannot encrypt vc: %w", err)
+		return "", fmt.Errorf("cannot encrypt vc: %w", err)
 	}
-	claim.EncryptedData = common.ToPointer(b64.RawStdEncoding.EncodeToString(ciphertext))
-	return nil
+	return b64.RawStdEncoding.EncodeToString(ciphertext), nil
 }
 
 func (c *claim) Revoke(ctx context.Context, id w3c.DID, nonce uint64, description string) error {

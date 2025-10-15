@@ -2629,8 +2629,10 @@ components:
           x-omitempty: false
         data:
           type: object
-          x-omitempty: false
-          format: json
+          x-go-type: protocol.JWEJSONEncryption
+          x-go-type-import:
+            name: protocol
+            path: "github.com/iden3/iden3comm/v2/protocol"
         proof:
           type: object
           x-go-type: verifiable.CredentialProofs
