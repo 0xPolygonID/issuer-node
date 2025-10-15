@@ -11,8 +11,10 @@ import (
 
 func TestGetIdentities(t *testing.T) {
 	fixture := NewFixture(storage)
-	idStr1 := "did:polygonid:polygon:mumbai:2qGqLpDT2VyqFq1NmfRkB9gwLxBhMRuazv2ZgHfjUw"
-	idStr2 := "did:polygonid:polygon:mumbai:2qNR5sUiiSt5v6bnKQZyjCu2n9uNbKD34cZkSkgwUq"
+	did1 := randomDID(t)
+	idStr1 := did1.String()
+	did2 := randomDID(t)
+	idStr2 := did2.String()
 
 	identity1 := &domain.Identity{
 		Identifier: idStr1,

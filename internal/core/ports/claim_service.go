@@ -3,7 +3,6 @@ package ports
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +20,9 @@ type ClaimRequestProofs struct {
 	BJJSignatureProof2021      bool
 	Iden3SparseMerkleTreeProof bool
 }
+
+// EncryptionKey type
+type EncryptionKey map[string]interface{}
 
 // CreateClaimRequest struct
 type CreateClaimRequest struct {
@@ -42,6 +44,7 @@ type CreateClaimRequest struct {
 	RefreshService        *verifiable.RefreshService
 	RevNonce              *uint64
 	DisplayMethod         *verifiable.DisplayMethod
+	EncryptionKey         EncryptionKey
 }
 
 // AgentRequest struct
@@ -86,40 +89,8 @@ type ClaimsFilter struct {
 	OrderBy         sqltools.OrderByFilters
 }
 
-// NewClaimsFilter returns a valid claims filter
-func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *string, self, revoked *bool) (*ClaimsFilter, error) {
-	var filter ClaimsFilter
-
-	if self != nil && *self {
-		if subject != nil && *subject != "" {
-			return nil, fmt.Errorf("self and subject filter cannot be used together")
-		}
-		filter.Self = self
-	}
-	if schemaHash != nil {
-		filter.SchemaHash = *schemaHash
-	}
-	if schemaType != nil {
-		filter.SchemaType = *schemaType
-	}
-	if revoked != nil {
-		filter.Revoked = revoked
-	}
-	if subject != nil {
-		filter.Subject = *subject
-	}
-	if queryField != nil {
-		filter.QueryField = *queryField
-	}
-	if queryValue != nil {
-		filter.QueryFieldValue = *queryValue
-	}
-
-	return &filter, nil
-}
-
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, claimID *uuid.UUID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, claimRequestProofs ClaimRequestProofs, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64, displayMethod *verifiable.DisplayMethod) *CreateClaimRequest {
+func NewCreateClaimRequest(did *w3c.DID, claimID *uuid.UUID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, claimRequestProofs ClaimRequestProofs, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64, displayMethod *verifiable.DisplayMethod, encryptionKey *EncryptionKey) *CreateClaimRequest {
 	req := &CreateClaimRequest{
 		DID:               did,
 		ClaimID:           claimID,
@@ -143,12 +114,14 @@ func NewCreateClaimRequest(did *w3c.DID, claimID *uuid.UUID, credentialSchema st
 	if merklizedRootPosition != nil {
 		req.MerklizedRootPosition = *merklizedRootPosition
 	}
+	if encryptionKey != nil {
+		req.EncryptionKey = *encryptionKey
+	}
 
 	req.RevNonce = revNonce
 	req.LinkID = linkID
 	req.SingleIssuer = singleIssuer
 	req.CredentialStatusType = credentialStatusType
-
 	return req
 }
 

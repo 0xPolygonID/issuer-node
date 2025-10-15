@@ -41,7 +41,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	require.NoError(t, err)
 	didSignatureClaim, err := w3c.ParseDID(idenWithSignatureClaim.Identifier)
 	require.NoError(t, err)
-	_, err = serverWithSignatureClaim.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(didSignatureClaim, nil, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	_, err = serverWithSignatureClaim.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(didSignatureClaim, nil, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	require.NoError(t, err)
 
 	handlerWithSignatureClaim := getHandler(ctx, serverWithSignatureClaim)
@@ -52,7 +52,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	require.NoError(t, err)
 	didWithMTPClaim, err := w3c.ParseDID(idenWithMTPClaim.Identifier)
 	require.NoError(t, err)
-	_, err = serverWithMTPClaim.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(didWithMTPClaim, nil, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	_, err = serverWithMTPClaim.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(didWithMTPClaim, nil, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	require.NoError(t, err)
 	handlerWithMTPClaim := getHandler(ctx, serverWithMTPClaim)
 
@@ -62,7 +62,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	didWithRevokedClaim, err := w3c.ParseDID(idenWithRevokedClaim.Identifier)
 	require.NoError(t, err)
 
-	cred, err := serverWithRevokedClaim.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(didWithRevokedClaim, nil, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	cred, err := serverWithRevokedClaim.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(didWithRevokedClaim, nil, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, nil))
 	require.NoError(t, err)
 	require.NoError(t, serverWithRevokedClaim.Services.credentials.Revoke(ctx, *didWithRevokedClaim, uint64(cred.RevNonce), "not valid"))
 	handlerWithRevokedClaim := getHandler(ctx, serverWithRevokedClaim)

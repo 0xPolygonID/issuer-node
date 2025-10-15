@@ -2,6 +2,7 @@ package domain
 
 import (
 	"database/sql/driver"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -47,6 +49,10 @@ type Claim struct {
 	MtProof   bool       `json:"mt_poof"`
 	LinkID    *uuid.UUID `json:"-"`
 	CreatedAt time.Time  `json:"-"`
+
+	// base64 encoded encrypted data
+	EncryptedData *string `json:"encrypted_data"`
+	ContextUrl    *string `json:"context_url"`
 }
 
 // Credentials is the type of array of credential
@@ -245,4 +251,51 @@ func (c *Claim) GetCredentialStatus() (*verifiable.CredentialStatus, error) {
 // EqualToSchemaHash returns true if the claim has the same schema hash
 func (c *Claim) EqualToSchemaHash(schemaHash string) bool {
 	return c.SchemaHash == schemaHash
+}
+
+// HasEncryptedData returns true if the claim has encrypted data
+func (c *Claim) HasEncryptedData() bool {
+	return c.Data.Status == pgtype.Null && c.EncryptedData != nil
+}
+
+// GetVerifiableProofs returns the verifiable proofs of the claim
+func (c *Claim) GetVerifiableProofs() (verifiable.CredentialProofs, error) {
+	var (
+		err            error
+		signatureProof *verifiable.BJJSignatureProof2021
+		mtpProof       *verifiable.Iden3SparseMerkleTreeProof
+	)
+	proofs := make(verifiable.CredentialProofs, 0)
+	if c.SignatureProof.Status != pgtype.Null {
+		err = c.SignatureProof.AssignTo(&signatureProof)
+		if err != nil {
+			return nil, err
+		}
+		proofs = append(proofs, signatureProof)
+	}
+	if c.MTPProof.Status != pgtype.Null {
+		err = c.MTPProof.AssignTo(&mtpProof)
+		if err != nil {
+			return nil, err
+		}
+		proofs = append(proofs, mtpProof)
+	}
+	return proofs, nil
+}
+
+// GetEncryptedDataAsMap returns the encrypted data as a map
+func (c *Claim) GetEncryptedDataAsMap() (protocol.JWEJSONEncryption, error) {
+	if c.EncryptedData == nil {
+		return protocol.JWEJSONEncryption{}, errors.New("no encrypted data")
+	}
+	encryptedDataAsBytes, err := base64.RawStdEncoding.DecodeString(*c.EncryptedData)
+	if err != nil {
+		return protocol.JWEJSONEncryption{}, err
+	}
+	var data protocol.JWEJSONEncryption
+	err = json.Unmarshal(encryptedDataAsBytes, &data)
+	if err != nil {
+		return protocol.JWEJSONEncryption{}, err
+	}
+	return data, nil
 }

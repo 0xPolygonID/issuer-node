@@ -1,8 +1,6 @@
 package common
 
 import (
-	"strings"
-
 	"github.com/mr-tron/base58"
 )
 
@@ -26,19 +24,6 @@ func CopyMap(m map[string]interface{}) map[string]interface{} {
 	}
 
 	return cp
-}
-
-// ReplaceCharacters - Raplace the  n-3  characters of a string with *
-func ReplaceCharacters(input string) string {
-	length := len(input)
-	numberOfchars := 3
-	if length <= numberOfchars {
-		return input
-	}
-
-	replacePart := strings.Repeat("*", length-numberOfchars)
-	lastThree := input[length-3:]
-	return replacePart + lastThree
 }
 
 // IsSolanaAddress checks if the given address is a valid Solana address.

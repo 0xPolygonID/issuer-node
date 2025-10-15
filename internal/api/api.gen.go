@@ -276,6 +276,7 @@ type CreateCredentialRequest struct {
 	CredentialStatusType  *CreateCredentialRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
 	CredentialSubject     map[string]interface{}                       `json:"credentialSubject"`
 	DisplayMethod         *DisplayMethod                               `json:"displayMethod,omitempty"`
+	EncryptionKey         *map[string]interface{}                      `json:"encryptionKey,omitempty"`
 	Expiration            *int64                                       `json:"expiration,omitempty"`
 	MerklizedRootPosition *string                                      `json:"merklizedRootPosition,omitempty"`
 	Proofs                *[]CreateCredentialRequestProofs             `json:"proofs,omitempty"`
@@ -393,11 +394,12 @@ type CreatePaymentRequestResponseStatus string
 
 // Credential defines model for Credential.
 type Credential struct {
-	Id         string                   `json:"id"`
-	ProofTypes []string                 `json:"proofTypes"`
-	Revoked    bool                     `json:"revoked"`
-	SchemaHash string                   `json:"schemaHash"`
-	Vc         verifiable.W3CCredential `json:"vc"`
+	EncryptedVC *EncryptedVC              `json:"encryptedVC,omitempty"`
+	Id          string                    `json:"id"`
+	ProofTypes  []string                  `json:"proofTypes"`
+	Revoked     bool                      `json:"revoked"`
+	SchemaHash  string                    `json:"schemaHash"`
+	Vc          *verifiable.W3CCredential `json:"vc,omitempty"`
 }
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
@@ -445,6 +447,15 @@ type DisplayMethodEntity struct {
 type DisplayMethodPaginated struct {
 	Items []DisplayMethodEntity `json:"items"`
 	Meta  PaginatedMetadata     `json:"meta"`
+}
+
+// EncryptedVC defines model for EncryptedVC.
+type EncryptedVC struct {
+	Context string                      `json:"context"`
+	Data    protocol.JWEJSONEncryption  `json:"data"`
+	Id      string                      `json:"id"`
+	Proof   verifiable.CredentialProofs `json:"proof"`
+	Type    string                      `json:"type"`
 }
 
 // GenericErrorMessage defines model for GenericErrorMessage.
