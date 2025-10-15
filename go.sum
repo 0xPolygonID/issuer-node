@@ -479,8 +479,10 @@ github.com/iden3/go-schema-processor v1.3.1 h1:LJfFInfYGMOp0bTKKC17R8q4XI+VtqhFL
 github.com/iden3/go-schema-processor v1.3.1/go.mod h1:NwJ1nuGdRlCFaN1/V6mS0AOAdvpLcGf4KKq0mluLG7U=
 github.com/iden3/go-schema-processor/v2 v2.6.3 h1:WSSNREiZjQurhLX9moI0A36vuixKgmBetqVXhifZA0A=
 github.com/iden3/go-schema-processor/v2 v2.6.3/go.mod h1:OxNV97oEShKpSIE7KSEqFFktBkPJDLDW/oNbT+ky8KU=
-github.com/iden3/iden3comm/v2 v2.11.6 h1:JMGBvabiOhNEq80LYQiPHaMu0Q+1PkAWzrmM/WkJYGE=
-github.com/iden3/iden3comm/v2 v2.11.6/go.mod h1:29qLgEECd/g5QzfCNwMAP4+yx7fUKbbwTMszSpfFUws=
+github.com/iden3/iden3comm/v2 v2.11.7-0.20251014135230-42d95ad52a28 h1:1T4sMY3jTF2Hp6JQg7pFjZipM3ltMF+KKadGJcSltmI=
+github.com/iden3/iden3comm/v2 v2.11.7-0.20251014135230-42d95ad52a28/go.mod h1:29qLgEECd/g5QzfCNwMAP4+yx7fUKbbwTMszSpfFUws=
+github.com/iden3/iden3comm/v2 v2.11.7-0.20251015112409-b995f43ef0a8 h1:fHveyprU6nx0LtqBuGUlOzt00M7+jsoYp1kSDIy8W/c=
+github.com/iden3/iden3comm/v2 v2.11.7-0.20251015112409-b995f43ef0a8/go.mod h1:29qLgEECd/g5QzfCNwMAP4+yx7fUKbbwTMszSpfFUws=
 github.com/iden3/jose-primitives v0.0.5 h1:jj7EAXrKBFmuj8LdHTC47MBMQwtKm0d6Uc9k8HrIZ1c=
 github.com/iden3/jose-primitives v0.0.5/go.mod h1:KhDi+Mt/Z43PK4xLmXPy+C3tFCypRcdj6kM6h0IOx0U=
 github.com/iden3/merkletree-proof v1.0.1 h1:4Srfjm4rsFwjEhhvFDC8/VzK1eYs1jYzEOmwS962s2A=

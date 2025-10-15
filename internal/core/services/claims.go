@@ -20,9 +20,11 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/packers/providers/jwe"
 	"github.com/iden3/iden3comm/v2/protocol"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/jackc/pgx/v4"
+	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/segmentio/asm/base64"
 
@@ -306,24 +308,20 @@ func setVC(ctx context.Context, req *ports.CreateClaimRequest, jsonLdContext str
 }
 
 // encryptCredential encrypts the verifiable credential using the AnoncryptPacker from iden3comm.
-func encryptCredential(ctx context.Context, req *ports.CreateClaimRequest, vc verifiable.W3CCredential, claim *domain.Claim) error {
+func encryptCredential(_ context.Context, req *ports.CreateClaimRequest, vc verifiable.W3CCredential, claim *domain.Claim) error {
 	pubkeyFromMap, err := jWKFromMap(req.EncryptionKey)
 	if err != nil {
-		log.Error(ctx, "creating public key from map", "err", err)
-		return err
+		return fmt.Errorf("creating public key from map: %w", err)
 	}
-	anonPacker := packers.AnoncryptPacker{}
+
 	vcAsBytes, err := json.Marshal(vc)
 	if err != nil {
-		log.Error(ctx, "cannot marshal vc", "err", err)
-		return err
+		return fmt.Errorf("cannot marshal vc: %w", err)
 	}
-	ciphertext, err := anonPacker.Pack(vcAsBytes, packers.AnoncryptPackerParams{
-		RecipientKey: pubkeyFromMap,
-	})
+
+	ciphertext, err := jwe.Encrypt(vcAsBytes, []jwk.Key{pubkeyFromMap}, jwe.WithContentEncryptionAlgorithm(jwa.A256GCM().String()))
 	if err != nil {
-		log.Error(ctx, "cannot pack vc", "err", err)
-		return err
+		return fmt.Errorf("cannot encrypt vc: %w", err)
 	}
 	claim.EncryptedData = common.ToPointer(b64.RawStdEncoding.EncodeToString(ciphertext))
 	return nil
