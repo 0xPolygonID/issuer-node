@@ -10,9 +10,7 @@ on:
 env:
   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-  ECR_REPOSITORY: ${{vars.ECR_REPOSITORY}}
   AWS_ACCOUNT_ID_BSH: ${{ secrets.AWS_ACCOUNT_ID_BSH }}
-  ECR_REPOSITORY_BSH: ${{vars.ECR_REPOSITORY_BSH}}
 
 jobs:
   build-backend:
@@ -69,7 +67,7 @@ jobs:
       - name: Tag and push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
         run: |
           docker tag issuer/api:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
@@ -95,7 +93,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-bsh.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_BSH }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_BSH }}
           IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
         run: |
           docker tag issuer/api:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
