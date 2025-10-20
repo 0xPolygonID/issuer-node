@@ -2616,23 +2616,6 @@ components:
           $ref: '#/components/schemas/AuthenticationConnection'
 
 
-    CredentialStatus:
-      type: object
-      required:
-        - id
-        - revocationNonce
-        - type
-      properties:
-        id:
-          type: string
-          x-omitempty: false
-        revocationNonce:
-          type: integer
-          format: uint64
-        type:
-          type: string
-          x-omitempty: false
-
     EncryptedVC:
       type: object
       required:
