@@ -22,7 +22,7 @@ export type CredentialStatus = {
   type: CredentialStatusType;
 };
 
-export type Credential = {
+export type PlainCredential = {
   credentialStatus: CredentialStatus;
   credentialSubject: Record<string, unknown>;
   displayMethod: CredentialDisplayMethod | null;
@@ -43,7 +43,34 @@ export type Credential = {
   userID: string;
 };
 
-export type AuthCredential = Omit<Credential, "credentialSubject"> & {
+export type EncryptedCredential = {
+  context: string;
+  credentialStatus: CredentialStatus;
+  expirationDate: Date | null;
+  expired: boolean;
+  id: string;
+  issuanceDate: Date;
+  proof: Array<{
+    type: ProofType;
+  }> | null;
+  proofTypes: ProofType[];
+  revNonce: number;
+  revoked: boolean;
+  schemaHash: string;
+  schemaType: string;
+};
+
+export type Credential =
+  | {
+      data: PlainCredential;
+      type: "plain";
+    }
+  | {
+      data: EncryptedCredential;
+      type: "encrypted";
+    };
+
+export type AuthCredential = Omit<PlainCredential, "credentialSubject"> & {
   credentialSubject: {
     x: bigint;
     y: bigint;

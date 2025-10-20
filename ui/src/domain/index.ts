@@ -5,12 +5,14 @@ export type { Connection } from "src/domain/connection";
 export type {
   AuthCredential,
   Credential,
+  CredentialDisplayMethod,
   CredentialsTabIDs,
+  EncryptedCredential,
   IssuedMessage,
   Link,
   LinkStatus,
+  PlainCredential,
   RefreshService,
-  CredentialDisplayMethod,
 } from "src/domain/credential";
 
 export { ProofType } from "src/domain/credential";

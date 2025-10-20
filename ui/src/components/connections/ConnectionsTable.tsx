@@ -102,8 +102,8 @@ export function ConnectionsTable() {
       render: (credentials: Connection["credentials"]) => (
         <Typography.Text>
           {[...credentials.successful]
-            .sort((a, b) => a.schemaType.localeCompare(b.schemaType))
-            .map((credential) => credential.schemaType)
+            .sort((a, b) => a.data.schemaType.localeCompare(b.data.schemaType))
+            .map((credential) => credential.data.schemaType)
             .join(", ")}
         </Typography.Text>
       ),

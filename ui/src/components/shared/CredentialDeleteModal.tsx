@@ -27,7 +27,7 @@ export function CredentialDeleteModal({
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const { id, revNonce: nonce, revoked } = credential;
+  const { id, revNonce: nonce, revoked } = credential.data;
 
   const handleDeleteCredential = () => {
     setIsLoading(true);

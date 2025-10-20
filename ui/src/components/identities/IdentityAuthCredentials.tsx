@@ -249,7 +249,10 @@ export function IdentityAuthCredentials({
       />
       {credentialToRevoke && (
         <CredentialRevokeModal
-          credential={credentialToRevoke}
+          credential={{
+            data: credentialToRevoke,
+            type: "plain",
+          }}
           extra={
             <Typography.Text type="danger">
               All BJJSignature2021 proofs signed with this key will be invalid
