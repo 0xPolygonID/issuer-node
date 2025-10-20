@@ -790,10 +790,37 @@ func TestServer_GetCredential(t *testing.T) {
 	claim.MtProof = true
 	fixture.CreateClaim(t, claim)
 
-	claimWithEncryptionKey := fixture.NewClaimWithEncryptionKey(t, identity2.Identifier)
-	fixture.CreateClaim(t, claimWithEncryptionKey)
-	dataToTest, err := claimWithEncryptionKey.GetEncryptedDataAsMap()
+	// encrypted credential
+	did2, err := w3c.ParseDID(identity2.Identifier)
 	require.NoError(t, err)
+	schemaURL := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	credentialSubject := map[string]interface{}{
+		"id":           "did:iden3:privado:main:2SizDYDWBViKXRfp1VgUAMqhz5SDvP7D1MYiPfwJV3",
+		"birthday":     19791109,
+		"documentType": 2,
+	}
+	expiration := common.ToPointer(time.Now().UTC())
+	typeC := "KYCAgeCredential"
+	encryptionKey := &map[string]interface{}{
+		"kty": "EC",
+		"crv": "P-256",
+		"alg": "ECDH-ES+A256KW",
+		"use": "enc",
+		"x":   "nw7Ag_FszrDu1uPi2lX3TtbF7FMZoysXZXUzrKxBwiQ",
+		"y":   "l1I0EONJmEHMz7Nc4WQULDllKdPdjbTgHS5hCbqv0UQ",
+		"kid": "tu-kid",
+	}
+
+	ctx := t.Context()
+	claimWithEncryptionKey, err := server.claimService.Save(ctx, ports.NewCreateClaimRequest(did2, nil, schemaURL, credentialSubject, expiration, typeC, nil, nil, nil, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true},
+		nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil, (*ports.EncryptionKey)(encryptionKey)))
+
+	assert.NoError(t, err)
+	claimWithEncryptionKey, err = server.claimService.GetByID(ctx, did2, claimWithEncryptionKey.ID)
+	require.NoError(t, err)
+
+	dataToTest, err := claimWithEncryptionKey.GetEncryptedDataAsMap()
+	assert.NoError(t, err)
 
 	handler := getHandler(context.Background(), server)
 
@@ -856,7 +883,7 @@ func TestServer_GetCredential(t *testing.T) {
 			},
 		},
 		{
-			name:    "should get the credentials",
+			name:    "should get the credential",
 			auth:    authOk,
 			did:     identity.Identifier,
 			claimID: claim.ID,
@@ -903,9 +930,11 @@ func TestServer_GetCredential(t *testing.T) {
 				response: GetCredential200JSONResponse{
 					ProofTypes: []string{"Iden3SparseMerkleTreeProof"},
 					EncryptedVC: &EncryptedVC{
-						Data:    dataToTest,
-						Context: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
-						Type:    "KYCAgeCredential",
+						Data:           dataToTest,
+						Context:        "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
+						Type:           "KYCAgeCredential",
+						ExpirationDate: (*TimeUTC)(expiration),
+						IssuanceDate:   (TimeUTC)(time.Now().UTC()),
 					},
 				},
 			},
@@ -917,9 +946,7 @@ func TestServer_GetCredential(t *testing.T) {
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
-
 			handler.ServeHTTP(rr, req)
-
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
@@ -927,7 +954,6 @@ func TestServer_GetCredential(t *testing.T) {
 				var response Credential
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				validateCredential(t, response, Credential(v))
-
 			case GetCredential400JSONResponse:
 				var response GetCredential404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -1613,15 +1639,15 @@ func validateCredential(t *testing.T, resp, tc Credential) {
 	}
 
 	if tc.Vc != nil {
-		assert.Equal(t, resp.Vc.ID, tc.Vc.ID)
-		assert.Equal(t, len(resp.Vc.Context), len(tc.Vc.Context))
-		assert.EqualValues(t, resp.Vc.Context, tc.Vc.Context)
-		assert.EqualValues(t, resp.Vc.CredentialSchema, tc.Vc.CredentialSchema)
-		assert.InDelta(t, resp.Vc.IssuanceDate.UnixMilli(), tc.Vc.IssuanceDate.UnixMilli(), 1000)
-		assert.Equal(t, resp.Vc.Type, tc.Vc.Type)
-		assert.Equal(t, resp.Vc.Expiration, tc.Vc.Expiration)
-		assert.Equal(t, resp.Vc.Issuer, tc.Vc.Issuer)
-		assert.Equal(t, resp.Vc.RefreshService, tc.Vc.RefreshService)
+		assert.Equal(t, tc.Vc.ID, resp.Vc.ID)
+		assert.Equal(t, len(tc.Vc.Context), len(resp.Vc.Context))
+		assert.EqualValues(t, tc.Vc.Context, resp.Vc.Context)
+		assert.EqualValues(t, tc.Vc.CredentialSchema, resp.Vc.CredentialSchema)
+		assert.InDelta(t, tc.Vc.IssuanceDate.UnixMilli(), resp.Vc.IssuanceDate.UnixMilli(), 1000)
+		assert.Equal(t, tc.Vc.Type, resp.Vc.Type)
+		assert.Equal(t, tc.Vc.Expiration, resp.Vc.Expiration)
+		assert.Equal(t, tc.Vc.Issuer, resp.Vc.Issuer)
+		assert.Equal(t, tc.Vc.RefreshService, resp.Vc.RefreshService)
 		credentialSubjectType, ok := tc.Vc.CredentialSubject["type"]
 		require.True(t, ok)
 		assert.Contains(t, credentialSubjectTypes, credentialSubjectType)
@@ -1636,13 +1662,13 @@ func validateCredential(t *testing.T, resp, tc Credential) {
 			assert.NoError(t, mapstructure.Decode(tc.Vc.CredentialSubject, &tcCredentialSubject))
 			assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
 		}
-		assert.Equal(t, resp.ProofTypes, tc.ProofTypes)
+		assert.Equal(t, tc.ProofTypes, resp.ProofTypes)
 
 		assert.NoError(t, mapstructure.Decode(resp.Vc.CredentialStatus, &responseCredentialStatus))
 		responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
 		credentialStatusTC, ok := tc.Vc.CredentialStatus.(verifiable.CredentialStatus)
 		require.True(t, ok)
-		assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
+		assert.EqualValues(t, credentialStatusTC, responseCredentialStatus)
 	} else {
 		assert.NotNil(t, resp.EncryptedVC.Id)
 		require.NotNil(t, tc.EncryptedVC)
@@ -1650,5 +1676,15 @@ func validateCredential(t *testing.T, resp, tc Credential) {
 		assert.Equal(t, tc.EncryptedVC.Context, resp.EncryptedVC.Context)
 		assert.Equal(t, tc.EncryptedVC.Type, resp.EncryptedVC.Type)
 		assert.Equal(t, tc.EncryptedVC.Data, resp.EncryptedVC.Data)
+		assert.NotNil(t, resp.EncryptedVC.ExpirationDate)
+		assert.NotNil(t, resp.EncryptedVC.IssuanceDate)
+		now := time.Now()
+		issuanceDate, err := time.Parse(time.RFC3339, resp.EncryptedVC.IssuanceDate.String())
+		assert.NoError(t, err)
+		assert.WithinDuration(t, now, issuanceDate, 10*time.Second)
+		expirationDate, err := time.Parse(time.RFC3339, resp.EncryptedVC.ExpirationDate.String())
+		assert.NoError(t, err)
+		assert.WithinDuration(t, now, expirationDate, 10*time.Second)
+		assert.NotNil(t, resp.EncryptedVC.CredentialStatus)
 	}
 }

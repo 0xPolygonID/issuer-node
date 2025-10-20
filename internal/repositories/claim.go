@@ -72,8 +72,8 @@ func (c *claim) GetRevoked(ctx context.Context, conn db.Querier, currentState st
 	query := `SELECT claims.id,
 		issuer,
 		schema_hash,
-		schema_url,
 		schema_type,
+		schema_url,
 		other_identifier,
 		expiration,
 		updatable,
@@ -523,7 +523,8 @@ func (c *claim) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifie
 					revoked,
 					link_id, 
 					encrypted_data,
-					context_url
+					context_url, 
+					created_at
         FROM claims
         WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(), claimID).Scan(
 		&claim.ID,
@@ -547,7 +548,8 @@ func (c *claim) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifie
 		&claim.Revoked,
 		&claim.LinkID,
 		&claim.EncryptedData,
-		&claim.ContextUrl)
+		&claim.ContextUrl,
+		&claim.CreatedAt)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
@@ -590,8 +592,8 @@ func (c *claim) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn d
 	query := `SELECT claims.id,
 				   issuer,
 				   schema_hash,
-				   schema_url,
 				   schema_type,
+				   schema_url,
 				   other_identifier,
 				   expiration,
 				   updatable,
@@ -858,8 +860,8 @@ func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (q
 		"claims.id",
 		"issuer",
 		"schema_hash",
-		"schema_url",
 		"schema_type",
+		"schema_url",
 		"other_identifier",
 		"expiration",
 		"updatable",
@@ -1052,7 +1054,7 @@ func (c *claim) GetClaimsOfAConnection(ctx context.Context, conn db.Querier, ide
 			&claim.Issuer,
 			&claim.SchemaHash,
 			&claim.SchemaType,
-			&claim.SchemaHash,
+			&claim.SchemaURL,
 			&claim.OtherIdentifier,
 			&claim.Expiration,
 			&claim.Updatable,
@@ -1115,7 +1117,7 @@ func (c *claim) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, ide
 			&claim.Issuer,
 			&claim.SchemaHash,
 			&claim.SchemaType,
-			&claim.SchemaHash,
+			&claim.SchemaURL,
 			&claim.OtherIdentifier,
 			&claim.Expiration,
 			&claim.Updatable,
@@ -1177,7 +1179,7 @@ func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, d
 			&claim.Issuer,
 			&claim.SchemaHash,
 			&claim.SchemaType,
-			&claim.SchemaHash,
+			&claim.SchemaURL,
 			&claim.OtherIdentifier,
 			&claim.Expiration,
 			&claim.Updatable,

@@ -413,13 +413,27 @@ func fromClaimModelToEncryptedVC(claim domain.Claim) (*EncryptedVC, error) {
 		return nil, fmt.Errorf("getting encrypted data as map: %w", err)
 	}
 
-	return &EncryptedVC{
-		Id:      claim.ID.String(),
-		Data:    encryptedData,
-		Type:    claim.SchemaType,
-		Context: *claim.ContextUrl,
-		Proof:   proofs,
-	}, nil
+	credentialStatus, err := claim.GetCredentialStatus()
+	if err != nil {
+		return nil, fmt.Errorf("getting credential status: %w", err)
+	}
+
+	encryptedVC := &EncryptedVC{
+		Id:               claim.ID.String(),
+		Data:             encryptedData,
+		Type:             claim.SchemaType,
+		Context:          *claim.ContextUrl,
+		Proof:            proofs,
+		IssuanceDate:     TimeUTC(claim.CreatedAt),
+		CredentialStatus: *credentialStatus,
+	}
+
+	if claim.Expiration != 0 {
+		t := time.Unix(claim.Expiration, 0)
+		encryptedVC.ExpirationDate = common.ToPointer(TimeUTC(t))
+	}
+
+	return encryptedVC, nil
 }
 
 func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {

@@ -403,7 +403,10 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 		assert.Equal(t, 1, len(r))
 		claim := r[0]
 		assert.Equal(t, issuerDID.String(), claim.Issuer)
+		assert.Equal(t, "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld", claim.SchemaURL)
+		assert.Equal(t, "AuthBJJCredential", claim.SchemaType)
 		assert.Equal(t, userDID.String(), claim.OtherIdentifier)
+		assert.Equal(t, "ca938857241db9451ea329256b9c06e5", claim.SchemaHash)
 		assert.Equal(t, "encryptedData", *claim.EncryptedData)
 	})
 
