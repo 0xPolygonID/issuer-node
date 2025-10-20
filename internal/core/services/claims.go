@@ -871,13 +871,14 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 	}
 
 	var body []byte
+	messageType := protocol.CredentialIssuanceResponseMessageType
 	if claim.HasEncryptedData() {
-
 		body, err = buildEncryptedCredentialBody(ctx, claim)
 		if err != nil {
 			log.Error(ctx, "building encrypted credential body", "err", err)
 			return nil, err
 		}
+		messageType = protocol.EncryptedCredentialIssuanceResponseMessageType
 	} else {
 		vc, err := schemaPkg.FromClaimModelToW3CCredential(*claim)
 		if err != nil {
@@ -895,7 +896,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 	return &iden3comm.BasicMessage{
 		ID:       uuid.NewString(),
 		Typ:      packers.MediaTypePlainMessage,
-		Type:     protocol.CredentialIssuanceResponseMessageType,
+		Type:     messageType,
 		ThreadID: basicMessage.ThreadID,
 		Body:     body,
 		From:     basicMessage.IssuerDID.String(),
