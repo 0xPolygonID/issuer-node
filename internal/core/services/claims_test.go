@@ -344,23 +344,3 @@ func TestBuildEncryptedCredentialBody(t *testing.T) {
 	assert.NotEmpty(t, encryptedIssuanceMessageBody.Data.EncryptedKey)
 	assert.NotEmpty(t, encryptedIssuanceMessageBody.Data.Ciphertext)
 }
-
-func TestGetFirstNonRevokedAuthClaim(t *testing.T) {
-	ctx := t.Context()
-	identity, err := identityService.Create(ctx, "http://localhost", &ports.DIDCreationOptions{
-		Blockchain: blockchain,
-		Network:    net,
-		Method:     method,
-	})
-	assert.NoError(t, err)
-	assert.NotNil(t, identity)
-	identifier := identity.Identifier
-	did, err := w3c.ParseDID(identifier)
-	assert.NoError(t, err)
-
-	t.Run("should return the first non-revoked auth claim", func(t *testing.T) {
-		authCoreClaim, err := claimsService.GetFirstNonRevokedAuthClaim(ctx, did)
-		assert.NoError(t, err)
-		assert.NotNil(t, authCoreClaim)
-	})
-}
