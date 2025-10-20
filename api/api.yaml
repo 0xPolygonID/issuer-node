@@ -2615,6 +2615,24 @@ components:
         connection:
           $ref: '#/components/schemas/AuthenticationConnection'
 
+
+    CredentialStatus:
+      type: object
+      required:
+        - id
+        - revocationNonce
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        revocationNonce:
+          type: integer
+          format: uint64
+        type:
+          type: string
+          x-omitempty: false
+
     EncryptedVC:
       type: object
       required:
@@ -2623,6 +2641,8 @@ components:
         - proof
         - context
         - type
+        - issuanceDate
+        - credentialStatus
       properties:
         id:
           type: string
@@ -2645,6 +2665,17 @@ components:
         type:
           type: string
           example:  "KYCAgeCredential"
+        expirationDate:
+          $ref: '#/components/schemas/TimeUTC'
+        issuanceDate:
+          $ref: '#/components/schemas/TimeUTC'
+        credentialStatus:
+          type: object
+          x-go-type: verifiable.CredentialStatus
+          x-go-type-import:
+            name: verifiable
+            path: "github.com/iden3/go-schema-processor/v2/verifiable"
+
 
     Credential:
       type: object

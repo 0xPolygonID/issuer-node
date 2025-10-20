@@ -451,11 +451,14 @@ type DisplayMethodPaginated struct {
 
 // EncryptedVC defines model for EncryptedVC.
 type EncryptedVC struct {
-	Context string                      `json:"context"`
-	Data    protocol.JWEJSONEncryption  `json:"data"`
-	Id      string                      `json:"id"`
-	Proof   verifiable.CredentialProofs `json:"proof"`
-	Type    string                      `json:"type"`
+	Context          string                      `json:"context"`
+	CredentialStatus verifiable.CredentialStatus `json:"credentialStatus"`
+	Data             protocol.JWEJSONEncryption  `json:"data"`
+	ExpirationDate   *TimeUTC                    `json:"expirationDate"`
+	Id               string                      `json:"id"`
+	IssuanceDate     TimeUTC                     `json:"issuanceDate"`
+	Proof            verifiable.CredentialProofs `json:"proof"`
+	Type             string                      `json:"type"`
 }
 
 // GenericErrorMessage defines model for GenericErrorMessage.

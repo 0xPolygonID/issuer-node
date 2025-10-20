@@ -523,7 +523,8 @@ func (c *claim) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifie
 					revoked,
 					link_id, 
 					encrypted_data,
-					context_url
+					context_url, 
+					created_at
         FROM claims
         WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(), claimID).Scan(
 		&claim.ID,
@@ -547,7 +548,8 @@ func (c *claim) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifie
 		&claim.Revoked,
 		&claim.LinkID,
 		&claim.EncryptedData,
-		&claim.ContextUrl)
+		&claim.ContextUrl,
+		&claim.CreatedAt)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
