@@ -215,8 +215,15 @@ export function CredentialDetails() {
             </Card>
           );
         } else {
-          const { expirationDate, issuanceDate, proofTypes, revoked, schemaHash, schemaType } =
-            credential.data.data;
+          const {
+            credentialStatus,
+            expirationDate,
+            issuanceDate,
+            proofTypes,
+            revoked,
+            schemaHash,
+            schemaType,
+          } = credential.data.data;
 
           const [universalLinkResponse, deepLinkResponse] = issuedMessages.data;
 
@@ -267,13 +274,10 @@ export function CredentialDetails() {
 
                     <Detail
                       label="Revocation nonce"
-                      text={credential.data.data.credentialStatus.revocationNonce.toString()}
+                      text={credentialStatus.revocationNonce.toString()}
                     />
 
-                    <Detail
-                      label="Credential status type"
-                      text={credential.data.data.credentialStatus.type}
-                    />
+                    <Detail label="Credential status type" text={credentialStatus.type} />
 
                     <Detail
                       label="Refresh Service"
