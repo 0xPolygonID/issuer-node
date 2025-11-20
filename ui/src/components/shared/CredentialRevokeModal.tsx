@@ -30,7 +30,7 @@ export function CredentialRevokeModal({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [, setSearchParams] = useSearchParams();
 
-  const { revNonce: nonce } = credential;
+  const { revNonce: nonce } = credential.data;
 
   const handleRevokeCredential = () => {
     setIsLoading(true);

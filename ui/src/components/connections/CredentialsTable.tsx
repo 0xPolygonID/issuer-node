@@ -25,6 +25,7 @@ import { notifyErrors, notifyParseError } from "src/adapters/parsers";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
+import EncryptedIcon from "src/assets/icons/key-01.svg?react";
 import IconTrash from "src/assets/icons/trash-01.svg?react";
 import IconClose from "src/assets/icons/x.svg?react";
 import { IssueDirectlyButton } from "src/components/connections/IssueDirectlyButton";
@@ -73,13 +74,33 @@ export function CredentialsTable({ userID }: { userID: string }) {
 
   const tableColumns: TableColumnsType<Credential> = [
     {
-      dataIndex: "schemaType",
+      dataIndex: "type",
+      key: "type",
+      render: (type: Credential["type"]) =>
+        type === "encrypted" ? (
+          <Tooltip placement="topLeft" title="Encrypted credential">
+            <Avatar
+              className="avatar-color-icon"
+              icon={<EncryptedIcon />}
+              size={24}
+              style={{ backgroundColor: "transparent", padding: 1 }}
+            />
+          </Tooltip>
+        ) : null,
+      responsive: ["sm"],
+      title: "",
+      width: 48,
+    },
+    {
+      dataIndex: ["data", "schemaType"],
       ellipsis: { showTitle: false },
       key: "schemaType",
-      render: (schemaType: Credential["schemaType"], credential: Credential) => (
+      render: (schemaType: Credential["data"]["schemaType"], credential: Credential) => (
         <Typography.Link
           onClick={() =>
-            navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: credential.id }))
+            navigate(
+              generatePath(ROUTES.credentialDetails.path, { credentialID: credential.data.id })
+            )
           }
           strong
         >
@@ -87,33 +108,34 @@ export function CredentialsTable({ userID }: { userID: string }) {
         </Typography.Link>
       ),
 
-      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+      sorter: ({ data: { schemaType: a } }, { data: { schemaType: b } }) => a.localeCompare(b),
       title: "Credential",
     },
     {
-      dataIndex: "issuanceDate",
+      dataIndex: ["data", "issuanceDate"],
       key: "issuanceDate",
-      render: (issuanceDate: Credential["issuanceDate"]) => (
+      render: (issuanceDate: Credential["data"]["issuanceDate"]) => (
         <Typography.Text>{formatDate(issuanceDate)}</Typography.Text>
       ),
-      sorter: ({ issuanceDate: a }, { issuanceDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
+      sorter: ({ data: { issuanceDate: a } }, { data: { issuanceDate: b } }) =>
+        dayjs(a).unix() - dayjs(b).unix(),
       title: ISSUE_DATE,
     },
     {
-      dataIndex: "expirationDate",
+      dataIndex: ["data", "expirationDate"],
       key: "expirationDate",
-      render: (expirationDate: Credential["expirationDate"], credential: Credential) =>
+      render: (expirationDate: Credential["data"]["expirationDate"], credential: Credential) =>
         expirationDate ? (
           <Tooltip placement="topLeft" title={formatDate(expirationDate)}>
             <Typography.Text>
-              {credential.expired ? "Expired" : dayjs(expirationDate).fromNow(true)}
+              {credential.data.expired ? "Expired" : dayjs(expirationDate).fromNow(true)}
             </Typography.Text>
           </Tooltip>
         ) : (
           "-"
         ),
       responsive: ["sm"],
-      sorter: ({ expirationDate: a }, { expirationDate: b }) => {
+      sorter: ({ data: { expirationDate: a } }, { data: { expirationDate: b } }) => {
         if (a && b) {
           return dayjs(a).unix() - dayjs(b).unix();
         } else if (a) {
@@ -125,18 +147,18 @@ export function CredentialsTable({ userID }: { userID: string }) {
       title: EXPIRATION,
     },
     {
-      dataIndex: "revoked",
+      dataIndex: ["data", "revoked"],
       key: "revoked",
-      render: (revoked: Credential["revoked"]) => (
+      render: (revoked: Credential["data"]["revoked"]) => (
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
       responsive: ["md"],
       title: REVOCATION,
     },
     {
-      dataIndex: "id",
+      dataIndex: ["data", "id"],
       key: "id",
-      render: (id: Credential["id"], credential: Credential) => (
+      render: (id: Credential["data"]["id"], credential: Credential) => (
         <Dropdown
           menu={{
             items: [
@@ -153,7 +175,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
               },
               {
                 danger: true,
-                disabled: credential.revoked,
+                disabled: credential.data.revoked,
                 icon: <IconClose />,
                 key: "revoke",
                 label: REVOKE,
@@ -271,7 +293,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 ),
             }}
             pagination={false}
-            rowKey="id"
+            rowKey={(credential) => credential.data.id}
             showSorterTooltip
             sortDirections={["ascend", "descend"]}
             tableLayout="fixed"

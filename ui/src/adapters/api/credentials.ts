@@ -32,13 +32,17 @@ import {
   ProofType,
   RefreshService,
 } from "src/domain";
+import { EncryptedCredential, PlainCredential } from "src/domain/credential";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List, Resource } from "src/utils/types";
 
 // Credentials
 
-type CredentialInput = Pick<Credential, "id" | "revoked" | "schemaHash"> & {
+type PlainCredentialInput = {
+  id: string;
   proofTypes: ProofType[];
+  revoked: boolean;
+  schemaHash: string;
   vc: {
     credentialSchema: {
       id: string;
@@ -58,7 +62,7 @@ type CredentialInput = Pick<Credential, "id" | "revoked" | "schemaHash"> & {
   };
 };
 
-export const credentialParser = getStrictParser<CredentialInput, Credential>()(
+const plainCredentialParser = getStrictParser<PlainCredentialInput, PlainCredential>()(
   z
     .object({
       id: z.string(),
@@ -142,6 +146,99 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
         };
       }
     )
+);
+
+type EncryptedCredentialInput = {
+  encryptedVC: {
+    context: string;
+    credentialStatus: {
+      revocationNonce: number;
+      type: CredentialStatusType;
+    } & Record<string, unknown>;
+    expirationDate?: string | null;
+    issuanceDate: string;
+    proof?: Array<{ type: ProofType }> | null;
+    type: string;
+  };
+  id: string;
+  proofTypes: ProofType[];
+  revoked: boolean;
+  schemaHash: string;
+};
+
+const encryptedCredentialParser = getStrictParser<EncryptedCredentialInput, EncryptedCredential>()(
+  z
+    .object({
+      encryptedVC: z.object({
+        context: z.string(),
+        credentialStatus: z
+          .object({
+            revocationNonce: z.number(),
+            type: z.nativeEnum(CredentialStatusType),
+          })
+          .and(z.record(z.unknown())),
+        expirationDate: datetimeParser.nullable().default(null),
+        issuanceDate: datetimeParser,
+        proof: z
+          .array(
+            z.object({
+              type: z.nativeEnum(ProofType),
+            })
+          )
+          .nullable()
+          .default(null),
+        type: z.string(),
+      }),
+      id: z.string(),
+      proofTypes: z.array(z.nativeEnum(ProofType)),
+      revoked: z.boolean(),
+      schemaHash: z.string(),
+    })
+    .transform(
+      ({
+        encryptedVC: { context, credentialStatus, expirationDate, issuanceDate, proof, type },
+        id,
+        proofTypes,
+        revoked,
+        schemaHash,
+      }): EncryptedCredential => {
+        const expired = expirationDate ? new Date() > new Date(expirationDate) : false;
+        return {
+          context,
+          credentialStatus,
+          expirationDate,
+          expired,
+          id,
+          issuanceDate,
+          proof,
+          proofTypes,
+          revNonce: credentialStatus.revocationNonce,
+          revoked,
+          schemaHash,
+          schemaType: type,
+        };
+      }
+    )
+);
+
+export const credentialParser = getStrictParser<
+  EncryptedCredentialInput | PlainCredentialInput,
+  Credential
+>()(
+  z.union([
+    plainCredentialParser.transform(
+      (data): Credential => ({
+        data,
+        type: "plain",
+      })
+    ),
+    encryptedCredentialParser.transform(
+      (data): Credential => ({
+        data,
+        type: "encrypted",
+      })
+    ),
+  ])
 );
 
 export type CredentialStatus = "all" | "revoked" | "expired";
@@ -256,16 +353,19 @@ export async function getAuthCredentialsByIDs({
     const credentials = await Promise.all(promises);
 
     const { failed, successful } = credentials.reduce<List<AuthCredential>>(
-      (acc, credential) => {
+      (acc: List<AuthCredential>, credential: Response<Credential>): List<AuthCredential> => {
         try {
           if (credential.success) {
+            if (credential.data.type === "encrypted") {
+              return acc;
+            }
             const parsedCredentialSubject = authCredentialSubjectParser.parse({
-              x: credential.data.credentialSubject.x,
-              y: credential.data.credentialSubject.y,
+              x: credential.data.data.credentialSubject.x,
+              y: credential.data.data.credentialSubject.y,
             });
 
             const published =
-              credential.data.proof?.some(
+              credential.data.data.proof?.some(
                 ({ type }) => type === ProofType.Iden3SparseMerkleTreeProof
               ) || false;
 
@@ -274,7 +374,7 @@ export async function getAuthCredentialsByIDs({
               successful: [
                 ...acc.successful,
                 {
-                  ...credential.data,
+                  ...credential.data.data,
                   credentialSubject: { ...parsedCredentialSubject },
                   published,
                 },
