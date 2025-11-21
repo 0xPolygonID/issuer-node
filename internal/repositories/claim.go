@@ -909,7 +909,7 @@ func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (q
 		query = fmt.Sprintf("%s and schema_type like $%d", query, len(filters))
 	}
 	if filter.SchemaURL != "" {
-		filters = append(filters, fmt.Sprintf("%%%s%%", filter.SchemaURL))
+		filters = append(filters, fmt.Sprintf("%s%%", filter.SchemaURL))
 		query = fmt.Sprintf("%s and schema_url like $%d", query, len(filters))
 	}
 	if filter.Revoked != nil {

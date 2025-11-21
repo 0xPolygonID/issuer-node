@@ -741,7 +741,7 @@ paths:
           schema:
             type: string
             example: ipfs://QmYpsAHYPrNNaNc2o9SAMrPknSAYYAbse4hYxQgMP64Tvj
-          description: Filter credentials by schema URL (partial match)
+          description: Filter credentials by schema URL (begins with match)
         - in: query
           name: status
           schema:
