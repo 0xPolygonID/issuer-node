@@ -486,6 +486,12 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 		}
 		filter.Subject, filter.FTSAndCond = did.String(), true
 	}
+	if req.Params.SchemaType != nil {
+		filter.SchemaType = *req.Params.SchemaType
+	}
+	if req.Params.SchemaUrl != nil {
+		filter.SchemaURL = *req.Params.SchemaUrl
+	}
 	if req.Params.Status != nil {
 		switch GetCredentialsParamsStatus(strings.ToLower(string(*req.Params.Status))) {
 		case GetCredentialsParamsStatusRevoked:

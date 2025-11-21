@@ -731,6 +731,18 @@ paths:
             type: string
             example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
         - in: query
+          name: schemaType
+          schema:
+            type: string
+            example: UniquenessCredential
+          description: Filter credentials by schema type (partial match)
+        - in: query
+          name: schemaUrl
+          schema:
+            type: string
+            example: ipfs://QmYpsAHYPrNNaNc2o9SAMrPknSAYYAbse4hYxQgMP64Tvj
+          description: Filter credentials by schema URL (partial match)
+        - in: query
           name: status
           schema:
             type: string

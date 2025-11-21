@@ -78,6 +78,7 @@ type ClaimsFilter struct {
 	ExpiredOn       *time.Time
 	SchemaHash      string
 	SchemaType      string
+	SchemaURL       string
 	Subject         string
 	QueryField      string
 	QueryFieldValue string
