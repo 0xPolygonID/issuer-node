@@ -907,7 +907,7 @@ type GetCredentialsParams struct {
 	// SchemaType Filter credentials by schema type (partial match)
 	SchemaType *string `form:"schemaType,omitempty" json:"schemaType,omitempty"`
 
-	// SchemaUrl Filter credentials by schema URL (partial match)
+	// SchemaUrl Filter credentials by schema URL (begins with match)
 	SchemaUrl *string `form:"schemaUrl,omitempty" json:"schemaUrl,omitempty"`
 
 	// Status Credential status:
