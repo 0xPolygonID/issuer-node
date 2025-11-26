@@ -78,6 +78,12 @@ func (awsKeyProv *awsKmsEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 		KeyUsage:    types.KeyUsageTypeSignVerify,
 		Origin:      types.OriginTypeAwsKms,
 		Description: aws.String("Key from issuer node"),
+		Tags: []types.Tag{
+			{
+				Key:   aws.String("source"),
+				Value: aws.String("polygon-issuer-node"),
+			}
+		},
 	}
 
 	keyArn, err := awsKeyProv.kmsClient.CreateKey(ctx, input)

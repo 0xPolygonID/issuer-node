@@ -91,6 +91,10 @@ func (a *awsSecretStorageProvider) SaveKeyMaterial(ctx context.Context, keyMater
 				Key:   aws.String("did"),
 				Value: aws.String(keyTypesParts[0]),
 			},
+			{
+				Key:   aws.String("source"),
+				Value: aws.String("polygon-issuer-node"),
+			}
 		},
 	}
 	_, err = a.secretManager.CreateSecret(ctx, input)
