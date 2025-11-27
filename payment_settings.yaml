@@ -107,6 +107,12 @@
       Name: Amoy
       Type: Iden3PaymentRailsRequestV1
       Decimals: 18
+    - ID: 107
+      Name: Amoy ERC-20 TST
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x08FC191C84D27faf9414ec01f0804FD119e7244E
+      Features: []
+      Decimals: 6
 
 11155111: # Sepolia
   PaymentRails: 0xe317A4f1450116b2fD381446DEaB41c882D6136D
