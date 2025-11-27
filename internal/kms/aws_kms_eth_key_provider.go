@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -30,41 +28,21 @@ type awsKmsEthKeyProvider struct {
 	issuerETHTransferKeyPath string
 }
 
-// AwKmsEthKeyProviderConfig - configuration for AWS KMS Ethereum key provider
-type AwKmsEthKeyProviderConfig struct {
-	AccessKey string
-	SecretKey string
-	Region    string
-	URL       string
-}
-
 // NewAwsKMSEthKeyProvider - creates new key provider for Ethereum keys stored in AWS KMS
-func NewAwsKMSEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransferKeyPath string, awsKmsEthKeyProviderConfig AwKmsEthKeyProviderConfig) (KeyProvider, error) {
+func NewAwsKMSEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransferKeyPath string) (KeyProvider, error) {
 	keyTypeRE := regexp.QuoteMeta(string(keyType))
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" + keyTypeRE + ":([a-f0-9]{64})$")
-	cfg, err := config.LoadDefaultConfig(
-		ctx,
-		config.WithRegion(awsKmsEthKeyProviderConfig.Region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsKmsEthKeyProviderConfig.AccessKey,
-			awsKmsEthKeyProviderConfig.SecretKey, "")),
-	)
+
+	client, err := AwsKms(ctx)
+
 	if err != nil {
-		return nil, fmt.Errorf("unable to load SDK config, %v", err)
+		return nil, fmt.Errorf("failed to create AWS KMS client: %w", err)
 	}
 
-	var options []func(*kms.Options)
-	if strings.ToLower(awsKmsEthKeyProviderConfig.Region) == "local" {
-		options = make([]func(*kms.Options), 1)
-		options[0] = func(o *kms.Options) {
-			o.BaseEndpoint = aws.String(awsKmsEthKeyProviderConfig.URL)
-		}
-	}
-
-	svc := kms.NewFromConfig(cfg, options...)
 	return &awsKmsEthKeyProvider{
 		keyType:                  keyType,
 		reIdenKeyPathHex:         reIdenKeyPathHex,
-		kmsClient:                svc,
+		kmsClient:                client,
 		issuerETHTransferKeyPath: issuerETHTransferKeyPath,
 	}, nil
 }

@@ -68,10 +68,6 @@ type Config struct {
 	BJJKeyProvider           ConfigProvider
 	ETHKeyProvider           ConfigProvider
 	SOLKeyProvider           ConfigProvider
-	AWSAccessKey             string
-	AWSSecretKey             string
-	AWSRegion                string
-	AWSURL                   string
 	LocalStoragePath         string
 	Vault                    *api.Client
 	PluginIden3MountPath     string
@@ -345,12 +341,7 @@ func createBJJKeyProvider(ctx context.Context, config Config) (KeyProvider, erro
 	}
 
 	if config.BJJKeyProvider == BJJAWSSecretManagerStorage {
-		provider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-			AccessKey: config.AWSAccessKey,
-			SecretKey: config.AWSSecretKey,
-			Region:    config.AWSRegion,
-			URL:       config.AWSURL,
-		})
+		provider, err := NewAwsSecretStorageProvider(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create BabyJubJub aws key provider: %+v", err)
 		}
@@ -387,35 +378,23 @@ func createETHKeyProvider(ctx context.Context, config Config) (KeyProvider, erro
 	}
 
 	if config.ETHKeyProvider == ETHAWSSecretManagerStorage {
-		if config.AWSAccessKey == "" || config.AWSSecretKey == "" || config.AWSRegion == "" {
-			return nil, errors.New("AWS secret manager access key, secret key and region have to be provided")
-		}
-		provider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-			AccessKey: config.AWSAccessKey,
-			SecretKey: config.AWSSecretKey,
-			Region:    config.AWSRegion,
-			URL:       config.AWSURL,
-		})
+		provider, err := NewAwsSecretStorageProvider(ctx)
+
 		if err != nil {
 			return nil, fmt.Errorf("cannot create Ethereum aws key provider: %+v", err)
 		}
+
 		ethKeyProvider = NewLocalEthKeyProvider(KeyTypeEthereum, provider)
 		log.Info(ctx, "Ethereum key provider created", "provider:", ETHAWSSecretManagerStorage)
 	}
 
 	if config.ETHKeyProvider == ETHAwsKmsKeyProvider {
-		if config.AWSAccessKey == "" || config.AWSSecretKey == "" || config.AWSRegion == "" {
-			return nil, errors.New("AWS KMS access key, secret key and region have to be provided")
-		}
-		ethKeyProvider, err = NewAwsKMSEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath, AwKmsEthKeyProviderConfig{
-			AccessKey: config.AWSAccessKey,
-			SecretKey: config.AWSSecretKey,
-			Region:    config.AWSRegion,
-			URL:       config.AWSURL,
-		})
+		ethKeyProvider, err = NewAwsKMSEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath)
+
 		if err != nil {
 			return nil, fmt.Errorf("cannot create Ethereum aws kms key provider: %+v", err)
 		}
+
 		log.Info(ctx, "Ethereum key provider created", "provider:", ETHAwsKmsKeyProvider)
 	}
 
@@ -440,12 +419,7 @@ func createSOLKeyProvider(ctx context.Context, config Config) (KeyProvider, erro
 	}
 
 	if config.SOLKeyProvider == SOLAWSSecretManagerStorage {
-		provider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-			AccessKey: config.AWSAccessKey,
-			SecretKey: config.AWSSecretKey,
-			Region:    config.AWSRegion,
-			URL:       config.AWSURL,
-		})
+		provider, err := NewAwsSecretStorageProvider(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create SOL aws key provider: %+v", err)
 		}

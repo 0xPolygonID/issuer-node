@@ -240,6 +240,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 		log.Error(ctx, "loading credentials", "err", err, "req", request)
 		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
+
 	response := make([]Credential, len(credentials))
 	var credentialToAdd Credential
 	for i, credential := range credentials {

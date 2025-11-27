@@ -20,12 +20,7 @@ func Test_New_LocalETHProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 	t.Run("should generate a new keyID using local storage manager", func(t *testing.T) {
 		localETHKeyProvider := NewLocalEthKeyProvider(KeyTypeEthereum, ls)
@@ -82,12 +77,7 @@ func Test_LinkToIdentity_LocalETHKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 	t.Run("should link key to identity using local storage manager", func(t *testing.T) {
 		localETHKeyProvider := NewLocalEthKeyProvider(KeyTypeEthereum, ls)
@@ -126,12 +116,7 @@ func Test_ListByIdentity_LocalETHKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 	t.Run("should list keys by identity using local storage manager", func(t *testing.T) {
 		localETHKeyProvider := NewLocalEthKeyProvider(KeyTypeEthereum, ls)
@@ -180,12 +165,7 @@ func Test_PublicKey_LocalETHKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should get public key using local storage manager", func(t *testing.T) {
@@ -237,12 +217,7 @@ func Test_Sign_LocalETHKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	data := make([]byte, 32)

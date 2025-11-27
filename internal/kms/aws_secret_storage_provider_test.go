@@ -12,12 +12,7 @@ import (
 
 func Test_SaveKeyMaterial(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should save key bjj material", func(t *testing.T) {
@@ -74,12 +69,7 @@ func Test_SaveKeyMaterial(t *testing.T) {
 
 func Test_searchByIdentity(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should get identity for BJJ", func(t *testing.T) {
@@ -135,12 +125,7 @@ func Test_searchByIdentity(t *testing.T) {
 
 func Test_searchPrivateKey(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should get private key for BJJ", func(t *testing.T) {
@@ -224,12 +209,7 @@ func Test_searchPrivateKey(t *testing.T) {
 
 func Test_getKeyMaterial(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should get key material for bjj", func(t *testing.T) {
@@ -264,12 +244,7 @@ func Test_getKeyMaterial(t *testing.T) {
 
 func Test_deleteKeyMaterial(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should delete key material for bjj", func(t *testing.T) {

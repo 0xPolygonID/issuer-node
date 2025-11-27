@@ -146,10 +146,6 @@ type KeyStore struct {
 	ETHProvider                  string `env:"ISSUER_KMS_ETH_PROVIDER"`
 	SOLProvider                  string `env:"ISSUER_KMS_SOL_PROVIDER"`
 	ProviderLocalStorageFilePath string `env:"ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH"`
-	AWSAccessKey                 string `env:"ISSUER_KMS_AWS_ACCESS_KEY"`
-	AWSSecretKey                 string `env:"ISSUER_KMS_AWS_SECRET_KEY"`
-	AWSRegion                    string `env:"ISSUER_KMS_AWS_REGION"`
-	AWSURL                       string `env:"ISSUER_KMS_AWS_URL" envDefault:"http://localstack:4566"`
 	VaultUserPassAuthEnabled     bool   `env:"ISSUER_VAULT_USERPASS_AUTH_ENABLED"`
 	VaultUserPassAuthPassword    string `env:"ISSUER_VAULT_USERPASS_AUTH_PASSWORD"`
 	TLSEnabled                   bool   `env:"ISSUER_VAULT_TLS_ENABLED"`
@@ -367,17 +363,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 	}
 
 	if cfg.KeyStore.ETHProvider == AWSSM || cfg.KeyStore.ETHProvider == AWSKMS || cfg.KeyStore.BJJProvider == AWSSM || cfg.KeyStore.SOLProvider == AWSSM {
-		if cfg.KeyStore.AWSAccessKey == "" {
-			log.Error(ctx, "ISSUER_AWS_KEY_ID value is missing")
-			return errors.New("ISSUER_AWS_KEY_ID value is missing")
-		}
-		if cfg.KeyStore.AWSSecretKey == "" {
-			log.Error(ctx, "ISSUER_AWS_SECRET_KEY value is missing")
-			return errors.New("ISSUER_AWS_SECRET_KEY value is missing")
-		}
-		if cfg.KeyStore.AWSRegion == "" {
-			log.Error(ctx, "ISSUER_AWS_REGION value is missing")
-			return errors.New("ISSUER_AWS_REGION value is missing")
+		_, err := kms.LoadAWSConfig(ctx)
+
+		if err != nil {
+			log.Error(ctx, "AWS configuration loading failed", "err", err)
+			return fmt.Errorf("failed to load AWS configuration: %w", err)
 		}
 	}
 
@@ -415,10 +405,6 @@ func KeyStoreConfig(ctx context.Context, cfg *Configuration, vaultCfg providers.
 		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJProvider),
 		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHProvider),
 		SOLKeyProvider:           kms.ConfigProvider(cfg.KeyStore.SOLProvider),
-		AWSAccessKey:             cfg.KeyStore.AWSAccessKey,
-		AWSSecretKey:             cfg.KeyStore.AWSSecretKey,
-		AWSRegion:                cfg.KeyStore.AWSRegion,
-		AWSURL:                   cfg.KeyStore.AWSURL,
 		LocalStoragePath:         cfg.KeyStore.ProviderLocalStorageFilePath,
 		Vault:                    vaultCli,
 		PluginIden3MountPath:     cfg.KeyStore.PluginIden3MountPath,
