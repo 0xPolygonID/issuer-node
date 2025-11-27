@@ -233,6 +233,13 @@ func TestLoadCacheProvider(t *testing.T) {
 	cfg, err := Load()
 	assert.NoError(t, err)
 	assert.Equal(t, "redis", cfg.Cache.Provider)
+	assert.Equal(t, false, cfg.Cache.TLS)
+
+	envVars["ISSUER_CACHE_TLS"] = "true"
+	loadEnvironmentVariables(t, envVars)
+	cfg, err = Load()
+	assert.NoError(t, err)
+	assert.Equal(t, true, cfg.Cache.TLS)
 
 	envVars["ISSUER_CACHE_URL"] = ""
 	loadEnvironmentVariables(t, envVars)
@@ -274,6 +281,7 @@ func initVariables(t *testing.T) envVarsT {
 		"ISSUER_MEDIA_TYPE_MANAGER_ENABLED":           "true",
 		"ISSUER_CACHE_PROVIDER":                       "redis",
 		"ISSUER_CACHE_URL":                            "redis://@localhost:6379/1",
+		"ISSUER_CACHE_TLS":                            "false",
 	}
 	return envVars
 }

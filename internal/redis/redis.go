@@ -2,16 +2,24 @@ package redis
 
 import (
 	"context"
+	"crypto/tls"
 
 	"github.com/go-redis/redis/v8"
 )
 
 // Open opens a connection to redis and returns it
-func Open(ctx context.Context, url string) (*redis.Client, error) {
+func Open(ctx context.Context, url string, tls bool) (*redis.Client, error) {
 	opts, err := redis.ParseURL(url)
 	if err != nil {
 		return nil, err
 	}
+
+	if tls {
+		opts.TLSConfig = &tls.Config{
+			InsecureSkipVerify: false, // true only if you want to test self-signed certificates
+		}
+	}
+
 	rdb := redis.NewClient(opts)
 	if err := Status(ctx, rdb); err != nil {
 		return nil, err

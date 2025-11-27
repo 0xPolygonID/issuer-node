@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"time"
+	"crypto/tls"
 
 	"github.com/valkey-io/valkey-go"
 
@@ -32,20 +33,29 @@ type Cache interface {
 func NewCacheClient(ctx context.Context, cfg config.Configuration) (Cache, error) {
 	var cachex Cache
 	if cfg.Cache.Provider == config.CacheProviderRedis {
-		rdb, err := redis.Open(ctx, cfg.Cache.Url)
+		rdb, err := redis.Open(ctx, cfg.Cache.Url, cfg.Cache.TLS)
 		if err != nil {
 			log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.Url)
 			return nil, err
 		}
 		cachex = NewRedisCache(rdb)
 	} else if cfg.Cache.Provider == config.CacheProviderValKey {
-		client, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{cfg.Cache.Url}})
+		opts := []valkey.ClientOption{
+			InitAddress: []string{cfg.Cache.Url},
+		}
+
+		if cfg.Cache.TLS {
+			opts.TLSConfig = &tls.Config{}
+		}
+
+		client, err := valkey.NewClient(opts)
+
 		if err != nil {
 			log.Error(ctx, "cannot connect to valkey", "err", err, "host", cfg.Cache.Url)
 			return nil, err
 		}
-		cachex = NewValKeyCache(client)
 
+		cachex = NewValKeyCache(client)
 	}
 
 	return cachex, nil
