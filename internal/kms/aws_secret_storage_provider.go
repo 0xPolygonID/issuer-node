@@ -120,7 +120,7 @@ func (a *awsSecretStorageProvider) searchByIdentity(ctx context.Context, identit
 
 	keyIDs := make([]KeyID, 0)
 	for _, secret := range result.SecretList {
-		if secret.Tags == nil || len(secret.Tags) != 2 {
+		if secret.Tags == nil {
 			continue
 		}
 		if aws.ToString(secret.Tags[0].Value) != keyTypeToRead {
