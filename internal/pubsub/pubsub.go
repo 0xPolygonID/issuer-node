@@ -52,7 +52,7 @@ func NewPubSub(ctx context.Context, cfg config.Configuration) (Client, error) {
 		}
 		ps = NewRedis(rdb)
 	} else if cfg.Cache.Provider == config.CacheProviderValKey {
-		opts = := []valkey.ClientOption{
+		opts := valkey.ClientOption{
 			InitAddress: []string{cfg.Cache.Url},
 		}
 

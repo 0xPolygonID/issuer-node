@@ -2,8 +2,8 @@ package cache
 
 import (
 	"context"
-	"time"
 	"crypto/tls"
+	"time"
 
 	"github.com/valkey-io/valkey-go"
 
@@ -40,7 +40,7 @@ func NewCacheClient(ctx context.Context, cfg config.Configuration) (Cache, error
 		}
 		cachex = NewRedisCache(rdb)
 	} else if cfg.Cache.Provider == config.CacheProviderValKey {
-		opts := []valkey.ClientOption{
+		opts := valkey.ClientOption{
 			InitAddress: []string{cfg.Cache.Url},
 		}
 

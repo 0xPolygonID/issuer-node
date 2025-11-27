@@ -8,13 +8,13 @@ import (
 )
 
 // Open opens a connection to redis and returns it
-func Open(ctx context.Context, url string, tls bool) (*redis.Client, error) {
+func Open(ctx context.Context, url string, tlsEnabled bool) (*redis.Client, error) {
 	opts, err := redis.ParseURL(url)
 	if err != nil {
 		return nil, err
 	}
 
-	if tls {
+	if tlsEnabled {
 		opts.TLSConfig = &tls.Config{
 			InsecureSkipVerify: false, // true only if you want to test self-signed certificates
 		}
