@@ -29,7 +29,7 @@ require (
 	github.com/iden3/contracts-abi/state/go/abi v1.1.0
 	github.com/iden3/driver-did-iden3 v0.0.17
 	github.com/iden3/go-circuits/v2 v2.4.3
-	github.com/iden3/go-iden3-auth/v2 v2.7.6
+	github.com/iden3/go-iden3-auth/v2 v2.7.7
 	github.com/iden3/go-iden3-core/v2 v2.4.0
 	github.com/iden3/go-iden3-crypto v0.0.17
 	github.com/iden3/go-jwz/v2 v2.2.5
@@ -50,7 +50,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/gommon v0.4.2
-	github.com/lestrrat-go/jwx/v3 v3.0.12
+	github.com/lestrrat-go/jwx/v3 v3.0.10
 	github.com/lib/pq v1.10.9
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mr-tron/base58 v1.2.0
@@ -235,8 +235,6 @@ require (
 	github.com/ldez/usetesting v0.4.2 // indirect
 	github.com/leonklingele/grouper v1.1.2 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
-	github.com/lestrrat-go/dsig v1.0.0 // indirect
-	github.com/lestrrat-go/dsig-secp256k1 v1.0.0 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/httprc/v3 v3.0.1 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
