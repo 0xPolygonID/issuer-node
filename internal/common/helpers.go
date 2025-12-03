@@ -1,6 +1,8 @@
 package common
 
-import "strings"
+import (
+	"github.com/mr-tron/base58"
+)
 
 // ToPointer is a helper function to create a pointer to a value.
 // x := &5 doesn't compile
@@ -24,15 +26,12 @@ func CopyMap(m map[string]interface{}) map[string]interface{} {
 	return cp
 }
 
-// ReplaceCharacters - Raplace the  n-3  characters of a string with *
-func ReplaceCharacters(input string) string {
-	length := len(input)
-	numberOfchars := 3
-	if length <= numberOfchars {
-		return input
+// IsSolanaAddress checks if the given address is a valid Solana address.
+func IsSolanaAddress(addr string) bool {
+	decoded, err := base58.Decode(addr)
+	if err != nil {
+		return false
 	}
-
-	replacePart := strings.Repeat("*", length-numberOfchars)
-	lastThree := input[length-3:]
-	return replacePart + lastThree
+	const expectedLength = 32 // Solana addresses are 32 bytes long
+	return len(decoded) == expectedLength
 }

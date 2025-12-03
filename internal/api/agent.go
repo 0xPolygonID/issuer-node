@@ -44,6 +44,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 			log.Error(ctx, "agent error", "err", err)
 			return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 		}
+
 	default:
 		log.Error(ctx, "agent error", "err", "type is not supported", basicMessage.Type)
 	}

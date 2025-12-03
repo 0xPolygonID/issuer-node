@@ -1,4 +1,4 @@
-import { Attribute, JsonSchema, ObjectAttribute } from "src/domain";
+import { JsonSchema, ObjectAttribute } from "src/domain";
 
 export function extractCredentialSubjectAttribute(
   jsonSchema: JsonSchema
@@ -28,79 +28,4 @@ export function extractCredentialSubjectAttributeWithoutId(
       },
     }
   );
-}
-
-export function makeAttributeOptional(attribute: Attribute): Attribute {
-  const { name, type } = attribute;
-  switch (type) {
-    case "boolean": {
-      return {
-        name,
-        required: false,
-        schema: attribute.schema,
-        type,
-      };
-    }
-    case "integer": {
-      return { name, required: false, schema: attribute.schema, type };
-    }
-    case "null": {
-      return { name, required: false, schema: attribute.schema, type };
-    }
-    case "number": {
-      return { name, required: false, schema: attribute.schema, type };
-    }
-    case "string": {
-      return { name, required: false, schema: attribute.schema, type };
-    }
-    case "array": {
-      return {
-        name,
-        required: false,
-        schema: {
-          ...attribute.schema,
-          attribute:
-            attribute.schema.attribute && makeAttributeOptional(attribute.schema.attribute),
-        },
-        type,
-      };
-    }
-    case "object": {
-      return {
-        name,
-        required: false,
-        schema: {
-          ...attribute.schema,
-          attributes: attribute.schema.attributes?.map(makeAttributeOptional),
-        },
-        type,
-      };
-    }
-    case "multi": {
-      return {
-        name,
-        required: false,
-        schemas: attribute.schemas.map((schema) => {
-          switch (schema.type) {
-            case "object": {
-              return {
-                ...schema,
-                attributes: schema.attributes?.map(makeAttributeOptional),
-              };
-            }
-            case "array": {
-              return {
-                ...schema,
-                attributes: schema.attribute && makeAttributeOptional(schema.attribute),
-              };
-            }
-            default: {
-              return schema;
-            }
-          }
-        }),
-        type,
-      };
-    }
-  }
 }

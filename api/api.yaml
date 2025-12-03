@@ -731,6 +731,18 @@ paths:
             type: string
             example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
         - in: query
+          name: schemaType
+          schema:
+            type: string
+            example: UniquenessCredential
+          description: Filter credentials by schema type (partial match)
+        - in: query
+          name: schemaUrl
+          schema:
+            type: string
+            example: ipfs://QmYpsAHYPrNNaNc2o9SAMrPknSAYYAbse4hYxQgMP64Tvj
+          description: Filter credentials by schema URL (begins with match)
+        - in: query
           name: status
           schema:
             type: string
@@ -2553,6 +2565,22 @@ components:
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+        encryptionKey:
+          type: object
+          x-omitempty: true
+          example:
+            EncryptionKey:
+              summary: Encryption Key
+              value:
+                alg: "ECDH-ES+A256KW"
+                crv: "P-256"
+                kid: "tu-kid"
+                kty: "EC"
+                use: "enc"
+                x: "8UfTxPvmMFAPuqwtxaRWrWmihC_7uYF2rEnxa4lLQ_s"
+                y: "M4PFcNXKyyRJ3zNPg19FlB6O0Tlbqs8euRcflpbDtcE"
+                
+
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
@@ -2599,6 +2627,51 @@ components:
         connection:
           $ref: '#/components/schemas/AuthenticationConnection'
 
+
+    EncryptedVC:
+      type: object
+      required:
+        - id
+        - data
+        - proof
+        - context
+        - type
+        - issuanceDate
+        - credentialStatus
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        data:
+          type: object
+          x-go-type: protocol.JWEJSONEncryption
+          x-go-type-import:
+            name: protocol
+            path: "github.com/iden3/iden3comm/v2/protocol"
+        proof:
+          type: object
+          x-go-type: verifiable.CredentialProofs
+          x-go-type-import:
+            name: verifiable
+            path: "github.com/iden3/go-schema-processor/v2/verifiable"
+        context:
+          type: string
+          example: "https://www.w3.org/2018/credentials/examples/v1"
+        type:
+          type: string
+          example:  "KYCAgeCredential"
+        expirationDate:
+          $ref: '#/components/schemas/TimeUTC'
+        issuanceDate:
+          $ref: '#/components/schemas/TimeUTC'
+        credentialStatus:
+          type: object
+          x-go-type: verifiable.CredentialStatus
+          x-go-type-import:
+            name: verifiable
+            path: "github.com/iden3/go-schema-processor/v2/verifiable"
+
+
     Credential:
       type: object
       required:
@@ -2606,7 +2679,6 @@ components:
         - proofTypes
         - revoked
         - schemaHash
-        - vc
       properties:
         id:
           type: string
@@ -2628,6 +2700,9 @@ components:
           x-go-type-import:
             name: verifiable
             path: "github.com/iden3/go-schema-processor/v2/verifiable"
+        encryptedVC:
+            $ref: '#/components/schemas/EncryptedVC'
+
 
     AuthenticationResponse:
       type: object
@@ -2737,6 +2812,7 @@ components:
           type: string
           example: "did:iden3:polygon:amoy:2qVSDLNYs2s5HDMTyb4Su67ZvrZ..."
           description: If a User DID is provided, the payment will be verified for the specified User DID.
+
 
     BasicMessage:
       type: object

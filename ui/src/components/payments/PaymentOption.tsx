@@ -288,7 +288,7 @@ export function PaymentOption() {
                 title="Edit payment option"
               >
                 <PaymentOptionForm
-                  initialValies={{
+                  initialValues={{
                     description: paymentOption.data.description,
                     name: paymentOption.data.name,
                     paymentOptions: paymentOption.data.paymentOptions

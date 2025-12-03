@@ -98,7 +98,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	}
 
 	req := ports.NewCreateClaimRequest(did, request.Body.ClaimID, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, *credentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
-		toVerifiableDisplayMethod(request.Body.DisplayMethod))
+		toVerifiableDisplayMethod(request.Body.DisplayMethod), (*ports.EncryptionKey)(request.Body.EncryptionKey))
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -241,13 +241,24 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	response := make([]Credential, len(credentials))
+	var credentialToAdd Credential
 	for i, credential := range credentials {
-		w3c, err := schema.FromClaimModelToW3CCredential(*credential)
-		if err != nil {
-			log.Error(ctx, "creating credentials response", "err", err, "req", request)
-			return GetCredentials500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
+		if credential.HasEncryptedData() {
+			encryptedVC, err := fromClaimModelToEncryptedVC(*credential)
+			if err != nil {
+				log.Error(ctx, "creating credentials response with encrypted vc", "err", err, "req", request)
+				return GetCredentials500JSONResponse{N500JSONResponse{"Invalid encrypted claim format"}}, nil
+			}
+			credentialToAdd = toGetCredentialWithEncryptedVC200Response(encryptedVC, credential)
+		} else {
+			w3c, err := schema.FromClaimModelToW3CCredential(*credential)
+			if err != nil {
+				log.Error(ctx, "creating credentials response", "err", err, "req", request)
+				return GetCredentials500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
+			}
+			credentialToAdd = toGetCredential200Response(w3c, credential)
 		}
-		response[i] = toGetCredential200Response(w3c, credential)
+		response[i] = credentialToAdd
 	}
 
 	resp := GetCredentials200JSONResponse{
@@ -292,11 +303,18 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 		return GetCredential500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
+	if claim.HasEncryptedData() {
+		encryptedVC, err := fromClaimModelToEncryptedVC(*claim)
+		if err != nil {
+			return GetCredential500JSONResponse{N500JSONResponse{"invalid encrypted claim format"}}, nil
+		}
+		return GetCredential200JSONResponse(toGetCredentialWithEncryptedVC200Response(encryptedVC, claim)), nil
+	}
+
 	w3c, err := schema.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
 		return GetCredential500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
 	}
-
 	return GetCredential200JSONResponse(toGetCredential200Response(w3c, claim)), nil
 }
 
@@ -374,6 +392,50 @@ func (s *Server) validateStatusType(ctx context.Context, did *w3c.DID, credentia
 	return &credentialStatusType, nil
 }
 
+// fromClaimModelToEncryptedVC transforms a claim model to an encrypted verifiable credential
+// it returns an error if the claim does not have encrypted data.
+// The function assumes that the claim has valid data, context url and proofs.
+func fromClaimModelToEncryptedVC(claim domain.Claim) (*EncryptedVC, error) {
+	if claim.EncryptedData == nil {
+		return nil, fmt.Errorf("encrypted data is not set")
+	}
+	if claim.ContextUrl == nil {
+		return nil, fmt.Errorf("context url is not set")
+	}
+
+	proofs, err := claim.GetVerifiableProofs()
+	if err != nil {
+		return nil, fmt.Errorf("getting verifiable proofs: %w", err)
+	}
+
+	encryptedData, err := claim.GetEncryptedDataAsMap()
+	if err != nil {
+		return nil, fmt.Errorf("getting encrypted data as map: %w", err)
+	}
+
+	credentialStatus, err := claim.GetCredentialStatus()
+	if err != nil {
+		return nil, fmt.Errorf("getting credential status: %w", err)
+	}
+
+	encryptedVC := &EncryptedVC{
+		Id:               claim.ID.String(),
+		Data:             encryptedData,
+		Type:             claim.SchemaType,
+		Context:          *claim.ContextUrl,
+		Proof:            proofs,
+		IssuanceDate:     TimeUTC(claim.CreatedAt),
+		CredentialStatus: *credentialStatus,
+	}
+
+	if claim.Expiration != 0 {
+		t := time.Unix(claim.Expiration, 0)
+		encryptedVC.ExpirationDate = common.ToPointer(TimeUTC(t))
+	}
+
+	return encryptedVC, nil
+}
+
 func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
 	if s == nil {
 		return nil
@@ -396,11 +458,21 @@ func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
 
 func toGetCredential200Response(w3cCredential *verifiable.W3CCredential, cred *domain.Claim) Credential {
 	return Credential{
-		Vc:         *w3cCredential,
+		Vc:         w3cCredential,
 		Id:         cred.ID.String(),
 		Revoked:    cred.Revoked,
 		SchemaHash: cred.SchemaHash,
 		ProofTypes: getProofs(cred),
+	}
+}
+
+func toGetCredentialWithEncryptedVC200Response(encryptedVC *EncryptedVC, cred *domain.Claim) Credential {
+	return Credential{
+		EncryptedVC: encryptedVC,
+		Id:          cred.ID.String(),
+		Revoked:     cred.Revoked,
+		SchemaHash:  cred.SchemaHash,
+		ProofTypes:  getProofs(cred),
 	}
 }
 
@@ -413,6 +485,12 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 			return nil, errors.New("cannot parse did parameter: wrong format")
 		}
 		filter.Subject, filter.FTSAndCond = did.String(), true
+	}
+	if req.Params.SchemaType != nil {
+		filter.SchemaType = *req.Params.SchemaType
+	}
+	if req.Params.SchemaUrl != nil {
+		filter.SchemaURL = *req.Params.SchemaUrl
 	}
 	if req.Params.Status != nil {
 		switch GetCredentialsParamsStatus(strings.ToLower(string(*req.Params.Status))) {

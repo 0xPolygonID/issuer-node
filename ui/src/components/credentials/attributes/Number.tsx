@@ -22,7 +22,11 @@ export function Number({
       name={["credentialSubject", ...parents.map((parent) => parent.name), attribute.name]}
       rules={[{ message: VALUE_REQUIRED, required: attribute.required }]}
       tooltip={{
-        icon: <IconInfoCircle style={{ width: 14 }} />,
+        icon: (
+          <span>
+            <IconInfoCircle style={{ width: 14 }} />
+          </span>
+        ),
         placement: "right",
         title: attribute.schema.description,
       }}

@@ -778,18 +778,6 @@ function objectToObjectAttributeValue({
 }): ObjectAttributeValue {
   const { name, required, schema, type } = objectAttribute;
 
-  // make sure all required properties of the objectAttribute are present in the object
-  objectAttribute.schema.attributes?.forEach((attribute) => {
-    const missing = attribute.required && Object.keys(object).includes(attribute.name) === false;
-    if (missing) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        fatal: true,
-        message: `Could not find the schema's required property "${attribute.name}" in the attribute "${name}".`,
-      });
-    }
-  });
-
   return {
     name,
     required,

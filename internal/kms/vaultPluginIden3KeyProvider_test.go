@@ -141,7 +141,11 @@ func getETHPrivateKey(t testing.TB, cli *api.Client, keyPath keyPathT) *ecdsa.Pr
 	require.NoError(t, err)
 	require.Equal(t, "ethereum", data[jsonKeyType])
 
-	keyBytes, err := hex.DecodeString(data["private_key"].(string))
+	pKey, ok := data["private_key"].(string)
+	require.True(t, ok)
+	require.NotEmpty(t, pKey)
+
+	keyBytes, err := hex.DecodeString(pKey)
 	require.NoError(t, err)
 	privKey, err := crypto.ToECDSA(keyBytes)
 	require.NoError(t, err)

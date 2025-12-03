@@ -62,10 +62,7 @@ import {
   URL_FIELD_ERROR_MESSAGE,
   VALUE_REQUIRED,
 } from "src/utils/constants";
-import {
-  extractCredentialSubjectAttributeWithoutId,
-  makeAttributeOptional,
-} from "src/utils/jsonSchemas";
+import { extractCredentialSubjectAttributeWithoutId } from "src/utils/jsonSchemas";
 
 function addErrorToPath(inputErrors: InputErrors, path: string[], error: string): InputErrors {
   const key = path[0];
@@ -169,7 +166,7 @@ export function IssueCredentialForm({
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
     if (isAsyncTaskDataAvailable(jsonSchema)) {
       const serializedSchemaForm = serializeSchemaForm({
-        attribute: makeAttributeOptional(objectAttribute),
+        attribute: objectAttribute,
         value,
       });
 

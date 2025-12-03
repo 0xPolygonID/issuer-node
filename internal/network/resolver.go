@@ -178,10 +178,7 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 			}
 			supportedContracts[resolverPrefixKey] = stateContract
 
-			stateResolvers[resolverPrefixKey] = state.ETHResolver{
-				RPCUrl:          networkSettings.NetworkURL,
-				ContractAddress: common.HexToAddress(networkSettings.ContractAddress),
-			}
+			stateResolvers[resolverPrefixKey] = state.NewETHResolver(networkSettings.NetworkURL, networkSettings.ContractAddress)
 		}
 		supportedNetworks = append(supportedNetworks, supportedNetwork)
 

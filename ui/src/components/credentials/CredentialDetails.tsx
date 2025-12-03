@@ -17,7 +17,13 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIdentityContext } from "src/contexts/Identity";
-import { AppError, Credential, IssuedMessage, ObjectAttributeValue } from "src/domain";
+import {
+  AppError,
+  Credential,
+  IssuedMessage,
+  ObjectAttributeValue,
+  PlainCredential,
+} from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -56,7 +62,7 @@ export function CredentialDetails() {
   const [showRevokeModal, setShowRevokeModal] = useState<boolean>(false);
 
   const fetchJsonSchemaFromUrl = useCallback(
-    ({ credential }: { credential: Credential }): void => {
+    ({ credential }: { credential: PlainCredential }): void => {
       setCredentialSubjectValue({ status: "loading" });
 
       void getJsonSchemaFromUrl({ env, url: credential.schemaUrl }).then((response) => {
@@ -140,7 +146,9 @@ export function CredentialDetails() {
 
         if (response.success) {
           setCredential({ data: response.data, status: "successful" });
-          fetchJsonSchemaFromUrl({ credential: response.data });
+          if (response.data.type === "plain") {
+            fetchJsonSchemaFromUrl({ credential: response.data.data });
+          }
           fetchCredentialIssuedMessages(signal);
         } else {
           if (!isAbortedError(response.error)) {
@@ -162,7 +170,9 @@ export function CredentialDetails() {
 
   const loading =
     isAsyncTaskStarting(credential) ||
-    isAsyncTaskStarting(credentialSubjectValue) ||
+    (isAsyncTaskDataAvailable(credential) &&
+      credential.data.type === "plain" &&
+      isAsyncTaskStarting(credentialSubjectValue)) ||
     isAsyncTaskStarting(issuedMessages);
 
   return (
@@ -207,16 +217,13 @@ export function CredentialDetails() {
         } else {
           const {
             credentialStatus,
-            displayMethod,
             expirationDate,
             issuanceDate,
             proofTypes,
-            refreshService,
             revoked,
             schemaHash,
             schemaType,
-            userID,
-          } = credential.data;
+          } = credential.data.data;
 
           const [universalLinkResponse, deepLinkResponse] = issuedMessages.data;
 
@@ -274,20 +281,38 @@ export function CredentialDetails() {
 
                     <Detail
                       label="Refresh Service"
-                      text={refreshService ? refreshService.id : "-"}
+                      text={
+                        credential.data.type === "plain"
+                          ? credential.data.data.refreshService
+                            ? credential.data.data.refreshService.id
+                            : "-"
+                          : "(encrypted)"
+                      }
                     />
 
                     <Detail
-                      copyable={!!displayMethod}
+                      copyable={
+                        !!(credential.data.type === "plain" && credential.data.data.displayMethod)
+                      }
                       label="Display Method"
-                      text={displayMethod ? displayMethod.id : "-"}
+                      text={
+                        credential.data.type === "plain"
+                          ? credential.data.data.displayMethod
+                            ? credential.data.data.displayMethod.id
+                            : "-"
+                          : "(encrypted)"
+                      }
                     />
 
                     <Detail
-                      copyable
+                      copyable={credential.data.type === "plain"}
                       ellipsisPosition={5}
                       label="Issued to identifier"
-                      text={userID}
+                      text={
+                        credential.data.type === "plain"
+                          ? credential.data.data.userID
+                          : "(encrypted)"
+                      }
                     />
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
@@ -314,10 +339,19 @@ export function CredentialDetails() {
                   <Space direction="vertical" size="middle">
                     <Typography.Text type="secondary">ATTRIBUTES</Typography.Text>
 
-                    <ObjectAttributeValueTree
-                      attributeValue={credentialSubjectValue.data}
-                      className="background-grey"
-                    />
+                    {isAsyncTaskDataAvailable(credential) &&
+                      credential.data.type === "encrypted" && (
+                        <Typography.Text type="secondary">
+                          Attribute values are hidden because the credential data is encrypted
+                        </Typography.Text>
+                      )}
+
+                    {isAsyncTaskDataAvailable(credentialSubjectValue) && (
+                      <ObjectAttributeValueTree
+                        attributeValue={credentialSubjectValue.data}
+                        className="background-grey"
+                      />
+                    )}
                   </Space>
                 </Card>
               </Space>

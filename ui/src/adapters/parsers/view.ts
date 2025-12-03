@@ -24,8 +24,8 @@ import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
 // Types
 
-type FormLiteral = string | number | boolean | null | undefined;
-type FormLiteralInput = FormLiteral | dayjs.Dayjs;
+type FormLiteral = string | number | boolean | undefined;
+type FormLiteralInput = FormLiteral | null | dayjs.Dayjs;
 type FormInput = { [key: string]: FormLiteralInput | FormInput };
 
 type CredentialIssuance = {
@@ -126,7 +126,7 @@ const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteral>()(
     z.string(),
     z.number(),
     z.boolean(),
-    z.null(),
+    z.null().transform(() => undefined),
     z.undefined(),
     dayjsInstanceParser.transform((value) =>
       value.isValid() ? serializeDate(value, "date-time") : undefined
@@ -403,11 +403,16 @@ function serializeAttributeValue({
     }
     case "object": {
       return attributeValue.value !== undefined
-        ? attributeValue.value.reduce((acc: JsonObject | undefined, curr) => {
-            const value = serializeAttributeValue({ attributeValue: curr });
-            return value !== undefined ? { ...acc, [curr.name]: value } : acc;
-          }, undefined)
-        : undefined;
+        ? attributeValue.value.reduce(
+            (acc: JsonObject | undefined, curr) => {
+              const value = serializeAttributeValue({ attributeValue: curr });
+              return value !== undefined ? { ...acc, [curr.name]: value } : acc;
+            },
+            attributeValue.required ? {} : undefined
+          )
+        : attributeValue.required
+          ? {}
+          : undefined;
     }
     case "null": {
       return attributeValue.value;

@@ -10,9 +10,7 @@ on:
 env:
   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-  ECR_REPOSITORY: ${{vars.ECR_REPOSITORY}}
   AWS_ACCOUNT_ID_BSH: ${{ secrets.AWS_ACCOUNT_ID_BSH }}
-  ECR_REPOSITORY_BSH: ${{vars.ECR_REPOSITORY_BSH}}
 
 jobs:
   build-backend:
@@ -69,7 +67,7 @@ jobs:
       - name: Tag and push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
         run: |
           docker tag issuer/api:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
@@ -80,7 +78,7 @@ jobs:
 
       - name: Configure AWS credentials Billions SH
         uses: aws-actions/configure-aws-credentials@v1-node16
-        if: github.ref == 'refs/heads/main'
+        if: github.event.workflow_run.head_branch == 'main'
         with:
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID_BSH }}:role/BillionsActionsRole
@@ -88,14 +86,14 @@ jobs:
 
       - name: Login to Amazon ECR Billions SH
         uses: aws-actions/amazon-ecr-login@v1
-        if: github.ref == 'refs/heads/main'
+        if: github.event.workflow_run.head_branch == 'main'
         id: login-ecr-bsh
 
       - name: Tag and push image Billions SH
-        if: github.ref == 'refs/heads/main'
+        if: github.event.workflow_run.head_branch == 'main'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-bsh.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY_BSH }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_BSH }}
           IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
         run: |
           docker tag issuer/api:${{ env.IMAGE_TAG }} ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
