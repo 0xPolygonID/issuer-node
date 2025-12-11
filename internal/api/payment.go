@@ -224,12 +224,12 @@ func (s *Server) VerifyPayment(ctx context.Context, request VerifyPaymentRequest
 			}
 		}
 	}
-	status, err := s.paymentService.VerifyPayment(ctx, *issuerDID, nonce, txHash, userDID)
+	status, paymentRequestID, err := s.paymentService.VerifyPayment(ctx, *issuerDID, nonce, txHash, userDID)
 	if err != nil {
 		log.Error(ctx, "can't verify payment", "err", err, "nonce", request.Nonce, "txID", txHash)
 		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("can't verify payment: %s", err.Error())}}, nil
 	}
-	return toVerifyPaymentResponse(status)
+	return toVerifyPaymentResponse(status, paymentRequestID)
 }
 
 // UpdatePaymentOption - updates a payment option

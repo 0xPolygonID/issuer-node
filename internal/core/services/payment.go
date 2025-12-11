@@ -263,64 +263,63 @@ func (p *payment) GetSettings() payments.Config {
 }
 
 // VerifyPayment verifies a payment
-func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash *string, userDID *w3c.DID) (ports.BlockchainPaymentStatus, error) {
+func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *big.Int, txHash *string, userDID *w3c.DID) (status ports.BlockchainPaymentStatus, paymentRequestID uuid.UUID, err error) {
 	paymentReqItem, err := p.paymentsStore.GetPaymentRequestItem(ctx, issuerDID, nonce)
 	if err != nil {
-		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment request: %w", err)
+		return ports.BlockchainPaymentStatusPending, uuid.Nil, fmt.Errorf("failed to get payment request: %w", err)
 	}
 
 	paymentReq, err := p.paymentsStore.GetPaymentRequestByID(ctx, issuerDID, paymentReqItem.PaymentRequestID)
 	if err != nil {
-		return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get payment request: %w", err)
+		return ports.BlockchainPaymentStatusPending, paymentReqItem.PaymentRequestID, fmt.Errorf("failed to get payment request: %w", err)
 	}
 
 	if userDID != nil {
 		if userDID.String() != paymentReq.UserDID.String() {
-			return ports.BlockchainPaymentStatusFailed, fmt.Errorf("userDID %s does not match to User DID %s in payment-request", userDID, paymentReq.UserDID)
+			return ports.BlockchainPaymentStatusFailed, paymentReqItem.PaymentRequestID, fmt.Errorf("userDID %s does not match to User DID %s in payment-request", userDID, paymentReq.UserDID)
 		}
 	}
 
 	setting, found := p.settings[paymentReqItem.PaymentOptionID]
 	if !found {
 		log.Error(ctx, "chain not found in configuration", "paymentOptionID", paymentReqItem.PaymentOptionID)
-		return ports.BlockchainPaymentStatusPending, fmt.Errorf("payment Option <%d> not found in payment configuration", paymentReqItem.PaymentOptionID)
+		return ports.BlockchainPaymentStatusPending, paymentReqItem.PaymentRequestID, fmt.Errorf("payment Option <%d> not found in payment configuration", paymentReqItem.PaymentOptionID)
 	}
 
-	var status ports.BlockchainPaymentStatus
 	if setting.PaymentOption.Type == protocol.Iden3PaymentRailsSolanaRequestV1Type ||
 		setting.PaymentOption.Type == protocol.Iden3PaymentRailsSolanaSPLRequestV1Type {
 		signerAddress, err := p.getSolSignerAddress(ctx, paymentReqItem.SigningKeyID)
 		if err != nil {
 			log.Error(ctx, "failed to get signer address", "err", err, "SigningKeyID", paymentReqItem.SigningKeyID)
-			return ports.BlockchainPaymentStatusPending, err
+			return ports.BlockchainPaymentStatusPending, paymentReqItem.PaymentRequestID, err
 		}
 		status, err = p.verifySolanaPaymentOnBlockchain(ctx, setting, nonce, signerAddress, txHash)
 		if err != nil {
 			log.Error(ctx, "failed to verify Solana payment on blockchain", "err", err, "txHash", txHash, "nonce", nonce)
-			return ports.BlockchainPaymentStatusPending, err
+			return ports.BlockchainPaymentStatusPending, paymentReqItem.PaymentRequestID, err
 		}
 	} else {
 		client, err := p.networkResolver.GetEthClientByChainID(core.ChainID(setting.ChainID))
 		if err != nil {
 			log.Error(ctx, "failed to get ethereum client from resolvers", "err", err, "chainID", setting.ChainID)
-			return ports.BlockchainPaymentStatusPending, fmt.Errorf("failed to get ethereum client from resolvers settings for chainID <%d>", setting.ChainID)
+			return ports.BlockchainPaymentStatusPending, paymentReqItem.PaymentRequestID, fmt.Errorf("failed to get ethereum client from resolvers settings for chainID <%d>", setting.ChainID)
 		}
 
 		instance, err := abi.NewMCPayment(common.HexToAddress(setting.PaymentRails), client.GetEthereumClient())
 		if err != nil {
-			return ports.BlockchainPaymentStatusPending, err
+			return ports.BlockchainPaymentStatusPending, paymentReqItem.PaymentRequestID, err
 		}
 
 		signerAddress, err := p.getEthSignerAddress(ctx, paymentReqItem.SigningKeyID)
 		if err != nil {
 			log.Error(ctx, "failed to get signer address", "err", err, "SigningKeyID", paymentReqItem.SigningKeyID)
-			return ports.BlockchainPaymentStatusPending, err
+			return ports.BlockchainPaymentStatusPending, paymentReqItem.PaymentRequestID, err
 		}
 
 		status, err = p.verifyPaymentOnBlockchain(ctx, client, instance, signerAddress, nonce, txHash)
 		if err != nil {
 			log.Error(ctx, "failed to verify payment on blockchain", "err", err, "txHash", txHash, "nonce", nonce)
-			return ports.BlockchainPaymentStatusPending, err
+			return ports.BlockchainPaymentStatusPending, paymentReqItem.PaymentRequestID, err
 		}
 	}
 
@@ -333,12 +332,12 @@ func (p *payment) VerifyPayment(ctx context.Context, issuerDID w3c.DID, nonce *b
 		err = p.paymentsStore.UpdatePaymentRequestStatus(ctx, issuerDID, paymentReq.ID, paymentReqStatus, paidNonce)
 		if err != nil {
 			log.Error(ctx, "failed to update payment-request with new status", "err", err, "txHash", txHash, "nonce", nonce, "status", status)
-			return status, err
+			return status, paymentReqItem.PaymentRequestID, err
 		}
 
 	}
 
-	return status, nil
+	return status, paymentReqItem.PaymentRequestID, nil
 }
 
 func getPaymentRequestStatusFromBlockChainStatus(status ports.BlockchainPaymentStatus) domain.PaymentRequestStatus {
