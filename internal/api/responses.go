@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2/protocol"
 
@@ -388,16 +389,17 @@ func toCreatePaymentRequestResponse(ctx context.Context, payReq *domain.PaymentR
 	return resp
 }
 
-func toVerifyPaymentResponse(status ports.BlockchainPaymentStatus) (VerifyPaymentResponseObject, error) {
+func toVerifyPaymentResponse(status ports.BlockchainPaymentStatus, paymentRequestID uuid.UUID) (VerifyPaymentResponseObject, error) {
+	reqIDString := paymentRequestID.String()
 	switch status {
 	case ports.BlockchainPaymentStatusPending:
-		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusPending}, nil
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusPending, RequestId: reqIDString}, nil
 	case ports.BlockchainPaymentStatusSuccess:
-		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess}, nil
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusSuccess, RequestId: reqIDString}, nil
 	case ports.BlockchainPaymentStatusCancelled:
-		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusCanceled}, nil
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusCanceled, RequestId: reqIDString}, nil
 	case ports.BlockchainPaymentStatusFailed:
-		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusFailed}, nil
+		return VerifyPayment200JSONResponse{Status: PaymentStatusStatusFailed, RequestId: reqIDString}, nil
 	default:
 		return VerifyPayment400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unknown blockchain payment status <%d>", status)}}, nil
 	}

@@ -671,7 +671,8 @@ type PaymentRequestInfo = protocol.PaymentRequestInfo
 
 // PaymentStatus defines model for PaymentStatus.
 type PaymentStatus struct {
-	Status PaymentStatusStatus `json:"status"`
+	RequestId string              `json:"requestId"`
+	Status    PaymentStatusStatus `json:"status"`
 }
 
 // PaymentStatusStatus defines model for PaymentStatus.Status.
