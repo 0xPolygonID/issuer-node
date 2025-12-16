@@ -1,4 +1,5 @@
-FROM nginx:alpine
+#FROM nginx:alpine
+FROM nginx:1.29.3-alpine 
 
 WORKDIR /app
 
