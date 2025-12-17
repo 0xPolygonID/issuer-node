@@ -19,21 +19,18 @@ echo "VITE_BASE_URL=$ISSUER_UI_BASE_URL" >> $ENV_FILENAME
 echo "VITE_PAYMENT_PAGES_ENABLED=$ISSUER_UI_PAYMENT_PAGES_ENABLED" >> $ENV_FILENAME
 
 # Build app
-export NODE_OPTIONS="--max-old-space-size=1536"
+export NODE_OPTIONS="--max-old-space-size=1024"
 export VITE_CJS_IGNORE_WARNING=true 2>/dev/null || true
 cd /app && npm run build
 
 # Copy nginx config
-echo $ISSUER_UI_AUTH_USERNAME
-echo $ISSUER_UI_AUTH_PASSWORD
-
 # shellcheck disable=SC2039
 if [ "${ISSUER_UI_INSECURE}" == "true" ]; then
   cp deployment/nginx_insecure.conf /etc/nginx/conf.d/default.conf
 else
   cp deployment/nginx.conf /etc/nginx/conf.d/default.conf
   htpasswd -c -b /etc/nginx/.htpasswd $ISSUER_UI_AUTH_USERNAME $ISSUER_UI_AUTH_PASSWORD
-  cat /etc/nginx/.htpasswd
+  # cat /etc/nginx/.htpasswd
 fi
 
 
