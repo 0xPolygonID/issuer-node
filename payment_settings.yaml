@@ -162,6 +162,12 @@
       Name: Binance Smart Chain
       Type: Iden3PaymentRailsRequestV1
       Decimals: 18
+    - ID: 113
+      Name: BUSD-T Stablecoin
+      Type: Iden3PaymentRailsERC20RequestV1
+      ContractAddress: 0x55d398326f99059fF775485246999027B3197955 # https://bscscan.com/address/0x55d398326f99059ff775485246999027b3197955
+      Features: []
+      Decimals: 18
 97: #Binance Smart Chain Testnet
   PaymentRails: 0xe317A4f1450116b2fD381446DEaB41c882D6136D
   PaymentOptions:
