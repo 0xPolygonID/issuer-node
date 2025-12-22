@@ -15,23 +15,19 @@ echo "VITE_WARNING_MESSAGE=$ISSUER_UI_WARNING_MESSAGE" >> $ENV_FILENAME
 echo "VITE_IPFS_GATEWAY_URL=$ISSUER_UI_IPFS_GATEWAY_URL" >> $ENV_FILENAME
 echo "VITE_SCHEMA_EXPLORER_AND_BUILDER_URL=$ISSUER_UI_SCHEMA_EXPLORER_AND_BUILDER_URL" >> $ENV_FILENAME
 echo "VITE_DISPLAY_METHOD_BUILDER_URL=$ISSUER_UI_DISPLAY_METHOD_BUILDER_URL" >> $ENV_FILENAME
-echo "VITE_BASE_URL"=$ISSUER_UI_BASE_URL >> $ENV_FILENAME
-echo "VITE_PAYMENT_PAGES_ENABLED"=$ISSUER_UI_PAYMENT_PAGES_ENABLED >> $ENV_FILENAME
+echo "VITE_BASE_URL=$ISSUER_UI_BASE_URL" >> $ENV_FILENAME
+echo "VITE_PAYMENT_PAGES_ENABLED=$ISSUER_UI_PAYMENT_PAGES_ENABLED" >> $ENV_FILENAME
 
 # Build app
 cd /app && npm run build
 
 # Copy nginx config
-echo $ISSUER_UI_AUTH_USERNAME
-echo $ISSUER_UI_AUTH_PASSWORD
-
 # shellcheck disable=SC2039
 if [ "${ISSUER_UI_INSECURE}" == "true" ]; then
   cp deployment/nginx_insecure.conf /etc/nginx/conf.d/default.conf
 else
   cp deployment/nginx.conf /etc/nginx/conf.d/default.conf
   htpasswd -c -b /etc/nginx/.htpasswd $ISSUER_UI_AUTH_USERNAME $ISSUER_UI_AUTH_PASSWORD
-  cat /etc/nginx/.htpasswd
 fi
 
 

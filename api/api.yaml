@@ -2861,10 +2861,13 @@ components:
       type: object
       required:
         - status
+        - requestId
       properties:
         status:
           type: string
           enum: [ success, failed, pending, canceled ]
+        requestId:
+          type: string
 
     PaymentsConfiguration:
       type: object
