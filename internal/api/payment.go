@@ -186,7 +186,7 @@ func (s *Server) GetPaymentRequestByNonce(ctx context.Context, request GetPaymen
 	const base10 = 10
 	nonce, ok := new(big.Int).SetString(request.Nonce, base10)
 	if !ok {
-		log.Error(ctx, "parsing nonce on get payment request by nonce", "err", err, "nonce", request.Nonce)
+		log.Error(ctx, "parsing nonce on get payment request by nonce", "nonce", request.Nonce)
 		return GetPaymentRequestByNonce400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid nonce: <%s>", request.Nonce)}}, nil
 	}
 	paymentRequest, err := s.paymentService.GetPaymentRequestByNonce(ctx, issuerDID, nonce)
