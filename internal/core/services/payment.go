@@ -235,6 +235,23 @@ func (p *payment) GetPaymentRequest(ctx context.Context, issuerDID *w3c.DID, ID 
 	return paymentRequests, nil
 }
 
+// GetPaymentRequestByNonce returns payment request by nonce and issuer DID
+func (p *payment) GetPaymentRequestByNonce(ctx context.Context, issuerDID *w3c.DID, nonce *big.Int) (*domain.PaymentRequest, error) {
+	paymentReqItem, err := p.paymentsStore.GetPaymentRequestItem(ctx, *issuerDID, nonce)
+	if err != nil {
+		log.Error(ctx, "failed to get payment request item by nonce", "err", err, "issuerDID", issuerDID, "nonce", nonce)
+		return nil, fmt.Errorf("failed to get payment request item by nonce: %w", err)
+	}
+
+	paymentReq, err := p.paymentsStore.GetPaymentRequestByID(ctx, *issuerDID, paymentReqItem.PaymentRequestID)
+	if err != nil {
+		log.Error(ctx, "failed to get payment request by ID", "err", err, "issuerDID", issuerDID, "paymentRequestID", paymentReqItem.PaymentRequestID)
+		return nil, fmt.Errorf("failed to get payment request by ID: %w", err)
+	}
+
+	return paymentReq, nil
+}
+
 // DeletePaymentRequest deletes a payment request
 func (p *payment) DeletePaymentRequest(ctx context.Context, issuerDID *w3c.DID, ID uuid.UUID) error {
 	err := p.paymentsStore.DeletePaymentRequest(ctx, *issuerDID, ID)

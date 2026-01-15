@@ -817,6 +817,9 @@ type PathKeyID = string
 // PathNonce defines model for pathNonce.
 type PathNonce = int64
 
+// PathPaymentNonce defines model for pathPaymentNonce.
+type PathPaymentNonce = string
+
 // SessionID defines model for sessionID.
 type SessionID = uuid.UUID
 
@@ -1264,6 +1267,9 @@ type ServerInterface interface {
 	// Create Payment Request
 	// (POST /v2/identities/{identifier}/payment-request)
 	CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Payment Request By Nonce
+	// (GET /v2/identities/{identifier}/payment-request/nonce/{nonce})
+	GetPaymentRequestByNonce(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathPaymentNonce)
 	// Delete Payment Request
 	// (DELETE /v2/identities/{identifier}/payment-request/{id})
 	DeletePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
@@ -1585,6 +1591,12 @@ func (_ Unimplemented) GetPaymentRequests(w http.ResponseWriter, r *http.Request
 // Create Payment Request
 // (POST /v2/identities/{identifier}/payment-request)
 func (_ Unimplemented) CreatePaymentRequest(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Payment Request By Nonce
+// (GET /v2/identities/{identifier}/payment-request/nonce/{nonce})
+func (_ Unimplemented) GetPaymentRequestByNonce(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathPaymentNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3394,6 +3406,46 @@ func (siw *ServerInterfaceWrapper) CreatePaymentRequest(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// GetPaymentRequestByNonce operation middleware
+func (siw *ServerInterfaceWrapper) GetPaymentRequestByNonce(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce PathPaymentNonce
+
+	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPaymentRequestByNonce(w, r, identifier, nonce)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeletePaymentRequest operation middleware
 func (siw *ServerInterfaceWrapper) DeletePaymentRequest(w http.ResponseWriter, r *http.Request) {
 
@@ -4360,6 +4412,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/payment-request", wrapper.CreatePaymentRequest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/payment-request/nonce/{nonce}", wrapper.GetPaymentRequestByNonce)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/v2/identities/{identifier}/payment-request/{id}", wrapper.DeletePaymentRequest)
@@ -6300,6 +6355,51 @@ func (response CreatePaymentRequest500JSONResponse) VisitCreatePaymentRequestRes
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetPaymentRequestByNonceRequestObject struct {
+	Identifier PathIdentifier   `json:"identifier"`
+	Nonce      PathPaymentNonce `json:"nonce"`
+}
+
+type GetPaymentRequestByNonceResponseObject interface {
+	VisitGetPaymentRequestByNonceResponse(w http.ResponseWriter) error
+}
+
+type GetPaymentRequestByNonce200JSONResponse CreatePaymentRequestResponse
+
+func (response GetPaymentRequestByNonce200JSONResponse) VisitGetPaymentRequestByNonceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequestByNonce400JSONResponse struct{ N400JSONResponse }
+
+func (response GetPaymentRequestByNonce400JSONResponse) VisitGetPaymentRequestByNonceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequestByNonce404JSONResponse struct{ N404JSONResponse }
+
+func (response GetPaymentRequestByNonce404JSONResponse) VisitGetPaymentRequestByNonceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetPaymentRequestByNonce500JSONResponse struct{ N500JSONResponse }
+
+func (response GetPaymentRequestByNonce500JSONResponse) VisitGetPaymentRequestByNonceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type DeletePaymentRequestRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Id         Id             `json:"id"`
@@ -7262,6 +7362,9 @@ type StrictServerInterface interface {
 	// Create Payment Request
 	// (POST /v2/identities/{identifier}/payment-request)
 	CreatePaymentRequest(ctx context.Context, request CreatePaymentRequestRequestObject) (CreatePaymentRequestResponseObject, error)
+	// Get Payment Request By Nonce
+	// (GET /v2/identities/{identifier}/payment-request/nonce/{nonce})
+	GetPaymentRequestByNonce(ctx context.Context, request GetPaymentRequestByNonceRequestObject) (GetPaymentRequestByNonceResponseObject, error)
 	// Delete Payment Request
 	// (DELETE /v2/identities/{identifier}/payment-request/{id})
 	DeletePaymentRequest(ctx context.Context, request DeletePaymentRequestRequestObject) (DeletePaymentRequestResponseObject, error)
@@ -8599,6 +8702,33 @@ func (sh *strictHandler) CreatePaymentRequest(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreatePaymentRequestResponseObject); ok {
 		if err := validResponse.VisitCreatePaymentRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPaymentRequestByNonce operation middleware
+func (sh *strictHandler) GetPaymentRequestByNonce(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathPaymentNonce) {
+	var request GetPaymentRequestByNonceRequestObject
+
+	request.Identifier = identifier
+	request.Nonce = nonce
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPaymentRequestByNonce(ctx, request.(GetPaymentRequestByNonceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPaymentRequestByNonce")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPaymentRequestByNonceResponseObject); ok {
+		if err := validResponse.VisitGetPaymentRequestByNonceResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
