@@ -176,6 +176,26 @@ func (s *Server) GetPaymentRequest(ctx context.Context, request GetPaymentReques
 	return GetPaymentRequest200JSONResponse(toCreatePaymentRequestResponse(ctx, paymentRequest)), nil
 }
 
+// GetPaymentRequestByNonce is the controller to get payment request by nonce
+func (s *Server) GetPaymentRequestByNonce(ctx context.Context, request GetPaymentRequestByNonceRequestObject) (GetPaymentRequestByNonceResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return GetPaymentRequestByNonce400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	const base10 = 10
+	nonce, ok := new(big.Int).SetString(request.Nonce, base10)
+	if !ok {
+		log.Error(ctx, "parsing nonce on get payment request by nonce", "err", err, "nonce", request.Nonce)
+		return GetPaymentRequestByNonce400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("invalid nonce: <%s>", request.Nonce)}}, nil
+	}
+	paymentRequest, err := s.paymentService.GetPaymentRequestByNonce(ctx, issuerDID, nonce)
+	if err != nil {
+		return GetPaymentRequestByNonce500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("can't get payment-request: %s", err)}}, nil
+	}
+	return GetPaymentRequestByNonce200JSONResponse(toCreatePaymentRequestResponse(ctx, paymentRequest)), nil
+}
+
 // DeletePaymentRequest is the controller to delete payment request
 func (s *Server) DeletePaymentRequest(ctx context.Context, request DeletePaymentRequestRequestObject) (DeletePaymentRequestResponseObject, error) {
 	issuerDID, err := w3c.ParseDID(request.Identifier)

@@ -1862,6 +1862,32 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+  
+  /v2/identities/{identifier}/payment-request/nonce/{nonce}:
+    get:
+      summary: Get Payment Request By Nonce
+      operationId: GetPaymentRequestByNonce
+      description: Get a specific payment request for the provided identity by nonce.
+      tags:
+        - Payment
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathPaymentNonce'
+      responses:
+        '200':
+          description: Retrieve a payment request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentRequestResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
 
   /v2/payment/settings:
     get:
@@ -3526,6 +3552,13 @@ components:
       schema:
         type: string
 
+    pathPaymentNonce:
+      name: nonce
+      in: path
+      required: true
+      description: Payment nonce
+      schema:
+        type: string
 
   responses:
     '400':
