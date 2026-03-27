@@ -11,11 +11,8 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	awskms "github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -38,10 +35,6 @@ const (
 	issuerKeyStorePluginIden3MountPath  = "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH"
 	issuerVaultUserPassAuthEnabled      = "ISSUER_VAULT_USERPASS_AUTH_ENABLED"
 	issuerVaultUserPassAuthPasword      = "ISSUER_VAULT_USERPASS_AUTH_PASSWORD"
-	awsAccessKey                        = "ISSUER_KMS_AWS_ACCESS_KEY"
-	awsSecretKey                        = "ISSUER_KMS_AWS_SECRET_KEY"
-	awsRegion                           = "ISSUER_KMS_AWS_REGION"
-	awsURL                              = "ISSUER_KMS_AWS_URL"
 
 	jsonKeyPath      = "key_path"
 	jsonKeyType      = "key_type"
@@ -153,33 +146,11 @@ func main() {
 	}
 
 	if issuerKMSETHProviderToUse == config.AWSSM {
-		awsAccessKey := os.Getenv(awsAccessKey)
-		awsSecretKey := os.Getenv(awsSecretKey)
-		awsRegion := os.Getenv(awsRegion)
-
-		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" {
-			log.Error(ctx, "aws access key, aws secret key, or aws region is not set")
-			return
-		}
-
-		cfg, err := awsconfig.LoadDefaultConfig(ctx,
-			awsconfig.WithRegion(awsRegion),
-			awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")),
-		)
+		secretManager, err := kms.AwsSecretsManager(ctx)
 		if err != nil {
-			log.Error(ctx, "error loading AWSSM config", "err", err)
+			log.Error(ctx, "cannot initialize AWS Secrets Manager client", "err", err)
 			return
 		}
-
-		var options []func(*secretsmanager.Options)
-		if strings.ToLower(awsRegion) == "local" {
-			awsURLEndpoint := os.Getenv(awsURL)
-			options = make([]func(*secretsmanager.Options), 1)
-			options[0] = func(o *secretsmanager.Options) {
-				o.BaseEndpoint = aws.String(awsURLEndpoint)
-			}
-		}
-		secretManager := secretsmanager.NewFromConfig(cfg, options...)
 		secretName := base64.StdEncoding.EncodeToString([]byte(issuerPublishKeyPathVar))
 
 		material[jsonPrivateKey] = *fPrivateKey
@@ -203,17 +174,7 @@ func main() {
 	}
 
 	if issuerKMSETHProviderToUse == config.AWSKMS {
-		awsAccessKey := os.Getenv(awsAccessKey)
-		awsSecretKey := os.Getenv(awsSecretKey)
-		awsRegion := os.Getenv(awsRegion)
-		awsURLEndpoint := os.Getenv(awsURL)
-
-		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" {
-			log.Error(ctx, "aws access key, aws secret key, or aws region is not set")
-			return
-		}
-
-		keyId, err := createEmptyKey(ctx, awsAccessKey, awsSecretKey, awsRegion, awsURLEndpoint, issuerPublishKeyPathVar)
+		keyId, err := createEmptyKey(ctx, issuerPublishKeyPathVar)
 		if err != nil {
 			log.Error(ctx, "cannot create empty key", "err", err)
 			return
@@ -253,28 +214,13 @@ func validate(issuerKMSETHProviderToUse string, fPrivateKey *string, ctx context
 	return nil
 }
 
-//
-//nolint:unused
-func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion string, awsURL string, privateKeyAlias string) (*string, error) {
-	cfg, err := awsconfig.LoadDefaultConfig(
-		ctx,
-		awsconfig.WithRegion(awsRegion),
-		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")),
-	)
+func createEmptyKey(ctx context.Context, privateKeyAlias string) (*string, error) {
+	kmsClient, err := kms.AwsKms(ctx)
 	if err != nil {
-		log.Error(ctx, "cannot load aws config", "err", err)
+		log.Error(ctx, "cannot initialize AWS KMS client", "err", err)
 		return nil, err
 	}
 
-	var options []func(*awskms.Options)
-	if strings.ToLower(awsRegion) == "local" {
-		options = make([]func(*awskms.Options), 1)
-		options[0] = func(o *awskms.Options) {
-			o.BaseEndpoint = aws.String(awsURL)
-		}
-	}
-
-	svc := awskms.NewFromConfig(cfg, options...)
 	input := &awskms.CreateKeyInput{
 		KeySpec:     types.KeySpecEccSecgP256k1,
 		KeyUsage:    types.KeyUsageTypeSignVerify,
@@ -282,7 +228,7 @@ func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion s
 		Description: aws.String("imported key"),
 	}
 
-	result, err := svc.CreateKey(ctx, input)
+	result, err := kmsClient.CreateKey(ctx, input)
 	if err != nil {
 		log.Error(ctx, "cannot create key", "err", err)
 		return nil, err
@@ -294,7 +240,7 @@ func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion s
 		TargetKeyId: result.KeyMetadata.Arn,
 	}
 
-	_, err = svc.CreateAlias(ctx, inputAlias)
+	_, err = kmsClient.CreateAlias(ctx, inputAlias)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create alias: %v", err)
 	}

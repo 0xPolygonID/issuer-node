@@ -22,8 +22,20 @@ ISSUER_KMS_BJJ_PROVIDER := ${ISSUER_KMS_BJJ_PROVIDER}
 ISSUER_KMS_SOL_PROVIDER := ${ISSUER_KMS_SOL_PROVIDER}
 
 aws_access_key := ${ISSUER_KMS_AWS_ACCESS_KEY}
+ifeq ($(aws_access_key),)
+	aws_access_key := ${AWS_ACCESS_KEY_ID}
+endif
+
 aws_secret_key := ${ISSUER_KMS_AWS_SECRET_KEY}
+ifeq ($(aws_secret_key),)
+	aws_secret_key := ${AWS_SECRET_ACCESS_KEY}
+endif
+
 aws_region := ${ISSUER_KMS_AWS_REGION}
+ifeq ($(aws_region),)
+	aws_region := ${AWS_REGION}
+endif
+
 aws_endpoint := ${ISSUER_KMS_AWS_URL}
 
 ISSUER_RESOLVER_FILE := ${ISSUER_RESOLVER_FILE}
@@ -89,16 +101,16 @@ endif
 ifeq ($(ISSUER_KMS_BJJ_PROVIDER), vault)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
 endif
-ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(aws_region), aws-smlocal)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
-ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-kmslocal)
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(aws_region), aws-kmslocal)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
-ifeq ($(ISSUER_KMS_BJJ_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER)$(aws_region), aws-smlocal)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
-ifeq ($(ISSUER_KMS_SOL_PROVIDER)$(ISSUER_KMS_AWS_REGION), aws-smlocal)
+ifeq ($(ISSUER_KMS_SOL_PROVIDER)$(aws_region), aws-smlocal)
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d localstack
 endif
 

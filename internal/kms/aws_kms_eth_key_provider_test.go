@@ -12,12 +12,7 @@ import (
 
 func Test_NewInAWSKMS(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey", AwKmsEthKeyProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey")
 	require.NoError(t, err)
 
 	t.Run("should create a new KEYID", func(t *testing.T) {
@@ -30,12 +25,7 @@ func Test_NewInAWSKMS(t *testing.T) {
 
 func Test_PublicKeyInAWSKMS(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey", AwKmsEthKeyProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey")
 	require.NoError(t, err)
 
 	t.Run("should get public key", func(t *testing.T) {
@@ -58,12 +48,7 @@ func Test_PublicKeyInAWSKMS(t *testing.T) {
 
 func Test_LinkToIdentityInAWSKMS(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey", AwKmsEthKeyProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey")
 	require.NoError(t, err)
 
 	t.Run("should link the key to an identity", func(t *testing.T) {
@@ -87,12 +72,7 @@ func Test_LinkToIdentityInAWSKMS(t *testing.T) {
 
 func Test_ListByIdentityInAWSKMS(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey", AwKmsEthKeyProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey")
 	require.NoError(t, err)
 
 	t.Run("should link the key to an identity", func(t *testing.T) {
@@ -143,12 +123,7 @@ func Test_ListByIdentityInAWSKMS(t *testing.T) {
 
 func Test_SignInAWSKMS(t *testing.T) {
 	ctx := context.Background()
-	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey", AwKmsEthKeyProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsKMSEthKeyProvider(ctx, ethereum, "pbkey")
 	require.NoError(t, err)
 	data := make([]byte, 32)
 	_, err = io.ReadFull(rand.Reader, data)

@@ -40,6 +40,14 @@ func TestMain(m *testing.M) {
 
 func testMain(m *testing.M) int {
 	cfg = vaultTest()
+
+	// stdlib testing has no beforeEach; package-wide env for AWS integration tests
+	// (LocalStack) so LoadAWSConfig does not use the default credential chain / metadata.
+	_ = os.Setenv("ISSUER_KMS_AWS_ACCESS_KEY", "test")
+	_ = os.Setenv("ISSUER_KMS_AWS_SECRET_KEY", "test")
+	_ = os.Setenv("ISSUER_KMS_AWS_REGION", "local")
+	_ = os.Setenv("ISSUER_KMS_AWS_URL", "http://localhost:4566")
+
 	return m.Run()
 }
 

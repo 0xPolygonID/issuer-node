@@ -18,12 +18,7 @@ func Test_New_LocalBJJKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 	t.Run("should generate a new keyID using local storage manager", func(t *testing.T) {
 		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, ls)
@@ -80,12 +75,7 @@ func Test_LinkToIdentity_LocalBJJKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 	t.Run("should link key to identity using local storage manager", func(t *testing.T) {
 		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, ls)
@@ -179,12 +169,7 @@ func Test_ListByIdentity_LocalBJJKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 	t.Run("should list keys by identity using local storage manager", func(t *testing.T) {
 		localbbjKeyProvider := NewLocalBJJKeyProvider(KeyTypeBabyJubJub, ls)
@@ -255,12 +240,7 @@ func Test_PublicKey_LocalBJJKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should get public key using local storage manager", func(t *testing.T) {
@@ -296,12 +276,7 @@ func Test_Sign_LocalBJJKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should sign digest using local storage manager | linking did", func(t *testing.T) {
@@ -387,12 +362,7 @@ func Test_DeleteKey_LocalBJJKeyProvider(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 	ls := NewFileStorageManager(tmpFile.Name())
 
-	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx, AwsSecretStorageProviderConfig{
-		AccessKey: "access_key",
-		SecretKey: "secret_key",
-		Region:    "local",
-		URL:       "http://localhost:4566",
-	})
+	awsStorageProvider, err := NewAwsSecretStorageProvider(ctx)
 	require.NoError(t, err)
 
 	t.Run("should get public key using local storage manager", func(t *testing.T) {

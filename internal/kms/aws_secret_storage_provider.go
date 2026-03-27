@@ -5,11 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -23,40 +22,20 @@ type secretStorageProviderKeyMaterial struct {
 	PrivateKey string `json:"private_key"`
 }
 
-// AwsSecretStorageProviderConfig is a config for AwsSecretStorageProvider
-// AccessKey and SecretKey are the AWS credentials
-type AwsSecretStorageProviderConfig struct {
-	AccessKey string
-	SecretKey string
-	Region    string
-	URL       string
-}
-
 type awsSecretStorageProvider struct {
 	secretManager *secretsmanager.Client
 }
 
 // NewAwsSecretStorageProvider creates a new instance of AwsSecretStorageProvider
-func NewAwsSecretStorageProvider(ctx context.Context, conf AwsSecretStorageProviderConfig) (*awsSecretStorageProvider, error) {
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion(conf.Region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(conf.AccessKey, conf.SecretKey, "")),
-	)
-	if err != nil {
-		log.Error(ctx, "error loading AWS config", "err", err)
-		return nil, err
-	}
+func NewAwsSecretStorageProvider(ctx context.Context) (*awsSecretStorageProvider, error) {
+	client, err := AwsSecretsManager(ctx)
 
-	var options []func(*secretsmanager.Options)
-	if strings.ToLower(conf.Region) == "local" {
-		options = make([]func(*secretsmanager.Options), 1)
-		options[0] = func(o *secretsmanager.Options) {
-			o.BaseEndpoint = aws.String(conf.URL)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AWS Secrets Manager client: %w", err)
 	}
 
 	return &awsSecretStorageProvider{
-		secretManager: secretsmanager.NewFromConfig(cfg, options...),
+		secretManager: client,
 	}, nil
 }
 
