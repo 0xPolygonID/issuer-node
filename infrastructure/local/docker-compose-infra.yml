@@ -84,12 +84,13 @@ services:
     command: ./vault/scripts/init.sh
 
   localstack:
-    image: localstack/localstack:latest
+    image: localstack/localstack:2026.3
     ports:
       - "4566:4566"
     environment:
       - SERVICES=secretsmanager,kms
       - DEBUG=1
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN}
 
 networks:
   default:

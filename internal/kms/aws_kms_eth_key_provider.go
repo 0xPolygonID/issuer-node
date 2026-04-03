@@ -57,6 +57,7 @@ func NewAwsKMSEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTran
 		options = make([]func(*kms.Options), 1)
 		options[0] = func(o *kms.Options) {
 			o.BaseEndpoint = aws.String(awsKmsEthKeyProviderConfig.URL)
+			o.Region = "us-east-1"
 		}
 	}
 
