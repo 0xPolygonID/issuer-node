@@ -33,6 +33,8 @@ REQUIRED_FILE := ${ISSUER_RESOLVER_PATH}
 DOTENV_CMD = $(BIN)/godotenv
 ENV = $(DOTENV_CMD) -f .env-issuer
 
+export LOCALSTACK_AUTH_TOKEN
+
 .PHONY: run-all-registry
 run-all-registry:
 	@make down
