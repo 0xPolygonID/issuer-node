@@ -43,6 +43,7 @@ type PaymentService interface {
 	CreatePaymentRequest(ctx context.Context, req *CreatePaymentRequestReq) (*domain.PaymentRequest, error)
 	GetPaymentRequests(ctx context.Context, issuerDID *w3c.DID, queryParams *domain.PaymentRequestsQueryParams) ([]domain.PaymentRequest, error)
 	GetPaymentRequest(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) (*domain.PaymentRequest, error)
+	GetPaymentRequestByNonce(ctx context.Context, issuerDID *w3c.DID, nonce *big.Int) (*domain.PaymentRequest, error)
 	DeletePaymentRequest(ctx context.Context, issuerDID *w3c.DID, id uuid.UUID) error
 	CreatePaymentRequestForProposalRequest(ctx context.Context, proposalRequest *protocol.CredentialsProposalRequestMessage) (*comm.BasicMessage, error)
 	GetSettings() payments.Config

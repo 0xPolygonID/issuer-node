@@ -52,6 +52,7 @@ func NewAwsSecretStorageProvider(ctx context.Context, conf AwsSecretStorageProvi
 		options = make([]func(*secretsmanager.Options), 1)
 		options[0] = func(o *secretsmanager.Options) {
 			o.BaseEndpoint = aws.String(conf.URL)
+			o.Region = "us-east-1"
 		}
 	}
 
