@@ -73,7 +73,7 @@ func (mt *identityMerkleTreeRepository) GetByIdentifierAndTypes(ctx context.Cont
 	}
 
 	if rows.Err() != nil {
-		return nil, err
+		return nil, rows.Err()
 	}
 
 	return trees, nil

@@ -160,7 +160,7 @@ func (isr *identityState) GetStatesByStatusAndIssuerID(ctx context.Context, conn
 	}
 
 	if rows.Err() != nil {
-		return nil, err
+		return nil, rows.Err()
 	}
 
 	return states, nil

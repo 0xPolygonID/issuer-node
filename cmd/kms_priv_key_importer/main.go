@@ -342,7 +342,7 @@ func readContentFile(ctx context.Context, folderPath, fileName string) ([]localS
 		return nil, fmt.Errorf("error creating folder: %v", err)
 	}
 	filePath := filepath.Join(folderPath, fileName)
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
 		file, err := os.Create(filePath)
 		if err != nil {
 			return nil, fmt.Errorf("error creating file: %v", err)

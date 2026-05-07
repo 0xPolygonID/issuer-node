@@ -469,7 +469,7 @@ func createFileIfNotExists(ctx context.Context, folderPath, fileName string) (st
 		return "", fmt.Errorf("error creating folder: %v", err)
 	}
 	filePath := filepath.Join(folderPath, fileName)
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	if _, err := os.Stat(filePath); stderr.Is(err, os.ErrNotExist) {
 		file, err := os.Create(filePath)
 		if err != nil {
 			return "", fmt.Errorf("error creating file: %v", err)
