@@ -9,6 +9,7 @@ spec:
       namespace: infra
   hostnames:
     - "issuer-node-core-api-demo.privado.id"
+    - "issuer-node-core-api-demo-k8s.internal-iden3-dev.com"
   rules:
     - backendRefs:
         - name: issuer-node-main-api-svc
@@ -24,7 +25,8 @@ spec:
     - name: main
       namespace: infra
   hostnames:
-    - "issuer-node-ui-demo.privado.id"
+    - "issuer-node.privado.id"
+    - "issuer-node-demo-k8s.internal-iden3-dev.com"
   rules:
     - backendRefs:
         - name: issuer-node-main-ui-svc
