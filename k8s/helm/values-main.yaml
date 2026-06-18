@@ -1,21 +1,21 @@
 global:
   vaultpwd: ""  # set via --set-literal global.vaultpwd in workflow (secret: ISSUER_NODE_VAULT_AUTH_PASSWORD)
   apidomain: issuer-node-core-api-demo.privado.id
-  uidomain: issuer-node-ui-demo.privado.id
+  uidomain: issuer-node.privado.id
 
 issuernode_repository_image: 654654630007.dkr.ecr.eu-west-1.amazonaws.com/issuer_node_backend_demo
 issuernode_repository_tag: latest  # overridden by --set issuernode_repository_tag in workflow
 issuernode_ui_repository_image: 654654630007.dkr.ecr.eu-west-1.amazonaws.com/issuer_node_ui_demo
 issuernode_ui_repository_tag: latest  # overridden by --set issuernode_ui_repository_tag in workflow
 
-issuerName: "Privado ID"
-issuerUiInsecure: "false"
+issuerName: "Privado ID - Demo"
+issuerUiInsecure: "true"
 uiPassword: ""  # set via --set-literal uiPassword in workflow (secret: ISSUER_NODE_UI_AUTH_PASSWORD)
 ingressEnabled: false
 issuerResolverFile: ""  # set via --set-literal issuerResolverFile in workflow (secret: ISSUER_NODE_RESOLVER_FILE)
 namespace: billions
 replicaCount: 1
-mainnet: true
+mainnet: false
 
 # Disable local subcharts — external postgres, redis and vault are used
 vault:
@@ -146,9 +146,9 @@ uiIssuerNode:
   configMap:
     issuerApiAuthUser: user-issuer
     issuerApiAuthPassword: ""
-    issuerApiUiIssuerName: "Privado ID"
+    issuerApiUiIssuerName: "Privado ID - Demo"
     issuerUiAuthUsername: issuer-ui
-    issuerUiIpfsGatewayUrl: https://ipfs.io
+    issuerUiIpfsGatewayUrl: https://ipfs-proxy-cache.privado.id
     issuerApiUiName: issuer-node-ui-configmap
     issuerUiSchemaExplorerAndBuilderUrl: https://tools.privado.id
     issuerUiBlockExplorerUrlAmoy: https://www.oklink.com/es-la/amoy
