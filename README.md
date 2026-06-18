@@ -37,10 +37,10 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
   - [License](#license)
 
 ## Quick Start Installation
-> [!NOTE]
-> The provided installation guide is **non-production** ready. For production deployments please refer to  [Standalone Mode Guide](https://docs.privado.id/docs/issuer/setup-issuer-core).
+> [!NOTE:]
+> The provided installation guide is **not production-ready**. For production deployments please refer to  [Standalone Mode Guide](https://docs.privado.id/docs/issuer/setup-issuer-core).
 >
-> There is no compatibility with Windows environments at this time. While using WSL should be ok, it's not officially supported.
+> There is currently compatibility no with Windows environments. While using WSL should be ok, it's not officially supported.
 > 
 > **After changing the configuration, you must restart the issuer node docker containers.**
 
@@ -58,7 +58,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
     - [Infura](https://www.infura.io/)
 
 ### Run Issuer Node API and UI (docker compose with images from privadoid registry)
-To run the issuer node (API and UI) quickly and without too many customizations follow the following steps:
+To quickly run the issuer node (API and UI) with minimal customizations, follow these steps:
 
 1. Copy the config sample files:
 ```shell
