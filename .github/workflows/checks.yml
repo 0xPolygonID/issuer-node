@@ -14,6 +14,8 @@ jobs:
           touch .env-ui
       - name: Docker Compose
         uses: hoverkraft-tech/compose-action@v2.0.1
+        env:
+          LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
         with:
           compose-file: './infrastructure/local/docker-compose-infra.yml'
           services: |
