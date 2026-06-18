@@ -1,0 +1,168 @@
+global:
+  vaultpwd: ""  # set via --set-literal global.vaultpwd in workflow (secret: ISSUER_NODE_VAULT_AUTH_PASSWORD)
+  apidomain: issuer-node-core-api-testing.privado.id
+  uidomain: issuer-node-ui-testing.privado.id
+
+issuernode_repository_image: 654654630007.dkr.ecr.eu-west-1.amazonaws.com/issuer_node_backend_testing
+issuernode_repository_tag: latest  # overridden by --set issuernode_repository_tag in workflow
+issuernode_ui_repository_image: 654654630007.dkr.ecr.eu-west-1.amazonaws.com/issuer_node_ui_testing
+issuernode_ui_repository_tag: latest  # overridden by --set issuernode_ui_repository_tag in workflow
+
+issuerName: "Privado ID - Testing"
+issuerUiInsecure: "true"
+uiPassword: ""  # set via --set-literal uiPassword in workflow (secret: ISSUER_NODE_UI_AUTH_PASSWORD)
+ingressEnabled: false
+issuerResolverFile: ""  # set via --set-literal issuerResolverFile in workflow (secret: ISSUER_NODE_RESOLVER_FILE)
+namespace: billions
+replicaCount: 1
+mainnet: false
+
+# Disable local subcharts — external postgres, redis and vault are used
+vault:
+  enabled: false
+postgres:
+  enabled: false
+redis:
+  enabled: false
+ingress:
+  enabled: false
+
+apiIssuerNode:
+  deployment:
+    replicaCount: 1
+    name: api-issuer-node
+    env:
+      # overridden via --set-literal in workflow (secret: ISSUER_NODE_DATABASE_URL)
+      issuerDatabaseUrl: ""
+      # overridden via --set-literal in workflow (secret: ISSUER_NODE_KEY_STORE_ADDRESS)
+      issuerKeyStoreAddress: ""
+    imagePullPolicy: Always
+    labels:
+      app: api-issuer-node-deployment
+    livenessProbe:
+      name: Custom-Header
+      value: Awesome
+      path: /status
+      port: 3001
+      initialDelaySeconds: 3
+      periodSeconds: 60
+    apiconfigMapRef: issuer-node-api-configmap
+    args:
+      - '"./migrate; ./platform"'
+    command:
+      - '"sh", "-c"'
+    containerPort: 3001
+    containerName: api
+
+  service:
+    name: api-issuer-node-svc
+    ports:
+      - port: 3001
+        protocol: TCP
+        targetPort: 3001
+    type: ClusterIP
+    nodePort: 30001
+    selector: api-issuer-node
+    labels:
+      app: issuer-node
+
+  configMap:
+    # overridden via --set-literal in workflow (secret: ISSUER_NODE_API_AUTH_PASSWORD)
+    issuerApiAuthPassword: ""
+    issuerApiAuthUser: user-issuer
+    issuerCircuitPath: ./pkg/credentials/circuits
+    issuerDbName: platformid
+    issuerDbPassword: ""
+    issuerDbPort: "5432"
+    issuerDbUser: polygonid
+    issuerKMSBJJProvider: vault
+    issuerKMSETHProvider: vault
+    issuerKMSSOLProvider: ""
+    issuerKeyStorePluginIden3MountPath: iden3
+    issuerKeyStorePort: "8200"
+    issuerLogLevel: "-4"
+    issuerLogMode: "1"
+    issuerNativeProofGenerationEnabled: "true"
+    issuerOnchainCheckStatusFrequency: 1m
+    issuerOnchainPublishStateFrequency: 1m
+    issuerPublishKeyPath: pbkey
+    # overridden via --set-literal in workflow (secret: ISSUER_NODE_CACHE_URL)
+    issuerRedisUrl: ""
+    issuerReverseHashServiceEnabled: "false"
+    issuerServerPort: "3001"
+    issuerVaultUserpassAuthEnabled: "true"
+    issuerCredentialStatusPublishingKeyPath: pbkey
+    issuerIpfsGatewayUrl: https://ipfs-proxy-cache.privado.id
+    issuerKMSProviderLocalStorageFilePath: /localstoragekeys
+    issuerName: issuer-node-api-configmap
+
+notificationsIssuerNode:
+  deployment:
+    replicaCount: 1
+    name: notifications-issuer-node
+    env:
+      # overridden via --set-literal in workflow (secret: ISSUER_NODE_DATABASE_URL)
+      issuerDatabaseUrl: ""
+      # overridden via --set-literal in workflow (secret: ISSUER_NODE_KEY_STORE_ADDRESS)
+      issuerKeyStoreAddress: ""
+    imagePullPolicy: IfNotPresent
+    labels:
+      app: notifications-issuer-node-deployment
+    containerName: notifications
+    args:
+      - '"./notifications"'
+    command:
+      - '"sh", "-c"'
+
+pendingPublisherIssuerNode:
+  deployment:
+    replicaCount: 1
+    name: pending-publisher-issuer-node
+    env:
+      # overridden via --set-literal in workflow (secret: ISSUER_NODE_DATABASE_URL)
+      issuerDatabaseUrl: ""
+      # overridden via --set-literal in workflow (secret: ISSUER_NODE_KEY_STORE_ADDRESS)
+      issuerKeyStoreAddress: ""
+    imagePullPolicy: Always
+    labels:
+      app: pending-publisher-issuer-node-deployment
+    containerName: pending-publisher
+    args:
+      - '"./pending_publisher"'
+    command:
+      - '"sh", "-c"'
+
+uiIssuerNode:
+  deployment:
+    replicaCount: 1
+    name: ui-issuer-node
+    imagePullPolicy: Always
+    uiconfigMapRef: issuer-node-ui-configmap
+    containerName: ui
+    containerPort: 80
+    labels:
+      app: ui-issuer-node-deployment
+  service:
+    name: ui-issuer-node-svc
+    ports:
+      - port: 8080
+        protocol: TCP
+        targetPort: 80
+    type: ClusterIP
+    nodePort: 30003
+    selector: ui-issuer-node
+  configMap:
+    issuerApiAuthUser: user-issuer
+    # overridden via --set-literal in workflow (secret: ISSUER_NODE_API_AUTH_PASSWORD)
+    issuerApiAuthPassword: ""
+    issuerApiUiIssuerName: "Privado ID - Testing"
+    issuerUiAuthUsername: issuer-ui
+    issuerUiIpfsGatewayUrl: https://ipfs.io
+    issuerApiUiName: issuer-node-ui-configmap
+    issuerUiSchemaExplorerAndBuilderUrl: https://tools.privado.id
+    issuerUiBlockExplorerUrlAmoy: https://www.oklink.com/es-la/amoy
+    issuerUiBlockExplorerUrlMain: https://polygonscan.com
+
+secrets:
+  name: private-key-secret
+  type: Opaque

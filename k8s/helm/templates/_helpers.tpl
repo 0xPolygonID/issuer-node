@@ -174,3 +174,35 @@ app: {{ .Values.uiIssuerNode.deployment.labels.app }}
 {{- define "helpers.serviceAccountName" -}}
 {{- printf "%s-%s%s" .Release.Name .Release.Namespace "-service-account" -}}
 {{- end -}}
+
+{{- define "privadoid-issuer.api.fullname" -}}
+{{- printf "%s-api" .Release.Name }}
+{{- end }}
+
+{{- define "privadoid-issuer.api.svc" -}}
+{{- printf "%s-api-svc" .Release.Name }}
+{{- end }}
+
+{{- define "privadoid-issuer.api-configmap.fullname" -}}
+{{- printf "%s-api-configmap" .Release.Name }}
+{{- end }}
+
+{{- define "privadoid-issuer.notifications.fullname" -}}
+{{- printf "%s-notifications" .Release.Name }}
+{{- end }}
+
+{{- define "privadoid-issuer.pending-publisher.fullname" -}}
+{{- printf "%s-pending-publisher" .Release.Name }}
+{{- end }}
+
+{{- define "privadoid-issuer.ui.fullname" -}}
+{{- printf "%s-ui" .Release.Name }}
+{{- end }}
+
+{{- define "privadoid-issuer.ui.svc" -}}
+{{- printf "%s-ui-svc" .Release.Name }}
+{{- end }}
+
+{{- define "privadoid-issuer.ui-configmap.fullname" -}}
+{{- printf "%s-ui-configmap" .Release.Name }}
+{{- end }}
