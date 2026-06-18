@@ -19,7 +19,6 @@ spec:
       annotations:
         rollme: {{ randAlphaNum 5 | quote }}
     spec:
-      serviceAccountName: {{ include "helpers.serviceAccountName" . }}
       containers:
         - name: {{ .Values.pendingPublisherIssuerNode.deployment.containerName }}
           image: {{ .Values.issuernode_repository_image }}:{{ .Values.issuernode_repository_tag }}
