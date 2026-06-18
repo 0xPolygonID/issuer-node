@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.uiIssuerNode.configMap.issuerApiUiName  }}
+  name: {{ include "privadoid-issuer.ui-configmap.fullname" . }}
   labels:
     {{- include "privadoid-issuer.staticLabel" . | nindent 4 }}
     {{- include "privadoid-issuer.labels" . | nindent 4 }}

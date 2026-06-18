@@ -35,3 +35,4 @@ kms_localstorage_keys.json
 # vendor/
 
 .DS_STORE
+static_analysis_semgrep_1/
