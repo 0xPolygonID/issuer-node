@@ -204,6 +204,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Debug UI build vars
+        env:
+          VITE_API_URL: ${{ vars.ISSUER_NODE_UI_API_URL }}
+          VITE_API_USERNAME: ${{ vars.ISSUER_NODE_UI_API_USERNAME }}
+          VITE_ISSUER_NAME: ${{ vars.ISSUER_NODE_UI_ISSUER_NAME }}
+          VITE_IPFS_GATEWAY_URL: ${{ vars.ISSUER_NODE_UI_IPFS_GATEWAY_URL }}
+        run: |
+          echo "VITE_API_URL=${VITE_API_URL:-(empty)}"
+          echo "VITE_API_USERNAME=${VITE_API_USERNAME:-(empty)}"
+          echo "VITE_ISSUER_NAME=${VITE_ISSUER_NAME:-(empty)}"
+          echo "VITE_IPFS_GATEWAY_URL=${VITE_IPFS_GATEWAY_URL:-(empty)}"
+
       - name: Build and push UI
         env:
           # Sensitive — from GitHub secrets
