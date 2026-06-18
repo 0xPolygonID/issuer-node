@@ -77,7 +77,7 @@ apiIssuerNode:
     issuerDbUser: polygonid
     issuerKMSBJJProvider: vault
     issuerKMSETHProvider: vault
-    issuerKMSSOLProvider: ""
+    issuerKMSSOLProvider: vault
     issuerKeyStorePluginIden3MountPath: iden3
     issuerKeyStorePort: "8200"
     issuerLogLevel: "-4"
