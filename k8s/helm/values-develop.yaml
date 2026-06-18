@@ -1,7 +1,7 @@
 global:
   vaultpwd: ""  # set via --set-literal global.vaultpwd in workflow (secret: ISSUER_NODE_VAULT_AUTH_PASSWORD)
   apidomain: issuer-node-core-api-testing.privado.id
-  uidomain: issuer-node-ui-testing.privado.id
+  uidomain: issuer-node-testing.privado.id
 
 issuernode_repository_image: 654654630007.dkr.ecr.eu-west-1.amazonaws.com/issuer_node_backend_testing
 issuernode_repository_tag: latest  # overridden by --set issuernode_repository_tag in workflow
