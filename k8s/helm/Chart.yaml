@@ -9,12 +9,16 @@ dependencies:
   - name: vault
     version: 0.1.0
     repository: "file://charts/vault"
+    condition: vault.enabled
   - name: postgres
     version: 0.1.0
     repository: "file://charts/postgres"
+    condition: postgres.enabled
   - name: redis
     version: 0.1.0
     repository: "file://charts/redis"
+    condition: redis.enabled
   - name: ingress
     version: 0.1.0
     repository: "file://charts/ingress"
+    condition: ingress.enabled

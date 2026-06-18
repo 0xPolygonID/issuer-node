@@ -1,0 +1,53 @@
+# ── Stage 1: build ───────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps
+
+COPY . .
+
+# Build-time arguments — injected from GitHub secrets/vars in the workflow.
+# Sensitive values (e.g. VITE_API_PASSWORD) are compiled into the JS bundle
+# by Vite and do NOT persist as image ENV vars.
+ARG VITE_API_URL
+ARG VITE_API_PASSWORD
+ARG VITE_API_USERNAME
+ARG VITE_ISSUER_NAME
+ARG VITE_ISSUER_LOGO
+ARG VITE_BUILD_TAG
+ARG VITE_WARNING_MESSAGE
+ARG VITE_IPFS_GATEWAY_URL
+ARG VITE_SCHEMA_EXPLORER_AND_BUILDER_URL
+ARG VITE_DISPLAY_METHOD_BUILDER_URL
+ARG VITE_BASE_URL
+ARG VITE_PAYMENT_PAGES_ENABLED
+
+RUN echo "VITE_API_URL=$VITE_API_URL" >> .env \
+ && echo "VITE_API_PASSWORD=$VITE_API_PASSWORD" >> .env \
+ && echo "VITE_API_USERNAME=$VITE_API_USERNAME" >> .env \
+ && echo "VITE_ISSUER_NAME=$VITE_ISSUER_NAME" >> .env \
+ && echo "VITE_ISSUER_LOGO=$VITE_ISSUER_LOGO" >> .env \
+ && echo "VITE_BUILD_TAG=$VITE_BUILD_TAG" >> .env \
+ && echo "VITE_WARNING_MESSAGE=$VITE_WARNING_MESSAGE" >> .env \
+ && echo "VITE_IPFS_GATEWAY_URL=$VITE_IPFS_GATEWAY_URL" >> .env \
+ && echo "VITE_SCHEMA_EXPLORER_AND_BUILDER_URL=$VITE_SCHEMA_EXPLORER_AND_BUILDER_URL" >> .env \
+ && echo "VITE_DISPLAY_METHOD_BUILDER_URL=$VITE_DISPLAY_METHOD_BUILDER_URL" >> .env \
+ && echo "VITE_BASE_URL=$VITE_BASE_URL" >> .env \
+ && echo "VITE_PAYMENT_PAGES_ENABLED=$VITE_PAYMENT_PAGES_ENABLED" >> .env
+
+RUN npm run build
+
+# ── Stage 2: runtime ─────────────────────────────────────────────────────────
+FROM nginx:alpine
+
+RUN apk add --update apache2-utils
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY deployment/ /app/deployment/
+COPY scripts/deploy-eks.sh /app/scripts/deploy-eks.sh
+
+RUN chmod +x /app/scripts/deploy-eks.sh
+
+ENTRYPOINT ["/bin/sh", "/app/scripts/deploy-eks.sh"]

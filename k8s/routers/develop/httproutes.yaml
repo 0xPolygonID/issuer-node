@@ -1,0 +1,33 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-api
+
+spec:
+  parentRefs:
+    - name: main
+      namespace: infra
+  hostnames:
+    - "issuer-node-core-api-testing.privado.id"
+    - "issuer-node-core-api-testing-k8s.internal-iden3-dev.com"
+  rules:
+    - backendRefs:
+        - name: issuer-node-develop-api-svc
+          port: 3001
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-ui
+
+spec:
+  parentRefs:
+    - name: main
+      namespace: infra
+  hostnames:
+    - "issuer-node-testing.privado.id"
+    - "issuer-node-ui-testing-k8s.internal-iden3-dev.com"
+  rules:
+    - backendRefs:
+        - name: issuer-node-develop-ui-svc
+          port: 8080
