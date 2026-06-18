@@ -11,7 +11,7 @@ issuernode_ui_repository_tag: latest  # overridden by --set issuernode_ui_reposi
 issuerName: "Privado ID - Demo"
 issuerUiInsecure: "true"
 uiPassword: ""  # set via --set-literal uiPassword in workflow (secret: ISSUER_NODE_UI_AUTH_PASSWORD)
-ingressEnabled: false
+ingressEnabled: true
 issuerResolverFile: ""  # set via --set-literal issuerResolverFile in workflow (secret: ISSUER_NODE_RESOLVER_FILE)
 namespace: billions
 replicaCount: 1
