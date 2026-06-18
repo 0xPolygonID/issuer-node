@@ -24,6 +24,12 @@ ARG VITE_DISPLAY_METHOD_BUILDER_URL
 ARG VITE_BASE_URL
 ARG VITE_PAYMENT_PAGES_ENABLED
 
+RUN test -n "$VITE_API_URL"        || (echo "ERROR: VITE_API_URL is required"        && exit 1) \
+ && test -n "$VITE_API_PASSWORD"   || (echo "ERROR: VITE_API_PASSWORD is required"   && exit 1) \
+ && test -n "$VITE_API_USERNAME"   || (echo "ERROR: VITE_API_USERNAME is required"   && exit 1) \
+ && test -n "$VITE_ISSUER_NAME"    || (echo "ERROR: VITE_ISSUER_NAME is required"    && exit 1) \
+ && test -n "$VITE_IPFS_GATEWAY_URL" || (echo "ERROR: VITE_IPFS_GATEWAY_URL is required" && exit 1)
+
 RUN echo "VITE_API_URL=$VITE_API_URL" >> .env \
  && echo "VITE_API_PASSWORD=$VITE_API_PASSWORD" >> .env \
  && echo "VITE_API_USERNAME=$VITE_API_USERNAME" >> .env \
