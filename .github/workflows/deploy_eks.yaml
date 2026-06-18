@@ -1,0 +1,337 @@
+name: Deploy Issuer Node to EKS
+
+# on:
+#   workflow_run:
+#     workflows: ["Checks"]
+#     branches: ["develop", "main"]
+#     types:
+#       - completed
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-1
+  AWS_ACCOUNT_ID: "654654630007"
+  EKS_CLUSTER_NAME: eks-dev
+
+jobs:
+  check-images:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name }}
+    outputs:
+      sha: ${{ steps.sha.outputs.value }}
+      ecr_backend: ${{ steps.config.outputs.ecr_backend }}
+      ecr_ui: ${{ steps.config.outputs.ecr_ui }}
+      values_file: ${{ steps.config.outputs.values_file }}
+      routers_path: ${{ steps.config.outputs.routers_path }}
+      backend-exists: ${{ steps.check-backend.outputs.exists }}
+      ui-exists: ${{ steps.check-ui.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set SHA
+        id: sha
+        run: echo "value=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set config per branch
+        id: config
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "ecr_backend=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/issuer_node_backend_demo" >> "$GITHUB_OUTPUT"
+            echo "ecr_ui=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/issuer_node_ui_demo" >> "$GITHUB_OUTPUT"
+            echo "values_file=k8s/helm/values-main.yaml" >> "$GITHUB_OUTPUT"
+            echo "routers_path=k8s/routers/main" >> "$GITHUB_OUTPUT"
+          else
+            echo "ecr_backend=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/issuer_node_backend_testing" >> "$GITHUB_OUTPUT"
+            echo "ecr_ui=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/issuer_node_ui_testing" >> "$GITHUB_OUTPUT"
+            echo "values_file=k8s/helm/values-develop.yaml" >> "$GITHUB_OUTPUT"
+            echo "routers_path=k8s/routers/develop" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ISSUER_NODE_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Check ECR — Backend
+        id: check-backend
+        run: |
+          REPO=$(echo "${{ steps.config.outputs.ecr_backend }}" | cut -d'/' -f2)
+          set +e
+          output=$(aws ecr describe-images \
+            --repository-name "$REPO" \
+            --image-ids imageTag="${{ steps.sha.outputs.value }}" 2>&1)
+          status=$?
+          set -e
+          if [ $status -eq 0 ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif echo "$output" | grep -q "ImageNotFoundException"; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::ECR check failed (backend): $output"; exit 1
+          fi
+
+      - name: Check ECR — UI
+        id: check-ui
+        run: |
+          REPO=$(echo "${{ steps.config.outputs.ecr_ui }}" | cut -d'/' -f2)
+          set +e
+          output=$(aws ecr describe-images \
+            --repository-name "$REPO" \
+            --image-ids imageTag="${{ steps.sha.outputs.value }}" 2>&1)
+          status=$?
+          set -e
+          if [ $status -eq 0 ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif echo "$output" | grep -q "ImageNotFoundException"; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::ECR check failed (ui): $output"; exit 1
+          fi
+
+  # ── Backend build (api + notifications + pending-publisher) ──────────────
+  build-backend:
+    needs: check-images
+    if: needs.check-images.outputs.backend-exists != 'true'
+    environment:
+      name: ${{ github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ISSUER_NODE_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        run: |
+          SUFFIX=$(echo "${{ matrix.platform }}" | sed 's|linux/||')
+          docker buildx build \
+            --platform ${{ matrix.platform }} \
+            --build-arg VERSION="${{ needs.check-images.outputs.sha }}" \
+            -t "${{ needs.check-images.outputs.ecr_backend }}:${{ needs.check-images.outputs.sha }}-$SUFFIX" \
+            --push .
+
+  merge-backend:
+    needs: [check-images, build-backend]
+    if: needs.check-images.outputs.backend-exists != 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ISSUER_NODE_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create multi-arch manifest (backend)
+        run: |
+          SHA=${{ needs.check-images.outputs.sha }}
+          ECR=${{ needs.check-images.outputs.ecr_backend }}
+          docker buildx imagetools create \
+            -t "$ECR:$SHA" \
+            "$ECR:$SHA-amd64" \
+            "$ECR:$SHA-arm64"
+
+  # ── UI build ──────────────────────────────────────────────────────────────
+  build-ui:
+    needs: check-images
+    if: needs.check-images.outputs.ui-exists != 'true'
+    environment:
+      name: ${{ github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ISSUER_NODE_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push UI
+        env:
+          # Sensitive — from GitHub secrets
+          VITE_API_PASSWORD: ${{ secrets.ISSUER_NODE_API_AUTH_PASSWORD }}
+          # Non-sensitive — from GitHub environment variables (vars.*)
+          VITE_API_URL: ${{ vars.ISSUER_NODE_UI_API_URL }}
+          VITE_API_USERNAME: ${{ vars.ISSUER_NODE_UI_API_USERNAME }}
+          VITE_ISSUER_NAME: ${{ vars.ISSUER_NODE_UI_ISSUER_NAME }}
+          VITE_ISSUER_LOGO: ${{ vars.ISSUER_NODE_UI_ISSUER_LOGO }}
+          VITE_BUILD_TAG: ${{ vars.ISSUER_NODE_UI_BUILD_TAG }}
+          VITE_WARNING_MESSAGE: ${{ vars.ISSUER_NODE_UI_WARNING_MESSAGE }}
+          VITE_IPFS_GATEWAY_URL: ${{ vars.ISSUER_NODE_UI_IPFS_GATEWAY_URL }}
+          VITE_SCHEMA_EXPLORER_AND_BUILDER_URL: ${{ vars.ISSUER_NODE_UI_SCHEMA_EXPLORER_URL }}
+          VITE_DISPLAY_METHOD_BUILDER_URL: ${{ vars.ISSUER_NODE_UI_DISPLAY_METHOD_BUILDER_URL }}
+          VITE_BASE_URL: ${{ vars.ISSUER_NODE_UI_BASE_URL }}
+          VITE_PAYMENT_PAGES_ENABLED: ${{ vars.ISSUER_NODE_UI_PAYMENT_PAGES_ENABLED }}
+        run: |
+          SUFFIX=$(echo "${{ matrix.platform }}" | sed 's|linux/||')
+          docker buildx build \
+            --platform ${{ matrix.platform }} \
+            -f ui/Dockerfile.eks \
+            --build-arg VITE_API_URL="$VITE_API_URL" \
+            --build-arg VITE_API_PASSWORD="$VITE_API_PASSWORD" \
+            --build-arg VITE_API_USERNAME="$VITE_API_USERNAME" \
+            --build-arg VITE_ISSUER_NAME="$VITE_ISSUER_NAME" \
+            --build-arg VITE_ISSUER_LOGO="$VITE_ISSUER_LOGO" \
+            --build-arg VITE_BUILD_TAG="$VITE_BUILD_TAG" \
+            --build-arg VITE_WARNING_MESSAGE="$VITE_WARNING_MESSAGE" \
+            --build-arg VITE_IPFS_GATEWAY_URL="$VITE_IPFS_GATEWAY_URL" \
+            --build-arg VITE_SCHEMA_EXPLORER_AND_BUILDER_URL="$VITE_SCHEMA_EXPLORER_AND_BUILDER_URL" \
+            --build-arg VITE_DISPLAY_METHOD_BUILDER_URL="$VITE_DISPLAY_METHOD_BUILDER_URL" \
+            --build-arg VITE_BASE_URL="$VITE_BASE_URL" \
+            --build-arg VITE_PAYMENT_PAGES_ENABLED="$VITE_PAYMENT_PAGES_ENABLED" \
+            -t "${{ needs.check-images.outputs.ecr_ui }}:${{ needs.check-images.outputs.sha }}-$SUFFIX" \
+            --push \
+            ui/
+
+  merge-ui:
+    needs: [check-images, build-ui]
+    if: needs.check-images.outputs.ui-exists != 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ISSUER_NODE_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create multi-arch manifest (UI)
+        run: |
+          SHA=${{ needs.check-images.outputs.sha }}
+          ECR=${{ needs.check-images.outputs.ecr_ui }}
+          docker buildx imagetools create \
+            -t "$ECR:$SHA" \
+            "$ECR:$SHA-amd64" \
+            "$ECR:$SHA-arm64"
+
+  # ── Deploy ────────────────────────────────────────────────────────────────
+  deploy:
+    needs: [check-images, build-backend, merge-backend, build-ui, merge-ui]
+    if: |
+      always() &&
+      needs.check-images.result == 'success' &&
+      (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
+      (needs.merge-backend.result == 'success' || needs.merge-backend.result == 'skipped') &&
+      (needs.build-ui.result == 'success' || needs.build-ui.result == 'skipped') &&
+      (needs.merge-ui.result == 'success' || needs.merge-ui.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.ISSUER_NODE_DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Copy HTTPRoutes into chart templates
+        run: cp ${{ needs.check-images.outputs.routers_path }}/httproutes.yaml k8s/helm/templates/httproutes.yaml
+
+      - name: Set chart version
+        run: |
+          SHA=${{ needs.check-images.outputs.sha }}
+          VERSION="$(date -u +%Y%m%d%H%M)-$SHA"
+          sed -i "s/^version:.*/version: $VERSION/" k8s/helm/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" k8s/helm/Chart.yaml
+
+      - name: Helm upgrade
+        env:
+          SHA: ${{ needs.check-images.outputs.sha }}
+          SECRET_DATABASE_URL: ${{ secrets.ISSUER_NODE_DATABASE_URL }}
+          SECRET_CACHE_URL: ${{ secrets.ISSUER_NODE_CACHE_URL }}
+          SECRET_VAULT_AUTH_PASSWORD: ${{ secrets.ISSUER_NODE_VAULT_AUTH_PASSWORD }}
+          SECRET_API_AUTH_PASSWORD: ${{ secrets.ISSUER_NODE_API_AUTH_PASSWORD }}
+          SECRET_UI_AUTH_PASSWORD: ${{ secrets.ISSUER_NODE_UI_AUTH_PASSWORD }}
+          SECRET_KEY_STORE_ADDRESS: ${{ secrets.ISSUER_NODE_KEY_STORE_ADDRESS }}
+          SECRET_RESOLVER_FILE: ${{ secrets.ISSUER_NODE_RESOLVER_FILE }}
+        run: |
+          helm upgrade --install "issuer-node-${{ github.ref_name }}" ./k8s/helm \
+            -f ${{ needs.check-images.outputs.values_file }} \
+            -n billions \
+            --set issuernode_repository_tag="$SHA" \
+            --set issuernode_ui_repository_tag="$SHA" \
+            --set-literal apiIssuerNode.deployment.env.issuerDatabaseUrl="$SECRET_DATABASE_URL" \
+            --set-literal notificationsIssuerNode.deployment.env.issuerDatabaseUrl="$SECRET_DATABASE_URL" \
+            --set-literal pendingPublisherIssuerNode.deployment.env.issuerDatabaseUrl="$SECRET_DATABASE_URL" \
+            --set-literal apiIssuerNode.deployment.env.issuerKeyStoreAddress="$SECRET_KEY_STORE_ADDRESS" \
+            --set-literal notificationsIssuerNode.deployment.env.issuerKeyStoreAddress="$SECRET_KEY_STORE_ADDRESS" \
+            --set-literal pendingPublisherIssuerNode.deployment.env.issuerKeyStoreAddress="$SECRET_KEY_STORE_ADDRESS" \
+            --set-literal apiIssuerNode.configMap.issuerRedisUrl="$SECRET_CACHE_URL" \
+            --set-literal apiIssuerNode.configMap.issuerApiAuthPassword="$SECRET_API_AUTH_PASSWORD" \
+            --set-literal global.vaultpwd="$SECRET_VAULT_AUTH_PASSWORD" \
+            --set-literal uiPassword="$SECRET_UI_AUTH_PASSWORD" \
+            --set-literal issuerResolverFile="$SECRET_RESOLVER_FILE" \
+            --wait --timeout 10m

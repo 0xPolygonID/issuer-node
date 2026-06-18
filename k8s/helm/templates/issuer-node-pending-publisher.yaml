@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.pendingPublisherIssuerNode.deployment.name }}
+  name: {{ include "privadoid-issuer.pending-publisher.fullname" . }}
   labels:
     {{- include "privadoid-issuer.pendingPublisherIssuerNode.deploymentLabels" . | nindent 4 }}
     {{- include "privadoid-issuer.labels" . | nindent 4 }}
@@ -26,7 +26,7 @@ spec:
           imagePullPolicy: {{ .Values.pendingPublisherIssuerNode.deployment.imagePullPolicy | quote }}
           envFrom:
           - configMapRef:
-              name: {{ .Values.apiIssuerNode.deployment.apiconfigMapRef }}
+              name: {{ include "privadoid-issuer.api-configmap.fullname" . }}
           env:
           - name: {{ include "helpers.issuer-db-url" .}}
             value: {{ quote .Values.pendingPublisherIssuerNode.deployment.env.issuerDatabaseUrl }}

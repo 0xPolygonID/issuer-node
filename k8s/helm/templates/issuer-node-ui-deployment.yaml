@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.uiIssuerNode.deployment.name}}
+  name: {{ include "privadoid-issuer.ui.fullname" . }}
   labels:
     {{- include "privadoid-issuer.uiIssuerNode.deploymentLabels" . | nindent 4 }}
     {{- include "privadoid-issuer.labels" . | nindent 4 }}
@@ -28,4 +28,4 @@ spec:
           - containerPort: {{ .Values.uiIssuerNode.deployment.containerPort }}
           envFrom:
           - configMapRef:
-              name: {{ .Values.uiIssuerNode.deployment.uiconfigMapRef }}
+              name: {{ include "privadoid-issuer.ui-configmap.fullname" . }}
