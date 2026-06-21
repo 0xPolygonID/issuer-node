@@ -92,6 +92,10 @@ func (a *awsSecretStorageProvider) SaveKeyMaterial(ctx context.Context, keyMater
 				Key:   aws.String("did"),
 				Value: aws.String(keyTypesParts[0]),
 			},
+			{
+				Key:   aws.String("source"),
+				Value: aws.String("polygon-issuer-node"),
+			}
 		},
 	}
 	_, err = a.secretManager.CreateSecret(ctx, input)
@@ -117,7 +121,7 @@ func (a *awsSecretStorageProvider) searchByIdentity(ctx context.Context, identit
 
 	keyIDs := make([]KeyID, 0)
 	for _, secret := range result.SecretList {
-		if secret.Tags == nil || len(secret.Tags) != 2 {
+		if secret.Tags == nil {
 			continue
 		}
 		if aws.ToString(secret.Tags[0].Value) != keyTypeToRead {
