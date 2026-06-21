@@ -2,7 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -20,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/joho/godotenv"
 
@@ -27,6 +33,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/pkg/PKCS8DER"
 )
 
 const (
@@ -90,7 +97,8 @@ func main() {
 	material[jsonKeyPath] = issuerPublishKeyPathVar
 	material[jsonKeyType] = ethereum
 
-	if issuerKMSETHProviderToUse == config.LocalStorage {
+	switch issuerKMSETHProviderToUse {
+	case config.LocalStorage:
 		material[jsonPrivateKey] = *fPrivateKey
 		if err := saveKeyMaterialToFile(ctx, issuerKmsPluginLocalStorageFilePath, kms.LocalStorageFileName, material); err != nil {
 			log.Error(ctx, "cannot save key material to file", "err", err)
@@ -98,9 +106,8 @@ func main() {
 		}
 		log.Info(ctx, "private key saved to file:", "path:", kms.LocalStorageFileName)
 		return
-	}
 
-	if issuerKMSETHProviderToUse == config.Vault {
+	case config.Vault:
 		var vaultCli *vault.Client
 		var vaultErr error
 		vaultTokenVar := os.Getenv(issuerKeyStoreToken)
@@ -150,9 +157,8 @@ func main() {
 
 		log.Info(ctx, "private key saved to vault:", "path:", issuerPublishKeyPathVar)
 		return
-	}
 
-	if issuerKMSETHProviderToUse == config.AWSSM {
+	case config.AWSSM:
 		awsAccessKey := os.Getenv(awsAccessKey)
 		awsSecretKey := os.Getenv(awsSecretKey)
 		awsRegion := os.Getenv(awsRegion)
@@ -200,9 +206,8 @@ func main() {
 		}
 		log.Info(ctx, "private key saved to aws:", "path:", issuerPublishKeyPathVar)
 		return
-	}
 
-	if issuerKMSETHProviderToUse == config.AWSKMS {
+	case config.AWSKMS:
 		awsAccessKey := os.Getenv(awsAccessKey)
 		awsSecretKey := os.Getenv(awsSecretKey)
 		awsRegion := os.Getenv(awsRegion)
@@ -213,12 +218,16 @@ func main() {
 			return
 		}
 
-		keyId, err := createEmptyKey(ctx, awsAccessKey, awsSecretKey, awsRegion, awsURLEndpoint, issuerPublishKeyPathVar)
+		keyId, err := createAWSKMSKey(ctx, *fPrivateKey, awsAccessKey, awsSecretKey, awsRegion, awsURLEndpoint, issuerPublishKeyPathVar)
 		if err != nil {
 			log.Error(ctx, "cannot create empty key", "err", err)
 			return
 		}
 		log.Info(ctx, "key created", "keyId", *keyId)
+		return
+
+	default:
+		log.Error(ctx, "kms eth provider is invalid, supported values are: localstorage, vault, aws-sm and aws-kms")
 		return
 	}
 }
@@ -253,9 +262,13 @@ func validate(issuerKMSETHProviderToUse string, fPrivateKey *string, ctx context
 	return nil
 }
 
+// createAWSKMSKey creates a new AWS KMS key with the provided private key and alias.
+// It imports the private key material into the KMS key and creates an alias for it.
 //
 //nolint:unused
-func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion string, awsURL string, privateKeyAlias string) (*string, error) {
+func createAWSKMSKey(ctx context.Context, privateKey string, awsAccessKey, awsSecretKey, awsRegion string, awsURL string, privateKeyAlias string) (*string, error) {
+	alias := "alias/" + privateKeyAlias
+
 	cfg, err := awsconfig.LoadDefaultConfig(
 		ctx,
 		awsconfig.WithRegion(awsRegion),
@@ -275,6 +288,36 @@ func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion s
 	}
 
 	svc := awskms.NewFromConfig(cfg, options...)
+
+	// Check if alias exists
+	listAliasesInput := &awskms.ListAliasesInput{}
+	aliases, err := svc.ListAliases(ctx, listAliasesInput)
+	if err != nil {
+		log.Error(ctx, "cannot list aliases", "err", err)
+		return nil, err
+	}
+	for _, a := range aliases.Aliases {
+		if a.AliasName != nil && *a.AliasName == alias {
+			return nil, fmt.Errorf("alias %s already exists", alias)
+		}
+	}
+
+	privBytes, err := hex.DecodeString(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding private key: %w", err)
+	}
+
+	privKey, err := crypto.ToECDSA(privBytes)
+	if err != nil {
+		return nil, fmt.Errorf("error converting private key to ECDSA: %w", err)
+	}
+
+	privKey.Curve = secp256k1.S256()
+	der, err := PKCS8DER.MarshalECPrivateKeyToPKCS8DER(privKey)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling private key to PKCS8 DER: %w", err)
+	}
+
 	input := &awskms.CreateKeyInput{
 		KeySpec:     types.KeySpecEccSecgP256k1,
 		KeyUsage:    types.KeyUsageTypeSignVerify,
@@ -282,16 +325,46 @@ func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion s
 		Description: aws.String("imported key"),
 	}
 
-	result, err := svc.CreateKey(ctx, input)
+	createOutput, err := svc.CreateKey(ctx, input)
 	if err != nil {
 		log.Error(ctx, "cannot create key", "err", err)
 		return nil, err
 	}
+	keyID := *createOutput.KeyMetadata.KeyId
+	params, err := svc.GetParametersForImport(ctx, &awskms.GetParametersForImportInput{
+		KeyId:             aws.String(keyID),
+		WrappingAlgorithm: types.AlgorithmSpecRsaesOaepSha256,
+		WrappingKeySpec:   types.WrappingKeySpecRsa2048,
+	})
+	if err != nil {
+		log.Error(ctx, "cannot get parameters for import", "err", err)
+		return nil, err
+	}
 
-	alias := "alias/" + privateKeyAlias
+	rsaPubKey, err := x509.ParsePKIXPublicKey(params.PublicKey)
+	if err != nil {
+		log.Error(ctx, "cannot parse public key", "err", err)
+		return nil, err
+	}
+	encryptedKey, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, rsaPubKey.(*rsa.PublicKey), der, nil)
+	if err != nil {
+		log.Error(ctx, "cannot encrypt key material", "err", err)
+		return nil, err
+	}
+	_, err = svc.ImportKeyMaterial(ctx, &awskms.ImportKeyMaterialInput{
+		KeyId:                aws.String(keyID),
+		ImportToken:          params.ImportToken,
+		EncryptedKeyMaterial: encryptedKey,
+		ExpirationModel:      types.ExpirationModelTypeKeyMaterialDoesNotExpire,
+	})
+	if err != nil {
+		log.Error(ctx, "cannot import key material", "err", err)
+		return nil, err
+	}
+
 	inputAlias := &awskms.CreateAliasInput{
 		AliasName:   aws.String(alias),
-		TargetKeyId: result.KeyMetadata.Arn,
+		TargetKeyId: createOutput.KeyMetadata.Arn,
 	}
 
 	_, err = svc.CreateAlias(ctx, inputAlias)
@@ -300,7 +373,7 @@ func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion s
 	}
 
 	log.Info(ctx, "alias created:", "alias:", alias)
-	return result.KeyMetadata.KeyId, nil
+	return createOutput.KeyMetadata.KeyId, nil
 }
 
 func saveKeyMaterialToFile(ctx context.Context, folderPath, file string, keyMaterial map[string]string) error {

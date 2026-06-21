@@ -45,6 +45,8 @@ func TestServer_CreateLink(t *testing.T) {
 
 	handler := getHandler(ctx, server)
 
+	expiration := time.Now().Add(time.Hour)
+
 	type expected struct {
 		response CreateLinkResponseObject
 		httpCode int
@@ -69,7 +71,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(expiration),
 				CredentialExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
@@ -86,7 +88,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(expiration),
 				CredentialExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
@@ -120,7 +122,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(expiration),
 				CredentialExpiration: nil,
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
@@ -154,7 +156,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(expiration),
 				CredentialExpiration: common.ToPointer(time.Date(2020, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{},
@@ -171,7 +173,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
-				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(expiration),
 				CredentialExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": true},
@@ -188,7 +190,7 @@ func TestServer_CreateLink(t *testing.T) {
 			auth: authOk,
 			body: CreateLinkRequest{
 				SchemaID:             uuid.New(),
-				Expiration:           common.ToPointer(time.Date(2030, 8, 15, 14, 30, 45, 100, time.Local)),
+				Expiration:           common.ToPointer(expiration),
 				CredentialExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},

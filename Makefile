@@ -216,46 +216,20 @@ lint-fix: $(BIN)/golangci-lint
 import-private-key-to-kms:
 ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws-kms)
 	@echo ">>> importing private key to AWS KMS"
-	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
-    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
-    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) \
-    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_URL=$(aws_endpoint) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
-	$(eval result = $(shell docker run -it -v ./.env-issuer:/.env-issuer  \
-		--network issuer-network \
-		privadoid-kms-importer ./kms_priv_key_importer))
-	@echo "result: $(result)"
-	$(eval keyID = $(shell echo $(result) | grep "key created keyId=" | sed 's/.*keyId=//'))
-	@if [ -n "$(keyID)" ]; then \
-		docker run -it --rm -v ./.env-issuer:/.env-issuer --network issuer-network \
-			privadoid-kms-importer sh ./aws_kms_material_key_importer.sh $(private_key) $(keyID) privadoid $(aws_endpoint) ; \
-	else \
-		echo "something went wrong because keyID is empty"; \
-	fi
+	@go build -o kms_priv_key_importer cmd/kms_priv_key_importer/main.go
+	./kms_priv_key_importer --privateKey=$(private_key)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws-sm)
 	@echo ">>> importing private key to AWS Secrets Manager"
-	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
-    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
-    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) \
-    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_URL=$(aws_endpoint) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
-	$(eval result=$(shell docker run -it -v ./.env-issuer:/.env-issuer  \
-		--network issuer-network \
-		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)))
-	@echo "$(result)"
+	@go build -o kms_priv_key_importer cmd/kms_priv_key_importer/main.go
+	./kms_priv_key_importer --privateKey=$(private_key)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
 	echo ">>> importing private key to LOCALSTORAGE"
-	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
-	@if [ ! -f "$(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json" ]; then \
-	  mkdir -p $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH); \
-	  touch $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
-	  echo "[]" > $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
-	fi
-	docker run --rm -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
-	privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+	@go build -o kms_priv_key_importer cmd/kms_priv_key_importer/main.go
+	./kms_priv_key_importer --privateKey=$(private_key)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
-	@echo ">>> importing private key to VAULT"
-	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
-	docker run --rm -it -v ./.env-issuer:/.env-issuer --network issuer-network \
-		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+	echo ">>> importing private key to Vault"
+	@go build -o kms_priv_key_importer cmd/kms_priv_key_importer/main.go
+	./kms_priv_key_importer --privateKey=$(private_key)
 else
 	@echo "ISSUER_KMS_ETH_PROVIDER is not set"
 endif
