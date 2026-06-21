@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	requestURI           = "%s/v2/qr-store?id=%s"
-	requestURIWithIssuer = "%s/v2/qr-store?id=%s&issuer=%s"
+	requestURI           = "%s/public/v2/qr-store?id=%s"
+	requestURIWithIssuer = "%s/public/v2/qr-store?id=%s&issuer=%s"
 )
 
 // NewDeepLink creates a deep link

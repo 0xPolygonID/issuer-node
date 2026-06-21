@@ -11,7 +11,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/network"
 )
 
-const resolversLength = 3
+const (
+	resolversLength = 3
+	agentURL        = "%s/public/v2/agent"
+)
 
 type revocationCredentialStatusResolver interface {
 	resolve(credentialStatusSettings network.RhsSettings, issuerDID w3c.DID, nonce uint64, issuerState string) *verifiable.CredentialStatus

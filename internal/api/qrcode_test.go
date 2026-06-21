@@ -132,7 +132,7 @@ func TestServer_GetQrFromStore(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v2/qr-store?id=%s&issuer=%s", tc.request.Params.Id, *tc.request.Params.Issuer)
+			url := fmt.Sprintf("/public/v2/qr-store?id=%s&issuer=%s", tc.request.Params.Id, *tc.request.Params.Issuer)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			assert.NoError(t, err)
 			handler.ServeHTTP(rr, req)

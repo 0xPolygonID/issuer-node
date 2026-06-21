@@ -996,7 +996,7 @@ func TestServer_CreateLinkOffer(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				callBack := cfg.ServerUrl + fmt.Sprintf("/v2/identities/%s/credentials/links/callback?", iden.Identifier)
+				callBack := cfg.ServerUrl + fmt.Sprintf("/public/v2/identities/%s/credentials/links/callback?", iden.Identifier)
 				var response CreateLinkOffer200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 
