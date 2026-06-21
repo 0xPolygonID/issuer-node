@@ -5,7 +5,7 @@
 
 Streamline the **Verifiable Credentials issuance** process with the user-friendly API and UI of the Issuer Node within the Privado ID ecosystem. The on-premise (self-hosted) Issuer Node, seamlessly integrated with a robust suite of tools including the mobile Wallet, Schema Builder, and Credential Marketplace, guarantees a frictionless experience for effortlessly issuing and verifying credentials.
 
-![Triagle-of-trust](docs/assets/img/triangle-of-trust.png)
+![Triangle-of-trust](docs/assets/img/triangle-of-trust.png)
 
 **Features:**
 
@@ -192,7 +192,8 @@ make build-api && make run-api
 
 In order to **stop all** the containers, run the following command:
 
-> [!NOTE] This will not delete the data in the vault and the database.
+> [!NOTE] 
+> This will not delete the data in the vault and the database.
 
 ``` bash
 make stop-all
@@ -277,7 +278,7 @@ After configuring the variables, run the following commands:
 make up
 ```
 
-Then you must run the command to import the ethereum private key to the kms.:
+Then you must run the command to import the ethereum private key to the kms:
 
 ```shell
 make private_key <private-key> import-private-key-to-kms`
@@ -336,4 +337,4 @@ This [Quick Start Demo](https://docs.privado.id/docs/quick-start-demo) will walk
 
 ## License
 
-By contributing to this project, you agree to the terms of licenses [Apache](LICENSE-APACHE) and [Mit](LICENSE-MIT).
+By contributing to this project, you agree to the terms of licenses [Apache](LICENSE-APACHE) and [MIT](LICENSE-MIT).
