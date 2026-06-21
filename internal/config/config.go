@@ -83,6 +83,7 @@ type Database struct {
 type Cache struct {
 	Provider string `env:"ISSUER_CACHE_PROVIDER" envDefault:"redis"`
 	Url      string `env:"ISSUER_CACHE_URL"`
+	TLS			 bool   `env:"ISSUER_CACHE_TLS" envDefault:"false"`
 }
 
 // IPFS configurations
