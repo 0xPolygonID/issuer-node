@@ -38,6 +38,7 @@ var (
 	cfg             config.Configuration
 	identityService ports.IdentityService
 	claimsService   ports.ClaimService
+	keyService      ports.KeyService
 )
 
 const ipfsGatewayURL = "http://127.0.0.1:8080"
@@ -149,7 +150,7 @@ func TestMain(m *testing.M) {
 	schemaLoader := loader.NewDocumentLoader(ipfsGatewayURL, false)
 	identityService = NewIdentity(keyStore, identityRepository, idenMerkleTreeRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionRepository, s, nil, sessionsRepository, pubSub, *networkResolver, rhsFactory, revocationStatusResolver, keyRepository)
 	claimsService = NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
-
+	keyService = NewKey(keyStore, claimsService, keyRepository)
 	m.Run()
 }
 
