@@ -1,4 +1,4 @@
-FROM golang:1.24 AS base
+FROM golang:1.26 AS base
 ARG VERSION
 WORKDIR /service
 ENV GOBIN=/service/bin

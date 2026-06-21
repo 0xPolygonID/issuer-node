@@ -84,7 +84,7 @@ services:
     command: ./vault/scripts/init.sh
 
   localstack:
-    image: localstack/localstack:2026.3
+    image: localstack/localstack:latest
     ports:
       - "4566:4566"
     environment:

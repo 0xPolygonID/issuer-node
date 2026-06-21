@@ -35,7 +35,7 @@ RETURNING identifier, nonce, version, status, description`,
 		revs = append(revs, &revoke)
 	}
 	if rows.Err() != nil {
-		return nil, err
+		return nil, rows.Err()
 	}
 
 	return revs, nil

@@ -164,7 +164,7 @@ SELECT issuer FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FRO
 	}
 
 	if rows.Err() != nil {
-		return nil, err
+		return nil, rows.Err()
 	}
 
 	return issuersIDs, nil
