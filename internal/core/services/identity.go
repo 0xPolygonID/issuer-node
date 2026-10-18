@@ -496,7 +496,7 @@ func (i *identity) AuthenticateWithRequest(ctx context.Context, sessionID *uuid.
 	}
 	var connID uuid.UUID
 	if err := i.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
-		connID, err = i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
+		connID, err = i.connectionsRepository.Save(ctx, tx, conn)
 		if err != nil {
 			return err
 		}
@@ -504,7 +504,7 @@ func (i *identity) AuthenticateWithRequest(ctx context.Context, sessionID *uuid.
 		if sessionID == nil {
 			sessionID = common.ToPointer(uuid.New())
 		}
-		return i.connectionsRepository.SaveUserAuthentication(ctx, i.storage.Pgx, connID, *sessionID, conn.CreatedAt)
+		return i.connectionsRepository.SaveUserAuthentication(ctx, tx, connID, *sessionID, conn.CreatedAt)
 	}); err != nil {
 		return nil, err
 	}

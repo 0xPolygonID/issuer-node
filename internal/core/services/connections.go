@@ -35,7 +35,7 @@ func NewConnection(connRepo ports.ConnectionRepository, claimsRepo ports.ClaimRe
 
 func (c *connection) Create(ctx context.Context, connection *domain.Connection) error {
 	return c.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
-		_, err := c.connRepo.Save(ctx, c.storage.Pgx, connection)
+		_, err := c.connRepo.Save(ctx, tx, connection)
 		return err
 	})
 }
