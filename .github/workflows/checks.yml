@@ -7,7 +7,7 @@ jobs:
     name: Test codebase
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: Create .env-issuer and .env-ui files
         run: |
           touch .env-issuer
@@ -25,7 +25,7 @@ jobs:
             localstack
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -33,3 +33,25 @@ jobs:
       - run: make tests
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
+
+  # Chained here because workflow_run triggers are disabled by repo policy.
+  dockerhub-dev:
+    needs: test
+    if: github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/dockerhub-dev.yml
+    secrets: inherit
+
+  dockerhub-main:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/dockerhub-main.yml
+    secrets: inherit
+
+  deploy-backend:
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    permissions:
+      id-token: write
+      contents: write
+    uses: ./.github/workflows/deploy_backend.yml
+    secrets: inherit
