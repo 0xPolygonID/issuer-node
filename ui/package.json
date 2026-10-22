@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@iden3/eslint-config-react-ts": "^2.0.0",
-    "@types/node": "^22.7.5",
+    "@types/node": "^24.19.2",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/react-syntax-highlighter": "^15.5.13",
@@ -86,7 +86,7 @@
     ]
   },
   "engines": {
-    "node": ">=20",
+    "node": "^24.22.1 || ^26.12.1",
     "npm": ">=10"
   },
   "overrides": {
