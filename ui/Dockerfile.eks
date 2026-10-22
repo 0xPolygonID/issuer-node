@@ -1,6 +1,6 @@
 # check=skip=SecretsUsedInArgOrEnv
 # ── Stage 1: build ───────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:24.22.1-alpine3.24 AS builder
 
 WORKDIR /app
 
@@ -49,7 +49,7 @@ RUN npm run build
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM nginx:alpine
 
-RUN apk add --update apache2-utils
+RUN apk add --no-cache apache2-utils
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY deployment/ /app/deployment/
