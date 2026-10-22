@@ -27,6 +27,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
     - [Run Issuer Node API and UI (docker compose with images from privadoid dockerhub registry)](#run-issuer-node-api-and-ui-docker-compose-with-images-from-privadoid-registry)
     - [Install and run Issuer Node API and UI (docker compose and build from source)](#install-and-run-issuer-node-api-and-ui---docker-compose-and-build-from-source)
     - [Running only Issuer Node API (docker compose and build from source)](#running-only-issuer-node-api-docker-compose-and-build-from-source)
+    - [Development (UI)](#development-ui)
   - [KMS Providers Configuration](#kms-providers-configuration)
     - [Vault](#Running-issuer-node-with-vault-instead-of-local-storage-file)
     - [AWS Secret Manager](#Running-issuer-node-with-AWS-Secret-Manager)
@@ -220,6 +221,16 @@ To restart the api after changes (pull code with changes):
 
 ```bash 
 make build && make run
+```
+
+### Development (UI)
+Local UI development requires the Node.js version in the `engines` field of `ui/package.json` and npm `>= 10`. In `ui/.env`, set the `VITE_*` values: `VITE_API_URL`, `VITE_API_USERNAME` and `VITE_API_PASSWORD` must match `ISSUER_SERVER_URL`, `ISSUER_API_AUTH_USER` and `ISSUER_API_AUTH_PASSWORD` in `.env-issuer`.
+
+```bash
+cd ui
+cp .env.sample .env
+npm ci --legacy-peer-deps
+npm start
 ```
 
 ### KMS Providers Configuration
