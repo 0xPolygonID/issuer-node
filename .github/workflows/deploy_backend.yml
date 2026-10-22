@@ -1,11 +1,7 @@
 name: Deploy Issuer Node Backend to Demo AWS Environment
 
 on:
-  workflow_run:
-    workflows: ["Checks"]
-    branches:  ["main", "develop"]
-    types:
-      - completed
+  workflow_call:
 
 env:
   AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
@@ -15,23 +11,20 @@ env:
 jobs:
   build-backend:
     environment:
-      name: ${{ github.event.workflow_run.head_branch }}
+      name: ${{ github.ref_name }}
     name: build and push latest image to AWS Environment
     permissions:
       id-token: write
       contents: write
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_branch }}
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: actions/cache@v3
+      - uses: actions/cache@v6
         with:
           path: |
             ~/go/pkg/mod
@@ -61,7 +54,7 @@ jobs:
         id: login-ecr
 
       - name: Get version
-        run: echo "::set-output name=VERSION::$(git rev-parse --short HEAD)"
+        run: echo "VERSION=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
         id: version
 
       - name: Tag and push image
@@ -78,7 +71,7 @@ jobs:
 
       - name: Configure AWS credentials Billions SH
         uses: aws-actions/configure-aws-credentials@v1-node16
-        if: github.event.workflow_run.head_branch == 'main'
+        if: github.ref_name == 'main'
         with:
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID_BSH }}:role/BillionsActionsRole
@@ -86,11 +79,11 @@ jobs:
 
       - name: Login to Amazon ECR Billions SH
         uses: aws-actions/amazon-ecr-login@v1
-        if: github.event.workflow_run.head_branch == 'main'
+        if: github.ref_name == 'main'
         id: login-ecr-bsh
 
       - name: Tag and push image Billions SH
-        if: github.event.workflow_run.head_branch == 'main'
+        if: github.ref_name == 'main'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr-bsh.outputs.registry }}
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY_BSH }}
