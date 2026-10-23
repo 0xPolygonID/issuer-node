@@ -301,12 +301,12 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, issuerDID w3c.DID, userDI
 		err = ls.storage.Pgx.BeginFunc(ctx,
 			func(tx pgx.Tx) error {
 				link.IssuedClaims += 1
-				_, err := ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
+				_, err := ls.linkRepository.Save(ctx, tx, link)
 				if err != nil {
 					return err
 				}
 
-				credentialIssuedID, err = ls.claimRepository.Save(ctx, ls.storage.Pgx, credentialIssued)
+				credentialIssuedID, err = ls.claimRepository.Save(ctx, tx, credentialIssued)
 				if err != nil {
 					return err
 				}
